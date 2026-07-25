@@ -1505,17 +1505,22 @@ body{
         const base = data.base || {};
         const mods = data.mods || {};
         const attrOrder = ['for','con','des','int','von','car'];
-        const attrsHtml = attrOrder.map(k=>{
-          const total = (parseFloat(base[k])||0) + (parseFloat(mods[k])||0);
-          return `<span>${statLabels[k]} <strong>${total}</strong></span>`;
-        }).join('');
+        const totalsCalc = {};
+        attrOrder.forEach(k=>{
+          totalsCalc[k] = (parseFloat(base[k])||0) + (parseFloat(mods[k])||0);
+        });
+        const attrsHtml = attrOrder.map(k=> `<span>${statLabels[k]} <strong>${totalsCalc[k]}</strong></span>`).join('');
+        const vidaMaxCalc = totalsCalc.for + totalsCalc.con;
+        const manaMaxCalc = totalsCalc.int + totalsCalc.von;
+        const curVidaVal = (data.curVida === undefined || data.curVida === null || data.curVida === '') ? vidaMaxCalc : data.curVida;
+        const curManaVal = (data.curMana === undefined || data.curMana === null || data.curMana === '') ? manaMaxCalc : data.curMana;
         const card = document.createElement('div');
         card.className = 'master-card';
         card.innerHTML = `
           <div>
             <div class="mc-name">${escapeHtml(data.nome||'(sem nome)')} <span style="color:var(--ink-faint);font-weight:400;">— Nv. ${level}</span></div>
             <div class="mc-meta">${escapeHtml(data.classe||'')} · ${escapeHtml(data.raca||'')} · ${escapeHtml(data.deidade||'')}</div>
-            <div class="mc-vitals">Vida ${escapeHtml(String(data.curVida ?? '?'))} · Mana ${escapeHtml(String(data.curMana ?? '?'))} · Gill ${escapeHtml(String(data.gill ?? 0))}</div>
+            <div class="mc-vitals">Vida ${escapeHtml(String(curVidaVal))} / ${vidaMaxCalc} · Mana ${escapeHtml(String(curManaVal))} / ${manaMaxCalc} · Gill ${escapeHtml(String(data.gill ?? 0))}</div>
             <div class="mc-attrs">${attrsHtml}</div>
           </div>
           <div class="mc-actions">
