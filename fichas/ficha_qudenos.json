@@ -39,9 +39,87 @@
     {
       "nome": "",
       "qtd": "0"
+    },
+    {
+      "nome": "",
+      "qtd": "0"
+    },
+    {
+      "nome": "",
+      "qtd": "0"
+    },
+    {
+      "nome": "",
+      "qtd": "0"
+    },
+    {
+      "nome": "",
+      "qtd": "0"
+    },
+    {
+      "nome": "",
+      "qtd": "0"
+    },
+    {
+      "nome": "",
+      "qtd": "0"
+    },
+    {
+      "nome": "",
+      "qtd": "0"
     }
   ],
   "habilidades": [
+    {
+      "stat": "for",
+      "texto": "",
+      "danoBase": "0"
+    },
+    {
+      "stat": "for",
+      "texto": "",
+      "danoBase": "0"
+    },
+    {
+      "stat": "for",
+      "texto": "",
+      "danoBase": "0"
+    },
+    {
+      "stat": "for",
+      "texto": "",
+      "danoBase": "0"
+    },
+    {
+      "stat": "for",
+      "texto": "",
+      "danoBase": "0"
+    },
+    {
+      "stat": "for",
+      "texto": "",
+      "danoBase": "0"
+    },
+    {
+      "stat": "for",
+      "texto": "",
+      "danoBase": "0"
+    },
+    {
+      "stat": "for",
+      "texto": "",
+      "danoBase": "0"
+    },
+    {
+      "stat": "for",
+      "texto": "",
+      "danoBase": "0"
+    },
+    {
+      "stat": "for",
+      "texto": "",
+      "danoBase": "0"
+    },
     {
       "stat": "for",
       "texto": "",
