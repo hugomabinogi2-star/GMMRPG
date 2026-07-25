@@ -137,9 +137,12 @@ body{
   display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;
   background:rgba(120,85,40,.06);
 }
-.master-card .mc-name{font-family:'Cinzel',serif;font-size:14px;color:var(--ink);}
+.master-card .mc-name{font-family:'Cinzel Decorative',serif;font-size:18px;font-weight:700;color:var(--wax-dark);letter-spacing:.02em;text-shadow:0 1px 0 rgba(255,255,255,.3);}
 .master-card .mc-meta{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
 .master-card .mc-vitals{font-size:11px;color:var(--ink-faint);margin-top:3px;}
+.master-card .mc-attrs{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:11px;color:var(--ink-soft);}
+.master-card .mc-attrs span{font-family:'Cinzel',serif;letter-spacing:.03em;}
+.master-card .mc-attrs strong{color:var(--ink);font-family:'Inter',sans-serif;}
 .master-card .mc-actions{display:flex;flex-direction:column;gap:6px;}
 .master-card button{
   font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
@@ -837,7 +840,7 @@ body{
             </div>
             <div class="panel">
               <h2>Habilidades</h2>
-              <div class="skill-legend"><span>Status</span><span>Habilidade</span><span>Dano</span><span>Total</span><span></span></div>
+              <div class="skill-legend"><span>Status</span><span>Habilidade</span><span>Custo</span><span>Dano</span><span></span></div>
               <div class="list-rows" id="skillRows"></div>
               <button class="add-row-btn" id="addSkill">+ adicionar habilidade</button>
             </div>
@@ -983,16 +986,24 @@ body{
     els.valAr.textContent = Math.floor(ar);
     els.valAp.textContent = Math.floor(ap);
 
-    // clamp current vida/mana visually if above max
-    if(num(els.curVida) > vidaMax) els.curVida.value = vidaMax;
+    // clamp mana ao máximo — vida pode passar do máximo (overheal), tratado abaixo
     if(num(els.curMana) > manaMax) els.curMana.value = manaMax;
 
     // pie charts — fatia colorida = vida/mana restante, fatia preta = perdida
-    const vidaPct = vidaMax > 0 ? Math.max(0, Math.min(1, num(els.curVida)/vidaMax)) * 100 : 0;
+    const vidaRatio = vidaMax > 0 ? num(els.curVida)/vidaMax : 0;
     const manaPct = manaMax > 0 ? Math.max(0, Math.min(1, num(els.curMana)/manaMax)) * 100 : 0;
-    els.pieVida.style.background = `conic-gradient(#a11f1f 0% ${vidaPct}%, #14100c ${vidaPct}% 100%)`;
+
+    if(vidaRatio <= 1){
+      // dentro do normal: vermelho = vida atual, preto = vida perdida
+      const vidaPct = Math.max(0, vidaRatio) * 100;
+      els.pieVida.style.background = `conic-gradient(#a11f1f 0% ${vidaPct}%, #14100c ${vidaPct}% 100%)`;
+    } else {
+      // acima do máximo (overheal): verde cresce a partir do início, substituindo o vermelho
+      const overflowPct = Math.min(1, vidaRatio - 1) * 100;
+      els.pieVida.style.background = `conic-gradient(#2f8f3f 0% ${overflowPct}%, #a11f1f ${overflowPct}% 100%)`;
+    }
     els.pieMana.style.background = `conic-gradient(#1f5fa1 0% ${manaPct}%, #14100c ${manaPct}% 100%)`;
-    els.pieVidaPct.textContent = Math.round(vidaPct) + '%';
+    els.pieVidaPct.textContent = Math.round(vidaRatio * 100) + '%';
     els.pieManaPct.textContent = Math.round(manaPct) + '%';
 
     // barra de XP — enche a cada bloco de 10 e reseta
@@ -1010,8 +1021,8 @@ body{
     }
   });
 
-  $('refill_vida').addEventListener('click', ()=>{ els.curVida.value = els.maxVida.textContent; });
-  $('refill_mana').addEventListener('click', ()=>{ els.curMana.value = els.maxMana.textContent; });
+  $('refill_vida').addEventListener('click', ()=>{ els.curVida.value = els.maxVida.textContent; recalc(); });
+  $('refill_mana').addEventListener('click', ()=>{ els.curMana.value = els.maxMana.textContent; recalc(); });
 
   // ---------- portrait ----------
   const portraitBox = $('portrait');
@@ -1491,6 +1502,13 @@ body{
       sheets.forEach(({path, sha, data})=>{
         const xp = parseFloat(data.xp)||0;
         const level = Math.floor(1 + xp/10);
+        const base = data.base || {};
+        const mods = data.mods || {};
+        const attrOrder = ['for','con','des','int','von','car'];
+        const attrsHtml = attrOrder.map(k=>{
+          const total = (parseFloat(base[k])||0) + (parseFloat(mods[k])||0);
+          return `<span>${statLabels[k]} <strong>${total}</strong></span>`;
+        }).join('');
         const card = document.createElement('div');
         card.className = 'master-card';
         card.innerHTML = `
@@ -1498,6 +1516,7 @@ body{
             <div class="mc-name">${escapeHtml(data.nome||'(sem nome)')} <span style="color:var(--ink-faint);font-weight:400;">— Nv. ${level}</span></div>
             <div class="mc-meta">${escapeHtml(data.classe||'')} · ${escapeHtml(data.raca||'')} · ${escapeHtml(data.deidade||'')}</div>
             <div class="mc-vitals">Vida ${escapeHtml(String(data.curVida ?? '?'))} · Mana ${escapeHtml(String(data.curMana ?? '?'))} · Gill ${escapeHtml(String(data.gill ?? 0))}</div>
+            <div class="mc-attrs">${attrsHtml}</div>
           </div>
           <div class="mc-actions">
             <button class="mc-view">Ver ficha</button>
