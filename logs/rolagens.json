@@ -1,13 +1,6 @@
 [
   {
     "nome": "Van",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 18,
-    "ts": 1785078655424
-  },
-  {
-    "nome": "Van",
     "tipo": "dano",
     "resultado": 8,
     "ts": 1785078688273
@@ -67,5 +60,12 @@
     "statKey": "for",
     "resultado": 12,
     "ts": 1785081622870
+  },
+  {
+    "nome": "Van",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 4,
+    "ts": 1785081624407
   }
 ]
