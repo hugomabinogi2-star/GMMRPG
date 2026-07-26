@@ -1955,7 +1955,7 @@ body{
 
   // ---------- histórico compartilhado de rolagens ----------
   const ROLL_LOG_PATH = 'logs/rolagens.json';
-  const ROLL_LOG_MAX = 60; // mantém só as rolagens mais recentes, pra não inchar o arquivo
+  const ROLL_LOG_MAX = 10; // mantém só as rolagens mais recentes, pra não inchar o arquivo
   const statFullNames = { for:'Força', des:'Destreza', con:'Constituição', int:'Inteligência', von:'Vontade', car:'Carisma' };
 
   // Registra uma rolagem no histórico compartilhado. Falha silenciosamente (sem travar a rolagem)
