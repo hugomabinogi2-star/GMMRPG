@@ -194,6 +194,142 @@
           "resumo": "Ao utilizar Heroísmo, recupera completamente a mana."
         }
       ]
+    },
+    "Clérigo": {
+      "von": [
+        {
+          "nome": "Esmagar com o Escudo",
+          "custo": 0,
+          "resumo": "Aplica um ataque com o escudo. Caso o ataque seja um acerto garantido ou cause o dano máximo, o inimigo fica paralisado por um turno."
+        },
+        {
+          "nome": "Postura Defensiva",
+          "custo": 0,
+          "resumo": "O personagem entra em postura defensiva, adicionando o resultado do rolamento de dano ao AR pelo próximo turno."
+        },
+        {
+          "nome": "Perseverança",
+          "custo": 0,
+          "resumo": "O personagem entra em postura defensiva, adicionando o resultado do rolamento de dano ao AP pelo próximo turno."
+        },
+        {
+          "nome": "Sacrifício",
+          "custo": 0,
+          "resumo": "O personagem realiza um ataque poderoso que adiciona o total do AR ao dano, porém recebe metade do dano total do ataque."
+        }
+      ],
+      "con": [
+        {
+          "nome": "Agarrar",
+          "custo": 0,
+          "resumo": "Segura o inimigo, cancelando o turno dele ao custo do seu. O inimigo precisa realizar um teste com resultado igual ou maior ao seu teste de dano neste turno para conseguir se soltar."
+        },
+        {
+          "nome": "Meditar",
+          "custo": 0,
+          "resumo": "Ao custo de um turno não consecutivo, recupera uma quantidade de mana igual ao resultado de um rolamento de dano."
+        },
+        {
+          "nome": "Segundo Vento",
+          "custo": 0,
+          "resumo": "Ao custo de um turno não consecutivo, recupera uma quantidade de vida igual ao resultado de um rolamento de dano."
+        },
+        {
+          "nome": "Heroísmo",
+          "custo": 0,
+          "resumo": "Uma vez por combate, ao chegar a 0 de vida, recupera o resultado de um rolamento de dano como vida."
+        }
+      ],
+      "passivas": [
+        {
+          "nome": "Estrela Guia",
+          "custo": 0,
+          "resumo": "Ao aplicar paralisia, escolha um aliado para atacar o alvo sem custo de turno. Caso o ataque acerte, ele remove a paralisia."
+        },
+        {
+          "nome": "",
+          "custo": 0,
+          "resumo": "Remove as restrições de Meditar. Ao utilizar Meditar, o clérigo pode optar em remover um efeito de um aliado ao custo da recuperação de mana."
+        },
+        {
+          "nome": "Curandeiro",
+          "custo": 0,
+          "resumo": "Remove as restrições de Segundo Vento. Além disso, agora é possível que o clérigo use Segundo Vento em outros personagens como uma magia de cura."
+        },
+        {
+          "nome": "Inspiração Divina",
+          "custo": 0,
+          "resumo": "Na presença do clérigo, todos os aliados ganham uma carga adicional de Heroísmo (não acumula)."
+        }
+      ]
+    },
+    "Bardo": {
+      "car": [
+        {
+          "nome": "Forte",
+          "custo": 0,
+          "resumo": "Realiza um ataque sonoro a um inimigo."
+        },
+        {
+          "nome": "Acorde",
+          "custo": 0,
+          "resumo": "Ao custo do turno, o bardo pode manter uma música durante uma quantidade de turnos indefinida, que é cancelada ao receber um ataque."
+        },
+        {
+          "nome": "Desacorde",
+          "custo": 0,
+          "resumo": "O bardo realiza um ataque sônico com um dado extra de dano para cada turno em que Acorde foi mantido."
+        },
+        {
+          "nome": "Fortíssimo",
+          "custo": 0,
+          "resumo": "Realiza um ataque sônico em todos os inimigos."
+        }
+      ],
+      "con": [
+        {
+          "nome": "Agarrar",
+          "custo": 0,
+          "resumo": "Segura o inimigo, cancelando o turno dele ao custo do seu. O inimigo precisa realizar um teste com resultado igual ou maior ao seu teste de dano neste turno para conseguir se soltar."
+        },
+        {
+          "nome": "Meditar",
+          "custo": 0,
+          "resumo": "Ao custo de um turno não consecutivo, recupera uma quantidade de mana igual ao resultado de um rolamento de dano."
+        },
+        {
+          "nome": "Segundo Vento",
+          "custo": 0,
+          "resumo": "Ao custo de um turno não consecutivo, recupera uma quantidade de vida igual ao resultado de um rolamento de dano."
+        },
+        {
+          "nome": "Heroísmo",
+          "custo": 0,
+          "resumo": "Uma vez por combate, ao chegar a 0 de vida, recupera o resultado de um rolamento de dano como vida."
+        }
+      ],
+      "passivas": [
+        {
+          "nome": "Artista da Espada",
+          "custo": 0,
+          "resumo": "Ao utilizar uma espada de duelo, utiliza CAR em vez de DES para os ataques."
+        },
+        {
+          "nome": "Melodia Calma",
+          "custo": 0,
+          "resumo": "Acorde pode aplicar os efeitos de Meditar aos aliados."
+        },
+        {
+          "nome": "Melodia Revigorante",
+          "custo": 0,
+          "resumo": "Acorde pode aplicar os efeitos de Segundo Vento aos aliados."
+        },
+        {
+          "nome": "Melodia Irresistível",
+          "custo": 0,
+          "resumo": "Se Fortíssimo for utilizado após Acorde, todos os inimigos afetados perdem o próximo turno."
+        }
+      ]
     }
   }
 }
