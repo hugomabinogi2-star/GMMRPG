@@ -3,13 +3,6 @@
     "nome": "Van",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 4,
-    "ts": 1785081624407
-  },
-  {
-    "nome": "Van",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 17,
     "ts": 1785081625822
   },
@@ -79,5 +72,13 @@
     "resultado": 9,
     "resultLabel": "Erro",
     "ts": 1785094969538
+  },
+  {
+    "nome": "Qudenos",
+    "tipo": "atributo",
+    "statKey": "car",
+    "resultado": 14,
+    "resultLabel": "Acerto",
+    "ts": 1785094978630
   }
 ]
