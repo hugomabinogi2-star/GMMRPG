@@ -1317,7 +1317,12 @@ body{
 
     rollBtn.disabled = false;
 
-    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'atributo', statKey: stat, resultado: roll, ts: Date.now() });
+    let resultLabel;
+    if(roll === 20) resultLabel = 'Acerto Garantido';
+    else if(roll === 1) resultLabel = 'Erro Crítico';
+    else resultLabel = verdict === 'acerto' ? 'Acerto' : 'Erro';
+
+    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'atributo', statKey: stat, resultado: roll, resultLabel, ts: Date.now() });
   }
 
   // ---------- rolagem de dano ----------
@@ -1403,7 +1408,7 @@ body{
     }
     rollDanoBtn.disabled = false;
 
-    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', resultado: total, ts: Date.now() });
+    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, rolls, resultado: total, ts: Date.now() });
   }
 
   // ---------- flip ----------
@@ -1980,10 +1985,15 @@ body{
   function formatRollMessage(entry){
     const nome = entry.nome || '(sem nome)';
     if(entry.tipo === 'dano'){
-      return `🎲 "${nome}" ROLOU DANO — RESULTADO **${entry.resultado}**`;
+      const qtd = entry.qtd || 1;
+      const detalhe = (Array.isArray(entry.rolls) && qtd > 1)
+        ? `${qtd}d${entry.maxVal}: [${entry.rolls.join(', ')}] = **${entry.resultado}**`
+        : `resultado **${entry.resultado}**`;
+      return `🎲 "${nome}" ROLOU DANO — ${detalhe}`;
     }
     const statNome = (statFullNames[entry.statKey] || entry.statKey || '').toUpperCase();
-    return `🎲 "${nome}" ROLOU "${statNome}" — RESULTADO **${entry.resultado}**`;
+    const label = entry.resultLabel ? ` (${entry.resultLabel})` : '';
+    return `🎲 "${nome}" ROLOU "${statNome}" — RESULTADO **${entry.resultado}**${label}`;
   }
 
   async function pushRollLog(entry){
@@ -2043,10 +2053,15 @@ body{
         const nome = escapeHtml(entry.nome || '(sem nome)');
         let texto;
         if(entry.tipo === 'dano'){
-          texto = `"${nome}" ROLOU DANO — RESULTADO ${escapeHtml(String(entry.resultado))}`;
+          const qtd = entry.qtd || 1;
+          const detalhe = (Array.isArray(entry.rolls) && qtd > 1)
+            ? `${qtd}d${escapeHtml(String(entry.maxVal))}: [${entry.rolls.map(r=>escapeHtml(String(r))).join(', ')}] = ${escapeHtml(String(entry.resultado))}`
+            : `resultado ${escapeHtml(String(entry.resultado))}`;
+          texto = `"${nome}" ROLOU DANO — ${detalhe}`;
         } else {
           const statNomeRaw = (statFullNames[entry.statKey] || entry.statKey || '').toUpperCase();
-          texto = `"${nome}" ROLOU "${escapeHtml(statNomeRaw)}" — RESULTADO ${escapeHtml(String(entry.resultado))}`;
+          const label = entry.resultLabel ? ` (${escapeHtml(entry.resultLabel)})` : '';
+          texto = `"${nome}" ROLOU "${escapeHtml(statNomeRaw)}" — RESULTADO ${escapeHtml(String(entry.resultado))}${label}`;
         }
         const hora = entry.ts ? new Date(entry.ts).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
         const row = document.createElement('div');
