@@ -3,13 +3,6 @@
     "nome": "Van",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 9,
-    "ts": 1785081618368
-  },
-  {
-    "nome": "Van",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 11,
     "ts": 1785081619969
   },
@@ -67,5 +60,16 @@
     "resultado": 10,
     "resultLabel": "Acerto",
     "ts": 1785082933803
+  },
+  {
+    "nome": "Van",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 9,
+    "rolls": [
+      8
+    ],
+    "resultado": 8,
+    "ts": 1785082965327
   }
 ]
