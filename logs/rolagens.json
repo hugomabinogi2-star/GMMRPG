@@ -3,13 +3,6 @@
     "nome": "Van",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 10,
-    "ts": 1785081621300
-  },
-  {
-    "nome": "Van",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 12,
     "ts": 1785081622870
   },
@@ -77,5 +70,13 @@
     ],
     "resultado": 19,
     "ts": 1785082979191
+  },
+  {
+    "nome": "Nemaveh",
+    "tipo": "atributo",
+    "statKey": "int",
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1785085283740
   }
 ]
