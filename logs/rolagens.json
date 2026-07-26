@@ -18,5 +18,12 @@
     "statKey": "for",
     "resultado": 3,
     "ts": 1785081596232
+  },
+  {
+    "nome": "Van",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 7,
+    "ts": 1785081611796
   }
 ]
