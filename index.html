@@ -1862,6 +1862,23 @@ body{
   const FICHAS_PATH   = 'fichas';
   const TOKEN_KEY      = 'rpg_ficha_github_token';
 
+  // Cole aqui a URL do Webhook do Discord (Configurações do canal → Integrações → Webhooks → Novo Webhook → Copiar URL).
+  // Deixe como '' pra desativar o espelhamento no Discord.
+  const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1530963962898939966/yACZl2EZJ9gZNR2yZ_wgTenzqyWpL5OO__za55S4YwMFTAm2UxLpg1-QBbVguiIgSNSh';
+
+  async function postToDiscord(content){
+    if(!DISCORD_WEBHOOK_URL) return;
+    try{
+      await fetch(DISCORD_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content })
+      });
+    }catch(err){
+      console.warn('Não foi possível postar no Discord:', err);
+    }
+  }
+
   function slugify(name){
     return String(name||'').trim().toLowerCase()
       .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'sem_nome';
@@ -1960,7 +1977,18 @@ body{
 
   // Registra uma rolagem no histórico compartilhado. Falha silenciosamente (sem travar a rolagem)
   // se não houver token configurado ou se der algum erro de rede/conflito.
+  function formatRollMessage(entry){
+    const nome = entry.nome || '(sem nome)';
+    if(entry.tipo === 'dano'){
+      return `🎲 "${nome}" ROLOU DANO — RESULTADO **${entry.resultado}**`;
+    }
+    const statNome = (statFullNames[entry.statKey] || entry.statKey || '').toUpperCase();
+    return `🎲 "${nome}" ROLOU "${statNome}" — RESULTADO **${entry.resultado}**`;
+  }
+
   async function pushRollLog(entry){
+    postToDiscord(formatRollMessage(entry)); // independe do token do GitHub
+
     if(!getToken()) return;
     try{
       const existing = await githubGetFileContent(ROLL_LOG_PATH).catch(()=>null);
@@ -2089,6 +2117,7 @@ body{
     try{
       await githubPutFile(path, state, `Salva ficha de ${state.nome}`);
       cloudSaveBtn.textContent = '✓ Salvo!';
+      postToDiscord(`💾 "${state.nome}" salvou a ficha na mesa.`);
     }catch(err){
       console.error(err);
       if(err.message === 'NO_TOKEN'){
