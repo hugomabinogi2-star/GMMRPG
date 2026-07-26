@@ -131,6 +131,14 @@ body{
 .modal-sub{font-size:12px;color:var(--ink-faint);margin:4px 0 14px;}
 .master-list{display:flex;flex-direction:column;gap:10px;}
 .master-empty{font-size:13px;color:var(--ink-faint);text-align:center;padding:20px 0;font-style:italic;}
+.roll-log-list{display:flex;flex-direction:column-reverse;gap:6px;max-height:60vh;overflow-y:auto;}
+.roll-log-entry{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  border-bottom:1px solid var(--ink-faint);padding:6px 2px;font-size:13px;
+}
+.roll-log-entry .rl-text{color:var(--ink);}
+.roll-log-entry .rl-text strong{color:var(--wax-dark);}
+.roll-log-entry .rl-time{color:var(--ink-faint);font-size:11px;white-space:nowrap;font-family:'Inter',sans-serif;}
 .master-card{
   border:1px solid var(--ink-faint);border-radius:5px;
   padding:10px 12px;
@@ -517,7 +525,8 @@ body{
 }
 
 /* dice roller */
-.dice-controls{display:flex;gap:8px;}
+.dice-controls{display:flex;gap:8px;align-items:center;}
+.dice-controls .dice-x{color:var(--ink-faint);font-family:'Cinzel',serif;font-size:13px;flex:0 0 auto;}
 .dice-controls select, .dice-controls input[type=number]{
   flex:1;
   width:0;
@@ -538,8 +547,35 @@ body{
 .dice-controls button:active{transform:translateY(1px);}
 .dice-display{
   display:flex;align-items:center;justify-content:center;gap:14px;
-  margin-top:12px;
+  margin-top:12px;flex-wrap:wrap;
 }
+.dice-roll-btn{
+  margin-top:10px;width:100%;
+  font-family:'Cinzel',serif;font-size:12px;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--paper-l);
+  background:linear-gradient(180deg,#5c4020,#3a2810);
+  border:1px solid var(--border-brown);border-radius:4px;
+  padding:8px 12px;cursor:pointer;white-space:nowrap;
+  box-shadow:0 2px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.dice-roll-btn:hover{border-color:#c9a568;background:linear-gradient(180deg,#6e4d28,#452f14);}
+.dice-roll-btn:active{transform:translateY(1px);}
+.dano-die{width:38px;height:38px;font-size:16px;border-radius:6px;}
+.dano-eq{font-family:'Cinzel',serif;font-size:16px;color:var(--ink-faint);}
+.dano-total-box{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:12px;padding:8px 12px;
+  border:1px solid var(--border-brown);border-radius:4px;
+  background:rgba(120,85,40,.1);
+}
+.dano-total-label{font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);}
+.dano-total-value{font-family:'Cinzel Decorative',serif;font-size:22px;color:var(--wax);font-weight:700;}
+@keyframes totalSettle{
+  0%{transform:scale(1.35);}
+  60%{transform:scale(.94);}
+  100%{transform:scale(1);}
+}
+.dano-total-value.settle{display:inline-block;animation:totalSettle .4s cubic-bezier(.3,1.4,.4,1);}
 .dice-result{
   width:56px;height:56px;
   display:flex;align-items:center;justify-content:center;
@@ -766,6 +802,7 @@ body{
   <button class="flip-btn" id="flipBtn">↺ Ver verso</button>
   <button class="cloud-btn" id="cloudSaveBtn">☁ Salvar na mesa (mestre vê)</button>
   <button id="masterBtn">📜 Painel do Mestre</button>
+  <button id="rollLogBtn">🎲 Histórico de Rolagens</button>
   <button class="github-btn" id="githubConfigBtn">🔑 Meu token do GitHub</button>
   <label class="filebtn">Carregar ficha (.json)
     <input type="file" id="loadInput" accept="application/json">
@@ -877,13 +914,17 @@ body{
             <div class="panel dice-panel">
               <h2>Rolagem de Dano</h2>
               <div class="dice-controls">
-                <input type="number" id="danoMax" value="6" min="1" step="1" placeholder="Valor máx.">
-                <button id="rollDanoBtn" type="button">🎲 Rolar</button>
+                <input type="number" id="danoQtd" value="1" min="1" step="1" placeholder="Qtd. dados" title="Quantidade de dados">
+                <span class="dice-x">×</span>
+                <input type="number" id="danoMax" value="6" min="1" step="1" placeholder="Faces" title="Faces do dado">
               </div>
-              <div class="dice-display">
-                <div class="dice-result dano-result" id="danoResult">—</div>
+              <div class="dice-display" id="danoDiceDisplay"></div>
+              <div class="dice-hint" id="danoHint">Defina a quantidade e o valor máximo do dado, e role.</div>
+              <div class="dano-total-box">
+                <span class="dano-total-label">Resultado final</span>
+                <span class="dano-total-value" id="danoTotalValue">—</span>
               </div>
-              <div class="dice-hint" id="danoHint">Defina o valor máximo do dado e role.</div>
+              <button id="rollDanoBtn" type="button" class="dice-roll-btn">🎲 Rolar</button>
             </div>
           </div>
 
@@ -1010,6 +1051,18 @@ body{
     <p class="modal-sub">Fichas que os jogadores salvaram com "☁ Salvar na mesa" nesta mesma página aparecem aqui.</p>
     <button id="refreshMaster" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
     <div id="masterList" class="master-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="rollLogModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>🎲 Histórico de Rolagens</h2>
+      <button id="closeRollLog" class="modal-close">✕</button>
+    </div>
+    <p class="modal-sub">Toda rolagem de dado ou de dano feita por qualquer jogador com token configurado aparece aqui, para todos verem.</p>
+    <button id="refreshRollLog" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar histórico</button>
+    <div id="rollLogList" class="roll-log-list"></div>
   </div>
 </div>
 
@@ -1263,47 +1316,94 @@ body{
     else diceHint.textContent = `${statLabels[stat]} ${statVal} → acerto de ${Math.max(2, threshold)} a 20.`;
 
     rollBtn.disabled = false;
+
+    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'atributo', statKey: stat, resultado: roll, ts: Date.now() });
   }
 
   // ---------- rolagem de dano ----------
+  const danoQtd = $('danoQtd');
   const danoMax = $('danoMax');
-  const danoResult = $('danoResult');
+  const danoDiceDisplay = $('danoDiceDisplay');
   const danoHint = $('danoHint');
+  const danoTotalValue = $('danoTotalValue');
   const rollDanoBtn = $('rollDanoBtn');
   let danoRollingInterval = null;
+
+  function buildDiceDisplay(qtd){
+    danoDiceDisplay.innerHTML = '';
+    const dieEls = [];
+    for(let i=0;i<qtd;i++){
+      const die = document.createElement('div');
+      die.className = 'dice-result dano-result dano-die';
+      die.textContent = '—';
+      danoDiceDisplay.appendChild(die);
+      dieEls.push(die);
+    }
+    return dieEls;
+  }
+
+  buildDiceDisplay(1);
 
   rollDanoBtn.addEventListener('click', ()=>{
     if(danoRollingInterval) return;
     let maxVal = parseInt(danoMax.value, 10);
     if(isNaN(maxVal) || maxVal < 1) maxVal = 1;
+    let qtd = parseInt(danoQtd.value, 10);
+    if(isNaN(qtd) || qtd < 1) qtd = 1;
 
     rollDanoBtn.disabled = true;
     danoHint.textContent = 'Rolando...';
-    danoResult.classList.remove('settle');
-    danoResult.classList.add('rolling');
+    danoTotalValue.textContent = '—';
+    danoTotalValue.classList.remove('settle');
+
+    const dieEls = buildDiceDisplay(qtd);
+    dieEls.forEach(d => d.classList.add('rolling'));
 
     let ticks = 0;
     const totalTicks = 10 + Math.floor(Math.random()*4);
     danoRollingInterval = setInterval(()=>{
-      danoResult.textContent = 1 + Math.floor(Math.random()*maxVal);
+      let sum = 0;
+      dieEls.forEach(d=>{
+        const v = 1 + Math.floor(Math.random()*maxVal);
+        d.textContent = v;
+        sum += v;
+      });
+      danoTotalValue.textContent = sum;
       ticks++;
       if(ticks >= totalTicks){
         clearInterval(danoRollingInterval);
         danoRollingInterval = null;
-        finishDanoRoll(maxVal);
+        finishDanoRoll(qtd, maxVal, dieEls);
       }
     }, 65);
   });
 
-  function finishDanoRoll(maxVal){
-    const roll = 1 + Math.floor(Math.random()*maxVal);
-    danoResult.classList.remove('rolling');
-    danoResult.textContent = roll;
-    danoResult.classList.remove('settle');
-    void danoResult.offsetWidth;
-    danoResult.classList.add('settle');
-    danoHint.textContent = `Resultado entre 1 e ${maxVal}.`;
+  function finishDanoRoll(qtd, maxVal, dieEls){
+    const rolls = [];
+    for(let i=0;i<qtd;i++) rolls.push(1 + Math.floor(Math.random()*maxVal));
+    const total = rolls.reduce((a,b)=>a+b, 0);
+
+    dieEls.forEach((d, i)=>{
+      d.classList.remove('rolling');
+      d.textContent = rolls[i];
+      d.classList.remove('settle');
+      void d.offsetWidth;
+      d.classList.add('settle');
+    });
+
+    danoTotalValue.textContent = total;
+    void danoTotalValue.offsetWidth;
+    danoTotalValue.classList.add('settle');
+
+    const faixa = `entre ${qtd} e ${qtd*maxVal}`;
+    if(qtd > 1){
+      danoHint.textContent = `${qtd}d${maxVal}: [${rolls.join(' + ')}] = ${total} (${faixa}).`;
+    } else {
+      danoHint.textContent = `1d${maxVal}: resultado ${total} (${faixa}).`;
+    }
     rollDanoBtn.disabled = false;
+
+    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', resultado: total, ts: Date.now() });
   }
 
   // ---------- flip ----------
@@ -1801,6 +1901,15 @@ body{
     return res.json();
   }
 
+  // Busca o conteúdo decodificado de um arquivo (além do sha). Retorna null se não existir.
+  async function githubGetFileContent(path){
+    const res = await fetch(apiUrl(path), { headers: githubHeaders(false) });
+    if(res.status === 404) return null;
+    if(!res.ok) throw new Error(`GET ${res.status}`);
+    const data = await res.json();
+    return { sha: data.sha, content: b64DecodeUnicode(data.content.replace(/\n/g,'')) };
+  }
+
   // Cria ou atualiza um arquivo no repositório.
   async function githubPutFile(path, jsonObj, message){
     const existing = await githubGetFileMeta(path).catch(()=>null);
@@ -1842,6 +1951,85 @@ body{
     if(!res.ok) throw new Error(`GET ${res.status}`);
     const data = await res.json();
     return Array.isArray(data) ? data : [];
+  }
+
+  // ---------- histórico compartilhado de rolagens ----------
+  const ROLL_LOG_PATH = 'logs/rolagens.json';
+  const ROLL_LOG_MAX = 60; // mantém só as rolagens mais recentes, pra não inchar o arquivo
+  const statFullNames = { for:'Força', des:'Destreza', con:'Constituição', int:'Inteligência', von:'Vontade', car:'Carisma' };
+
+  // Registra uma rolagem no histórico compartilhado. Falha silenciosamente (sem travar a rolagem)
+  // se não houver token configurado ou se der algum erro de rede/conflito.
+  async function pushRollLog(entry){
+    if(!getToken()) return;
+    try{
+      const existing = await githubGetFileContent(ROLL_LOG_PATH).catch(()=>null);
+      let arr = [];
+      if(existing){
+        try{ arr = JSON.parse(existing.content); if(!Array.isArray(arr)) arr = []; }catch(e){ arr = []; }
+      }
+      arr.push(entry);
+      if(arr.length > ROLL_LOG_MAX) arr = arr.slice(arr.length - ROLL_LOG_MAX);
+      const body = {
+        message: `Registra rolagem de ${entry.nome || 'alguém'}`,
+        content: b64EncodeUnicode(JSON.stringify(arr, null, 2))
+      };
+      if(existing && existing.sha) body.sha = existing.sha;
+      await fetch(apiUrl(ROLL_LOG_PATH), {
+        method:'PUT',
+        headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
+      });
+    }catch(err){
+      console.warn('Não foi possível registrar a rolagem no histórico compartilhado:', err);
+    }
+  }
+
+  const rollLogModal = $('rollLogModal');
+  const rollLogList = $('rollLogList');
+
+  $('rollLogBtn').addEventListener('click', ()=>{
+    rollLogModal.hidden = false;
+    loadRollLog();
+  });
+  $('closeRollLog').addEventListener('click', ()=> rollLogModal.hidden = true);
+  rollLogModal.addEventListener('click', (e)=>{ if(e.target === rollLogModal) rollLogModal.hidden = true; });
+  $('refreshRollLog').addEventListener('click', loadRollLog);
+
+  async function loadRollLog(){
+    rollLogList.innerHTML = '<div class="master-empty">Buscando histórico...</div>';
+    try{
+      const existing = await githubGetFileContent(ROLL_LOG_PATH);
+      if(!existing){
+        rollLogList.innerHTML = '<div class="master-empty">Nenhuma rolagem registrada ainda.</div>';
+        return;
+      }
+      let arr = [];
+      try{ arr = JSON.parse(existing.content); if(!Array.isArray(arr)) arr = []; }catch(e){ arr = []; }
+      if(arr.length === 0){
+        rollLogList.innerHTML = '<div class="master-empty">Nenhuma rolagem registrada ainda.</div>';
+        return;
+      }
+      rollLogList.innerHTML = '';
+      arr.forEach(entry=>{
+        const nome = escapeHtml(entry.nome || '(sem nome)');
+        let texto;
+        if(entry.tipo === 'dano'){
+          texto = `"${nome}" ROLOU DANO — RESULTADO ${escapeHtml(String(entry.resultado))}`;
+        } else {
+          const statNomeRaw = (statFullNames[entry.statKey] || entry.statKey || '').toUpperCase();
+          texto = `"${nome}" ROLOU "${escapeHtml(statNomeRaw)}" — RESULTADO ${escapeHtml(String(entry.resultado))}`;
+        }
+        const hora = entry.ts ? new Date(entry.ts).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
+        const row = document.createElement('div');
+        row.className = 'roll-log-entry';
+        row.innerHTML = `<span class="rl-text">${texto}</span><span class="rl-time">${hora}</span>`;
+        rollLogList.appendChild(row);
+      });
+    }catch(err){
+      console.error(err);
+      rollLogList.innerHTML = '<div class="master-empty">Não foi possível carregar o histórico agora. Tente atualizar de novo.</div>';
+    }
   }
 
   // ---------- modal de configuração do token ----------
