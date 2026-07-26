@@ -139,6 +139,28 @@ body{
 .roll-log-entry .rl-text{color:var(--ink);}
 .roll-log-entry .rl-text strong{color:var(--wax-dark);}
 .roll-log-entry .rl-time{color:var(--ink-faint);font-size:11px;white-space:nowrap;font-family:'Inter',sans-serif;}
+
+.radio-now-playing{
+  text-align:center;font-family:'Cinzel',serif;font-size:13px;letter-spacing:.03em;
+  padding:8px 10px;margin-bottom:14px;border-radius:4px;
+  border:1px solid var(--border-brown);background:rgba(120,85,40,.1);color:var(--ink);
+}
+.radio-now-playing.playing{color:#2f6b2f;border-color:#6f8a5f;background:rgba(95,138,82,.14);}
+.radio-scene-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.radio-scene-btn{
+  font-family:'Cinzel',serif;font-weight:600;letter-spacing:.04em;font-size:12.5px;text-transform:uppercase;
+  color:var(--paper-l);
+  background:linear-gradient(180deg,#5c4020,#3a2810);
+  border:1px solid var(--border-brown);border-radius:4px;
+  padding:12px 10px;cursor:pointer;text-align:center;
+  transition:transform .15s, border-color .15s, background .15s;
+  box-shadow:0 2px 0 rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.radio-scene-btn:hover{border-color:#c9a568;background:linear-gradient(180deg,#6e4d28,#452f14);transform:translateY(-1px);}
+.radio-scene-btn.active{border-color:var(--wax-bright);box-shadow:0 0 0 2px rgba(165,52,52,.5), 0 2px 0 rgba(0,0,0,.4);}
+.radio-volume-row{display:flex;align-items:center;gap:10px;margin-top:12px;font-family:'Cinzel',serif;font-size:12px;color:var(--ink-soft);}
+.radio-volume-row input[type=range]{flex:1;}
+.radio-sync-hint{font-size:11.5px;color:var(--ink-faint);text-align:center;margin-top:8px;min-height:14px;}
 .master-card{
   border:1px solid var(--ink-faint);border-radius:5px;
   padding:10px 12px;
@@ -803,6 +825,7 @@ body{
   <button class="cloud-btn" id="cloudSaveBtn">☁ Salvar na mesa (mestre vê)</button>
   <button id="masterBtn">📜 Painel do Mestre</button>
   <button id="rollLogBtn">🎲 Histórico de Rolagens</button>
+  <button id="radioBtn">🔊 Rádio da Mesa</button>
   <button class="github-btn" id="githubConfigBtn">🔑 Meu token do GitHub</button>
   <label class="filebtn">Carregar ficha (.json)
     <input type="file" id="loadInput" accept="application/json">
@@ -1063,6 +1086,32 @@ body{
     <p class="modal-sub">Toda rolagem de dado ou de dano feita por qualquer jogador com token configurado aparece aqui, para todos verem.</p>
     <button id="refreshRollLog" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar histórico</button>
     <div id="rollLogList" class="roll-log-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="radioModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>🔊 Rádio da Mesa</h2>
+      <button id="closeRadio" class="modal-close">✕</button>
+    </div>
+    <p class="modal-sub">Escolha uma cena — toca a mesma música ambiente pra todo mundo com a página aberta. Só quem tiver token configurado consegue trocar a cena pra todos; sem token, você ainda consegue ouvir.</p>
+
+    <div class="radio-now-playing" id="radioNowPlaying">Nada tocando agora.</div>
+
+    <div class="radio-scene-grid" id="radioSceneGrid"></div>
+
+    <button id="radioStopBtn" class="add-row-btn" style="margin-top:4px;">⏹ Silêncio</button>
+
+    <div class="radio-volume-row">
+      <label for="radioVolume">🔈 Volume</label>
+      <input type="range" id="radioVolume" min="0" max="100" value="60">
+    </div>
+
+    <button id="refreshRadio" class="add-row-btn" style="margin-top:10px;">↻ Sincronizar com a mesa</button>
+    <div id="radioSyncHint" class="radio-sync-hint"></div>
+
+    <audio id="radioAudio" preload="none"></audio>
   </div>
 </div>
 
@@ -2074,6 +2123,168 @@ body{
       rollLogList.innerHTML = '<div class="master-empty">Não foi possível carregar o histórico agora. Tente atualizar de novo.</div>';
     }
   }
+
+  // ---------- rádio da mesa (música ambiente compartilhada) ----------
+  const RADIO_LOG_PATH = 'logs/radio.json';
+  const VOLUME_KEY = 'rpg_ficha_radio_volume';
+
+  // Nomes dos arquivos de áudio esperados dentro do repositório, na pasta "audio/".
+  // Suba os arquivos .mp3 com esses nomes exatos pra cada botão funcionar.
+  const RADIO_TRACKS = {
+    cidade:   { label: 'Cidade',   file: 'audio/cidade.mp3' },
+    taverna:  { label: 'Taverna',  file: 'audio/taverna.mp3' },
+    aventura: { label: 'Aventura', file: 'audio/aventura.mp3' },
+    combate:  { label: 'Combate',  file: 'audio/combate.mp3' },
+    masmorra: { label: 'Masmorra', file: 'audio/masmorra.mp3' },
+    boss:     { label: 'Boss',     file: 'audio/boss.mp3' },
+  };
+
+  const radioModal = $('radioModal');
+  const radioSceneGrid = $('radioSceneGrid');
+  const radioNowPlaying = $('radioNowPlaying');
+  const radioAudio = $('radioAudio');
+  const radioVolume = $('radioVolume');
+  const radioStopBtn = $('radioStopBtn');
+  const radioSyncHint = $('radioSyncHint');
+
+  let currentSceneKey = null;
+
+  // monta os botões de cena a partir de RADIO_TRACKS
+  Object.keys(RADIO_TRACKS).forEach(key=>{
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'radio-scene-btn';
+    btn.dataset.scene = key;
+    btn.textContent = RADIO_TRACKS[key].label;
+    btn.addEventListener('click', ()=> broadcastScene(key));
+    radioSceneGrid.appendChild(btn);
+  });
+
+  function markActiveSceneButton(){
+    radioSceneGrid.querySelectorAll('.radio-scene-btn').forEach(btn=>{
+      btn.classList.toggle('active', btn.dataset.scene === currentSceneKey);
+    });
+  }
+
+  function githubRawUrl(path){
+    return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main/${path}`;
+  }
+
+  function playScene(sceneKey, ts){
+    const track = RADIO_TRACKS[sceneKey];
+    if(!track) return;
+    currentSceneKey = sceneKey;
+    markActiveSceneButton();
+    radioAudio.loop = true;
+    radioAudio.src = githubRawUrl(track.file);
+
+    const applyOffset = ()=>{
+      if(ts && radioAudio.duration){
+        const elapsed = Math.max(0, (Date.now() - ts) / 1000);
+        radioAudio.currentTime = elapsed % radioAudio.duration;
+      }
+      radioAudio.removeEventListener('loadedmetadata', applyOffset);
+    };
+    radioAudio.addEventListener('loadedmetadata', applyOffset);
+
+    const playPromise = radioAudio.play();
+    radioNowPlaying.textContent = `🔊 Tocando agora: ${track.label}`;
+    radioNowPlaying.classList.add('playing');
+    if(playPromise && playPromise.catch){
+      playPromise.catch(()=>{
+        radioNowPlaying.textContent = `⏸ "${track.label}" pronto — toque em qualquer botão de cena de novo pra liberar o som neste navegador.`;
+        radioNowPlaying.classList.remove('playing');
+      });
+    }
+  }
+
+  function stopRadio(){
+    currentSceneKey = null;
+    markActiveSceneButton();
+    radioAudio.pause();
+    radioAudio.removeAttribute('src');
+    radioAudio.load();
+    radioNowPlaying.textContent = 'Nada tocando agora.';
+    radioNowPlaying.classList.remove('playing');
+  }
+
+  radioStopBtn.addEventListener('click', ()=> broadcastScene(null));
+
+  radioVolume.addEventListener('input', ()=>{
+    const v = parseInt(radioVolume.value, 10) / 100;
+    radioAudio.volume = isNaN(v) ? 0.6 : v;
+    localStorage.setItem(VOLUME_KEY, radioVolume.value);
+  });
+  (function initVolume(){
+    const saved = localStorage.getItem(VOLUME_KEY);
+    if(saved !== null){ radioVolume.value = saved; }
+    radioAudio.volume = (parseInt(radioVolume.value, 10) || 60) / 100;
+  })();
+
+  // Grava a cena escolhida no repositório, pra todo mundo ver, e já toca localmente também.
+  async function broadcastScene(sceneKey){
+    const ts = Date.now();
+    if(sceneKey) playScene(sceneKey, ts); else stopRadio();
+
+    if(!getToken()){
+      radioSyncHint.textContent = 'Tocando só no seu navegador — configure o token do GitHub pra compartilhar com a mesa.';
+      return;
+    }
+    radioSyncHint.textContent = 'Avisando a mesa...';
+    try{
+      const existing = await githubGetFileContent(RADIO_LOG_PATH).catch(()=>null);
+      const body = {
+        message: sceneKey ? `Rádio da mesa: ${sceneKey}` : 'Rádio da mesa: silêncio',
+        content: b64EncodeUnicode(JSON.stringify({ scene: sceneKey, ts }, null, 2))
+      };
+      if(existing && existing.sha) body.sha = existing.sha;
+      await fetch(apiUrl(RADIO_LOG_PATH), {
+        method:'PUT',
+        headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
+      });
+      radioSyncHint.textContent = 'Mesa avisada — quem sincronizar vai ouvir também.';
+      const label = sceneKey ? RADIO_TRACKS[sceneKey].label : 'Silêncio';
+      postToDiscord(`🔊 Cena da mesa mudou para: **${label}**`);
+    }catch(err){
+      console.warn('Não foi possível avisar a mesa sobre a nova cena:', err);
+      radioSyncHint.textContent = 'Tocando no seu navegador, mas não consegui avisar a mesa (verifique o token).';
+    }
+  }
+
+  // Busca a cena atual compartilhada e, se for diferente da que já está tocando, sincroniza.
+  async function syncRadio(){
+    radioSyncHint.textContent = 'Sincronizando...';
+    try{
+      const existing = await githubGetFileContent(RADIO_LOG_PATH);
+      if(!existing){
+        radioSyncHint.textContent = 'Nenhuma cena compartilhada ainda.';
+        return;
+      }
+      let data = {};
+      try{ data = JSON.parse(existing.content) || {}; }catch(e){ data = {}; }
+      if(data.scene && data.scene !== currentSceneKey){
+        playScene(data.scene, data.ts);
+        radioSyncHint.textContent = 'Sincronizado com a mesa.';
+      } else if(!data.scene && currentSceneKey){
+        stopRadio();
+        radioSyncHint.textContent = 'Sincronizado com a mesa (silêncio).';
+      } else {
+        radioSyncHint.textContent = 'Já está sincronizado.';
+      }
+    }catch(err){
+      console.error(err);
+      radioSyncHint.textContent = 'Não foi possível sincronizar agora.';
+    }
+  }
+
+  $('radioBtn').addEventListener('click', ()=>{
+    radioModal.hidden = false;
+    syncRadio();
+  });
+  $('closeRadio').addEventListener('click', ()=> radioModal.hidden = true);
+  radioModal.addEventListener('click', (e)=>{ if(e.target === radioModal) radioModal.hidden = true; });
+  $('refreshRadio').addEventListener('click', syncRadio);
 
   // ---------- modal de configuração do token ----------
   const tokenModal   = $('tokenModal');
