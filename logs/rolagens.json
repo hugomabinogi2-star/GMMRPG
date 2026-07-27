@@ -2,17 +2,6 @@
   {
     "nome": "Van",
     "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 9,
-    "rolls": [
-      8
-    ],
-    "resultado": 8,
-    "ts": 1785082965327
-  },
-  {
-    "nome": "Van",
-    "tipo": "dano",
     "qtd": 3,
     "maxVal": 9,
     "rolls": [
@@ -106,5 +95,16 @@
     ],
     "resultado": 39,
     "ts": 1785155975078
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      4
+    ],
+    "resultado": 4,
+    "ts": 1785171114891
   }
 ]
