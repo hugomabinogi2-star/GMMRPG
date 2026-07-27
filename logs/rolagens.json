@@ -1,14 +1,6 @@
 [
   {
     "nome": "Qudenos",
-    "tipo": "atributo",
-    "statKey": "car",
-    "resultado": 14,
-    "resultLabel": "Acerto",
-    "ts": 1785094978630
-  },
-  {
-    "nome": "Qudenos",
     "tipo": "dano",
     "qtd": 1,
     "maxVal": 6,
@@ -104,5 +96,17 @@
     "resultado": 18,
     "resultLabel": "Acerto",
     "ts": 1785173145298
+  },
+  {
+    "nome": "(sem nome)",
+    "tipo": "dano",
+    "qtd": 2,
+    "maxVal": 10,
+    "rolls": [
+      9,
+      6
+    ],
+    "resultado": 15,
+    "ts": 1785173160533
   }
 ]
