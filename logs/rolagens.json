@@ -1,18 +1,5 @@
 [
   {
-    "nome": "Van",
-    "tipo": "dano",
-    "qtd": 3,
-    "maxVal": 9,
-    "rolls": [
-      4,
-      7,
-      8
-    ],
-    "resultado": 19,
-    "ts": 1785082979191
-  },
-  {
     "nome": "Nemaveh",
     "tipo": "atributo",
     "statKey": "int",
@@ -106,5 +93,16 @@
     ],
     "resultado": 4,
     "ts": 1785171114891
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      3
+    ],
+    "resultado": 3,
+    "ts": 1785171116930
   }
 ]
