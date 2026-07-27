@@ -140,6 +140,11 @@ body{
 .roll-log-entry .rl-text strong{color:var(--wax-dark);}
 .roll-log-entry .rl-time{color:var(--ink-faint);font-size:11px;white-space:nowrap;font-family:'Inter',sans-serif;}
 
+.radio-section-title{
+  font-family:'Cinzel',serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-soft);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--ink-faint);
+}
+.radio-section-title:first-of-type{margin-top:0;}
 .radio-now-playing{
   text-align:center;font-family:'Cinzel',serif;font-size:13px;letter-spacing:.03em;
   padding:8px 10px;margin-bottom:14px;border-radius:4px;
@@ -1150,13 +1155,17 @@ body{
       <h2>🔊 Rádio da Mesa</h2>
       <button id="closeRadio" class="modal-close">✕</button>
     </div>
-    <p class="modal-sub">Escolha uma cena — toca a mesma música ambiente pra todo mundo com a página aberta. Só quem tiver token configurado consegue trocar a cena pra todos; sem token, você ainda consegue ouvir.</p>
+    <p class="modal-sub">Escolha uma cena e/ou um clima — tocam juntos e ao mesmo tempo pra todo mundo com a página aberta. Só quem tiver token configurado consegue trocar pra todos; sem token, você ainda consegue ouvir.</p>
 
+    <h3 class="radio-section-title">Cena</h3>
     <div class="radio-now-playing" id="radioNowPlaying">Nada tocando agora.</div>
-
     <div class="radio-scene-grid" id="radioSceneGrid"></div>
-
     <button id="radioStopBtn" class="add-row-btn" style="margin-top:4px;">⏹ Silêncio</button>
+
+    <h3 class="radio-section-title">Clima</h3>
+    <div class="radio-now-playing" id="climaNowPlaying">Nada tocando agora.</div>
+    <div class="radio-scene-grid" id="climaSceneGrid"></div>
+    <button id="climaStopBtn" class="add-row-btn" style="margin-top:4px;">⏹ Silêncio</button>
 
     <div class="radio-volume-row">
       <label for="radioVolume">🔈 Volume</label>
@@ -1167,6 +1176,7 @@ body{
     <div id="radioSyncHint" class="radio-sync-hint"></div>
 
     <audio id="radioAudio" preload="none"></audio>
+    <audio id="climaAudio" preload="none"></audio>
   </div>
 </div>
 
@@ -2276,7 +2286,7 @@ body{
     }
   }
 
-  // ---------- rádio da mesa (música ambiente compartilhada) ----------
+  // ---------- rádio da mesa (música ambiente compartilhada, em duas camadas: Cena + Clima) ----------
   const RADIO_LOG_PATH = 'logs/radio.json';
   const VOLUME_KEY = 'rpg_ficha_radio_volume';
 
@@ -2290,140 +2300,185 @@ body{
     masmorra: { label: 'Masmorra', file: 'audio/masmorra.mp3' },
     boss:     { label: 'Boss',     file: 'audio/boss.mp3' },
   };
+  const CLIMA_TRACKS = {
+    chuva1:     { label: 'Chuva 1',    file: 'audio/chuva1.mp3' },
+    chuva2:     { label: 'Chuva 2',    file: 'audio/chuva2.mp3' },
+    chuva3:     { label: 'Chuva 3',    file: 'audio/chuva3.mp3' },
+    alvorada:   { label: 'Alvorada',   file: 'audio/alvorada.mp3' },
+    tempestade: { label: 'Tempestade', file: 'audio/tempestade.mp3' },
+  };
 
   const radioModal = $('radioModal');
-  const radioSceneGrid = $('radioSceneGrid');
-  const radioNowPlaying = $('radioNowPlaying');
-  const radioAudio = $('radioAudio');
   const radioVolume = $('radioVolume');
-  const radioStopBtn = $('radioStopBtn');
   const radioSyncHint = $('radioSyncHint');
-
-  let currentSceneKey = null;
-
-  // monta os botões de cena a partir de RADIO_TRACKS
-  Object.keys(RADIO_TRACKS).forEach(key=>{
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'radio-scene-btn';
-    btn.dataset.scene = key;
-    btn.textContent = RADIO_TRACKS[key].label;
-    btn.addEventListener('click', ()=> broadcastScene(key));
-    radioSceneGrid.appendChild(btn);
-  });
-
-  function markActiveSceneButton(){
-    radioSceneGrid.querySelectorAll('.radio-scene-btn').forEach(btn=>{
-      btn.classList.toggle('active', btn.dataset.scene === currentSceneKey);
-    });
-  }
 
   function githubRawUrl(path){
     return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main/${path}`;
   }
 
-  function playScene(sceneKey, ts){
-    const track = RADIO_TRACKS[sceneKey];
-    if(!track) return;
-    currentSceneKey = sceneKey;
-    markActiveSceneButton();
-    radioAudio.loop = true;
-    radioAudio.src = githubRawUrl(track.file);
+  // Cria um canal de áudio independente (Cena ou Clima) — cada um com seus próprios botões,
+  // player e status, mas compartilhando o mesmo arquivo de estado no repositório.
+  function createRadioChannel(opts){
+    const grid = $(opts.gridId);
+    const nowPlaying = $(opts.nowPlayingId);
+    const audio = $(opts.audioId);
+    const stopBtn = $(opts.stopBtnId);
+    const tracks = opts.tracks;
+    const stateKey = opts.stateKey;
+    const stateTsKey = opts.stateTsKey;
+    const label = opts.label;
 
-    const applyOffset = ()=>{
-      if(ts && radioAudio.duration){
-        const elapsed = Math.max(0, (Date.now() - ts) / 1000);
-        radioAudio.currentTime = elapsed % radioAudio.duration;
-      }
-      radioAudio.removeEventListener('loadedmetadata', applyOffset);
-    };
-    radioAudio.addEventListener('loadedmetadata', applyOffset);
+    let currentKey = null;
 
-    const playPromise = radioAudio.play();
-    radioNowPlaying.textContent = `🔊 Tocando agora: ${track.label}`;
-    radioNowPlaying.classList.add('playing');
-    if(playPromise && playPromise.catch){
-      playPromise.catch(()=>{
-        radioNowPlaying.textContent = `⏸ "${track.label}" pronto — toque em qualquer botão de cena de novo pra liberar o som neste navegador.`;
-        radioNowPlaying.classList.remove('playing');
+    Object.keys(tracks).forEach(key=>{
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'radio-scene-btn';
+      btn.dataset.scene = key;
+      btn.textContent = tracks[key].label;
+      btn.addEventListener('click', ()=> broadcast(key));
+      grid.appendChild(btn);
+    });
+
+    function markActive(){
+      grid.querySelectorAll('.radio-scene-btn').forEach(btn=>{
+        btn.classList.toggle('active', btn.dataset.scene === currentKey);
       });
     }
+
+    function play(key, ts){
+      const track = tracks[key];
+      if(!track) return;
+      currentKey = key;
+      markActive();
+      audio.loop = true;
+      audio.src = githubRawUrl(track.file);
+
+      const applyOffset = ()=>{
+        if(ts && audio.duration){
+          const elapsed = Math.max(0, (Date.now() - ts) / 1000);
+          audio.currentTime = elapsed % audio.duration;
+        }
+        audio.removeEventListener('loadedmetadata', applyOffset);
+      };
+      audio.addEventListener('loadedmetadata', applyOffset);
+
+      const playPromise = audio.play();
+      nowPlaying.textContent = `🔊 Tocando agora: ${track.label}`;
+      nowPlaying.classList.add('playing');
+      if(playPromise && playPromise.catch){
+        playPromise.catch(()=>{
+          nowPlaying.textContent = `⏸ "${track.label}" pronto — toque em qualquer botão de novo pra liberar o som neste navegador.`;
+          nowPlaying.classList.remove('playing');
+        });
+      }
+    }
+
+    function stop(){
+      currentKey = null;
+      markActive();
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+      nowPlaying.textContent = 'Nada tocando agora.';
+      nowPlaying.classList.remove('playing');
+    }
+
+    async function broadcast(key){
+      const ts = Date.now();
+      if(key) play(key, ts); else stop();
+
+      if(!getToken()){
+        radioSyncHint.textContent = 'Tocando só no seu navegador — configure o token do GitHub pra compartilhar com a mesa.';
+        return;
+      }
+      radioSyncHint.textContent = 'Avisando a mesa...';
+      try{
+        const existing = await githubGetFileContent(RADIO_LOG_PATH).catch(()=>null);
+        let data = {};
+        if(existing){
+          try{ data = JSON.parse(existing.content) || {}; }catch(e){ data = {}; }
+        }
+        data[stateKey] = key;
+        data[stateTsKey] = ts;
+        const body = {
+          message: key ? `Rádio da mesa (${label}): ${key}` : `Rádio da mesa (${label}): silêncio`,
+          content: b64EncodeUnicode(JSON.stringify(data, null, 2))
+        };
+        if(existing && existing.sha) body.sha = existing.sha;
+        await fetch(apiUrl(RADIO_LOG_PATH), {
+          method:'PUT',
+          headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
+          body: JSON.stringify(body)
+        });
+        radioSyncHint.textContent = 'Mesa avisada — quem sincronizar vai ouvir também.';
+        const trackLabel = key ? tracks[key].label : 'Silêncio';
+        postToDiscord(`🔊 ${label} da mesa mudou para: **${trackLabel}**`);
+      }catch(err){
+        console.warn(`Não foi possível avisar a mesa sobre o novo ${label}:`, err);
+        radioSyncHint.textContent = 'Tocando no seu navegador, mas não consegui avisar a mesa (verifique o token).';
+      }
+    }
+
+    // Sincroniza este canal com o estado compartilhado; devolve true se algo mudou.
+    function syncFrom(data){
+      const key = data[stateKey];
+      const ts = data[stateTsKey];
+      if(key && key !== currentKey){
+        play(key, ts);
+        return true;
+      } else if(!key && currentKey){
+        stop();
+        return true;
+      }
+      return false;
+    }
+
+    function setVolume(v){ audio.volume = v; }
+
+    stopBtn.addEventListener('click', ()=> broadcast(null));
+
+    return { play, stop, broadcast, syncFrom, setVolume };
   }
 
-  function stopRadio(){
-    currentSceneKey = null;
-    markActiveSceneButton();
-    radioAudio.pause();
-    radioAudio.removeAttribute('src');
-    radioAudio.load();
-    radioNowPlaying.textContent = 'Nada tocando agora.';
-    radioNowPlaying.classList.remove('playing');
-  }
-
-  radioStopBtn.addEventListener('click', ()=> broadcastScene(null));
+  const cenaChannel = createRadioChannel({
+    gridId: 'radioSceneGrid', nowPlayingId: 'radioNowPlaying', audioId: 'radioAudio', stopBtnId: 'radioStopBtn',
+    tracks: RADIO_TRACKS, stateKey: 'scene', stateTsKey: 'ts', label: 'Cena',
+  });
+  const climaChannel = createRadioChannel({
+    gridId: 'climaSceneGrid', nowPlayingId: 'climaNowPlaying', audioId: 'climaAudio', stopBtnId: 'climaStopBtn',
+    tracks: CLIMA_TRACKS, stateKey: 'clima', stateTsKey: 'climaTs', label: 'Clima',
+  });
 
   radioVolume.addEventListener('input', ()=>{
     const v = parseInt(radioVolume.value, 10) / 100;
-    radioAudio.volume = isNaN(v) ? 0.6 : v;
+    const vol = isNaN(v) ? 0.6 : v;
+    cenaChannel.setVolume(vol);
+    climaChannel.setVolume(vol);
     localStorage.setItem(VOLUME_KEY, radioVolume.value);
   });
   (function initVolume(){
     const saved = localStorage.getItem(VOLUME_KEY);
     if(saved !== null){ radioVolume.value = saved; }
-    radioAudio.volume = (parseInt(radioVolume.value, 10) || 60) / 100;
+    const vol = (parseInt(radioVolume.value, 10) || 60) / 100;
+    cenaChannel.setVolume(vol);
+    climaChannel.setVolume(vol);
   })();
 
-  // Grava a cena escolhida no repositório, pra todo mundo ver, e já toca localmente também.
-  async function broadcastScene(sceneKey){
-    const ts = Date.now();
-    if(sceneKey) playScene(sceneKey, ts); else stopRadio();
-
-    if(!getToken()){
-      radioSyncHint.textContent = 'Tocando só no seu navegador — configure o token do GitHub pra compartilhar com a mesa.';
-      return;
-    }
-    radioSyncHint.textContent = 'Avisando a mesa...';
-    try{
-      const existing = await githubGetFileContent(RADIO_LOG_PATH).catch(()=>null);
-      const body = {
-        message: sceneKey ? `Rádio da mesa: ${sceneKey}` : 'Rádio da mesa: silêncio',
-        content: b64EncodeUnicode(JSON.stringify({ scene: sceneKey, ts }, null, 2))
-      };
-      if(existing && existing.sha) body.sha = existing.sha;
-      await fetch(apiUrl(RADIO_LOG_PATH), {
-        method:'PUT',
-        headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
-        body: JSON.stringify(body)
-      });
-      radioSyncHint.textContent = 'Mesa avisada — quem sincronizar vai ouvir também.';
-      const label = sceneKey ? RADIO_TRACKS[sceneKey].label : 'Silêncio';
-      postToDiscord(`🔊 Cena da mesa mudou para: **${label}**`);
-    }catch(err){
-      console.warn('Não foi possível avisar a mesa sobre a nova cena:', err);
-      radioSyncHint.textContent = 'Tocando no seu navegador, mas não consegui avisar a mesa (verifique o token).';
-    }
-  }
-
-  // Busca a cena atual compartilhada e, se for diferente da que já está tocando, sincroniza.
+  // Busca cena/clima atuais compartilhados e sincroniza cada canal, se necessário.
   async function syncRadio(){
     radioSyncHint.textContent = 'Sincronizando...';
     try{
       const existing = await githubGetFileContent(RADIO_LOG_PATH);
       if(!existing){
-        radioSyncHint.textContent = 'Nenhuma cena compartilhada ainda.';
+        radioSyncHint.textContent = 'Nenhuma cena ou clima compartilhado ainda.';
         return;
       }
       let data = {};
       try{ data = JSON.parse(existing.content) || {}; }catch(e){ data = {}; }
-      if(data.scene && data.scene !== currentSceneKey){
-        playScene(data.scene, data.ts);
-        radioSyncHint.textContent = 'Sincronizado com a mesa.';
-      } else if(!data.scene && currentSceneKey){
-        stopRadio();
-        radioSyncHint.textContent = 'Sincronizado com a mesa (silêncio).';
-      } else {
-        radioSyncHint.textContent = 'Já está sincronizado.';
-      }
+      const changedCena = cenaChannel.syncFrom(data);
+      const changedClima = climaChannel.syncFrom(data);
+      radioSyncHint.textContent = (changedCena || changedClima) ? 'Sincronizado com a mesa.' : 'Já está sincronizado.';
     }catch(err){
       console.error(err);
       radioSyncHint.textContent = 'Não foi possível sincronizar agora.';
