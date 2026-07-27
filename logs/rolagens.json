@@ -1,13 +1,5 @@
 [
   {
-    "nome": "Nemaveh",
-    "tipo": "atributo",
-    "statKey": "int",
-    "resultado": 1,
-    "resultLabel": "Erro Crítico",
-    "ts": 1785085283740
-  },
-  {
     "nome": "Qudenos",
     "tipo": "atributo",
     "statKey": "car",
@@ -104,5 +96,13 @@
     ],
     "resultado": 3,
     "ts": 1785171116930
+  },
+  {
+    "nome": "(sem nome)",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 4,
+    "resultLabel": "Erro",
+    "ts": 1785172903173
   }
 ]
