@@ -416,7 +416,18 @@ body{
 .class-portrait-img{
   max-width:100%;max-height:240px;width:auto;height:auto;
   filter:drop-shadow(0 8px 10px rgba(40,25,10,.4));
+  transition:filter .35s;
 }
+.class-portrait-img.deity-rau{filter:drop-shadow(0 0 20px rgba(240,196,25,.9)) drop-shadow(0 8px 10px rgba(40,25,10,.4));}
+.class-portrait-img.deity-dur{filter:drop-shadow(0 0 20px rgba(155,63,209,.9)) drop-shadow(0 8px 10px rgba(40,25,10,.4));}
+.class-portrait-img.deity-arta{filter:drop-shadow(0 0 20px rgba(209,53,43,.9)) drop-shadow(0 8px 10px rgba(40,25,10,.4));}
+.class-portrait-img.deity-lim{filter:drop-shadow(0 0 20px rgba(212,175,55,.95)) drop-shadow(0 8px 10px rgba(40,25,10,.4));}
+.class-portrait-img.deity-maethor{filter:drop-shadow(0 0 20px rgba(52,104,214,.9)) drop-shadow(0 8px 10px rgba(40,25,10,.4));}
+.class-portrait-img.deity-barad{filter:drop-shadow(0 0 20px rgba(47,158,68,.9)) drop-shadow(0 8px 10px rgba(40,25,10,.4));}
+.class-portrait-img.deity-osto{filter:drop-shadow(0 0 20px rgba(122,74,32,.95)) drop-shadow(0 8px 10px rgba(40,25,10,.4));}
+.class-portrait-img.deity-baug{filter:drop-shadow(0 0 20px rgba(10,8,6,.95)) drop-shadow(0 8px 10px rgba(40,25,10,.4));}
+.class-portrait-img.deity-ithil{filter:drop-shadow(0 0 20px rgba(228,120,176,.9)) drop-shadow(0 8px 10px rgba(40,25,10,.4));}
+.class-portrait-img.deity-laiqua{filter:drop-shadow(0 0 22px rgba(251,248,242,.95)) drop-shadow(0 8px 10px rgba(40,25,10,.4));}
 @media (max-width:760px){
   .class-portrait-img{max-height:190px;}
 }
@@ -1228,6 +1239,18 @@ body{
     'Clérigo': 'class-clerigo',
     'Bardo': 'class-bardo',
   };
+  const DEITY_SHADOW_KEYS = {
+    'Rau': 'deity-rau',
+    'Dur': 'deity-dur',
+    'Arta': 'deity-arta',
+    'Lim': 'deity-lim',
+    'Maethor': 'deity-maethor',
+    'Barad': 'deity-barad',
+    'Osto': 'deity-osto',
+    'Baug': 'deity-baug',
+    'Ithil': 'deity-ithil',
+    'Laiqua': 'deity-laiqua',
+  };
 
   function recalc(){
     els.levelSeal.classList.toggle('seal-rosette', els.raca.value === 'Rosette');
@@ -1235,6 +1258,10 @@ body{
     Object.values(PORTRAIT_CLASS_KEYS).forEach(cls => portraitBox.classList.remove(cls));
     const portraitCls = PORTRAIT_CLASS_KEYS[els.classe.value];
     if(portraitCls) portraitBox.classList.add(portraitCls);
+
+    Object.values(DEITY_SHADOW_KEYS).forEach(cls => classPortraitEl.classList.remove(cls));
+    const deityCls = DEITY_SHADOW_KEYS[els.deidade.value];
+    if(deityCls) classPortraitEl.classList.add(deityCls);
 
     const xp = num(els.xp);
     const level = 1 + xp/10;
