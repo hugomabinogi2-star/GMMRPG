@@ -145,6 +145,21 @@ body{
   color:var(--ink-soft);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--ink-faint);
 }
 .radio-section-title:first-of-type{margin-top:0;}
+.audio-unlock-banner{
+  display:block;width:100%;max-width:960px;margin:-6px 0 20px;
+  font-family:'Cinzel',serif;font-weight:600;font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;
+  color:#fbe9de;
+  background:linear-gradient(180deg,#5c4020,#3a2810);
+  border:1px solid var(--wax);border-radius:4px;
+  padding:9px 14px;cursor:pointer;text-align:center;
+  animation:audioBannerPulse 2.2s ease-in-out infinite;
+}
+.audio-unlock-banner:hover{border-color:#c9a568;}
+.audio-unlock-banner.hidden{display:none;}
+@keyframes audioBannerPulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(165,52,52,.35);}
+  50%{box-shadow:0 0 0 6px rgba(165,52,52,0);}
+}
 .radio-now-playing{
   text-align:center;font-family:'Cinzel',serif;font-size:13px;letter-spacing:.03em;
   padding:8px 10px;margin-bottom:14px;border-radius:4px;
@@ -879,6 +894,8 @@ body{
   <button id="printBtn">Imprimir / PDF</button>
 </div>
 <p class="cloud-note">☁ "Salvar na mesa" grava esta ficha como um arquivo no repositório <strong>hugomabinogi2-star/GMMRPG</strong> no GitHub, visível para todos que abrirem esta página. Use um <strong>nome de personagem único</strong> para não sobrescrever a ficha de outro jogador. Para salvar, configure primeiro seu token pessoal em "🔑 Meu token do GitHub".</p>
+
+<button id="audioUnlockBanner" class="audio-unlock-banner" type="button">🔊 Clique aqui pra ativar o áudio da mesa neste navegador</button>
 
 <div class="stage">
   <div class="card" id="card">
@@ -2492,6 +2509,20 @@ body{
   $('closeRadio').addEventListener('click', ()=> radioModal.hidden = true);
   radioModal.addEventListener('click', (e)=>{ if(e.target === radioModal) radioModal.hidden = true; });
   $('refreshRadio').addEventListener('click', syncRadio);
+
+  // libera o autoplay com som neste navegador (exigência de todo navegador moderno) e,
+  // a partir daí, sincroniza a mesa em segundo plano sozinho, sem precisar abrir o painel.
+  const audioUnlockBanner = $('audioUnlockBanner');
+  audioUnlockBanner.addEventListener('click', ()=>{
+    [$('radioAudio'), $('climaAudio')].forEach(a=>{
+      a.muted = true;
+      a.play().then(()=>{ a.pause(); a.muted = false; }).catch(()=>{ a.muted = false; });
+    });
+    audioUnlockBanner.classList.add('hidden');
+    syncRadio();
+  });
+  setInterval(syncRadio, 60000); // confere a mesa a cada 60s, mesmo com o painel fechado
+  syncRadio(); // primeira checagem já ao carregar a página
 
   // ---------- modal de configuração do token ----------
   const tokenModal   = $('tokenModal');
