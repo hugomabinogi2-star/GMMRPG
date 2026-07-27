@@ -2,17 +2,6 @@
   {
     "nome": "Qudenos",
     "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 6,
-    "rolls": [
-      6
-    ],
-    "resultado": 6,
-    "ts": 1785095023685
-  },
-  {
-    "nome": "Qudenos",
-    "tipo": "dano",
     "qtd": 3,
     "maxVal": 10,
     "rolls": [
@@ -108,5 +97,17 @@
     ],
     "resultado": 15,
     "ts": 1785173160533
+  },
+  {
+    "nome": "(sem nome)",
+    "tipo": "dano",
+    "qtd": 2,
+    "maxVal": 10,
+    "rolls": [
+      7,
+      6
+    ],
+    "resultado": 13,
+    "ts": 1785173168379
   }
 ]
