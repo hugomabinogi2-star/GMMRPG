@@ -1,12 +1,6 @@
 [
   {
     "nome": "Van",
-    "tipo": "dano",
-    "resultado": 4,
-    "ts": 1785082432751
-  },
-  {
-    "nome": "Van",
     "tipo": "atributo",
     "statKey": "int",
     "resultado": 10,
@@ -97,5 +91,13 @@
     ],
     "resultado": 13,
     "ts": 1785154389213
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "atributo",
+    "statKey": "int",
+    "resultado": 2,
+    "resultLabel": "Erro",
+    "ts": 1785155955051
   }
 ]
