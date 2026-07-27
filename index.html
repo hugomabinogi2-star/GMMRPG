@@ -334,7 +334,13 @@ body{
   position:relative;
   overflow:hidden;
   box-shadow:inset 0 0 18px rgba(90,60,20,.35);
+  transition:outline-color .2s, box-shadow .2s;
 }
+.portrait.class-guerreiro{outline:3px solid #b5322c;box-shadow:inset 0 0 18px rgba(90,60,20,.35), 0 0 8px rgba(181,50,44,.5);}
+.portrait.class-cacador{outline:3px solid #3f8f4f;box-shadow:inset 0 0 18px rgba(90,60,20,.35), 0 0 8px rgba(63,143,79,.5);}
+.portrait.class-mago{outline:3px solid #3f6fc4;box-shadow:inset 0 0 18px rgba(90,60,20,.35), 0 0 8px rgba(63,111,196,.5);}
+.portrait.class-clerigo{outline:3px solid #d1b23a;box-shadow:inset 0 0 18px rgba(90,60,20,.35), 0 0 8px rgba(209,178,58,.5);}
+.portrait.class-bardo{outline:3px solid #8f4bb0;box-shadow:inset 0 0 18px rgba(90,60,20,.35), 0 0 8px rgba(143,75,176,.5);}
 .portrait span{
   font-family:'Cinzel',serif;
   font-size:11px;
@@ -585,6 +591,14 @@ body{
 }
 .dice-roll-btn:hover{border-color:#c9a568;background:linear-gradient(180deg,#6e4d28,#452f14);}
 .dice-roll-btn:active{transform:translateY(1px);}
+.init-panel{border-color:var(--wax);box-shadow:1px 2px 4px rgba(90,60,20,.15), 0 0 0 1px rgba(165,52,52,.25);}
+.init-panel h2{border-bottom-color:var(--wax);}
+.init-panel .init-btn{margin-top:8px;}
+.init-status-select{
+  width:100%;
+  background:var(--paper-l);color:var(--ink);border:1px solid var(--border-brown);
+  border-radius:4px;padding:6px 8px;font-family:'Cinzel',serif;font-size:12px;text-align:center;
+}
 .dano-die{width:38px;height:38px;font-size:16px;border-radius:6px;}
 .dano-eq{font-family:'Cinzel',serif;font-size:16px;color:var(--ink-faint);}
 .dano-total-box{
@@ -928,6 +942,16 @@ body{
               <div class="xp-bar-caption" id="xpBarCaption">0 / 10 até o próximo bloco</div>
             </div>
 
+            <div class="panel dice-panel init-panel">
+              <h2>⚔️ Iniciativa</h2>
+              <select id="fichaAtivo" class="init-status-select" title="Esta ficha participa da iniciativa?">
+                <option value="Ativo">Ativo</option>
+                <option value="Inativo">Inativo</option>
+              </select>
+              <button id="iniciativaBtn" type="button" class="dice-roll-btn init-btn">⚔️ INICIATIVA!</button>
+              <div class="dice-hint" id="iniciativaHint"></div>
+            </div>
+
             <div class="panel dice-panel">
               <h2>Rolagem de Dado (d20)</h2>
               <div class="dice-controls">
@@ -1197,8 +1221,20 @@ body{
 
   function num(el){ const v = parseFloat(el.value); return isNaN(v)?0:v; }
 
+  const PORTRAIT_CLASS_KEYS = {
+    'Guerreiro': 'class-guerreiro',
+    'Caçador': 'class-cacador',
+    'Mago': 'class-mago',
+    'Clérigo': 'class-clerigo',
+    'Bardo': 'class-bardo',
+  };
+
   function recalc(){
     els.levelSeal.classList.toggle('seal-rosette', els.raca.value === 'Rosette');
+
+    Object.values(PORTRAIT_CLASS_KEYS).forEach(cls => portraitBox.classList.remove(cls));
+    const portraitCls = PORTRAIT_CLASS_KEYS[els.classe.value];
+    if(portraitCls) portraitBox.classList.add(portraitCls);
 
     const xp = num(els.xp);
     const level = 1 + xp/10;
@@ -1471,16 +1507,55 @@ body{
     void danoTotalValue.offsetWidth;
     danoTotalValue.classList.add('settle');
 
+    const rollsSorted = [...rolls].sort((a,b)=> b-a);
+
     const faixa = `entre ${qtd} e ${qtd*maxVal}`;
     if(qtd > 1){
-      danoHint.textContent = `${qtd}d${maxVal}: [${rolls.join(' + ')}] = ${total} (${faixa}).`;
+      danoHint.textContent = `${qtd}d${maxVal}: [${rollsSorted.join(' + ')}] = ${total} (${faixa}).`;
     } else {
       danoHint.textContent = `1d${maxVal}: resultado ${total} (${faixa}).`;
     }
     rollDanoBtn.disabled = false;
 
-    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, rolls, resultado: total, ts: Date.now() });
+    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, rolls: rollsSorted, resultado: total, ts: Date.now() });
   }
+
+  // ---------- iniciativa ----------
+  const iniciativaBtn = $('iniciativaBtn');
+  const iniciativaHint = $('iniciativaHint');
+  iniciativaBtn.addEventListener('click', async ()=>{
+    const original = iniciativaBtn.textContent;
+    iniciativaBtn.disabled = true;
+    iniciativaBtn.textContent = 'Sorteando...';
+    iniciativaHint.textContent = '';
+    try{
+      const files = (await githubListFolder(FICHAS_PATH))
+        .filter(f => f.type === 'file' && f.name.endsWith('.json'));
+      const activeNames = [];
+      for(const file of files){
+        try{
+          const raw = await fetch(file.download_url).then(r=>r.text());
+          const data = JSON.parse(raw);
+          const ativoVal = data.ativo === undefined ? 'Ativo' : data.ativo;
+          if(ativoVal === 'Ativo' && data.nome) activeNames.push(data.nome);
+        }catch(e){ /* ficha inválida ou corrompida — ignora */ }
+      }
+      const itens = [...activeNames, 'Inimigos'];
+      for(let i = itens.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [itens[i], itens[j]] = [itens[j], itens[i]];
+      }
+      const linhas = itens.map((nome, idx) => `${idx+1}. ${nome}`).join('\n');
+      await postToDiscord(`⚔️ **ORDEM DE INICIATIVA!**\n${linhas}`);
+      iniciativaBtn.textContent = '✓ Enviado!';
+      iniciativaHint.textContent = `Ordem sorteada: ${itens.join(' → ')}`;
+    }catch(err){
+      console.error(err);
+      iniciativaBtn.textContent = 'Erro, tente de novo';
+      iniciativaHint.textContent = 'Não foi possível buscar as fichas salvas na mesa agora.';
+    }
+    setTimeout(()=>{ iniciativaBtn.textContent = original; iniciativaBtn.disabled = false; }, 2200);
+  });
 
   // ---------- flip ----------
   const card = $('card');
@@ -1874,6 +1949,7 @@ body{
         const inputs = r.querySelectorAll('input');
         return { nome: inputs[0].value, qtd: inputs[1].value };
       }),
+      ativo: $('fichaAtivo').value,
       habilidadesExtras: [...extraSkillRows.children].map(r=>{
         const nomeInput = r.querySelector('input');
         const attrSelect = r.querySelector('.extra-skill-attr');
@@ -1912,6 +1988,7 @@ body{
 
     inventoryRows.innerHTML='';
     (s.inventory && s.inventory.length ? s.inventory : [{},{},{}]).forEach(it=> addItemRow(it.nome||'', it.qtd||0));
+    $('fichaAtivo').value = s.ativo || 'Ativo';
     extraSkillRows.innerHTML='';
     (s.habilidadesExtras && s.habilidadesExtras.length ? s.habilidadesExtras : [{},{}]).forEach(h=> addExtraSkillRow(h.nome||'', h.attr||'FOR', h.rank||'C'));
     skillRows.innerHTML='';
