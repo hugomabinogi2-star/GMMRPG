@@ -1,14 +1,6 @@
 [
   {
     "nome": "Van",
-    "tipo": "atributo",
-    "statKey": "int",
-    "resultado": 10,
-    "resultLabel": "Acerto",
-    "ts": 1785082933803
-  },
-  {
-    "nome": "Van",
     "tipo": "dano",
     "qtd": 1,
     "maxVal": 9,
@@ -99,5 +91,20 @@
     "resultado": 2,
     "resultLabel": "Erro",
     "ts": 1785155955051
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "dano",
+    "qtd": 5,
+    "maxVal": 10,
+    "rolls": [
+      10,
+      10,
+      9,
+      6,
+      4
+    ],
+    "resultado": 39,
+    "ts": 1785155975078
   }
 ]
