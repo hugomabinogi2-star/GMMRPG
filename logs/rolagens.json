@@ -3,14 +3,6 @@
     "nome": "Qudenos",
     "tipo": "atributo",
     "statKey": "car",
-    "resultado": 9,
-    "resultLabel": "Erro",
-    "ts": 1785094969538
-  },
-  {
-    "nome": "Qudenos",
-    "tipo": "atributo",
-    "statKey": "car",
     "resultado": 14,
     "resultLabel": "Acerto",
     "ts": 1785094978630
@@ -104,5 +96,13 @@
     "resultado": 4,
     "resultLabel": "Erro",
     "ts": 1785172903173
+  },
+  {
+    "nome": "(sem nome)",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 18,
+    "resultLabel": "Acerto",
+    "ts": 1785173145298
   }
 ]
