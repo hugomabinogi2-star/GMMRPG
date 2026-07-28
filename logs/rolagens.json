@@ -1,13 +1,5 @@
 [
   {
-    "nome": "FADÃO",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 17,
-    "resultLabel": "Erro",
-    "ts": 1785255317286
-  },
-  {
     "nome": "Alicia",
     "tipo": "atributo",
     "statKey": "des",
@@ -86,5 +78,13 @@
     ],
     "resultado": 22,
     "ts": 1785255457423
+  },
+  {
+    "nome": "Nema",
+    "tipo": "atributo",
+    "statKey": "car",
+    "resultado": 6,
+    "resultLabel": "Erro",
+    "ts": 1785255686278
   }
 ]
