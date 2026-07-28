@@ -1,17 +1,5 @@
 [
   {
-    "nome": "FADÃO",
-    "tipo": "dano",
-    "qtd": 2,
-    "maxVal": 5,
-    "rolls": [
-      4,
-      1
-    ],
-    "resultado": 5,
-    "ts": 1785255395780
-  },
-  {
     "nome": "Alicia",
     "tipo": "atributo",
     "statKey": "int",
@@ -89,5 +77,13 @@
     "resultado": 11,
     "resultLabel": "Erro",
     "ts": 1785277533297
+  },
+  {
+    "nome": "Zarah ",
+    "tipo": "atributo",
+    "statKey": "con",
+    "resultado": 8,
+    "resultLabel": "Erro",
+    "ts": 1785277536920
   }
 ]
