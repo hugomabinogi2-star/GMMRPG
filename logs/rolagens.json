@@ -3,14 +3,6 @@
     "nome": "Zarah ",
     "tipo": "atributo",
     "statKey": "int",
-    "resultado": 10,
-    "resultLabel": "Erro",
-    "ts": 1785278476733
-  },
-  {
-    "nome": "Zarah ",
-    "tipo": "atributo",
-    "statKey": "int",
     "resultado": 20,
     "resultLabel": "Acerto Garantido",
     "ts": 1785278478557
@@ -78,5 +70,13 @@
     "resultado": 4,
     "resultLabel": "Erro",
     "ts": 1785278504899
+  },
+  {
+    "nome": "Zarah ",
+    "tipo": "atributo",
+    "statKey": "des",
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1785278508224
   }
 ]
