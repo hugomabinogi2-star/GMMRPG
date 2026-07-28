@@ -1,13 +1,5 @@
 [
   {
-    "nome": "FADÃO",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 6,
-    "resultLabel": "Erro",
-    "ts": 1785255338546
-  },
-  {
     "nome": "Alicia",
     "tipo": "atributo",
     "statKey": "des",
@@ -86,5 +78,16 @@
     "resultado": 13,
     "resultLabel": "Acerto",
     "ts": 1785255747206
+  },
+  {
+    "nome": "Samuel Sukuna",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 12,
+    "rolls": [
+      11
+    ],
+    "resultado": 11,
+    "ts": 1785255788819
   }
 ]
