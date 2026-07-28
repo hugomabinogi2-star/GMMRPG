@@ -3,14 +3,6 @@
     "nome": "Zarah ",
     "tipo": "atributo",
     "statKey": "von",
-    "resultado": 14,
-    "resultLabel": "Erro",
-    "ts": 1785278463268
-  },
-  {
-    "nome": "Zarah ",
-    "tipo": "atributo",
-    "statKey": "von",
     "resultado": 19,
     "resultLabel": "Acerto",
     "ts": 1785278464861
@@ -78,5 +70,13 @@
     "resultado": 17,
     "resultLabel": "Acerto",
     "ts": 1785278485718
+  },
+  {
+    "nome": "Zarah ",
+    "tipo": "atributo",
+    "statKey": "con",
+    "resultado": 6,
+    "resultLabel": "Erro",
+    "ts": 1785278488321
   }
 ]
