@@ -1,13 +1,5 @@
 [
   {
-    "nome": "Alicia",
-    "tipo": "atributo",
-    "statKey": "des",
-    "resultado": 5,
-    "resultLabel": "Erro",
-    "ts": 1785255331534
-  },
-  {
     "nome": "FADÃO",
     "tipo": "atributo",
     "statKey": "for",
@@ -86,5 +78,13 @@
     "resultado": 6,
     "resultLabel": "Erro",
     "ts": 1785255686278
+  },
+  {
+    "nome": "Samuel Sukuna",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 13,
+    "resultLabel": "Acerto",
+    "ts": 1785255747206
   }
 ]
