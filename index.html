@@ -901,6 +901,7 @@ body{
   <button id="rollLogBtn">🎲 Histórico de Rolagens</button>
   <button id="mesaBtn">🖥️ Mesa</button>
   <button class="github-btn" id="githubConfigBtn">🔑 Meu token do GitHub</button>
+  <button class="github-btn" id="webhookConfigBtn">🔔 Webhook do Discord</button>
   <label class="filebtn">Carregar ficha (.json)
     <input type="file" id="loadInput" accept="application/json">
   </label>
@@ -1246,6 +1247,38 @@ body{
         <li>Em "Repository access", escolha <strong>Only select repositories</strong> e selecione <strong>hugomabinogi2-star/GMMRPG</strong>.</li>
         <li>Em "Permissions → Repository permissions", defina <strong>Contents: Read and write</strong>.</li>
         <li>Gere o token e cole aqui. Ele fica salvo só neste navegador (nunca é enviado a ninguém além do GitHub) — trate-o como uma senha e não o compartilhe no Discord.</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="webhookModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>🔔 Webhook do Discord</h2>
+      <button id="closeWebhook" class="modal-close">✕</button>
+    </div>
+    <p class="modal-sub">Cada mesa/servidor pode ter seu próprio Webhook do Discord. Configure aqui a URL da <strong>sua</strong> mesa — ela fica salva só neste navegador e passa a ser usada em vez da URL padrão.</p>
+
+    <div id="webhookStatus" class="token-status">Nenhum webhook próprio configurado neste navegador (usando o padrão).</div>
+
+    <div class="token-field">
+      <label>URL do Webhook</label>
+      <input type="text" id="webhookInput" placeholder="https://discord.com/api/webhooks/..." autocomplete="off">
+    </div>
+
+    <div class="modal-actions">
+      <button id="webhookSaveBtn">Salvar webhook</button>
+      <button id="webhookRemoveBtn" class="danger">Usar o padrão</button>
+    </div>
+
+    <div class="token-help">
+      Como gerar a URL do webhook (leva 1 minuto):
+      <ol>
+        <li>No Discord, vá até o canal onde quer receber as fichas/rolagens.</li>
+        <li><strong>Configurações do canal → Integrações → Webhooks → Novo Webhook</strong>.</li>
+        <li>Clique em <strong>Copiar URL do Webhook</strong> e cole aqui.</li>
+        <li>Salve. Todas as fichas salvas neste navegador (rolagens, iniciativa, mensagens da Mesa) passarão a ser enviadas para esse canal.</li>
       </ol>
     </div>
   </div>
@@ -2272,13 +2305,20 @@ body{
   const GITHUB_REPO   = 'GMMRPG';
   const FICHAS_PATH   = 'fichas';
   const TOKEN_KEY      = 'rpg_ficha_github_token';
+  const WEBHOOK_KEY     = 'rpg_ficha_discord_webhook';
 
-  // Cole aqui a URL do Webhook do Discord (Configurações do canal → Integrações → Webhooks → Novo Webhook → Copiar URL).
-  // Deixe como '' pra desativar o espelhamento no Discord.
-  const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1530963962898939966/yACZl2EZJ9gZNR2yZ_wgTenzqyWpL5OO__za55S4YwMFTAm2UxLpg1-QBbVguiIgSNSh';
+  // Webhook padrão de fábrica (usado só se a pessoa nunca configurou um webhook próprio nesse navegador).
+  // Deixe como '' pra desativar o espelhamento no Discord por padrão.
+  const DEFAULT_DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1530963962898939966/yACZl2EZJ9gZNR2yZ_wgTenzqyWpL5OO__za55S4YwMFTAm2UxLpg1-QBbVguiIgSNSh';
+
+  function getWebhook(){ return localStorage.getItem(WEBHOOK_KEY) || ''; }
+  function setWebhook(url){ localStorage.setItem(WEBHOOK_KEY, url); }
+  function removeWebhook(){ localStorage.removeItem(WEBHOOK_KEY); }
+  function getDiscordWebhookUrl(){ return getWebhook() || DEFAULT_DISCORD_WEBHOOK_URL; }
 
   async function postToDiscord(content, imageDataUrl){
-    if(!DISCORD_WEBHOOK_URL) return;
+    const webhookUrl = getDiscordWebhookUrl();
+    if(!webhookUrl) return;
     try{
       if(imageDataUrl){
         const blob = await (await fetch(imageDataUrl)).blob();
@@ -2286,10 +2326,10 @@ body{
         const form = new FormData();
         form.append('payload_json', JSON.stringify({ content }));
         form.append('files[0]', blob, `retrato.${ext}`);
-        await fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: form });
+        await fetch(webhookUrl, { method: 'POST', body: form });
         return;
       }
-      await fetch(DISCORD_WEBHOOK_URL, {
+      await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content })
@@ -2605,6 +2645,45 @@ body{
   $('closeToken').addEventListener('click', ()=> tokenModal.hidden = true);
   tokenModal.addEventListener('click', (e)=>{ if(e.target === tokenModal) tokenModal.hidden = true; });
 
+  // ---------- modal de configuração do webhook do Discord ----------
+  const webhookModal  = $('webhookModal');
+  const webhookStatus = $('webhookStatus');
+  const webhookInput  = $('webhookInput');
+
+  function refreshWebhookStatus(){
+    const url = getWebhook();
+    if(url){
+      webhookStatus.textContent = `✓ Webhook próprio configurado neste navegador. Rolagens e fichas salvas aqui vão para a sua mesa.`;
+      webhookStatus.classList.add('ok');
+    } else {
+      webhookStatus.textContent = 'Nenhum webhook próprio configurado neste navegador (usando o padrão).';
+      webhookStatus.classList.remove('ok');
+    }
+  }
+
+  $('webhookConfigBtn').addEventListener('click', ()=>{
+    webhookInput.value = getWebhook();
+    refreshWebhookStatus();
+    webhookModal.hidden = false;
+  });
+  $('closeWebhook').addEventListener('click', ()=> webhookModal.hidden = true);
+  webhookModal.addEventListener('click', (e)=>{ if(e.target === webhookModal) webhookModal.hidden = true; });
+
+  $('webhookSaveBtn').addEventListener('click', ()=>{
+    const val = webhookInput.value.trim();
+    if(!val){ alert('Cole a URL do webhook antes de salvar.'); return; }
+    if(!/^https:\/\/(discord\.com|discordapp\.com)\/api\/webhooks\//.test(val)){
+      if(!confirm('Essa URL não parece ser um webhook do Discord. Salvar assim mesmo?')) return;
+    }
+    setWebhook(val);
+    refreshWebhookStatus();
+  });
+  $('webhookRemoveBtn').addEventListener('click', ()=>{
+    removeWebhook();
+    webhookInput.value = '';
+    refreshWebhookStatus();
+  });
+
   $('tokenSaveBtn').addEventListener('click', ()=>{
     const val = tokenInput.value.trim();
     if(!val){ alert('Cole seu token antes de salvar.'); return; }
@@ -2753,6 +2832,7 @@ body{
   }
 
   refreshTokenStatus();
+  refreshWebhookStatus();
   recalc();
 })();
 </script>
