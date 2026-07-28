@@ -3,14 +3,6 @@
     "nome": "FICHA DO MESTRE",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 19,
-    "resultLabel": "Acerto",
-    "ts": 1785254405501
-  },
-  {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 20,
     "resultLabel": "Acerto Garantido",
     "ts": 1785254408821
@@ -81,5 +73,13 @@
     "resultado": 6,
     "resultLabel": "Erro",
     "ts": 1785255356063
+  },
+  {
+    "nome": "Alicia",
+    "tipo": "atributo",
+    "statKey": "int",
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1785255367549
   }
 ]
