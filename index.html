@@ -140,47 +140,6 @@ body{
 .roll-log-entry .rl-text strong{color:var(--wax-dark);}
 .roll-log-entry .rl-time{color:var(--ink-faint);font-size:11px;white-space:nowrap;font-family:'Inter',sans-serif;}
 
-.radio-section-title{
-  font-family:'Cinzel',serif;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--ink-soft);margin:16px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--ink-faint);
-}
-.radio-section-title:first-of-type{margin-top:0;}
-.audio-unlock-banner{
-  display:block;width:100%;max-width:960px;margin:-6px 0 20px;
-  font-family:'Cinzel',serif;font-weight:600;font-size:12.5px;letter-spacing:.03em;text-transform:uppercase;
-  color:#fbe9de;
-  background:linear-gradient(180deg,#5c4020,#3a2810);
-  border:1px solid var(--wax);border-radius:4px;
-  padding:9px 14px;cursor:pointer;text-align:center;
-  animation:audioBannerPulse 2.2s ease-in-out infinite;
-}
-.audio-unlock-banner:hover{border-color:#c9a568;}
-.audio-unlock-banner.hidden{display:none;}
-@keyframes audioBannerPulse{
-  0%,100%{box-shadow:0 0 0 0 rgba(165,52,52,.35);}
-  50%{box-shadow:0 0 0 6px rgba(165,52,52,0);}
-}
-.radio-now-playing{
-  text-align:center;font-family:'Cinzel',serif;font-size:13px;letter-spacing:.03em;
-  padding:8px 10px;margin-bottom:14px;border-radius:4px;
-  border:1px solid var(--border-brown);background:rgba(120,85,40,.1);color:var(--ink);
-}
-.radio-now-playing.playing{color:#2f6b2f;border-color:#6f8a5f;background:rgba(95,138,82,.14);}
-.radio-scene-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
-.radio-scene-btn{
-  font-family:'Cinzel',serif;font-weight:600;letter-spacing:.04em;font-size:12.5px;text-transform:uppercase;
-  color:var(--paper-l);
-  background:linear-gradient(180deg,#5c4020,#3a2810);
-  border:1px solid var(--border-brown);border-radius:4px;
-  padding:12px 10px;cursor:pointer;text-align:center;
-  transition:transform .15s, border-color .15s, background .15s;
-  box-shadow:0 2px 0 rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08);
-}
-.radio-scene-btn:hover{border-color:#c9a568;background:linear-gradient(180deg,#6e4d28,#452f14);transform:translateY(-1px);}
-.radio-scene-btn.active{border-color:var(--wax-bright);box-shadow:0 0 0 2px rgba(165,52,52,.5), 0 2px 0 rgba(0,0,0,.4);}
-.radio-volume-row{display:flex;align-items:center;gap:10px;margin-top:12px;font-family:'Cinzel',serif;font-size:12px;color:var(--ink-soft);}
-.radio-volume-row input[type=range]{flex:1;}
-.radio-sync-hint{font-size:11.5px;color:var(--ink-faint);text-align:center;margin-top:8px;min-height:14px;}
 .master-card{
   border:1px solid var(--ink-faint);border-radius:5px;
   padding:10px 12px;
@@ -373,7 +332,7 @@ body{
 }
 .portrait img{width:100%;height:100%;object-fit:cover;filter:sepia(.25) contrast(1.02);}
 .portrait-actions{display:flex;gap:6px;}
-.portrait-back-wrap{display:flex;justify-content:flex-end;margin:-6px 4px 10px;}
+.portrait-back-wrap{display:flex;justify-content:center;margin:2px 0 16px;}
 .portrait-back{
   width:70px;height:90px;
   cursor:default;
@@ -618,6 +577,7 @@ body{
 .dice-display{
   display:flex;align-items:center;justify-content:center;gap:14px;
   margin-top:12px;flex-wrap:wrap;
+  position:relative;
 }
 .dice-roll-btn{
   margin-top:10px;width:100%;
@@ -696,9 +656,39 @@ body{
   100%{opacity:1;transform:translateY(0) scale(1);}
 }
 .dice-verdict.show{animation:verdictPop .35s ease-out;}
-.dice-result.crit-hit{box-shadow:inset 0 0 8px rgba(90,60,20,.25), 0 0 14px rgba(61,92,51,.6), 0 2px 4px rgba(0,0,0,.25);}
-.dice-result.crit-miss{box-shadow:inset 0 0 8px rgba(90,60,20,.25), 0 0 14px rgba(122,32,32,.55), 0 2px 4px rgba(0,0,0,.25);}
+.dice-result.hit-glow{
+  box-shadow:inset 0 0 8px rgba(90,60,20,.2), 0 0 14px rgba(255,205,90,.65), 0 2px 4px rgba(0,0,0,.25);
+}
+.dice-result.miss-shadow{
+  box-shadow:inset 0 0 10px rgba(0,0,0,.55), 0 0 14px rgba(0,0,0,.5), 0 2px 4px rgba(0,0,0,.35);
+  filter:brightness(.82);
+}
+.dice-result.crit-hit{
+  box-shadow:inset 0 0 8px rgba(90,60,20,.2), 0 0 22px rgba(255,205,90,.95), 0 0 42px rgba(255,205,90,.55), 0 2px 4px rgba(0,0,0,.25);
+}
+.dice-result.crit-miss{
+  box-shadow:inset 0 0 10px rgba(0,0,0,.65), 0 0 24px rgba(60,0,0,.9), 0 0 42px rgba(40,0,0,.6), 0 2px 4px rgba(0,0,0,.4);
+  filter:brightness(.68);
+}
 .dice-result.dano-result, .dice-result.dano-result.rolling{color:#c21f1f;}
+
+.dice-particle-layer{
+  position:absolute;inset:0;
+  pointer-events:none;overflow:visible;
+  z-index:5;
+}
+.dice-particle{
+  position:absolute;
+  font-size:18px;line-height:1;
+  opacity:0;
+  animation:diceParticleFloat 900ms ease-out forwards;
+  will-change:transform,opacity;
+}
+@keyframes diceParticleFloat{
+  0%{opacity:0;transform:translate(0,0) scale(.4) rotate(0deg);}
+  18%{opacity:1;}
+  100%{opacity:0;transform:translate(var(--dx,0px), var(--dy,-60px)) scale(1.15) rotate(var(--rot,20deg));}
+}
 
 /* modifiers */
 .mods-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;}
@@ -892,7 +882,6 @@ body{
   <button class="cloud-btn" id="cloudSaveBtn">☁ Salvar na mesa (mestre vê)</button>
   <button id="masterBtn">📜 Painel do Mestre</button>
   <button id="rollLogBtn">🎲 Histórico de Rolagens</button>
-  <button id="radioBtn">🔊 Rádio da Mesa</button>
   <button class="github-btn" id="githubConfigBtn">🔑 Meu token do GitHub</button>
   <label class="filebtn">Carregar ficha (.json)
     <input type="file" id="loadInput" accept="application/json">
@@ -902,8 +891,6 @@ body{
   <button id="printBtn">Imprimir / PDF</button>
 </div>
 <p class="cloud-note">☁ "Salvar na mesa" grava esta ficha como um arquivo no repositório <strong>hugomabinogi2-star/GMMRPG</strong> no GitHub, visível para todos que abrirem esta página. Use um <strong>nome de personagem único</strong> para não sobrescrever a ficha de outro jogador. Para salvar, configure primeiro seu token pessoal em "🔑 Meu token do GitHub".</p>
-
-<button id="audioUnlockBanner" class="audio-unlock-banner" type="button">🔊 Clique aqui pra ativar o áudio da mesa neste navegador</button>
 
 <div class="stage">
   <div class="card" id="card">
@@ -1009,6 +996,7 @@ body{
               <div class="dice-display">
                 <div class="dice-result" id="diceResult">—</div>
                 <div class="dice-verdict" id="diceVerdict"></div>
+                <div class="dice-particle-layer" id="diceParticleLayer"></div>
               </div>
               <div class="dice-hint" id="diceHint">Selecione um status e role o dado.</div>
             </div>
@@ -1176,37 +1164,6 @@ body{
     <p class="modal-sub">Toda rolagem de dado ou de dano feita por qualquer jogador com token configurado aparece aqui, para todos verem.</p>
     <button id="refreshRollLog" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar histórico</button>
     <div id="rollLogList" class="roll-log-list"></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="radioModal" hidden>
-  <div class="modal-box">
-    <div class="modal-head">
-      <h2>🔊 Rádio da Mesa</h2>
-      <button id="closeRadio" class="modal-close">✕</button>
-    </div>
-    <p class="modal-sub">Escolha uma cena e/ou um clima — tocam juntos e ao mesmo tempo pra todo mundo com a página aberta. Só quem tiver token configurado consegue trocar pra todos; sem token, você ainda consegue ouvir.</p>
-
-    <h3 class="radio-section-title">Cena</h3>
-    <div class="radio-now-playing" id="radioNowPlaying">Nada tocando agora.</div>
-    <div class="radio-scene-grid" id="radioSceneGrid"></div>
-    <button id="radioStopBtn" class="add-row-btn" style="margin-top:4px;">⏹ Silêncio</button>
-
-    <h3 class="radio-section-title">Clima</h3>
-    <div class="radio-now-playing" id="climaNowPlaying">Nada tocando agora.</div>
-    <div class="radio-scene-grid" id="climaSceneGrid"></div>
-    <button id="climaStopBtn" class="add-row-btn" style="margin-top:4px;">⏹ Silêncio</button>
-
-    <div class="radio-volume-row">
-      <label for="radioVolume">🔈 Volume</label>
-      <input type="range" id="radioVolume" min="0" max="100" value="60">
-    </div>
-
-    <button id="refreshRadio" class="add-row-btn" style="margin-top:10px;">↻ Sincronizar com a mesa</button>
-    <div id="radioSyncHint" class="radio-sync-hint"></div>
-
-    <audio id="radioAudio" preload="none"></audio>
-    <audio id="climaAudio" preload="none"></audio>
   </div>
 </div>
 
@@ -1438,11 +1395,115 @@ body{
     }
   }
 
+  // ---------- efeitos sonoros dos dados (sintetizados via Web Audio API, sem arquivos externos) ----------
+  let audioCtx = null;
+  function getAudioCtx(){
+    if(!audioCtx){
+      const Ctor = window.AudioContext || window.webkitAudioContext;
+      if(!Ctor) return null;
+      audioCtx = new Ctor();
+    }
+    if(audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+    return audioCtx;
+  }
+
+  // toca um tom simples com envelope de volume (ataque rápido, decaimento suave)
+  function playTone(freq, duration, opts={}){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    const t0 = ctx.currentTime + (opts.delay||0);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = opts.type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0);
+    if(opts.freqEnd != null){
+      osc.frequency.exponentialRampToValueAtTime(Math.max(1,opts.freqEnd), t0 + duration);
+    }
+    const peak = opts.gain != null ? opts.gain : 0.18;
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.02);
+  }
+
+  // clique curto e seco da rolagem (usado nos dois painéis, dado e dano)
+  function playDiceTick(){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    const t0 = ctx.currentTime;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.03);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2 - 1) * (1 - i/bufferSize);
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 1200;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.12, t0);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.03);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start(t0);
+    noise.stop(t0 + 0.04);
+  }
+
+  // som triste "ooh" para erros
+  function playOohSound(){
+    playTone(300, 0.5, { type:'triangle', freqEnd:170, gain:0.16 });
+  }
+  // som "bling" para acertos
+  function playBlingSound(){
+    playTone(880, 0.18, { type:'sine', gain:0.16 });
+    playTone(1320, 0.28, { type:'sine', gain:0.14, delay:0.09 });
+  }
+  // som "yaay" (fanfarra) para o 20 natural
+  function playYaaySound(){
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i)=>{
+      playTone(f, 0.32, { type:'triangle', gain:0.17, delay: i*0.09 });
+    });
+  }
+  // riso maligno para o 1 natural
+  function playEvilLaughSound(){
+    const notes = [220, 196, 174.6, 155.6];
+    notes.forEach((f, i)=>{
+      playTone(f, 0.16, { type:'sawtooth', freqEnd: f*0.6, gain:0.11, delay: i*0.14 });
+    });
+  }
+
+  // cria partículas curtas (ex: ✨ ou 💀) flutuando ao redor do elemento do dado
+  function spawnDiceParticles(layer, emoji, count){
+    if(!layer) return;
+    for(let i=0;i<count;i++){
+      const span = document.createElement('span');
+      span.className = 'dice-particle';
+      span.textContent = emoji;
+      const angle = Math.random()*Math.PI*2;
+      const dist = 24 + Math.random()*36;
+      const dx = Math.cos(angle)*dist;
+      const dy = Math.sin(angle)*dist - 28;
+      span.style.left = `calc(50% + ${(Math.random()*24-12).toFixed(1)}px)`;
+      span.style.top = `calc(50% + ${(Math.random()*12-6).toFixed(1)}px)`;
+      span.style.setProperty('--dx', dx.toFixed(1)+'px');
+      span.style.setProperty('--dy', dy.toFixed(1)+'px');
+      span.style.setProperty('--rot', (Math.random()*60-30).toFixed(1)+'deg');
+      span.style.animationDelay = Math.floor(Math.random()*150)+'ms';
+      layer.appendChild(span);
+      setTimeout(()=> span.remove(), 1200);
+    }
+  }
+
   // ---------- dice roller ----------
   const diceStat = $('diceStat');
   const diceResult = $('diceResult');
   const diceVerdict = $('diceVerdict');
   const diceHint = $('diceHint');
+  const diceParticleLayer = $('diceParticleLayer');
   const rollBtn = $('rollDiceBtn');
   const statLabels = { for:'FOR', int:'INT', con:'CON', von:'VON', des:'DES', car:'CAR', passivas:'Passivas' };
   let rollingInterval = null;
@@ -1457,13 +1518,15 @@ body{
     diceVerdict.textContent = '';
     diceVerdict.className = 'dice-verdict';
     diceHint.textContent = 'Rolando...';
-    diceResult.classList.remove('settle','crit-hit','crit-miss');
+    diceResult.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow');
     diceResult.classList.add('rolling');
+    if(diceParticleLayer) diceParticleLayer.innerHTML = '';
 
     let ticks = 0;
     const totalTicks = 10 + Math.floor(Math.random()*4);
     rollingInterval = setInterval(()=>{
       diceResult.textContent = 1 + Math.floor(Math.random()*20);
+      playDiceTick();
       ticks++;
       if(ticks >= totalTicks){
         clearInterval(rollingInterval);
@@ -1490,8 +1553,18 @@ body{
     diceResult.classList.remove('settle');
     void diceResult.offsetWidth;
     diceResult.classList.add('settle');
+    diceResult.classList.toggle('hit-glow', verdict === 'acerto');
+    diceResult.classList.toggle('miss-shadow', verdict === 'erro');
     diceResult.classList.toggle('crit-hit', roll === 20);
     diceResult.classList.toggle('crit-miss', roll === 1);
+
+    if(roll === 20) spawnDiceParticles(diceParticleLayer, '✨', 10);
+    else if(roll === 1) spawnDiceParticles(diceParticleLayer, '💀', 8);
+
+    if(roll === 20) playYaaySound();
+    else if(roll === 1) playEvilLaughSound();
+    else if(verdict === 'acerto') playBlingSound();
+    else playOohSound();
 
     diceVerdict.textContent = verdict === 'acerto' ? '✓ Acerto' : '✗ Erro';
     diceVerdict.className = 'dice-verdict ' + verdict;
@@ -1562,6 +1635,7 @@ body{
         sum += v;
       });
       danoTotalValue.textContent = sum;
+      playDiceTick();
       ticks++;
       if(ticks >= totalTicks){
         clearInterval(danoRollingInterval);
@@ -1825,6 +1899,15 @@ body{
 
   function currentLevel(){ return Math.floor(1 + num(els.xp) / 10); }
 
+  // Rank A de Corpo e Mente (CON) varia por classe — as demais habilidades da árvore são compartilhadas
+  const classConRankAOverrides = {
+    'Guerreiro': { nome:'Ataque Furioso', resumo:'Uma vez por combate, enquanto em fúria, o guerreiro pode adicionar o valor do modificador dessa habilidade ao dano final de um ataque.' },
+    'Caçador': { nome:'Na Mosca', resumo:'Uma vez por combate o caçador pode adicionar o valor do modificador dessa habilidade a um ataque a distância.' },
+    'Mago': { nome:'Fulminar', resumo:'Uma vez por combate o mago pode adicionar o modificador desta habilidade ao dano final de um rolamento de dado.' },
+    'Clérigo': { nome:'Palavra Sagrada', resumo:'Uma vez por combate o clérigo pode adicionar este modificador a uma cura.' },
+    'Bardo': { nome:'Espetáculo', resumo:'Uma vez por combate o bardo pode adicionar o modificador dessa habilidade a uma canção.' },
+  };
+
   function ensureClassSkillData(className){
     const stats = classSkillDefs[className];
     if(!stats) return null;
@@ -1837,9 +1920,13 @@ body{
         custo: (slot && parseFloat(slot.custo)) || 0,
         resumo: (slot && slot.resumo) || '',
       }));
-      const templates = stat === 'passivas'
+      let templates = stat === 'passivas'
         ? (classPassiveTemplates[className] || [])
         : (statSkillTemplates[stat] || []);
+      if(stat === 'con'){
+        const rankAOverride = classConRankAOverrides[className];
+        if(rankAOverride) templates = templates.map((tpl, idx) => idx === 2 ? rankAOverride : tpl);
+      }
       while(arr.length < CLASS_SKILL_SLOTS){
         const tpl = templates[arr.length] || null;
         arr.push({ nome: tpl ? tpl.nome : '', custo: 0, resumo: tpl ? tpl.resumo : '' });
@@ -2126,9 +2213,18 @@ body{
   // Deixe como '' pra desativar o espelhamento no Discord.
   const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1530963962898939966/yACZl2EZJ9gZNR2yZ_wgTenzqyWpL5OO__za55S4YwMFTAm2UxLpg1-QBbVguiIgSNSh';
 
-  async function postToDiscord(content){
+  async function postToDiscord(content, imageDataUrl){
     if(!DISCORD_WEBHOOK_URL) return;
     try{
+      if(imageDataUrl){
+        const blob = await (await fetch(imageDataUrl)).blob();
+        const ext = (blob.type && blob.type.split('/')[1]) || 'png';
+        const form = new FormData();
+        form.append('payload_json', JSON.stringify({ content }));
+        form.append('files[0]', blob, `retrato.${ext}`);
+        await fetch(DISCORD_WEBHOOK_URL, { method: 'POST', body: form });
+        return;
+      }
       await fetch(DISCORD_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2252,7 +2348,8 @@ body{
   }
 
   async function pushRollLog(entry){
-    postToDiscord(formatRollMessage(entry)); // independe do token do GitHub
+    const imagemParaDiscord = entry.tipo !== 'dano' ? (portraitData || null) : null;
+    postToDiscord(formatRollMessage(entry), imagemParaDiscord); // independe do token do GitHub
 
     if(!getToken()) return;
     try{
@@ -2329,227 +2426,6 @@ body{
       rollLogList.innerHTML = '<div class="master-empty">Não foi possível carregar o histórico agora. Tente atualizar de novo.</div>';
     }
   }
-
-  // ---------- rádio da mesa (música ambiente compartilhada, em duas camadas: Cena + Clima) ----------
-  const RADIO_LOG_PATH = 'logs/radio.json';
-  const VOLUME_KEY = 'rpg_ficha_radio_volume';
-
-  // Nomes dos arquivos de áudio esperados dentro do repositório, na pasta "audio/".
-  // Suba os arquivos .mp3 com esses nomes exatos pra cada botão funcionar.
-  const RADIO_TRACKS = {
-    cidade:   { label: 'Cidade',   file: 'audio/cidade.mp3' },
-    taverna:  { label: 'Taverna',  file: 'audio/taverna.mp3' },
-    aventura: { label: 'Aventura', file: 'audio/aventura.mp3' },
-    combate:  { label: 'Combate',  file: 'audio/combate.mp3' },
-    masmorra: { label: 'Masmorra', file: 'audio/masmorra.mp3' },
-    boss:     { label: 'Boss',     file: 'audio/boss.mp3' },
-  };
-  const CLIMA_TRACKS = {
-    chuva1:     { label: 'Chuva 1',    file: 'audio/chuva1.mp3' },
-    chuva2:     { label: 'Chuva 2',    file: 'audio/chuva2.mp3' },
-    chuva3:     { label: 'Chuva 3',    file: 'audio/chuva3.mp3' },
-    alvorada:   { label: 'Alvorada',   file: 'audio/alvorada.mp3' },
-    tempestade: { label: 'Tempestade', file: 'audio/tempestade.mp3' },
-  };
-
-  const radioModal = $('radioModal');
-  const radioVolume = $('radioVolume');
-  const radioSyncHint = $('radioSyncHint');
-
-  function githubRawUrl(path){
-    return `https://raw.githubusercontent.com/${GITHUB_OWNER}/${GITHUB_REPO}/main/${path}`;
-  }
-
-  // Cria um canal de áudio independente (Cena ou Clima) — cada um com seus próprios botões,
-  // player e status, mas compartilhando o mesmo arquivo de estado no repositório.
-  function createRadioChannel(opts){
-    const grid = $(opts.gridId);
-    const nowPlaying = $(opts.nowPlayingId);
-    const audio = $(opts.audioId);
-    const stopBtn = $(opts.stopBtnId);
-    const tracks = opts.tracks;
-    const stateKey = opts.stateKey;
-    const stateTsKey = opts.stateTsKey;
-    const label = opts.label;
-
-    let currentKey = null;
-
-    Object.keys(tracks).forEach(key=>{
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'radio-scene-btn';
-      btn.dataset.scene = key;
-      btn.textContent = tracks[key].label;
-      btn.addEventListener('click', ()=> broadcast(key));
-      grid.appendChild(btn);
-    });
-
-    function markActive(){
-      grid.querySelectorAll('.radio-scene-btn').forEach(btn=>{
-        btn.classList.toggle('active', btn.dataset.scene === currentKey);
-      });
-    }
-
-    function play(key, ts){
-      const track = tracks[key];
-      if(!track) return;
-      currentKey = key;
-      markActive();
-      audio.loop = true;
-      audio.src = githubRawUrl(track.file);
-
-      const applyOffset = ()=>{
-        if(ts && audio.duration){
-          const elapsed = Math.max(0, (Date.now() - ts) / 1000);
-          audio.currentTime = elapsed % audio.duration;
-        }
-        audio.removeEventListener('loadedmetadata', applyOffset);
-      };
-      audio.addEventListener('loadedmetadata', applyOffset);
-
-      const playPromise = audio.play();
-      nowPlaying.textContent = `🔊 Tocando agora: ${track.label}`;
-      nowPlaying.classList.add('playing');
-      if(playPromise && playPromise.catch){
-        playPromise.catch(()=>{
-          nowPlaying.textContent = `⏸ "${track.label}" pronto — toque em qualquer botão de novo pra liberar o som neste navegador.`;
-          nowPlaying.classList.remove('playing');
-        });
-      }
-    }
-
-    function stop(){
-      currentKey = null;
-      markActive();
-      audio.pause();
-      audio.removeAttribute('src');
-      audio.load();
-      nowPlaying.textContent = 'Nada tocando agora.';
-      nowPlaying.classList.remove('playing');
-    }
-
-    async function broadcast(key){
-      const ts = Date.now();
-      if(key) play(key, ts); else stop();
-
-      if(!getToken()){
-        radioSyncHint.textContent = 'Tocando só no seu navegador — configure o token do GitHub pra compartilhar com a mesa.';
-        return;
-      }
-      radioSyncHint.textContent = 'Avisando a mesa...';
-      try{
-        const existing = await githubGetFileContent(RADIO_LOG_PATH).catch(()=>null);
-        let data = {};
-        if(existing){
-          try{ data = JSON.parse(existing.content) || {}; }catch(e){ data = {}; }
-        }
-        data[stateKey] = key;
-        data[stateTsKey] = ts;
-        const body = {
-          message: key ? `Rádio da mesa (${label}): ${key}` : `Rádio da mesa (${label}): silêncio`,
-          content: b64EncodeUnicode(JSON.stringify(data, null, 2))
-        };
-        if(existing && existing.sha) body.sha = existing.sha;
-        await fetch(apiUrl(RADIO_LOG_PATH), {
-          method:'PUT',
-          headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
-          body: JSON.stringify(body)
-        });
-        radioSyncHint.textContent = 'Mesa avisada — quem sincronizar vai ouvir também.';
-        const trackLabel = key ? tracks[key].label : 'Silêncio';
-        postToDiscord(`🔊 ${label} da mesa mudou para: **${trackLabel}**`);
-      }catch(err){
-        console.warn(`Não foi possível avisar a mesa sobre o novo ${label}:`, err);
-        radioSyncHint.textContent = 'Tocando no seu navegador, mas não consegui avisar a mesa (verifique o token).';
-      }
-    }
-
-    // Sincroniza este canal com o estado compartilhado; devolve true se algo mudou.
-    function syncFrom(data){
-      const key = data[stateKey];
-      const ts = data[stateTsKey];
-      if(key && key !== currentKey){
-        play(key, ts);
-        return true;
-      } else if(!key && currentKey){
-        stop();
-        return true;
-      }
-      return false;
-    }
-
-    function setVolume(v){ audio.volume = v; }
-
-    stopBtn.addEventListener('click', ()=> broadcast(null));
-
-    return { play, stop, broadcast, syncFrom, setVolume };
-  }
-
-  const cenaChannel = createRadioChannel({
-    gridId: 'radioSceneGrid', nowPlayingId: 'radioNowPlaying', audioId: 'radioAudio', stopBtnId: 'radioStopBtn',
-    tracks: RADIO_TRACKS, stateKey: 'scene', stateTsKey: 'ts', label: 'Cena',
-  });
-  const climaChannel = createRadioChannel({
-    gridId: 'climaSceneGrid', nowPlayingId: 'climaNowPlaying', audioId: 'climaAudio', stopBtnId: 'climaStopBtn',
-    tracks: CLIMA_TRACKS, stateKey: 'clima', stateTsKey: 'climaTs', label: 'Clima',
-  });
-
-  radioVolume.addEventListener('input', ()=>{
-    const v = parseInt(radioVolume.value, 10) / 100;
-    const vol = isNaN(v) ? 0.6 : v;
-    cenaChannel.setVolume(vol);
-    climaChannel.setVolume(vol);
-    localStorage.setItem(VOLUME_KEY, radioVolume.value);
-  });
-  (function initVolume(){
-    const saved = localStorage.getItem(VOLUME_KEY);
-    if(saved !== null){ radioVolume.value = saved; }
-    const vol = (parseInt(radioVolume.value, 10) || 60) / 100;
-    cenaChannel.setVolume(vol);
-    climaChannel.setVolume(vol);
-  })();
-
-  // Busca cena/clima atuais compartilhados e sincroniza cada canal, se necessário.
-  async function syncRadio(){
-    radioSyncHint.textContent = 'Sincronizando...';
-    try{
-      const existing = await githubGetFileContent(RADIO_LOG_PATH);
-      if(!existing){
-        radioSyncHint.textContent = 'Nenhuma cena ou clima compartilhado ainda.';
-        return;
-      }
-      let data = {};
-      try{ data = JSON.parse(existing.content) || {}; }catch(e){ data = {}; }
-      const changedCena = cenaChannel.syncFrom(data);
-      const changedClima = climaChannel.syncFrom(data);
-      radioSyncHint.textContent = (changedCena || changedClima) ? 'Sincronizado com a mesa.' : 'Já está sincronizado.';
-    }catch(err){
-      console.error(err);
-      radioSyncHint.textContent = 'Não foi possível sincronizar agora.';
-    }
-  }
-
-  $('radioBtn').addEventListener('click', ()=>{
-    radioModal.hidden = false;
-    syncRadio();
-  });
-  $('closeRadio').addEventListener('click', ()=> radioModal.hidden = true);
-  radioModal.addEventListener('click', (e)=>{ if(e.target === radioModal) radioModal.hidden = true; });
-  $('refreshRadio').addEventListener('click', syncRadio);
-
-  // libera o autoplay com som neste navegador (exigência de todo navegador moderno) e,
-  // a partir daí, sincroniza a mesa em segundo plano sozinho, sem precisar abrir o painel.
-  const audioUnlockBanner = $('audioUnlockBanner');
-  audioUnlockBanner.addEventListener('click', ()=>{
-    [$('radioAudio'), $('climaAudio')].forEach(a=>{
-      a.muted = true;
-      a.play().then(()=>{ a.pause(); a.muted = false; }).catch(()=>{ a.muted = false; });
-    });
-    audioUnlockBanner.classList.add('hidden');
-    syncRadio();
-  });
-  setInterval(syncRadio, 60000); // confere a mesa a cada 60s, mesmo com o painel fechado
-  syncRadio(); // primeira checagem já ao carregar a página
 
   // ---------- modal de configuração do token ----------
   const tokenModal   = $('tokenModal');
