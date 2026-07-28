@@ -3,14 +3,6 @@
     "nome": "Zarah ",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 1,
-    "resultLabel": "Erro Crítico",
-    "ts": 1785278231516
-  },
-  {
-    "nome": "Zarah ",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 14,
     "resultLabel": "Erro",
     "ts": 1785278233773
@@ -96,5 +88,16 @@
     ],
     "resultado": 1,
     "ts": 1785278359620
+  },
+  {
+    "nome": "Zarah ",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      5
+    ],
+    "resultado": 5,
+    "ts": 1785278361848
   }
 ]
