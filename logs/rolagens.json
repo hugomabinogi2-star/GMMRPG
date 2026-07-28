@@ -1,14 +1,6 @@
 [
   {
     "nome": "Zarah ",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 4,
-    "resultLabel": "Erro",
-    "ts": 1785277548691
-  },
-  {
-    "nome": "Zarah ",
     "tipo": "dano",
     "qtd": 1,
     "maxVal": 6,
@@ -99,5 +91,13 @@
     ],
     "resultado": 3,
     "ts": 1785278184750
+  },
+  {
+    "nome": "Zarah ",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 10,
+    "resultLabel": "Erro",
+    "ts": 1785278200870
   }
 ]
