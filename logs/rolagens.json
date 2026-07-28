@@ -5,17 +5,6 @@
     "qtd": 1,
     "maxVal": 6,
     "rolls": [
-      4
-    ],
-    "resultado": 4,
-    "ts": 1785171114891
-  },
-  {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 6,
-    "rolls": [
       3
     ],
     "resultado": 3,
@@ -92,5 +81,13 @@
     "resultado": 14,
     "resultLabel": "Erro",
     "ts": 1785238378255
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1785238380214
   }
 ]
