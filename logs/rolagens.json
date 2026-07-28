@@ -3,14 +3,6 @@
     "nome": "FICHA DO MESTRE",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 11,
-    "resultLabel": "Erro",
-    "ts": 1785238376788
-  },
-  {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 14,
     "resultLabel": "Erro",
     "ts": 1785238378255
@@ -81,5 +73,20 @@
     ],
     "resultado": 2,
     "ts": 1785238400206
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "dano",
+    "qtd": 5,
+    "maxVal": 6,
+    "rolls": [
+      6,
+      6,
+      6,
+      5,
+      5
+    ],
+    "resultado": 28,
+    "ts": 1785238404346
   }
 ]
