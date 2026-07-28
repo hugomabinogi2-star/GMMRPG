@@ -1,13 +1,5 @@
 [
   {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 17,
-    "resultLabel": "Erro",
-    "ts": 1785254658779
-  },
-  {
     "nome": "Alicia",
     "tipo": "atributo",
     "statKey": "car",
@@ -82,5 +74,13 @@
     ],
     "resultado": 5,
     "ts": 1785255395780
+  },
+  {
+    "nome": "Alicia",
+    "tipo": "atributo",
+    "statKey": "int",
+    "resultado": 20,
+    "resultLabel": "Acerto Garantido",
+    "ts": 1785255415879
   }
 ]
