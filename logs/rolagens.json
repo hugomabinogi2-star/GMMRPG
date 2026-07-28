@@ -3,21 +3,6 @@
     "nome": "FICHA DO MESTRE",
     "tipo": "dano",
     "qtd": 5,
-    "maxVal": 6,
-    "rolls": [
-      6,
-      6,
-      6,
-      5,
-      5
-    ],
-    "resultado": 28,
-    "ts": 1785238404346
-  },
-  {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "dano",
-    "qtd": 5,
     "maxVal": 10,
     "rolls": [
       9,
@@ -95,5 +80,13 @@
     "resultado": 5,
     "resultLabel": "Erro",
     "ts": 1785255331534
+  },
+  {
+    "nome": "FADÃO",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 6,
+    "resultLabel": "Erro",
+    "ts": 1785255338546
   }
 ]
