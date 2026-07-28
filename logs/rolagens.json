@@ -1,13 +1,5 @@
 [
   {
-    "nome": "Nema",
-    "tipo": "atributo",
-    "statKey": "car",
-    "resultado": 6,
-    "resultLabel": "Erro",
-    "ts": 1785255686278
-  },
-  {
     "nome": "Samuel Sukuna",
     "tipo": "atributo",
     "statKey": "for",
@@ -81,5 +73,16 @@
     "resultado": 4,
     "resultLabel": "Erro",
     "ts": 1785277548691
+  },
+  {
+    "nome": "Zarah ",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      6
+    ],
+    "resultado": 6,
+    "ts": 1785277552365
   }
 ]
