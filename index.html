@@ -1023,12 +1023,12 @@ body{
             <div class="panel">
               <h2>Atributos</h2>
               <div class="attr-grid">
-                <div class="attr-row"><span class="lbl ar-ap-tip">FOR<div class="cs-tooltip">FORÇA FÍSICA E CAPACIDADE FÍSICA</div></span><input type="number" id="b_for" value="5" min="1" step="1"><span class="plus">+</span><span class="total" id="t_for">5</span><span class="eq">=</span><span class="bonus" id="bo_for">+2</span></div>
-                <div class="attr-row"><span class="lbl ar-ap-tip">CON<div class="cs-tooltip">CONSTITUIÇÃO E RESISTENCIA FÍSICA</div></span><input type="number" id="b_con" value="5" min="1" step="1"><span class="plus">+</span><span class="total" id="t_con">5</span><span class="eq">=</span><span class="bonus" id="bo_con">+2</span></div>
-                <div class="attr-row"><span class="lbl ar-ap-tip">DES<div class="cs-tooltip">MOVIMENTAÇÃO E ATENÇÃO</div></span><input type="number" id="b_des" value="5" min="1" step="1"><span class="plus">+</span><span class="total" id="t_des">5</span><span class="eq">=</span><span class="bonus" id="bo_des">+2</span></div>
-                <div class="attr-row"><span class="lbl ar-ap-tip">INT<div class="cs-tooltip">INTELIGÊNCIA E CONHECIMENTOS GERAIS</div></span><input type="number" id="b_int" value="5" min="1" step="1"><span class="plus">+</span><span class="total" id="t_int">5</span><span class="eq">=</span><span class="bonus" id="bo_int">+2</span></div>
-                <div class="attr-row"><span class="lbl ar-ap-tip">VON<div class="cs-tooltip">FORÇA DE VONTADE E RESILIÊNCIA MENTAL</div></span><input type="number" id="b_von" value="5" min="1" step="1"><span class="plus">+</span><span class="total" id="t_von">5</span><span class="eq">=</span><span class="bonus" id="bo_von">+2</span></div>
-                <div class="attr-row"><span class="lbl ar-ap-tip">CAR<div class="cs-tooltip">CARISMA E SORTE</div></span><input type="number" id="b_car" value="5" min="1" step="1"><span class="plus">+</span><span class="total" id="t_car">5</span><span class="eq">=</span><span class="bonus" id="bo_car">+2</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">FOR<div class="cs-tooltip">FORÇA FÍSICA E CAPACIDADE FÍSICA</div></span><input type="number" id="b_for" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_for">5</span><span class="eq">=</span><span class="bonus" id="bo_for">+2</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">CON<div class="cs-tooltip">CONSTITUIÇÃO E RESISTENCIA FÍSICA</div></span><input type="number" id="b_con" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_con">5</span><span class="eq">=</span><span class="bonus" id="bo_con">+2</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">DES<div class="cs-tooltip">MOVIMENTAÇÃO E ATENÇÃO</div></span><input type="number" id="b_des" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_des">5</span><span class="eq">=</span><span class="bonus" id="bo_des">+2</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">INT<div class="cs-tooltip">INTELIGÊNCIA E CONHECIMENTOS GERAIS</div></span><input type="number" id="b_int" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_int">5</span><span class="eq">=</span><span class="bonus" id="bo_int">+2</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">VON<div class="cs-tooltip">FORÇA DE VONTADE E RESILIÊNCIA MENTAL</div></span><input type="number" id="b_von" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_von">5</span><span class="eq">=</span><span class="bonus" id="bo_von">+2</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">CAR<div class="cs-tooltip">CARISMA E SORTE</div></span><input type="number" id="b_car" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_car">5</span><span class="eq">=</span><span class="bonus" id="bo_car">+2</span></div>
               </div>
               <div class="attr-legend">Base <span class="eq">→</span> Status final <span class="eq">→</span> <span class="bonus-word">Bônus de dano</span></div>
               <div class="points-meter ok" id="pointsMeter">Pontos usados: 30 / 30</div>
@@ -1226,6 +1226,8 @@ body{
 
   let portraitData = null;
   const totals = { for:5, int:5, con:5, von:5, des:5, car:5 };
+  // valores puros do atributo (sem modificadores) — usados para a rolagem de d20
+  const baseAttrs = { for:5, int:5, con:5, von:5, des:5, car:5 };
 
   function num(el){ const v = parseFloat(el.value); return isNaN(v)?0:v; }
 
@@ -1269,16 +1271,22 @@ body{
     els.levelRank.textContent = rank;
     els.levelRank.className = 'cs-rank level-rank cs-rank-' + rank;
 
-    // Garante que os pontos de atributo distribuídos nunca fiquem abaixo de 1
-    // (isso não afeta os modificadores de outras fontes da ficha, que podem ser negativos)
+    // Garante que os pontos de atributo distribuídos fiquem sempre entre 1 e 18
+    // (isso não afeta os modificadores de outras fontes da ficha, que podem ser negativos ou passar de 18)
     [els.bFor, els.bCon, els.bDes, els.bInt, els.bVon, els.bCar].forEach(el=>{
-      if(el && num(el) < 1) el.value = 1;
+      if(!el) return;
+      if(num(el) < 1) el.value = 1;
+      else if(num(el) > 18) el.value = 18;
     });
 
     const bFor=num(els.bFor), bCon=num(els.bCon), bDes=num(els.bDes),
           bInt=num(els.bInt), bVon=num(els.bVon), bCar=num(els.bCar);
     const totalBase = bFor+bCon+bDes+bInt+bVon+bCar;
     const cap = 29 + Math.floor(level);
+
+    // atributo puro (sem modificadores) — vale para a rolagem de d20
+    baseAttrs.for = bFor; baseAttrs.con = bCon; baseAttrs.des = bDes;
+    baseAttrs.int = bInt; baseAttrs.von = bVon; baseAttrs.car = bCar;
 
     const totFor = bFor + num(els.mFor);
     const totCon = bCon + num(els.mCon);
@@ -1512,7 +1520,7 @@ body{
     if(rollingInterval) return; // já rolando, ignora clique duplo
 
     const stat = diceStat.value;
-    const statVal = totals[stat] ?? 0;
+    const statVal = baseAttrs[stat] ?? 0;
 
     rollBtn.disabled = true;
     diceVerdict.textContent = '';
@@ -1961,7 +1969,7 @@ body{
     }
   }
 
-  // dano = 1 (ponto automático do rank) + bônus do atributo + pontos extras — só se já desbloqueada
+  // dano = 0 se não houver pontos distribuídos; caso contrário, pontos + bônus do atributo — só se já desbloqueada
   function refreshClassSkillDanoInputs(className, stat){
     const isPassive = stat === 'passivas';
     const bonus = isPassive ? 0 : Math.floor((totals[stat] ?? 0) / 2);
@@ -1987,7 +1995,7 @@ body{
         if(!unlocked) custoInput.value = 0;
       }
       const custo = unlocked ? (parseFloat(slot.custo) || 0) : 0;
-      const dano = unlocked ? (1 + bonus + custo) : 0;
+      const dano = (unlocked && custo > 0) ? (custo + bonus) : 0;
       const danoInput = entry.querySelector('.cs-dano');
       if(danoInput) danoInput.value = dano;
     });
