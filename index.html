@@ -602,6 +602,19 @@ body{
   background:var(--paper-l);color:var(--ink);border:1px solid var(--border-brown);
   border-radius:4px;padding:6px 8px;font-family:'Cinzel',serif;font-size:12px;text-align:center;
 }
+.init-enemy-field{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-top:8px;
+}
+.init-enemy-field label{
+  font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--ink-soft);white-space:nowrap;
+}
+.init-enemy-field input{
+  width:64px;
+  background:var(--paper-l);color:var(--ink);border:1px solid var(--border-brown);
+  border-radius:4px;padding:6px 8px;font-family:'Inter',sans-serif;font-size:13px;text-align:center;
+}
 .dano-die{width:38px;height:38px;font-size:16px;border-radius:6px;}
 .dano-eq{font-family:'Cinzel',serif;font-size:16px;color:var(--ink-faint);}
 .dano-total-box{
@@ -981,6 +994,10 @@ body{
                 <option value="Ativo">Ativo</option>
                 <option value="Inativo">Inativo</option>
               </select>
+              <div class="init-enemy-field">
+                <label for="inimigosCount">Nº de inimigos</label>
+                <input type="number" id="inimigosCount" value="0" min="0" step="1" title="0 = apenas fichas ativas; 1+ = adiciona Inimigo 1, Inimigo 2... na iniciativa">
+              </div>
               <button id="iniciativaBtn" type="button" class="dice-roll-btn init-btn">⚔️ INICIATIVA!</button>
               <div class="dice-hint" id="iniciativaHint"></div>
             </div>
@@ -1738,7 +1755,11 @@ body{
           if(ativoVal === 'Ativo' && data.nome) activeNames.push(data.nome);
         }catch(e){ /* ficha inválida ou corrompida — ignora */ }
       }
-      const itens = [...activeNames, 'Inimigos'];
+      const numInimigos = Math.max(0, parseInt($('inimigosCount').value, 10) || 0);
+      const inimigoNames = numInimigos > 0
+        ? Array.from({length: numInimigos}, (_, i) => `Inimigo ${i+1}`)
+        : [];
+      const itens = [...activeNames, ...inimigoNames];
       for(let i = itens.length - 1; i > 0; i--){
         const j = Math.floor(Math.random() * (i + 1));
         [itens[i], itens[j]] = [itens[j], itens[i]];
