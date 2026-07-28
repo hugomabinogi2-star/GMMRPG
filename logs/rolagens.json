@@ -2,17 +2,6 @@
   {
     "nome": "FICHA DO MESTRE",
     "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 6,
-    "rolls": [
-      2
-    ],
-    "resultado": 2,
-    "ts": 1785238400206
-  },
-  {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "dano",
     "qtd": 5,
     "maxVal": 6,
     "rolls": [
@@ -98,5 +87,13 @@
     "resultado": 17,
     "resultLabel": "Erro",
     "ts": 1785255317286
+  },
+  {
+    "nome": "Alicia",
+    "tipo": "atributo",
+    "statKey": "des",
+    "resultado": 5,
+    "resultLabel": "Erro",
+    "ts": 1785255331534
   }
 ]
