@@ -5,17 +5,6 @@
     "qtd": 1,
     "maxVal": 6,
     "rolls": [
-      1
-    ],
-    "resultado": 1,
-    "ts": 1785278359620
-  },
-  {
-    "nome": "Zarah ",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 6,
-    "rolls": [
       5
     ],
     "resultado": 5,
@@ -96,5 +85,16 @@
     ],
     "resultado": 6,
     "ts": 1785278379775
+  },
+  {
+    "nome": "Zarah ",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      2
+    ],
+    "resultado": 2,
+    "ts": 1785278381324
   }
 ]
