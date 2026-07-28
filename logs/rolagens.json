@@ -1,13 +1,5 @@
 [
   {
-    "nome": "Alicia",
-    "tipo": "atributo",
-    "statKey": "car",
-    "resultado": 1,
-    "resultLabel": "Erro Crítico",
-    "ts": 1785254691827
-  },
-  {
     "nome": "FADÃO",
     "tipo": "atributo",
     "statKey": "for",
@@ -82,5 +74,17 @@
     "resultado": 20,
     "resultLabel": "Acerto Garantido",
     "ts": 1785255415879
+  },
+  {
+    "nome": "Alicia",
+    "tipo": "dano",
+    "qtd": 2,
+    "maxVal": 13,
+    "rolls": [
+      12,
+      10
+    ],
+    "resultado": 22,
+    "ts": 1785255457423
   }
 ]
