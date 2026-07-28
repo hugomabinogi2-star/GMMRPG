@@ -89,10 +89,14 @@ body{
 .token-status.ok{color:#2e6b2e;border-color:#5a9a5a;background:rgba(60,140,60,.08);}
 .token-field{display:flex;flex-direction:column;gap:6px;margin:14px 0;}
 .token-field label{font-family:'Cinzel',serif;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);}
-.token-field input{
+.token-field input, .token-field textarea{
   font-family:'Inter',sans-serif;font-size:13px;padding:8px 10px;
   border:1px solid var(--ink-faint);border-radius:4px;background:rgba(255,255,255,.5);color:var(--ink);
 }
+.token-field textarea{resize:vertical;font-family:inherit;}
+.mesa-preview-wrap{margin:10px 0;text-align:center;}
+.mesa-preview-wrap img{max-width:100%;max-height:220px;border-radius:4px;border:1px solid var(--border-brown);display:block;margin:0 auto 8px;}
+.mesa-hint{margin-top:8px;font-size:11.5px;color:var(--ink-faint);text-align:center;min-height:14px;}
 .token-help{font-size:11.5px;color:var(--ink-faint);line-height:1.5;margin:10px 0 14px;}
 .token-help ol{margin:6px 0 0;padding-left:20px;}
 .token-help a{color:var(--wax-dark);}
@@ -882,6 +886,7 @@ body{
   <button class="cloud-btn" id="cloudSaveBtn">☁ Salvar na mesa (mestre vê)</button>
   <button id="masterBtn">📜 Painel do Mestre</button>
   <button id="rollLogBtn">🎲 Histórico de Rolagens</button>
+  <button id="mesaBtn">🖥️ Mesa</button>
   <button class="github-btn" id="githubConfigBtn">🔑 Meu token do GitHub</button>
   <label class="filebtn">Carregar ficha (.json)
     <input type="file" id="loadInput" accept="application/json">
@@ -1164,6 +1169,36 @@ body{
     <p class="modal-sub">Toda rolagem de dado ou de dano feita por qualquer jogador com token configurado aparece aqui, para todos verem.</p>
     <button id="refreshRollLog" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar histórico</button>
     <div id="rollLogList" class="roll-log-list"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="mesaModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>🖥️ Mesa</h2>
+      <button id="closeMesa" class="modal-close">✕</button>
+    </div>
+    <p class="modal-sub">Envie uma mensagem e/ou um print direto para o log da mesa no Discord. Nada aqui fica salvo no GitHub.</p>
+
+    <div class="mesa-preview-wrap" id="mesaPreviewWrap" hidden>
+      <img id="mesaPreviewImg" alt="Pré-visualização do print">
+      <button id="mesaRemoveImg" class="mini-btn" type="button">Remover imagem</button>
+    </div>
+
+    <div class="token-field">
+      <label>Print (opcional — clique para escolher ou cole com Ctrl+V no campo de texto)</label>
+      <input type="file" id="mesaImageInput" accept="image/*">
+    </div>
+
+    <div class="token-field">
+      <label>Mensagem</label>
+      <textarea id="mesaMessageInput" rows="4" placeholder="Escreva algo pra mesa... (também aceita colar um print aqui)"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button id="mesaSendBtn">📨 Enviar</button>
+    </div>
+    <div id="mesaSendHint" class="mesa-hint"></div>
   </div>
 </div>
 
@@ -2434,6 +2469,96 @@ body{
       rollLogList.innerHTML = '<div class="master-empty">Não foi possível carregar o histórico agora. Tente atualizar de novo.</div>';
     }
   }
+
+  // ---------- modal "Mesa" (mensagem + print direto pro Discord, sem salvar em lugar nenhum) ----------
+  const mesaModal       = $('mesaModal');
+  const mesaImageInput  = $('mesaImageInput');
+  const mesaMessageInput= $('mesaMessageInput');
+  const mesaPreviewWrap = $('mesaPreviewWrap');
+  const mesaPreviewImg  = $('mesaPreviewImg');
+  const mesaRemoveImg   = $('mesaRemoveImg');
+  const mesaSendBtn     = $('mesaSendBtn');
+  const mesaSendHint    = $('mesaSendHint');
+  let mesaImageData = null;
+
+  function mesaShowPreview(dataUrl){
+    mesaImageData = dataUrl;
+    if(dataUrl){
+      mesaPreviewImg.src = dataUrl;
+      mesaPreviewWrap.hidden = false;
+    } else {
+      mesaPreviewImg.src = '';
+      mesaPreviewWrap.hidden = true;
+    }
+  }
+
+  function mesaResetForm(){
+    mesaMessageInput.value = '';
+    mesaImageInput.value = '';
+    mesaShowPreview(null);
+  }
+
+  $('mesaBtn').addEventListener('click', ()=>{
+    mesaModal.hidden = false;
+    mesaSendHint.textContent = '';
+  });
+  $('closeMesa').addEventListener('click', ()=> mesaModal.hidden = true);
+  mesaModal.addEventListener('click', (e)=>{ if(e.target === mesaModal) mesaModal.hidden = true; });
+
+  mesaImageInput.addEventListener('change', ()=>{
+    const file = mesaImageInput.files && mesaImageInput.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=> mesaShowPreview(reader.result);
+    reader.readAsDataURL(file);
+  });
+
+  mesaRemoveImg.addEventListener('click', ()=>{
+    mesaImageInput.value = '';
+    mesaShowPreview(null);
+  });
+
+  // permite colar um print (Ctrl+V) direto no campo de mensagem
+  mesaMessageInput.addEventListener('paste', (e)=>{
+    const items = e.clipboardData && e.clipboardData.items;
+    if(!items) return;
+    for(const item of items){
+      if(item.type && item.type.startsWith('image/')){
+        const file = item.getAsFile();
+        if(!file) continue;
+        const reader = new FileReader();
+        reader.onload = ()=> mesaShowPreview(reader.result);
+        reader.readAsDataURL(file);
+        e.preventDefault();
+        break;
+      }
+    }
+  });
+
+  mesaSendBtn.addEventListener('click', async ()=>{
+    const texto = mesaMessageInput.value.trim();
+    if(!texto && !mesaImageData){
+      mesaSendHint.textContent = 'Escreva uma mensagem ou adicione um print antes de enviar.';
+      return;
+    }
+    const autor = (els.nome && els.nome.value) || 'Alguém da mesa';
+    const content = texto
+      ? `🖥️ **${autor}** enviou uma mensagem para a mesa:\n${texto}`
+      : `🖥️ **${autor}** enviou um print para a mesa.`;
+
+    mesaSendBtn.disabled = true;
+    mesaSendBtn.textContent = 'Enviando...';
+    try{
+      await postToDiscord(content, mesaImageData);
+      mesaSendHint.textContent = 'Enviado!';
+      mesaResetForm();
+    }catch(err){
+      console.error(err);
+      mesaSendHint.textContent = 'Não foi possível enviar agora. Tente de novo.';
+    }
+    mesaSendBtn.disabled = false;
+    mesaSendBtn.textContent = '📨 Enviar';
+  });
 
   // ---------- modal de configuração do token ----------
   const tokenModal   = $('tokenModal');
