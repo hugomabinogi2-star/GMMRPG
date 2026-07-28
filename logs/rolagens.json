@@ -1,14 +1,6 @@
 [
   {
     "nome": "FADÃO",
-    "tipo": "atributo",
-    "statKey": "des",
-    "resultado": 14,
-    "resultLabel": "Acerto",
-    "ts": 1785255379796
-  },
-  {
-    "nome": "FADÃO",
     "tipo": "dano",
     "qtd": 2,
     "maxVal": 5,
@@ -89,5 +81,13 @@
     "resultado": 14,
     "resultLabel": "Erro",
     "ts": 1785277529403
+  },
+  {
+    "nome": "Zarah ",
+    "tipo": "atributo",
+    "statKey": "con",
+    "resultado": 11,
+    "resultLabel": "Erro",
+    "ts": 1785277533297
   }
 ]
