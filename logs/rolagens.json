@@ -1,16 +1,5 @@
 [
   {
-    "nome": "Samuel Sukuna",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 12,
-    "rolls": [
-      11
-    ],
-    "resultado": 11,
-    "ts": 1785255788819
-  },
-  {
     "nome": "Zarah ",
     "tipo": "atributo",
     "statKey": "for",
@@ -87,5 +76,16 @@
     ],
     "resultado": 2,
     "ts": 1785277554934
+  },
+  {
+    "nome": "Zarah ",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      4
+    ],
+    "resultado": 4,
+    "ts": 1785277556746
   }
 ]
