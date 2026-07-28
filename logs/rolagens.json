@@ -1,17 +1,5 @@
 [
   {
-    "nome": "(sem nome)",
-    "tipo": "dano",
-    "qtd": 2,
-    "maxVal": 10,
-    "rolls": [
-      7,
-      6
-    ],
-    "resultado": 13,
-    "ts": 1785173168379
-  },
-  {
     "nome": "FICHA DO MESTRE",
     "tipo": "atributo",
     "statKey": "for",
@@ -82,5 +70,13 @@
     "resultado": 10,
     "resultLabel": "Erro",
     "ts": 1785238388961
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "atributo",
+    "statKey": "int",
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1785238392287
   }
 ]
