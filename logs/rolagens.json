@@ -1,13 +1,5 @@
 [
   {
-    "nome": "FADÃO",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 6,
-    "resultLabel": "Erro",
-    "ts": 1785255356063
-  },
-  {
     "nome": "Alicia",
     "tipo": "atributo",
     "statKey": "int",
@@ -89,5 +81,13 @@
     "resultado": 20,
     "resultLabel": "Acerto Garantido",
     "ts": 1785277516950
+  },
+  {
+    "nome": "Zarah ",
+    "tipo": "atributo",
+    "statKey": "con",
+    "resultado": 2,
+    "resultLabel": "Erro",
+    "ts": 1785277527225
   }
 ]
