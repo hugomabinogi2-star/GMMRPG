@@ -2,46 +2,6 @@
   {
     "nome": "FICHA DO MESTRE",
     "tipo": "dano",
-    "qtd": 30,
-    "maxVal": 10,
-    "rolls": [
-      10,
-      10,
-      10,
-      9,
-      9,
-      9,
-      8,
-      8,
-      7,
-      7,
-      6,
-      6,
-      6,
-      5,
-      5,
-      5,
-      4,
-      3,
-      2,
-      2,
-      2,
-      2,
-      2,
-      2,
-      2,
-      2,
-      1,
-      1,
-      1,
-      1
-    ],
-    "resultado": 147,
-    "ts": 1786109949127
-  },
-  {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "dano",
     "qtd": 1,
     "maxVal": 2,
     "rolls": [
@@ -116,5 +76,13 @@
     "resultado": 17,
     "resultLabel": "Acerto (Vantagem: 17/3)",
     "ts": 1786132252282
+  },
+  {
+    "nome": "Effie",
+    "tipo": "atributo",
+    "statKey": "car",
+    "resultado": 9,
+    "resultLabel": "Acerto",
+    "ts": 1786132261264
   }
 ]
