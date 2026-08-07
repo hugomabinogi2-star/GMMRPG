@@ -1,17 +1,6 @@
 [
   {
     "nome": "FICHA DO MESTRE",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 2,
-    "rolls": [
-      1
-    ],
-    "resultado": 1,
-    "ts": 1786109970193
-  },
-  {
-    "nome": "FICHA DO MESTRE",
     "tipo": "sorte",
     "escolha": "coroa",
     "resultado": "coroa",
@@ -84,5 +73,14 @@
     "resultado": 9,
     "resultLabel": "Acerto",
     "ts": 1786132261264
+  },
+  {
+    "nome": "Effie",
+    "tipo": "sorte",
+    "escolha": "coroa",
+    "resultado": "coroa",
+    "verdict": "acerto",
+    "resultLabel": "Coroa — Acerto",
+    "ts": 1786132271188
   }
 ]
