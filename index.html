@@ -697,6 +697,45 @@ body{
   box-shadow:inset 0 0 8px rgba(90,60,20,.2), 0 1px 2px rgba(0,0,0,.2);
 }
 
+/* moeda — rolagem de sorte */
+.coin-wrap{
+  width:64px;height:64px;
+  perspective:400px;
+  position:relative;
+  border-radius:50%;
+}
+.coin{
+  position:relative;
+  width:100%;height:100%;
+  transform-style:preserve-3d;
+  transform:rotateY(0deg);
+}
+.coin-face{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;line-height:1;
+  border-radius:50%;
+  background:radial-gradient(circle at 34% 28%, #f6ecc4, #d9b25e 65%, #8a6423 100%);
+  border:3px solid var(--border-brown);
+  box-shadow:inset 0 0 8px rgba(90,60,20,.35), 0 2px 4px rgba(0,0,0,.3);
+  backface-visibility:hidden;
+  color:#5c3d12;
+}
+.coin-face-cara{transform:rotateY(180deg);}
+@keyframes coinSpinLoop{
+  0%{transform:rotateY(0deg);}
+  100%{transform:rotateY(360deg);}
+}
+.coin.spinning{animation:coinSpinLoop .5s linear infinite;}
+@keyframes coinSettlePop{
+  0%{transform:scale(1);}
+  55%{transform:scale(1.18);}
+  100%{transform:scale(1);}
+}
+.coin-wrap.settle{animation:coinSettlePop .4s cubic-bezier(.3,1.4,.4,1);}
+.coin-wrap.hit-glow{box-shadow:0 0 14px rgba(255,205,90,.7);}
+.coin-wrap.miss-shadow{box-shadow:0 0 14px rgba(0,0,0,.55);filter:brightness(.82);}
+
 .dice-particle-layer{
   position:absolute;inset:0;
   pointer-events:none;overflow:visible;
@@ -915,7 +954,6 @@ body{
   </label>
   <button id="saveBtn">Salvar ficha (.json)</button>
   <button id="newBtn">Nova ficha</button>
-  <button id="printBtn">Imprimir / PDF</button>
 </div>
 <p class="cloud-note">☁ "Salvar na mesa" grava esta ficha como um arquivo no repositório <strong>hugomabinogi2-star/GMMRPG</strong> no GitHub, visível para todos que abrirem esta página. Use um <strong>nome de personagem único</strong> para não sobrescrever a ficha de outro jogador. Para salvar, configure primeiro seu token pessoal em "🔑 Meu token do GitHub".</p>
 
@@ -1052,6 +1090,28 @@ body{
                 <span class="dano-total-value" id="danoTotalValue">—</span>
               </div>
               <button id="rollDanoBtn" type="button" class="dice-roll-btn">🎲 Rolar</button>
+            </div>
+
+            <div class="panel dice-panel">
+              <h2>Rolagem de Sorte</h2>
+              <div class="dice-controls">
+                <select id="sorteEscolha">
+                  <option value="coroa">👑 Coroa</option>
+                  <option value="cara">💀 Cara</option>
+                </select>
+              </div>
+              <div class="dice-display">
+                <div class="coin-wrap" id="coinWrap">
+                  <div class="coin" id="coin">
+                    <div class="coin-face coin-face-coroa">👑</div>
+                    <div class="coin-face coin-face-cara">💀</div>
+                  </div>
+                </div>
+                <div class="dice-verdict" id="sorteVerdict"></div>
+                <div class="dice-particle-layer" id="sorteParticleLayer"></div>
+              </div>
+              <div class="dice-hint" id="sorteHint">Escolha cara ou coroa e jogue a moeda.</div>
+              <button id="rollSorteBtn" type="button" class="dice-roll-btn">🪙 Rolar</button>
             </div>
           </div>
 
@@ -1835,6 +1895,78 @@ body{
     pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, rolls: rollsSorted, resultado: total, ts: Date.now() });
   }
 
+  // ---------- rolagem de sorte (cara ou coroa) ----------
+  const sorteEscolha = $('sorteEscolha');
+  const coinWrap = $('coinWrap');
+  const coin = $('coin');
+  const sorteVerdict = $('sorteVerdict');
+  const sorteHint = $('sorteHint');
+  const sorteParticleLayer = $('sorteParticleLayer');
+  const rollSorteBtn = $('rollSorteBtn');
+  const sorteFaceLabels = { coroa:'Coroa', cara:'Cara' };
+  let sorteRolling = false;
+  let coinSpins = 0; // acumula voltas completas pra moeda nunca "voltar" no giro seguinte
+
+  rollSorteBtn.addEventListener('click', ()=>{
+    if(sorteRolling) return; // já girando, ignora clique duplo
+    sorteRolling = true;
+    rollSorteBtn.disabled = true;
+
+    const escolha = sorteEscolha.value;
+
+    sorteVerdict.textContent = '';
+    sorteVerdict.className = 'dice-verdict';
+    sorteHint.textContent = 'Girando a moeda...';
+    coinWrap.classList.remove('settle','hit-glow','miss-shadow');
+    if(sorteParticleLayer) sorteParticleLayer.innerHTML = '';
+
+    coin.style.transition = 'none';
+    coin.classList.add('spinning');
+    playDiceTick();
+
+    setTimeout(()=> finishSorteRoll(escolha), 900);
+  });
+
+  function finishSorteRoll(escolha){
+    const resultado = Math.random() < 0.5 ? 'coroa' : 'cara';
+    const verdict = resultado === escolha ? 'acerto' : 'erro';
+
+    coin.classList.remove('spinning');
+    // soma mais voltas completas ao ângulo atual, terminando na face sorteada
+    coinSpins += 3;
+    const targetDeg = coinSpins*360 + (resultado === 'cara' ? 180 : 0);
+    coin.style.transition = 'transform 1s cubic-bezier(.17,.67,.3,1)';
+    void coin.offsetWidth; // força reflow pra garantir que a transição pegue o novo valor
+    coin.style.transform = `rotateY(${targetDeg}deg)`;
+
+    setTimeout(()=>{
+      coinWrap.classList.remove('settle');
+      void coinWrap.offsetWidth;
+      coinWrap.classList.add('settle');
+      coinWrap.classList.toggle('hit-glow', verdict === 'acerto');
+      coinWrap.classList.toggle('miss-shadow', verdict === 'erro');
+
+      if(verdict === 'acerto') spawnDiceParticles(sorteParticleLayer, '✨', 10);
+      else spawnDiceParticles(sorteParticleLayer, '💀', 8);
+
+      if(verdict === 'acerto') playBlingSound();
+      else playOohSound();
+
+      sorteVerdict.textContent = verdict === 'acerto' ? '✓ Acerto' : '✗ Erro';
+      sorteVerdict.className = 'dice-verdict ' + verdict;
+      void sorteVerdict.offsetWidth;
+      sorteVerdict.classList.add('show');
+
+      const resultLabel = sorteFaceLabels[resultado];
+      sorteHint.textContent = `Escolhido: ${sorteFaceLabels[escolha]} → Saiu: ${resultLabel} (${verdict === 'acerto' ? 'Acerto' : 'Erro'}).`;
+
+      rollSorteBtn.disabled = false;
+      sorteRolling = false;
+
+      pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'sorte', escolha, resultado, verdict, resultLabel: `${resultLabel} — ${verdict === 'acerto' ? 'Acerto' : 'Erro'}`, ts: Date.now() });
+    }, 1050);
+  }
+
   // ---------- iniciativa ----------
   const iniciativaBtn = $('iniciativaBtn');
   const iniciativaHint = $('iniciativaHint');
@@ -2365,8 +2497,6 @@ body{
     }
   });
 
-  $('printBtn').addEventListener('click', ()=> window.print());
-
   // ---------- cloud: GitHub como banco de dados ----------
   const GITHUB_OWNER  = 'hugomabinogi2-star';
   const GITHUB_REPO   = 'GMMRPG';
@@ -2512,6 +2642,12 @@ body{
         ? `${qtd}d${entry.maxVal}: [${entry.rolls.join(', ')}] = **${entry.resultado}**`
         : `resultado **${entry.resultado}**`;
       return `🎲 "${nome}" ROLOU DANO — ${detalhe}`;
+    }
+    if(entry.tipo === 'sorte'){
+      const escolhaNome = entry.escolha === 'coroa' ? 'COROA' : 'CARA';
+      const resultadoNome = entry.resultado === 'coroa' ? 'COROA' : 'CARA';
+      const veredito = entry.verdict === 'acerto' ? 'ACERTO' : 'ERRO';
+      return `🪙 "${nome}" ROLOU SORTE ${escolhaNome} — RESULTADO ${resultadoNome} — **${veredito}**`;
     }
     const statNome = (statFullNames[entry.statKey] || entry.statKey || '').toUpperCase();
     const label = entry.resultLabel ? ` (${entry.resultLabel})` : '';
