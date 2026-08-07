@@ -2,14 +2,6 @@
   {
     "nome": "Zarah ",
     "tipo": "atributo",
-    "statKey": "con",
-    "resultado": 9,
-    "resultLabel": "Erro",
-    "ts": 1785278511403
-  },
-  {
-    "nome": "Zarah ",
-    "tipo": "atributo",
     "statKey": "for",
     "resultado": 11,
     "resultLabel": "Erro",
@@ -92,5 +84,13 @@
     "resultado": 10,
     "resultLabel": "Acerto (Vantagem: 1/10)",
     "ts": 1786109778991
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "atributo",
+    "statKey": "int",
+    "resultado": 14,
+    "resultLabel": "Acerto (Desvantagem: 18/14)",
+    "ts": 1786109792292
   }
 ]
