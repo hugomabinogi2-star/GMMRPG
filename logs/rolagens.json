@@ -3,14 +3,6 @@
     "nome": "FICHA DO MESTRE",
     "tipo": "atributo",
     "statKey": "int",
-    "resultado": 12,
-    "resultLabel": "Acerto",
-    "ts": 1786109770197
-  },
-  {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "atributo",
-    "statKey": "int",
     "resultado": 10,
     "resultLabel": "Acerto (Vantagem: 1/10)",
     "ts": 1786109778991
@@ -116,5 +108,13 @@
     "resultado": 19,
     "resultLabel": "Acerto (Vantagem: 2/19)",
     "ts": 1786132243433
+  },
+  {
+    "nome": "Effie",
+    "tipo": "atributo",
+    "statKey": "car",
+    "resultado": 13,
+    "resultLabel": "Acerto (Vantagem: 5/13)",
+    "ts": 1786132246041
   }
 ]
