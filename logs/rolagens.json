@@ -1,14 +1,6 @@
 [
   {
     "nome": "Zarah ",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 11,
-    "resultLabel": "Erro",
-    "ts": 1785278514253
-  },
-  {
-    "nome": "Zarah ",
     "tipo": "dano",
     "qtd": 1,
     "maxVal": 6,
@@ -92,5 +84,45 @@
     "resultado": 14,
     "resultLabel": "Acerto (Desvantagem: 18/14)",
     "ts": 1786109792292
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "dano",
+    "qtd": 30,
+    "maxVal": 10,
+    "rolls": [
+      10,
+      10,
+      10,
+      9,
+      9,
+      9,
+      8,
+      8,
+      7,
+      7,
+      6,
+      6,
+      6,
+      5,
+      5,
+      5,
+      4,
+      3,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      1,
+      1,
+      1,
+      1
+    ],
+    "resultado": 147,
+    "ts": 1786109949127
   }
 ]
