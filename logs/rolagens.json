@@ -8,17 +8,6 @@
       1
     ],
     "resultado": 1,
-    "ts": 1785278532601
-  },
-  {
-    "nome": "Zarah ",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 6,
-    "rolls": [
-      1
-    ],
-    "resultado": 1,
     "ts": 1785278534158
   },
   {
@@ -124,5 +113,14 @@
     ],
     "resultado": 1,
     "ts": 1786109970193
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "sorte",
+    "escolha": "coroa",
+    "resultado": "coroa",
+    "verdict": "acerto",
+    "resultLabel": "Coroa — Acerto",
+    "ts": 1786111127197
   }
 ]
