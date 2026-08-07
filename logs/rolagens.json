@@ -1,14 +1,6 @@
 [
   {
     "nome": "FICHA DO MESTRE",
-    "tipo": "atributo",
-    "statKey": "int",
-    "resultado": 14,
-    "resultLabel": "Acerto (Desvantagem: 18/14)",
-    "ts": 1786109792292
-  },
-  {
-    "nome": "FICHA DO MESTRE",
     "tipo": "dano",
     "qtd": 30,
     "maxVal": 10,
@@ -116,5 +108,13 @@
     "resultado": 9,
     "resultLabel": "Acerto (Vantagem: 2/9)",
     "ts": 1786132249184
+  },
+  {
+    "nome": "Effie",
+    "tipo": "atributo",
+    "statKey": "car",
+    "resultado": 17,
+    "resultLabel": "Acerto (Vantagem: 17/3)",
+    "ts": 1786132252282
   }
 ]
