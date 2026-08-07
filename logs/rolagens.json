@@ -1,19 +1,6 @@
 [
   {
     "nome": "SOLAS",
-    "tipo": "dano",
-    "qtd": 3,
-    "maxVal": 10,
-    "rolls": [
-      10,
-      10,
-      5
-    ],
-    "resultado": 25,
-    "ts": 1785279772046
-  },
-  {
-    "nome": "SOLAS",
     "tipo": "atributo",
     "statKey": "int",
     "resultado": 2,
@@ -120,5 +107,14 @@
     "verdict": "erro",
     "resultLabel": "Cara — Erro",
     "ts": 1786111140128
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "sorte",
+    "escolha": "cara",
+    "resultado": "coroa",
+    "verdict": "erro",
+    "resultLabel": "Coroa — Erro",
+    "ts": 1786111155946
   }
 ]
