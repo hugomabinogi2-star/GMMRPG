@@ -3,15 +3,6 @@
     "nome": "FICHA DO MESTRE",
     "tipo": "sorte",
     "escolha": "coroa",
-    "resultado": "coroa",
-    "verdict": "acerto",
-    "resultLabel": "Coroa — Acerto",
-    "ts": 1786111127197
-  },
-  {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "sorte",
-    "escolha": "coroa",
     "resultado": "cara",
     "verdict": "erro",
     "resultLabel": "Cara — Erro",
@@ -82,5 +73,13 @@
     "verdict": "acerto",
     "resultLabel": "Coroa — Acerto",
     "ts": 1786132271188
+  },
+  {
+    "nome": "Effie",
+    "tipo": "atributo",
+    "statKey": "car",
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1786132336665
   }
 ]
