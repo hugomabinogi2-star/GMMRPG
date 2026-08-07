@@ -1,13 +1,5 @@
 [
   {
-    "nome": "SOLAS",
-    "tipo": "atributo",
-    "statKey": "int",
-    "resultado": 2,
-    "resultLabel": "Erro",
-    "ts": 1785279794548
-  },
-  {
     "nome": "Lito Realista",
     "tipo": "atributo",
     "statKey": "car",
@@ -116,5 +108,13 @@
     "verdict": "erro",
     "resultLabel": "Coroa — Erro",
     "ts": 1786111155946
+  },
+  {
+    "nome": "Effie",
+    "tipo": "atributo",
+    "statKey": "car",
+    "resultado": 17,
+    "resultLabel": "Acerto (Vantagem: 1/17)",
+    "ts": 1786132239138
   }
 ]
