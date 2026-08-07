@@ -641,6 +641,7 @@ body{
   transform:rotate(-3deg);
   box-shadow:inset 0 0 8px rgba(90,60,20,.25), 0 2px 4px rgba(0,0,0,.25);
 }
+.dice-result[hidden]{display:none;}
 .dice-verdict{
   font-family:'Cinzel',serif;font-size:15px;letter-spacing:.06em;text-transform:uppercase;
 }
@@ -688,6 +689,13 @@ body{
   filter:brightness(.68);
 }
 .dice-result.dano-result, .dice-result.dano-result.rolling{color:#c21f1f;}
+.dice-result-b{margin-left:-2px;}
+.dice-result.die-discarded{
+  opacity:.4;
+  filter:grayscale(.7) brightness(.8);
+  transform:rotate(-3deg) scale(.88);
+  box-shadow:inset 0 0 8px rgba(90,60,20,.2), 0 1px 2px rgba(0,0,0,.2);
+}
 
 .dice-particle-layer{
   position:absolute;inset:0;
@@ -1005,7 +1013,7 @@ body{
 
             <div class="panel dice-panel">
               <h2>Rolagem de Dado (d20)</h2>
-              <div class="dice-controls">
+              <div class="dice-controls dice-controls-top">
                 <select id="diceStat">
                   <option value="for">FOR</option>
                   <option value="con">CON</option>
@@ -1014,14 +1022,20 @@ body{
                   <option value="von">VON</option>
                   <option value="car">CAR</option>
                 </select>
-                <button id="rollDiceBtn" type="button">🎲 Rolar</button>
+                <select id="diceMode" title="Normal: rolagem única. Vantagem: rola 2x e usa o maior. Desvantagem: rola 2x e usa o menor.">
+                  <option value="normal">Normal</option>
+                  <option value="vantagem">Vantagem</option>
+                  <option value="desvantagem">Desvantagem</option>
+                </select>
               </div>
               <div class="dice-display">
                 <div class="dice-result" id="diceResult">—</div>
+                <div class="dice-result dice-result-b" id="diceResultB" hidden>—</div>
                 <div class="dice-verdict" id="diceVerdict"></div>
                 <div class="dice-particle-layer" id="diceParticleLayer"></div>
               </div>
               <div class="dice-hint" id="diceHint">Selecione um status e role o dado.</div>
+              <button id="rollDiceBtn" type="button" class="dice-roll-btn">🎲 Rolar</button>
             </div>
 
             <div class="panel dice-panel">
@@ -1593,44 +1607,91 @@ body{
 
   // ---------- dice roller ----------
   const diceStat = $('diceStat');
+  const diceMode = $('diceMode');
   const diceResult = $('diceResult');
+  const diceResultB = $('diceResultB');
   const diceVerdict = $('diceVerdict');
   const diceHint = $('diceHint');
   const diceParticleLayer = $('diceParticleLayer');
   const rollBtn = $('rollDiceBtn');
   const statLabels = { for:'FOR', int:'INT', con:'CON', von:'VON', des:'DES', car:'CAR', passivas:'Passivas' };
+  const diceModeLabels = { normal:'Normal', vantagem:'Vantagem', desvantagem:'Desvantagem' };
+  const DICE_ANIM_CLASSES = ['settle','crit-hit','crit-miss','hit-glow','miss-shadow','die-discarded'];
   let rollingInterval = null;
+
+  // mantém o dado B escondido a menos que Vantagem/Desvantagem esteja selecionado,
+  // mesmo que o modo seja trocado sem uma nova rolagem
+  function syncDiceModeVisibility(){
+    if(rollingInterval) return; // não mexe no meio de uma rolagem em andamento
+    const useTwo = diceMode.value === 'vantagem' || diceMode.value === 'desvantagem';
+    diceResultB.hidden = !useTwo;
+    if(!useTwo){
+      diceResultB.classList.remove(...DICE_ANIM_CLASSES, 'rolling');
+      diceResultB.textContent = '—';
+    }
+  }
+  diceMode.addEventListener('change', syncDiceModeVisibility);
+  syncDiceModeVisibility();
 
   rollBtn.addEventListener('click', ()=>{
     if(rollingInterval) return; // já rolando, ignora clique duplo
 
     const stat = diceStat.value;
+    const mode = diceMode ? diceMode.value : 'normal';
     const statVal = baseAttrs[stat] ?? 0;
+    const useTwo = mode === 'vantagem' || mode === 'desvantagem';
 
     rollBtn.disabled = true;
     diceVerdict.textContent = '';
     diceVerdict.className = 'dice-verdict';
     diceHint.textContent = 'Rolando...';
-    diceResult.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow');
+    diceResult.classList.remove(...DICE_ANIM_CLASSES);
     diceResult.classList.add('rolling');
+    diceResultB.classList.remove(...DICE_ANIM_CLASSES);
+    diceResultB.hidden = !useTwo;
+    if(useTwo){
+      diceResultB.textContent = '—';
+      diceResultB.classList.add('rolling');
+    } else {
+      diceResultB.classList.remove('rolling');
+    }
     if(diceParticleLayer) diceParticleLayer.innerHTML = '';
 
     let ticks = 0;
     const totalTicks = 10 + Math.floor(Math.random()*4);
     rollingInterval = setInterval(()=>{
       diceResult.textContent = 1 + Math.floor(Math.random()*20);
+      if(useTwo) diceResultB.textContent = 1 + Math.floor(Math.random()*20);
       playDiceTick();
       ticks++;
       if(ticks >= totalTicks){
         clearInterval(rollingInterval);
         rollingInterval = null;
-        finishRoll(stat, statVal);
+        finishRoll(stat, statVal, mode);
       }
     }, 65);
   });
 
-  function finishRoll(stat, statVal){
-    const roll = Math.floor(Math.random()*20) + 1;
+  function settleDie(die, value, {discarded, showVerdict}){
+    die.classList.remove('rolling');
+    die.textContent = value;
+    // força reflow para poder repetir a animação em rolagens seguintes
+    die.classList.remove('settle');
+    void die.offsetWidth;
+    die.classList.add('settle');
+    die.classList.toggle('die-discarded', discarded);
+    die.classList.toggle('hit-glow', !discarded && showVerdict === 'acerto');
+    die.classList.toggle('miss-shadow', !discarded && showVerdict === 'erro');
+    die.classList.toggle('crit-hit', !discarded && value === 20);
+    die.classList.toggle('crit-miss', !discarded && value === 1);
+  }
+
+  function finishRoll(stat, statVal, mode){
+    // Normal: rolagem única. Vantagem: rola 2x e usa o maior. Desvantagem: rola 2x e usa o menor.
+    const useTwo = mode === 'vantagem' || mode === 'desvantagem';
+    const rollA = Math.floor(Math.random()*20) + 1;
+    const rollB = useTwo ? (Math.floor(Math.random()*20) + 1) : null;
+    const roll = useTwo ? (mode === 'vantagem' ? Math.max(rollA, rollB) : Math.min(rollA, rollB)) : rollA;
 
     let verdict;
     if(roll === 20) verdict = 'acerto';
@@ -1640,16 +1701,20 @@ body{
       verdict = roll >= threshold ? 'acerto' : 'erro';
     }
 
-    diceResult.classList.remove('rolling');
-    diceResult.textContent = roll;
-    // força reflow para poder repetir a animação em rolagens seguintes
-    diceResult.classList.remove('settle');
-    void diceResult.offsetWidth;
-    diceResult.classList.add('settle');
-    diceResult.classList.toggle('hit-glow', verdict === 'acerto');
-    diceResult.classList.toggle('miss-shadow', verdict === 'erro');
-    diceResult.classList.toggle('crit-hit', roll === 20);
-    diceResult.classList.toggle('crit-miss', roll === 1);
+    // qual dado é o descartado (não conta pro resultado final)?
+    let discardA = false, discardB = false;
+    if(useTwo && rollA !== rollB){
+      if(mode === 'vantagem'){ discardA = rollA < rollB; discardB = rollB < rollA; }
+      else { discardA = rollA > rollB; discardB = rollB > rollA; }
+    }
+
+    settleDie(diceResult, rollA, { discarded: discardA, showVerdict: verdict });
+    if(useTwo){
+      settleDie(diceResultB, rollB, { discarded: discardB, showVerdict: verdict });
+    } else {
+      diceResultB.classList.remove(...DICE_ANIM_CLASSES, 'rolling');
+      diceResultB.hidden = true;
+    }
 
     if(roll === 20) spawnDiceParticles(diceParticleLayer, '✨', 10);
     else if(roll === 1) spawnDiceParticles(diceParticleLayer, '💀', 8);
@@ -1665,9 +1730,10 @@ body{
     diceVerdict.classList.add('show');
 
     const threshold = 20 - statVal;
-    if(roll === 20) diceHint.textContent = `20 natural — acerto garantido (${statLabels[stat]} ${statVal}).`;
-    else if(roll === 1) diceHint.textContent = `1 natural — erro garantido (${statLabels[stat]} ${statVal}).`;
-    else diceHint.textContent = `${statLabels[stat]} ${statVal} → acerto de ${Math.max(2, threshold)} a 20.`;
+    const modeSuffix = useTwo ? ` [${diceModeLabels[mode]}: ${rollA} e ${rollB} → ${roll}]` : '';
+    if(roll === 20) diceHint.textContent = `20 natural — acerto garantido (${statLabels[stat]} ${statVal}).${modeSuffix}`;
+    else if(roll === 1) diceHint.textContent = `1 natural — erro garantido (${statLabels[stat]} ${statVal}).${modeSuffix}`;
+    else diceHint.textContent = `${statLabels[stat]} ${statVal} → acerto de ${Math.max(2, threshold)} a 20.${modeSuffix}`;
 
     rollBtn.disabled = false;
 
@@ -1675,6 +1741,7 @@ body{
     if(roll === 20) resultLabel = 'Acerto Garantido';
     else if(roll === 1) resultLabel = 'Erro Crítico';
     else resultLabel = verdict === 'acerto' ? 'Acerto' : 'Erro';
+    if(useTwo) resultLabel += ` (${diceModeLabels[mode]}: ${rollA}/${rollB})`;
 
     pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'atributo', statKey: stat, resultado: roll, resultLabel, ts: Date.now() });
   }
