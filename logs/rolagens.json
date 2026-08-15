@@ -2,15 +2,6 @@
   {
     "nome": "FICHA DO MESTRE",
     "tipo": "sorte",
-    "escolha": "coroa",
-    "resultado": "cara",
-    "verdict": "erro",
-    "resultLabel": "Cara — Erro",
-    "ts": 1786111140128
-  },
-  {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "sorte",
     "escolha": "cara",
     "resultado": "coroa",
     "verdict": "erro",
@@ -81,5 +72,13 @@
     "resultado": 1,
     "resultLabel": "Erro Crítico",
     "ts": 1786132336665
+  },
+  {
+    "nome": "FICHA DO MESTRE",
+    "tipo": "atributo",
+    "statKey": "int",
+    "resultado": 16,
+    "resultLabel": "Acerto",
+    "ts": 1786820662797
   }
 ]
