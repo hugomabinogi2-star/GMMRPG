@@ -3,19 +3,6 @@
     "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 14,
-    "resultLabel": "Erro — Vantagem",
-    "ts": 1786896109223,
-    "mode": "vantagem",
-    "rolls": [
-      14,
-      13
-    ]
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 17,
     "resultLabel": "Acerto — Vantagem",
     "ts": 1786896110547,
@@ -103,5 +90,16 @@
     "resultado": 1,
     "resultLabel": "Erro Crítico",
     "ts": 1786896122758
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      3
+    ],
+    "resultado": 3,
+    "ts": 1786896181259
   }
 ]
