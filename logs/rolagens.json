@@ -3,14 +3,6 @@
     "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 3,
-    "resultLabel": "Erro",
-    "ts": 1786896048953
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 6,
     "resultLabel": "Erro",
     "ts": 1786896055182
@@ -102,6 +94,19 @@
     "rolls": [
       1,
       15
+    ]
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 19,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1786896087937,
+    "mode": "vantagem",
+    "rolls": [
+      16,
+      19
     ]
   }
 ]
