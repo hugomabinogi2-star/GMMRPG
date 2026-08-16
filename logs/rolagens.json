@@ -3,14 +3,6 @@
     "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 13,
-    "resultLabel": "Erro",
-    "ts": 1786896120287
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 6,
     "resultLabel": "Erro",
     "ts": 1786896121608
@@ -81,5 +73,13 @@
     "resultado": "coroa",
     "verdict": "acerto",
     "ts": 1786896226261
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "sorte",
+    "escolha": "coroa",
+    "resultado": "cara",
+    "verdict": "erro",
+    "ts": 1786896229286
   }
 ]
