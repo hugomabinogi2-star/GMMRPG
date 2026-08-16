@@ -3,14 +3,6 @@
     "nome": "Effie",
     "tipo": "atributo",
     "statKey": "car",
-    "resultado": 17,
-    "resultLabel": "Acerto (Vantagem: 1/17)",
-    "ts": 1786132239138
-  },
-  {
-    "nome": "Effie",
-    "tipo": "atributo",
-    "statKey": "car",
     "resultado": 19,
     "resultLabel": "Acerto (Vantagem: 2/19)",
     "ts": 1786132243433
@@ -79,5 +71,13 @@
     "resultado": 9,
     "resultLabel": "Erro",
     "ts": 1786888599823
+  },
+  {
+    "nome": "Fulgrim A Fenix",
+    "tipo": "atributo",
+    "statKey": "car",
+    "resultado": 3,
+    "resultLabel": "Erro",
+    "ts": 1786888621754
   }
 ]
