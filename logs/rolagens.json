@@ -3,14 +3,6 @@
     "nome": "Effie",
     "tipo": "atributo",
     "statKey": "car",
-    "resultado": 17,
-    "resultLabel": "Acerto (Vantagem: 17/3)",
-    "ts": 1786132252282
-  },
-  {
-    "nome": "Effie",
-    "tipo": "atributo",
-    "statKey": "car",
     "resultado": 9,
     "resultLabel": "Acerto",
     "ts": 1786132261264
@@ -89,5 +81,13 @@
     "resultado": "coroa",
     "verdict": "erro",
     "ts": 1786888673587
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 3,
+    "resultLabel": "Erro",
+    "ts": 1786896048953
   }
 ]
