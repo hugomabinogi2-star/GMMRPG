@@ -1,14 +1,5 @@
 [
   {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "sorte",
-    "escolha": "cara",
-    "resultado": "coroa",
-    "verdict": "erro",
-    "resultLabel": "Coroa — Erro",
-    "ts": 1786111155946
-  },
-  {
     "nome": "Effie",
     "tipo": "atributo",
     "statKey": "car",
@@ -80,5 +71,13 @@
     "resultado": 16,
     "resultLabel": "Acerto",
     "ts": 1786820662797
+  },
+  {
+    "nome": "Fulgrim A Fenix",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 9,
+    "resultLabel": "Erro",
+    "ts": 1786888599823
   }
 ]
