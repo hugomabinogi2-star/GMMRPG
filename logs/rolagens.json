@@ -1,13 +1,5 @@
 [
   {
-    "nome": "Fulgrim A Fenix",
-    "tipo": "sorte",
-    "escolha": "cara",
-    "resultado": "coroa",
-    "verdict": "erro",
-    "ts": 1786888673587
-  },
-  {
     "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "for",
@@ -97,6 +89,19 @@
     "rolls": [
       3,
       11
+    ]
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 15,
+    "resultLabel": "Erro — Vantagem",
+    "ts": 1786896086676,
+    "mode": "vantagem",
+    "rolls": [
+      1,
+      15
     ]
   }
 ]
