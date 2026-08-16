@@ -1,14 +1,6 @@
 [
   {
     "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 1,
-    "resultLabel": "Erro Crítico",
-    "ts": 1786896122758
-  },
-  {
-    "nome": "Sexus",
     "tipo": "dano",
     "qtd": 1,
     "maxVal": 6,
@@ -81,5 +73,13 @@
     "resultado": "coroa",
     "verdict": "acerto",
     "ts": 1786896230966
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 15,
+    "resultLabel": "Erro",
+    "ts": 1786896328655
   }
 ]
