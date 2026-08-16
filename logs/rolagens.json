@@ -1,13 +1,5 @@
 [
   {
-    "nome": "Effie",
-    "tipo": "atributo",
-    "statKey": "car",
-    "resultado": 1,
-    "resultLabel": "Erro Crítico",
-    "ts": 1786132336665
-  },
-  {
     "nome": "FICHA DO MESTRE",
     "tipo": "atributo",
     "statKey": "int",
@@ -88,5 +80,13 @@
     "resultado": 14,
     "resultLabel": "Erro",
     "ts": 1786896057936
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 2,
+    "resultLabel": "Erro",
+    "ts": 1786896068584
   }
 ]
