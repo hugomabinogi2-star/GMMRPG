@@ -1,15 +1,6 @@
 [
   {
     "nome": "Effie",
-    "tipo": "sorte",
-    "escolha": "coroa",
-    "resultado": "coroa",
-    "verdict": "acerto",
-    "resultLabel": "Coroa — Acerto",
-    "ts": 1786132271188
-  },
-  {
-    "nome": "Effie",
     "tipo": "atributo",
     "statKey": "car",
     "resultado": 1,
@@ -89,5 +80,13 @@
     "resultado": 6,
     "resultLabel": "Erro",
     "ts": 1786896055182
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 14,
+    "resultLabel": "Erro",
+    "ts": 1786896057936
   }
 ]
