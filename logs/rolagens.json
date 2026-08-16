@@ -1,13 +1,5 @@
 [
   {
-    "nome": "FICHA DO MESTRE",
-    "tipo": "atributo",
-    "statKey": "int",
-    "resultado": 16,
-    "resultLabel": "Acerto",
-    "ts": 1786820662797
-  },
-  {
     "nome": "Fulgrim A Fenix",
     "tipo": "atributo",
     "statKey": "for",
@@ -88,5 +80,13 @@
     "resultado": 2,
     "resultLabel": "Erro",
     "ts": 1786896068584
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 16,
+    "resultLabel": "Acerto",
+    "ts": 1786896070316
   }
 ]
