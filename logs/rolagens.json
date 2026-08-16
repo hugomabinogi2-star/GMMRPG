@@ -3,14 +3,6 @@
     "nome": "Fulgrim A Fenix",
     "tipo": "atributo",
     "statKey": "car",
-    "resultado": 3,
-    "resultLabel": "Erro",
-    "ts": 1786888621754
-  },
-  {
-    "nome": "Fulgrim A Fenix",
-    "tipo": "atributo",
-    "statKey": "car",
     "resultado": 14,
     "resultLabel": "Acerto — Vantagem",
     "ts": 1786888625946,
@@ -92,6 +84,19 @@
     "rolls": [
       19,
       9
+    ]
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 16,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1786896077027,
+    "mode": "vantagem",
+    "rolls": [
+      2,
+      16
     ]
   }
 ]
