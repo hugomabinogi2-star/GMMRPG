@@ -3,14 +3,6 @@
     "nome": "Effie",
     "tipo": "atributo",
     "statKey": "car",
-    "resultado": 19,
-    "resultLabel": "Acerto (Vantagem: 2/19)",
-    "ts": 1786132243433
-  },
-  {
-    "nome": "Effie",
-    "tipo": "atributo",
-    "statKey": "car",
     "resultado": 13,
     "resultLabel": "Acerto (Vantagem: 5/13)",
     "ts": 1786132246041
@@ -79,5 +71,18 @@
     "resultado": 3,
     "resultLabel": "Erro",
     "ts": 1786888621754
+  },
+  {
+    "nome": "Fulgrim A Fenix",
+    "tipo": "atributo",
+    "statKey": "car",
+    "resultado": 14,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1786888625946,
+    "mode": "vantagem",
+    "rolls": [
+      9,
+      14
+    ]
   }
 ]
