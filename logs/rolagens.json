@@ -3,19 +3,6 @@
     "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 19,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1786896114691,
-    "mode": "vantagem",
-    "rolls": [
-      19,
-      3
-    ]
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 18,
     "resultLabel": "Acerto",
     "ts": 1786896117554
@@ -86,5 +73,13 @@
     "resultado": "coroa",
     "verdict": "acerto",
     "ts": 1786896220926
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "sorte",
+    "escolha": "coroa",
+    "resultado": "coroa",
+    "verdict": "acerto",
+    "ts": 1786896222640
   }
 ]
