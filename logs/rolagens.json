@@ -3,14 +3,6 @@
     "nome": "Effie",
     "tipo": "atributo",
     "statKey": "car",
-    "resultado": 9,
-    "resultLabel": "Acerto (Vantagem: 2/9)",
-    "ts": 1786132249184
-  },
-  {
-    "nome": "Effie",
-    "tipo": "atributo",
-    "statKey": "car",
     "resultado": 17,
     "resultLabel": "Acerto (Vantagem: 17/3)",
     "ts": 1786132252282
@@ -89,5 +81,13 @@
     ],
     "resultado": 23,
     "ts": 1786888652720
+  },
+  {
+    "nome": "Fulgrim A Fenix",
+    "tipo": "sorte",
+    "escolha": "cara",
+    "resultado": "coroa",
+    "verdict": "erro",
+    "ts": 1786888673587
   }
 ]
