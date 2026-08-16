@@ -3,14 +3,6 @@
     "nome": "Effie",
     "tipo": "atributo",
     "statKey": "car",
-    "resultado": 13,
-    "resultLabel": "Acerto (Vantagem: 5/13)",
-    "ts": 1786132246041
-  },
-  {
-    "nome": "Effie",
-    "tipo": "atributo",
-    "statKey": "car",
     "resultado": 9,
     "resultLabel": "Acerto (Vantagem: 2/9)",
     "ts": 1786132249184
@@ -84,5 +76,18 @@
       9,
       14
     ]
+  },
+  {
+    "nome": "Fulgrim A Fenix",
+    "tipo": "dano",
+    "qtd": 3,
+    "maxVal": 10,
+    "rolls": [
+      9,
+      8,
+      6
+    ],
+    "resultado": 23,
+    "ts": 1786888652720
   }
 ]
