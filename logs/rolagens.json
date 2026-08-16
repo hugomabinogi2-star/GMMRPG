@@ -1,19 +1,6 @@
 [
   {
     "nome": "Fulgrim A Fenix",
-    "tipo": "dano",
-    "qtd": 3,
-    "maxVal": 10,
-    "rolls": [
-      9,
-      8,
-      6
-    ],
-    "resultado": 23,
-    "ts": 1786888652720
-  },
-  {
-    "nome": "Fulgrim A Fenix",
     "tipo": "sorte",
     "escolha": "cara",
     "resultado": "coroa",
@@ -97,6 +84,19 @@
     "rolls": [
       17,
       19
+    ]
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 11,
+    "resultLabel": "Erro — Vantagem",
+    "ts": 1786896085254,
+    "mode": "vantagem",
+    "rolls": [
+      3,
+      11
     ]
   }
 ]
