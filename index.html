@@ -902,16 +902,25 @@ body{
   background:var(--paper-l);color:var(--ink);border:1px solid var(--border-brown);
   border-radius:4px;padding:6px 8px;font-family:'Cinzel',serif;font-size:12px;text-align:center;
 }
-.init-enemy-field{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  margin-top:8px;
+.init-hint-sub{
+  font-family:'Inter',sans-serif;font-size:11px;color:var(--ink-faint);
+  margin:2px 0 10px;line-height:1.4;
 }
-.init-enemy-field label{
-  font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.04em;
+.init-counts-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;
+  margin-bottom:4px;
+}
+.init-count-field{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:6px 4px;border:1px solid var(--border-brown);border-radius:4px;
+  background:rgba(120,85,40,.08);
+}
+.init-count-field label{
+  font-family:'Cinzel',serif;font-size:10px;text-transform:uppercase;letter-spacing:.04em;
   color:var(--ink-soft);white-space:nowrap;
 }
-.init-enemy-field input{
-  width:64px;
+.init-count-field input{
+  width:100%;max-width:72px;
   background:var(--paper-l);color:var(--ink);border:1px solid var(--border-brown);
   border-radius:4px;padding:6px 8px;font-family:'Inter',sans-serif;font-size:13px;text-align:center;
 }
@@ -1542,9 +1551,24 @@ body{
 
     <div class="panel dice-panel init-panel">
       <h2>⚔️ Iniciativa</h2>
-      <div class="init-enemy-field">
-        <label for="inimigosCount">Nº de inimigos</label>
-        <input type="number" id="inimigosCount" value="0" min="0" step="1" title="0 = apenas fichas ativas; 1+ = adiciona Inimigo 1, Inimigo 2... na iniciativa">
+      <p class="init-hint-sub">O sorteio já inclui todas as fichas ativas (jogadores e mestre). Informe abaixo quantos oponentes/aliados extras entram também.</p>
+      <div class="init-counts-grid">
+        <div class="init-count-field">
+          <label for="iniAliadosCount">Aliados</label>
+          <input type="number" id="iniAliadosCount" value="0" min="0" step="1" title="Quantidade de aliados extras (NPCs) a incluir na iniciativa">
+        </div>
+        <div class="init-count-field">
+          <label for="iniInimigosCount">Inimigos</label>
+          <input type="number" id="iniInimigosCount" value="0" min="0" step="1" title="Quantidade de inimigos a incluir na iniciativa">
+        </div>
+        <div class="init-count-field">
+          <label for="iniMonstrosCount">Monstros</label>
+          <input type="number" id="iniMonstrosCount" value="0" min="0" step="1" title="Quantidade de monstros a incluir na iniciativa">
+        </div>
+        <div class="init-count-field">
+          <label for="iniBossCount">Boss</label>
+          <input type="number" id="iniBossCount" value="0" min="0" step="1" title="Quantidade de boss a incluir na iniciativa">
+        </div>
       </div>
       <button id="iniciativaBtn" type="button" class="dice-roll-btn init-btn">⚔️ INICIATIVA!</button>
       <div class="dice-hint" id="iniciativaHint"></div>
@@ -2445,11 +2469,20 @@ body{
           }catch(e){ /* ficha inválida ou corrompida — ignora */ }
         }
       }
-      const numInimigos = Math.max(0, parseInt($('inimigosCount').value, 10) || 0);
-      const inimigoNames = numInimigos > 0
-        ? Array.from({length: numInimigos}, (_, i) => `Inimigo ${i+1}`)
-        : [];
-      const itens = [...activeNames, ...inimigoNames];
+      // além das fichas ativas, o mestre pode informar quantos aliados/inimigos/monstros/boss extras
+      // (sem ficha própria, só tokens genéricos do tabuleiro) também entram no sorteio.
+      const extraGroups = [
+        { id: 'iniAliadosCount',  label: 'Aliado' },
+        { id: 'iniInimigosCount', label: 'Inimigo' },
+        { id: 'iniMonstrosCount', label: 'Monstro' },
+        { id: 'iniBossCount',     label: 'Boss' },
+      ];
+      const extraNames = [];
+      extraGroups.forEach(({id, label})=>{
+        const count = Math.max(0, parseInt($(id).value, 10) || 0);
+        for(let i = 1; i <= count; i++) extraNames.push(count === 1 ? label : `${label} ${i}`);
+      });
+      const itens = [...activeNames, ...extraNames];
       for(let i = itens.length - 1; i > 0; i--){
         const j = Math.floor(Math.random() * (i + 1));
         [itens[i], itens[j]] = [itens[j], itens[i]];
