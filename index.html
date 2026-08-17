@@ -1755,6 +1755,14 @@ body{
   // o mestre pode reduzir um atributo já distribuído — antes disso a distribuição é livre.
   let fichaSaved = false;
 
+  // Caminho completo (pasta + arquivo) de onde a ficha atualmente aberta foi carregada, quando ela
+  // veio de "Fichas de Jogador"/"Fichas do Mestre" (ex: "fichas/ficha_heroi.json"). Enquanto essa
+  // referência existir, SALVAR sempre grava de volta nesse mesmo lugar — assim, se o mestre abrir a
+  // ficha de um jogador pra corrigir algo, o salvamento atualiza a própria ficha do jogador em vez de
+  // criar uma cópia separada em "Fichas do Mestre". Só fica null numa ficha nova (nunca carregada de
+  // uma lista), caso em que o dono é definido por quem estiver logado no momento do primeiro salvamento.
+  let loadedFichaPath = null;
+
   // controla o efeito comemorativo de "subiu de nível": só dispara quando o nível sobe
   // organicamente (ex: ganhando XP), nunca ao carregar uma ficha salva ou criar uma nova
   let lastKnownLevel = null;
@@ -2660,6 +2668,11 @@ body{
     // "Nova ficha" (s={}) sempre volta pra distribuição livre; carregar uma ficha que já tem
     // atributos salvos (veio do GitHub/ficha ao vivo) já entra direto na regra de só-mestre-reduz.
     fichaSaved = !!s.base;
+
+    // toda chamada de applyState() reinicia a referência de "de onde essa ficha veio" — quem carrega
+    // uma ficha existente através da lista (Fichas de Jogador/Fichas do Mestre) reatribui isso logo
+    // em seguida, com o caminho exato do arquivo. "Nova ficha" (s={}) fica sem origem mesmo.
+    loadedFichaPath = null;
 
     // carregar/zerar uma ficha nunca deve disparar o efeito comemorativo de nível, só XP ganho organicamente
     suppressLevelUpEffect = true;
@@ -3900,9 +3913,18 @@ body{
       return;
     }
     const filename = `ficha_${slugify(state.nome)}.json`;
-    // ficha salva pelo mestre vai pra pasta separada "Fichas do Mestre" — não aparece na lista dos jogadores
-    const isMestreSave = fbReady && currentRole === 'mestre';
-    const path = `${isMestreSave ? FICHAS_MESTRE_PATH : FICHAS_PATH}/${filename}`;
+    let path;
+    if(loadedFichaPath){
+      // essa ficha foi aberta a partir de "Fichas de Jogador"/"Fichas do Mestre" — salvar sempre
+      // atualiza o mesmo arquivo de origem, preservando se ela é de jogador ou do mestre, mesmo que
+      // quem esteja salvando agora tenha um papel diferente (ex: mestre corrigindo a ficha de um jogador).
+      path = loadedFichaPath;
+    } else {
+      // ficha nova (nunca carregada de uma lista) — o dono é quem está logado no momento do
+      // primeiro salvamento; ficha salva pelo mestre vai pra pasta separada "Fichas do Mestre".
+      const isMestreSave = fbReady && currentRole === 'mestre';
+      path = `${isMestreSave ? FICHAS_MESTRE_PATH : FICHAS_PATH}/${filename}`;
+    }
     cloudSaveBtn.disabled = true;
     const original = cloudSaveBtn.textContent;
     cloudSaveBtn.textContent = 'Salvando...';
@@ -3911,6 +3933,8 @@ body{
       // (dados, print do tabuleiro, iniciativa) e o histórico de rolagens fazem isso.
       await githubPutFile(path, state, `Salva ficha de ${state.nome}`);
       cloudSaveBtn.textContent = '✓ Salvo!';
+      // fixa essa origem — salvamentos seguintes nesta mesma sessão continuam indo pro mesmo lugar.
+      loadedFichaPath = path;
       // a partir do primeiro salvamento bem-sucedido, a regra de "só o mestre reduz atributo"
       // passa a valer (antes disso a distribuição inicial era livre).
       if(!fichaSaved){ fichaSaved = true; resetAttrGuard(); recalc(); }
@@ -3991,6 +4015,10 @@ body{
           card.querySelector('.mc-view').addEventListener('click', ()=>{
             if(confirm(`Carregar a ficha de "${data.nome}" na tela principal? Isso substitui o que está aberto agora (salve antes se precisar).`)){
               applyState(data);
+              // guarda de onde essa ficha veio (pasta + arquivo exatos) — assim, salvar de novo
+              // atualiza o mesmo arquivo original, preservando se é ficha de jogador ou do mestre,
+              // independente de quem estiver logado no momento em que for salva.
+              loadedFichaPath = path;
               modalEl.hidden = true;
             }
           });
