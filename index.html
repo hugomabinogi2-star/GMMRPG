@@ -56,6 +56,9 @@ body{
   z-index:-1;
   filter:drop-shadow(0 8px 18px rgba(0,0,0,.7));
   opacity:.85;
+  /* espelhada horizontalmente — a imagem passa a "olhar" pro outro lado, sem sair do lado
+     esquerdo da página (o transform não afeta o "position:fixed; left:0") */
+  transform:scaleX(-1);
 }
 @media (max-width:700px){
   .corner-hero{height:60vh;}
@@ -364,6 +367,16 @@ body{
   border:1px solid var(--ink-faint);border-radius:4px;background:rgba(255,255,255,.5);color:var(--ink);
 }
 #boardLoadList{margin-top:10px;}
+.board-load-list-header{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:8px;
+}
+.board-load-list-count{
+  font-family:'Cinzel',serif;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.board-load-list-cards{display:flex;flex-direction:column;gap:10px;}
+.board-load-list-cards.collapsed{display:none;}
 
 .board-bg-control{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border-brown);}
 .board-bg-control label{display:block;font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:8px;}
@@ -3629,9 +3642,17 @@ body{
         const tip = document.createElement('div');
         tip.className = 'board-token-tip';
         tip.textContent = tokenTooltipText(token);
-        // cor do texto do menu suspenso sempre igual à cor do contorno daquele ícone
-        // (dourado pra fichas, verde pra aliados, vermelho pra inimigo/monstro/boss)
-        tip.style.color = tokenRingColorHex(token.kind) || 'var(--ink)';
+        if(token.kind === 'hero'){
+          // fichas de personagem: o texto do menu suspenso é sempre preto — quem muda de cor é o
+          // FUNDO, seguindo a cor do contorno (dourado) pras fichas de jogador. Fichas do mestre são
+          // a exceção: fundo sempre branco (e texto preto), mesmo tendo o contorno preto extra no ícone.
+          tip.style.color = '#000';
+          tip.style.background = isMestreHero ? '#fff' : tokenRingColorHex(token.kind);
+        } else {
+          // aliado/inimigo/monstro/boss continuam com o texto colorido igual ao contorno, sobre o
+          // fundo padrão de pergaminho.
+          tip.style.color = tokenRingColorHex(token.kind) || 'var(--ink)';
+        }
         cell.appendChild(tip);
       }
     }
@@ -4026,6 +4047,21 @@ body{
       }
       boards.sort((a,b)=> (a.data.nome||'').localeCompare(b.data.nome||''));
       boardLoadList.innerHTML = '';
+      // cabeçalho com contador + botão de minimizar/expandir — útil quando a lista de tabuleiros
+      // salvos fica grande; minimizar só esconde os cartões (sem refazer a busca no GitHub depois).
+      const header = document.createElement('div');
+      header.className = 'board-load-list-header';
+      header.innerHTML = `
+        <span class="board-load-list-count">${boards.length} tabuleiro${boards.length === 1 ? '' : 's'} salvo${boards.length === 1 ? '' : 's'}</span>
+        <button type="button" class="mini-btn board-load-list-toggle">▾ Minimizar</button>`;
+      const cardsWrap = document.createElement('div');
+      cardsWrap.className = 'board-load-list-cards';
+      header.querySelector('.board-load-list-toggle').addEventListener('click', (e)=>{
+        const minimized = cardsWrap.classList.toggle('collapsed');
+        e.currentTarget.textContent = minimized ? '▸ Expandir' : '▾ Minimizar';
+      });
+      boardLoadList.appendChild(header);
+      boardLoadList.appendChild(cardsWrap);
       boards.forEach(({path, sha, data})=>{
         const card = document.createElement('div');
         card.className = 'master-card';
@@ -4065,7 +4101,7 @@ body{
             delBtn.textContent = 'Erro, tentar de novo';
           }
         });
-        boardLoadList.appendChild(card);
+        cardsWrap.appendChild(card);
       });
     }catch(err){
       console.error(err);
