@@ -1325,12 +1325,12 @@ body{
             <div class="panel">
               <h2>Atributos</h2>
               <div class="attr-grid">
-                <div class="attr-row"><span class="lbl ar-ap-tip">FOR<div class="cs-tooltip">FORÇA FÍSICA E CAPACIDADE FÍSICA</div></span><input type="number" id="b_for" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_for">5</span><span class="eq">=</span><span class="bonus" id="bo_for">+2</span></div>
-                <div class="attr-row"><span class="lbl ar-ap-tip">CON<div class="cs-tooltip">CONSTITUIÇÃO E RESISTENCIA FÍSICA</div></span><input type="number" id="b_con" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_con">5</span><span class="eq">=</span><span class="bonus" id="bo_con">+2</span></div>
-                <div class="attr-row"><span class="lbl ar-ap-tip">DES<div class="cs-tooltip">MOVIMENTAÇÃO E ATENÇÃO</div></span><input type="number" id="b_des" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_des">5</span><span class="eq">=</span><span class="bonus" id="bo_des">+2</span></div>
-                <div class="attr-row"><span class="lbl ar-ap-tip">INT<div class="cs-tooltip">INTELIGÊNCIA E CONHECIMENTOS GERAIS</div></span><input type="number" id="b_int" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_int">5</span><span class="eq">=</span><span class="bonus" id="bo_int">+2</span></div>
-                <div class="attr-row"><span class="lbl ar-ap-tip">VON<div class="cs-tooltip">FORÇA DE VONTADE E RESILIÊNCIA MENTAL</div></span><input type="number" id="b_von" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_von">5</span><span class="eq">=</span><span class="bonus" id="bo_von">+2</span></div>
-                <div class="attr-row"><span class="lbl ar-ap-tip">CAR<div class="cs-tooltip">CARISMA, INTIMIDAÇÃO, COERÇÃO E NEGOCIAÇÃO</div></span><input type="number" id="b_car" value="5" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_car">5</span><span class="eq">=</span><span class="bonus" id="bo_car">+2</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">FOR<div class="cs-tooltip">FORÇA FÍSICA E CAPACIDADE FÍSICA</div></span><input type="number" id="b_for" value="1" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_for">1</span><span class="eq">=</span><span class="bonus" id="bo_for">+0</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">CON<div class="cs-tooltip">CONSTITUIÇÃO E RESISTENCIA FÍSICA</div></span><input type="number" id="b_con" value="1" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_con">1</span><span class="eq">=</span><span class="bonus" id="bo_con">+0</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">DES<div class="cs-tooltip">MOVIMENTAÇÃO E ATENÇÃO</div></span><input type="number" id="b_des" value="1" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_des">1</span><span class="eq">=</span><span class="bonus" id="bo_des">+0</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">INT<div class="cs-tooltip">INTELIGÊNCIA E CONHECIMENTOS GERAIS</div></span><input type="number" id="b_int" value="1" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_int">1</span><span class="eq">=</span><span class="bonus" id="bo_int">+0</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">VON<div class="cs-tooltip">FORÇA DE VONTADE E RESILIÊNCIA MENTAL</div></span><input type="number" id="b_von" value="1" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_von">1</span><span class="eq">=</span><span class="bonus" id="bo_von">+0</span></div>
+                <div class="attr-row"><span class="lbl ar-ap-tip">CAR<div class="cs-tooltip">CARISMA, INTIMIDAÇÃO, COERÇÃO E NEGOCIAÇÃO</div></span><input type="number" id="b_car" value="1" min="1" max="18" step="1"><span class="plus">+</span><span class="total" id="t_car">1</span><span class="eq">=</span><span class="bonus" id="bo_car">+0</span></div>
               </div>
               <div class="attr-legend">Base <span class="eq">→</span> Rolamento <span class="eq">→</span> <span class="bonus-word">Bônus</span></div>
               <div class="points-meter ok" id="pointsMeter">Pontos usados: 30 / 30</div>
@@ -1738,7 +1738,7 @@ body{
   let portraitData = null;
   const totals = { for:5, int:5, con:5, von:5, des:5, car:5 };
   // valores puros do atributo (sem modificadores) — usados para a rolagem de d20
-  const baseAttrs = { for:5, int:5, con:5, von:5, des:5, car:5 };
+  const baseAttrs = { for:1, int:1, con:1, von:1, des:1, car:1 };
 
   // Guarda de pontos de atributo: nenhum atributo pode ultrapassar o limite de pontos disponível,
   // e (quando há mestre/jogador configurado) só o mestre pode reduzir um valor já distribuído —
@@ -1748,6 +1748,12 @@ body{
   function resetAttrGuard(){
     attrGuard = { for:null, con:null, des:null, int:null, von:null, car:null };
   }
+
+  // Uma ficha nova começa com todos os atributos em 1, livre pro jogador distribuir os pontos
+  // iniciais como quiser (pra cima ou pra baixo, sem restrição). Só depois que a ficha é salva pela
+  // primeira vez (ou ao abrir uma ficha que já existia salva) é que passa a valer a regra de que só
+  // o mestre pode reduzir um atributo já distribuído — antes disso a distribuição é livre.
+  let fichaSaved = false;
 
   // controla o efeito comemorativo de "subiu de nível": só dispara quando o nível sobe
   // organicamente (ex: ganhando XP), nunca ao carregar uma ficha salva ou criar uma nova
@@ -1826,14 +1832,16 @@ body{
 
     // Só o mestre pode reduzir um atributo já distribuído — o jogador pode aumentar (gastando o
     // que sobra do limite), mas não tirar pontos de volta sozinho. Sem mestre/jogador configurado
-    // (Firebase ainda não ligado), não há papéis, então essa restrição fica desativada.
+    // (Firebase ainda não ligado), não há papéis, então essa restrição fica desativada. E antes da
+    // ficha ser salva pela primeira vez (fichaSaved), a distribuição inicial é sempre livre — a
+    // restrição só passa a valer depois que existe uma versão salva pra "proteger".
     const roleGateActive = fbReady && !!currentRole;
     let attrDecreaseBlocked = false;
     Object.keys(attrFieldEls).forEach(key=>{
       const el = attrFieldEls[key];
       if(!el) return;
       const val = num(el);
-      if(attrGuard[key] !== null && val < attrGuard[key] && roleGateActive && currentRole !== 'mestre'){
+      if(fichaSaved && attrGuard[key] !== null && val < attrGuard[key] && roleGateActive && currentRole !== 'mestre'){
         el.value = attrGuard[key];
         attrDecreaseBlocked = true;
       }
@@ -2618,15 +2626,18 @@ body{
     els.deidade.value = s.deidade||'Zeus';
     els.xp.value = s.xp ?? 0;
     els.historia.value = s.historia||'';
-    if(s.base){
-      els.bFor.value=s.base.for??5; els.bCon.value=s.base.con??5; els.bDes.value=s.base.des??5;
-      els.bInt.value=s.base.int??5; els.bVon.value=s.base.von??5; els.bCar.value=s.base.car??5;
-    }
-    if(s.mods){
-      els.mAr.value=s.mods.ar??0; els.mAp.value=s.mods.ap??0; els.mFor.value=s.mods.for??0;
-      els.mCon.value=s.mods.con??0; els.mDes.value=s.mods.des??0; els.mInt.value=s.mods.int??0;
-      els.mVon.value=s.mods.von??0; els.mCar.value=s.mods.car??0;
-    }
+    // sempre reatribui (mesmo numa ficha nova/em branco, sem "base"/"mods" salvos) — senão "Nova
+    // ficha" deixava os campos de atributo com o valor da ficha carregada anteriormente, em vez
+    // de voltar para o padrão (1 em cada atributo — distribuição livre até a primeira vez que a
+    // ficha for salva —, 0 em cada modificador).
+    const base = s.base || {};
+    els.bFor.value=base.for??1; els.bCon.value=base.con??1; els.bDes.value=base.des??1;
+    els.bInt.value=base.int??1; els.bVon.value=base.von??1; els.bCar.value=base.car??1;
+
+    const mods = s.mods || {};
+    els.mAr.value=mods.ar??0; els.mAp.value=mods.ap??0; els.mFor.value=mods.for??0;
+    els.mCon.value=mods.con??0; els.mDes.value=mods.des??0; els.mInt.value=mods.int??0;
+    els.mVon.value=mods.von??0; els.mCar.value=mods.car??0;
     els.curVida.value = s.curVida ?? 10; els.curMana.value = s.curMana ?? 10;
     portraitData = s.portrait || null;
     renderPortrait();
@@ -2645,6 +2656,10 @@ body{
     // carregar uma ficha nova reinicia a referência de "pontos já distribuídos" (senão os valores
     // do personagem anterior/carregado seriam comparados com os daquele que acabou de ser aberto)
     resetAttrGuard();
+
+    // "Nova ficha" (s={}) sempre volta pra distribuição livre; carregar uma ficha que já tem
+    // atributos salvos (veio do GitHub/ficha ao vivo) já entra direto na regra de só-mestre-reduz.
+    fichaSaved = !!s.base;
 
     // carregar/zerar uma ficha nunca deve disparar o efeito comemorativo de nível, só XP ganho organicamente
     suppressLevelUpEffect = true;
@@ -2686,9 +2701,12 @@ body{
     }
   }
 
+  // Retorna 'sent' (postou), 'no-webhook' (nenhum webhook configurado — falha silenciosa antiga,
+  // agora sinalizada pro chamador poder avisar quem clicou) ou 'error' (webhook configurado mas o
+  // POST falhou — link inválido/removido no Discord, rede, etc).
   async function postToDiscord(content, imageDataUrl){
     const webhookUrl = getWebhook();
-    if(!webhookUrl) return;
+    if(!webhookUrl) return 'no-webhook';
     try{
       if(imageDataUrl){
         const blob = await (await fetch(imageDataUrl)).blob();
@@ -2696,16 +2714,18 @@ body{
         const form = new FormData();
         form.append('payload_json', JSON.stringify({ content }));
         form.append('files[0]', blob, `retrato.${ext}`);
-        await fetch(webhookUrl, { method: 'POST', body: form });
-        return;
+        const res = await fetch(webhookUrl, { method: 'POST', body: form });
+        return res.ok ? 'sent' : 'error';
       }
-      await fetch(webhookUrl, {
+      const res = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content })
       });
+      return res.ok ? 'sent' : 'error';
     }catch(err){
       console.warn('Não foi possível postar no Discord:', err);
+      return 'error';
     }
   }
 
@@ -3887,9 +3907,13 @@ body{
     const original = cloudSaveBtn.textContent;
     cloudSaveBtn.textContent = 'Salvando...';
     try{
+      // salvar a ficha na mesa não deve gerar aviso no Discord — só as ações da aba Mesa
+      // (dados, print do tabuleiro, iniciativa) e o histórico de rolagens fazem isso.
       await githubPutFile(path, state, `Salva ficha de ${state.nome}`);
       cloudSaveBtn.textContent = '✓ Salvo!';
-      postToDiscord(`💾 "${state.nome}" salvou a ficha na mesa.`);
+      // a partir do primeiro salvamento bem-sucedido, a regra de "só o mestre reduz atributo"
+      // passa a valer (antes disso a distribuição inicial era livre).
+      if(!fichaSaved){ fichaSaved = true; resetAttrGuard(); recalc(); }
     }catch(err){
       console.error(err);
       if(err.message === 'NO_TOKEN'){
