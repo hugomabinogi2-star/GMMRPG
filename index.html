@@ -1388,7 +1388,7 @@ body{
             <div class="field" style="margin-top:14px;">
               <label>Status na Iniciativa</label>
               <input type="hidden" id="fichaAtivo" value="Inativo">
-              <div class="status-toggle" id="fichaAtivoToggle" role="switch" tabindex="0" aria-checked="false" title="Esta ficha participa da iniciativa? Clique para alternar (salva a ficha automaticamente).">
+              <div class="status-toggle" id="fichaAtivoToggle" role="switch" tabindex="0" aria-checked="false" title="Esta ficha participa da iniciativa? Clique para alternar — depois clique em SALVAR pra gravar.">
                 <span class="status-toggle-label status-toggle-inativo">Inativo</span>
                 <span class="status-toggle-label status-toggle-ativo">Ativo</span>
                 <span class="status-toggle-knob"></span>
@@ -2595,20 +2595,24 @@ body{
     try{
       // fichas do mestre ativas entram na iniciativa com as mesmas regras das fichas de jogador —
       // por isso busca as duas pastas (fichas/ e fichas_mestre/) e junta os nomes ativos das duas.
-      // As duas pastas são buscadas em paralelo, e os arquivos dentro delas em lotes de 3 por vez
-      // (mapWithConcurrency) em vez de um de cada vez — reduz bastante o tempo de espera aqui sem
-      // travar a aba de uma vez só (algumas fichas têm retrato de foto, que pode ser grande).
-      const folderFileLists = await Promise.all(
-        [FICHAS_PATH, FICHAS_MESTRE_PATH].map(path =>
-          githubListFolder(path).then(list => list.filter(f => f.type === 'file' && f.name.endsWith('.json')))
-        )
+      // Pra cada pasta, primeiro descobre quem está ativo lendo só os arquivinhos pequenos de status
+      // espelhados (fichas_status/ e fichas_mestre_status/) — bem mais rápido que baixar a ficha
+      // inteira (com retrato) de todo mundo só pra checar esse campo — e só então baixa por completo
+      // as que realmente estão ativas, em lotes de 3 por vez em vez de um de cada vez.
+      const perFolder = await Promise.all(
+        [[FICHAS_PATH, FICHAS_STATUS_PATH], [FICHAS_MESTRE_PATH, FICHAS_MESTRE_STATUS_PATH]].map(async ([path, statusPath])=>{
+          const files = (await githubListFolder(path)).filter(f => f.type === 'file' && f.name.endsWith('.json'));
+          return resolveActiveFichaFiles(files, statusPath);
+        })
       );
-      const allFiles = folderFileLists.flat();
-      const fetchedData = await mapWithConcurrency(allFiles, 3, file =>
-        fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
+      const activeFiles = perFolder.flatMap(r => r.activeFiles);
+      const preloadedData = Object.assign({}, ...perFolder.map(r => r.preloadedData));
+      const fetchedData = await mapWithConcurrency(activeFiles, 3, file =>
+        preloadedData[file.path] ? Promise.resolve(preloadedData[file.path]) :
+          fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
       );
       const activeNames = fetchedData
-        .filter(data => data && data.nome && (data.ativo === undefined ? 'Ativo' : data.ativo) === 'Ativo')
+        .filter(data => data && data.nome)
         .map(data => data.nome);
       // além das fichas ativas, o mestre pode informar quantos aliados/inimigos/monstros/boss extras
       // (sem ficha própria, só tokens genéricos do tabuleiro) também entram no sorteio.
@@ -2870,6 +2874,24 @@ body{
   const GITHUB_REPO   = 'GMMRPG';
   const FICHAS_PATH   = 'fichas';
   const FICHAS_MESTRE_PATH = 'fichas_mestre'; // fichas salvas pelo mestre — pasta separada, acesso restrito
+  // pastas espelhadas com um arquivinho separado por ficha, só com o status Ativo/Inativo (sem
+  // retrato, sem atributos, sem nada mais) — ler esses arquivos pra saber quem está ativo é bem
+  // mais rápido/leve do que baixar a ficha inteira de todo mundo só pra checar esse campo.
+  const FICHAS_STATUS_PATH = 'fichas_status';
+  const FICHAS_MESTRE_STATUS_PATH = 'fichas_mestre_status';
+  // dado o caminho completo de uma ficha (ex: "fichas/ficha_nome.json"), devolve o caminho do
+  // arquivinho de status espelhado (ex: "fichas_status/ficha_nome.json"), ou null se o caminho não
+  // for de dentro de "fichas/" nem "fichas_mestre/".
+  function statusPathFor(fichaPath){
+    if(typeof fichaPath !== 'string') return null;
+    if(fichaPath.indexOf(FICHAS_MESTRE_PATH + '/') === 0){
+      return FICHAS_MESTRE_STATUS_PATH + '/' + fichaPath.slice(FICHAS_MESTRE_PATH.length + 1);
+    }
+    if(fichaPath.indexOf(FICHAS_PATH + '/') === 0){
+      return FICHAS_STATUS_PATH + '/' + fichaPath.slice(FICHAS_PATH.length + 1);
+    }
+    return null;
+  }
   const TOKEN_KEY      = 'rpg_ficha_github_token';
   const WEBHOOK_KEY     = 'rpg_ficha_discord_webhook';
 
@@ -3032,6 +3054,18 @@ body{
     return res.json();
   }
 
+  // Apaga o arquivinho de status espelhado de uma ficha (fichas_status/ ou fichas_mestre_status/),
+  // se existir. Busca o sha dele primeiro (não temos esse sha guardado em memória). Falha em
+  // silêncio — não é grave se esse arquivo pequeno ficar órfão no repositório.
+  async function deleteMirroredStatus(fichaPath){
+    const statusPath = statusPathFor(fichaPath);
+    if(!statusPath) return;
+    try{
+      const meta = await githubGetFileMeta(statusPath);
+      if(meta && meta.sha) await githubDeleteFile(statusPath, meta.sha, `Apaga status de ${statusPath}`);
+    }catch(err){ console.error('Não foi possível apagar o arquivo de status separado:', err); }
+  }
+
   // Lista os arquivos dentro da pasta de fichas. Retorna [] se a pasta ainda não existir.
   async function githubListFolder(path){
     const res = await fetch(apiUrl(path), { headers: githubHeaders(false) });
@@ -3057,6 +3091,49 @@ body{
     const workerCount = Math.max(1, Math.min(limit, items.length));
     await Promise.all(Array.from({length: workerCount}, worker));
     return results;
+  }
+
+  // Descobre quais arquivos de ficha (dentro de `files`) estão marcados como Ativo, sem precisar
+  // baixar a ficha inteira de cada um — lê primeiro a pasta de status espelhada (fichas_status/ ou
+  // fichas_mestre_status/), que só tem arquivinhos pequenos com o campo "ativo". Fichas que ainda
+  // não têm esse arquivinho (salvas antes dessa separação existir, ou nunca resalvas desde então)
+  // caem num caminho de reserva: busca a ficha inteira mesmo pra descobrir o status a moda antiga —
+  // só essas, não todo mundo — e devolve o conteúdo já baixado pra quem chamou reaproveitar (evita
+  // baixar a mesma ficha de novo em seguida).
+  async function resolveActiveFichaFiles(files, statusPath){
+    let statusFiles = [];
+    try{
+      statusFiles = (await githubListFolder(statusPath)).filter(f => f.type === 'file' && f.name.endsWith('.json'));
+    }catch(err){ /* pasta de status pode ainda não existir — segue com a lista vazia (caminho de reserva pra todo mundo) */ }
+    const statusByName = {};
+    if(statusFiles.length){
+      const statusData = await mapWithConcurrency(statusFiles, 3, file =>
+        fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
+      );
+      statusFiles.forEach((f, idx) => { if(statusData[idx]) statusByName[f.name] = statusData[idx]; });
+    }
+    const withKnownStatus = [];
+    const withUnknownStatus = [];
+    files.forEach(f => (statusByName[f.name] ? withKnownStatus : withUnknownStatus).push(f));
+
+    const activeFromStatus = withKnownStatus.filter(f => {
+      const st = statusByName[f.name];
+      return (st.ativo === undefined ? 'Ativo' : st.ativo) === 'Ativo';
+    });
+
+    const legacyData = await mapWithConcurrency(withUnknownStatus, 3, file =>
+      fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
+    );
+    const preloadedData = {};
+    const activeFromLegacy = [];
+    withUnknownStatus.forEach((f, idx) => {
+      const data = legacyData[idx];
+      if(!data) return;
+      preloadedData[f.path] = data;
+      if((data.ativo === undefined ? 'Ativo' : data.ativo) === 'Ativo') activeFromLegacy.push(f);
+    });
+
+    return { activeFiles: [...activeFromStatus, ...activeFromLegacy], preloadedData };
   }
 
   // ---------- histórico compartilhado de rolagens ----------
@@ -3744,19 +3821,22 @@ body{
   // idPrefix namespaceia os ids (o mestre usa "mestre:") pra nunca colidir com o id de um jogador
   // de mesmo nome; ownerMatches identifica, entre os tokens já no tabuleiro, quais pertencem a
   // esta lista (pra não apagar por engano um token da outra lista ao atualizar só uma delas).
-  function makeRosterLoader(githubPath, idPrefix, ownerMatches, setRoster, trayEl, renderTray){
+  function makeRosterLoader(githubPath, statusPath, idPrefix, ownerMatches, setRoster, trayEl, renderTray){
     return async function loadRoster(){
       try{
         const files = (await githubListFolder(githubPath))
           .filter(f => f.type === 'file' && f.name.endsWith('.json'));
-        // busca o conteúdo dos arquivos em lotes de 3 por vez em vez de um de cada vez — bem mais
-        // rápido pra reconhecer fichas recém-marcadas como ativas quando tem várias salvas, sem
-        // tentar decodificar todas de uma vez só (algumas podem ter retrato de foto grande).
-        const fetchedData = await mapWithConcurrency(files, 3, file =>
-          fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
+        // primeiro descobre quem está ativo lendo só os arquivinhos pequenos de status — bem mais
+        // rápido do que baixar a ficha inteira (com retrato) de todo mundo só pra checar esse campo.
+        const { activeFiles, preloadedData } = await resolveActiveFichaFiles(files, statusPath);
+        // busca o conteúdo das fichas ativas em lotes de 3 por vez em vez de um de cada vez —
+        // reaproveita quem já veio baixado do caminho de reserva (fichas sem status separado ainda).
+        const fetchedData = await mapWithConcurrency(activeFiles, 3, file =>
+          preloadedData[file.path] ? Promise.resolve(preloadedData[file.path]) :
+            fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
         );
         const roster = fetchedData
-          .filter(data => data && data.nome && (data.ativo === undefined ? 'Ativo' : data.ativo) === 'Ativo')
+          .filter(data => data && data.nome)
           .map(data => ({id: idPrefix + slugify(data.nome), name: data.nome, portrait: data.portrait || null}));
         roster.sort((a,b)=> a.name.localeCompare(b.name));
         setRoster(roster);
@@ -3781,11 +3861,11 @@ body{
   }
 
   const loadHeroRoster = makeRosterLoader(
-    FICHAS_PATH, '', id => id.indexOf('mestre:') !== 0,
+    FICHAS_PATH, FICHAS_STATUS_PATH, '', id => id.indexOf('mestre:') !== 0,
     roster => { heroRoster = roster; }, boardTrayCoins, renderHeroTray
   );
   const loadMestreRoster = makeRosterLoader(
-    FICHAS_MESTRE_PATH, 'mestre:', id => id.indexOf('mestre:') === 0,
+    FICHAS_MESTRE_PATH, FICHAS_MESTRE_STATUS_PATH, 'mestre:', id => id.indexOf('mestre:') === 0,
     roster => { mestreRoster = roster; }, boardTrayMestreCoins, renderMestreTray
   );
 
@@ -4250,6 +4330,17 @@ body{
       // a partir do primeiro salvamento bem-sucedido, a regra de "só o mestre reduz atributo"
       // passa a valer (antes disso a distribuição inicial era livre).
       if(!fichaSaved){ fichaSaved = true; resetAttrGuard(); recalc(); }
+      // grava também o arquivinho separado só com o status Ativo/Inativo dessa ficha (pasta espelhada
+      // fichas_status/ ou fichas_mestre_status/) — quem precisa só saber se a ficha está ativa (o
+      // tabuleiro, a iniciativa) passa a ler esse arquivo pequeno em vez da ficha inteira. Se isso
+      // falhar por algum motivo, não desfaz nem avisa como erro do salvamento principal — a ficha em
+      // si já foi salva certinho, e o pior caso é essa ficha só continuar aparecendo pelo jeito antigo
+      // (mais lento) até o próximo salvamento bem-sucedido do status.
+      const statusPath = statusPathFor(path);
+      if(statusPath){
+        githubPutFile(statusPath, { ativo: state.ativo }, `Atualiza status de ${state.nome}`)
+          .catch(err => console.error('Não foi possível salvar o arquivo de status separado:', err));
+      }
     }catch(err){
       console.error(err);
       if(err.message === 'NO_TOKEN'){
@@ -4268,9 +4359,9 @@ body{
   cloudSaveBtn.addEventListener('click', saveFicha);
 
   // ---------- interruptor Ativo/Inativo ----------
-  // Inativo fica à esquerda, Ativo à direita; clicar alterna de um lado pro outro e já salva a
-  // ficha na hora (independente de quem estiver logado — mestre ou jogador), sem precisar clicar
-  // em "SALVAR" separadamente.
+  // Inativo fica à esquerda, Ativo à direita; clicar alterna de um lado pro outro. Só muda o valor
+  // na tela — NÃO salva sozinho (o auto-save aqui não funcionava direito); como qualquer outro
+  // campo da ficha, só grava no repositório quando a pessoa clicar em "SALVAR".
   function setFichaAtivo(val){
     const hidden = $('fichaAtivo');
     const toggle = $('fichaAtivoToggle');
@@ -4282,7 +4373,6 @@ body{
   function toggleFichaAtivo(){
     const novoValor = $('fichaAtivo').value === 'Ativo' ? 'Inativo' : 'Ativo';
     setFichaAtivo(novoValor);
-    saveFicha();
   }
   $('fichaAtivoToggle').addEventListener('click', toggleFichaAtivo);
   $('fichaAtivoToggle').addEventListener('keydown', (e)=>{
@@ -4378,6 +4468,7 @@ body{
             delBtn.textContent = 'Apagando...';
             try{
               await githubDeleteFile(path, sha, `Apaga ficha de ${data.nome}`);
+              deleteMirroredStatus(path); // best-effort, não trava a exclusão da ficha em si
               card.remove();
               if(!listEl.querySelector('.master-card')){
                 listEl.innerHTML = `<div class="master-empty">${emptyMsg}</div>`;
