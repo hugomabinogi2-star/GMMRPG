@@ -3,14 +3,6 @@
     "nome": "Sexus",
     "tipo": "sorte",
     "escolha": "coroa",
-    "resultado": "cara",
-    "verdict": "erro",
-    "ts": 1786896216502
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "sorte",
-    "escolha": "coroa",
     "resultado": "coroa",
     "verdict": "acerto",
     "ts": 1786896220926
@@ -78,5 +70,13 @@
     "resultado": "coroa",
     "verdict": "acerto",
     "ts": 1786897358062
+  },
+  {
+    "nome": "(sem nome)",
+    "tipo": "sorte",
+    "escolha": "cara",
+    "resultado": "cara",
+    "verdict": "acerto",
+    "ts": 1786983491833
   }
 ]
