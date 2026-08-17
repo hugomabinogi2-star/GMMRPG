@@ -1,14 +1,6 @@
 [
   {
     "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 15,
-    "resultLabel": "Erro",
-    "ts": 1786896328655
-  },
-  {
-    "nome": "Sexus",
     "tipo": "sorte",
     "escolha": "coroa",
     "resultado": "coroa",
@@ -101,5 +93,16 @@
     ],
     "resultado": 5,
     "ts": 1787008560895
+  },
+  {
+    "nome": "Goblinatus",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 10,
+    "rolls": [
+      8
+    ],
+    "resultado": 8,
+    "ts": 1787008721222
   }
 ]
