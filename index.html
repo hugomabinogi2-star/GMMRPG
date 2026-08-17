@@ -3481,8 +3481,19 @@ body{
   // usada só no texto do menu suspenso (tooltip) de cada token, pra o mestre identificar quem é quem
   // (ex: "Inimigo 1", "Inimigo 2", "Boss 1"). Chaveado pelo label (não pelo kind), então ícones
   // diferentes da mesma categoria (ex: "Aliado" padrão e "Aliado (Fera)") contam juntos na mesma
-  // sequência. Sempre sobe (nunca reaproveita número de um token removido) pra não gerar duplicidade.
-  let labelCounters = {};
+  // sequência. Sempre recalculada a partir de quem está atualmente no tabuleiro (não guarda um
+  // contador à parte) — assim, se o "Aliado 1" for removido do tabuleiro, o próximo aliado colocado
+  // reaproveita o número 1 (o menor número livre), em vez de continuar subindo pra sempre.
+  function nextSeqForLabel(label){
+    const used = new Set();
+    for(const key in boardTokens){
+      const t = boardTokens[key];
+      if(t && t.name === label && t.seq) used.add(t.seq);
+    }
+    let n = 1;
+    while(used.has(n)) n++;
+    return n;
+  }
   const MARK_CYCLE = [null, 'green', 'yellow', 'red'];
 
   const ENEMY_KINDS = [
@@ -3720,8 +3731,7 @@ body{
         if(enemyCfg){
           // numera essa peça dentro da própria categoria (Aliado/Inimigo/Monstro/Boss), na ordem em
           // que forem sendo colocadas — só pra aliado/inimigo/monstro/boss, blocos não numeram.
-          labelCounters[cfg.label] = (labelCounters[cfg.label] || 0) + 1;
-          token.seq = labelCounters[cfg.label];
+          token.seq = nextSeqForLabel(cfg.label);
         }
         placeToken(r, c, token);
         footprintCells(r, c, size).forEach(([fr,fc]) => renderBoardCell(fr,fc));
@@ -3919,7 +3929,6 @@ body{
     boardColsInput.value = cols;
     boardMarks = {};
     boardTokens = {};
-    labelCounters = {};
     buildBoardGrid();
     renderHeroTray();
     renderMestreTray();
@@ -3961,10 +3970,9 @@ body{
     boardColsInput.value = BOARD_COLS;
     boardMarks = Object.assign({}, data.marks || {});
     boardTokens = {};
-    // recomeça a numeração do zero e recalcula a partir do maior número já usado por categoria
-    // (Aliado/Inimigo/Monstro/Boss) neste tabuleiro salvo — assim uma peça nova continua a
-    // sequência certa em vez de reaproveitar um número que já existe no tabuleiro carregado.
-    labelCounters = {};
+    // cada peça carregada mantém o número que já tinha quando o tabuleiro foi salvo — a próxima
+    // peça nova colocada depois disso é numerada com base em quem estiver no tabuleiro na hora
+    // (ver nextSeqForLabel), preenchendo qualquer número que tiver ficado livre.
     const rawTokens = data.tokens || {};
     const uniqueTokens = {};
     Object.values(rawTokens).forEach(rt=>{
@@ -3976,10 +3984,7 @@ body{
         id: rt.id, kind: rt.kind, name: rt.name, size: rt.size || 1,
         portrait: isBlockKind(rt.kind) ? null : resolveTokenPortrait(rt),
       };
-      if(rt.seq){
-        token.seq = rt.seq;
-        if(rt.seq > (labelCounters[rt.name] || 0)) labelCounters[rt.name] = rt.seq;
-      }
+      if(rt.seq) token.seq = rt.seq;
       placeToken(rt.anchorR, rt.anchorC, token);
     });
     applyBoardBackground(data.background || null);
