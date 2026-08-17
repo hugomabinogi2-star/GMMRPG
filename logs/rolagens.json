@@ -5,14 +5,6 @@
     "escolha": "coroa",
     "resultado": "coroa",
     "verdict": "acerto",
-    "ts": 1786896220926
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "sorte",
-    "escolha": "coroa",
-    "resultado": "coroa",
-    "verdict": "acerto",
     "ts": 1786896222640
   },
   {
@@ -78,5 +70,13 @@
     "resultado": "cara",
     "verdict": "acerto",
     "ts": 1786983491833
+  },
+  {
+    "nome": "(sem nome)",
+    "tipo": "sorte",
+    "escolha": "cara",
+    "resultado": "cara",
+    "verdict": "acerto",
+    "ts": 1786984147229
   }
 ]
