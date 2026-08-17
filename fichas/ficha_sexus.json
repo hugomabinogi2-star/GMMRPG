@@ -37,12 +37,16 @@
   "ativo": "Ativo",
   "habilidadesExtras": [
     {
-      "nome": "",
-      "attr": "FOR"
+      "nome": "Lança Erótica de Apollo",
+      "attr": "DES",
+      "desc": "Arremessa a Lança Erótica de Apollo em uma linha reta.",
+      "imagem": "range4"
     },
     {
       "nome": "",
-      "attr": "FOR"
+      "attr": "FOR",
+      "desc": "",
+      "imagem": ""
     }
   ]
 }
