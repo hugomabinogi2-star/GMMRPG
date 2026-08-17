@@ -5,14 +5,6 @@
     "escolha": "cara",
     "resultado": "cara",
     "verdict": "acerto",
-    "ts": 1786983491833
-  },
-  {
-    "nome": "(sem nome)",
-    "tipo": "sorte",
-    "escolha": "cara",
-    "resultado": "cara",
-    "verdict": "acerto",
     "ts": 1786984147229
   },
   {
@@ -107,6 +99,19 @@
     "mode": "vantagem",
     "rolls": [
       13,
+      11
+    ]
+  },
+  {
+    "nome": "Ares",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 14,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1787009650806,
+    "mode": "vantagem",
+    "rolls": [
+      14,
       11
     ]
   }
