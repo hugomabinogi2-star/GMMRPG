@@ -3,14 +3,6 @@
     "nome": "Sexus",
     "tipo": "sorte",
     "escolha": "coroa",
-    "resultado": "cara",
-    "verdict": "erro",
-    "ts": 1786896223916
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "sorte",
-    "escolha": "coroa",
     "resultado": "coroa",
     "verdict": "acerto",
     "ts": 1786896226261
@@ -85,5 +77,20 @@
     ],
     "resultado": 11,
     "ts": 1787008499106
+  },
+  {
+    "nome": "Zeus",
+    "tipo": "dano",
+    "qtd": 5,
+    "maxVal": 10,
+    "rolls": [
+      10,
+      10,
+      9,
+      3,
+      2
+    ],
+    "resultado": 34,
+    "ts": 1787008509083
   }
 ]
