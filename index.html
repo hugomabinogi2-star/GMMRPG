@@ -1787,6 +1787,12 @@ body{
   // uma lista), caso em que o dono é definido por quem estiver logado no momento do primeiro salvamento.
   let loadedFichaPath = null;
 
+  // sha do arquivo no GitHub referente a loadedFichaPath — quando conhecido, SALVAR pula a busca
+  // desse valor antes de gravar (deixa o salvamento bem mais rápido). null = ficha nova (ainda não
+  // existe arquivo) ou sha desconhecido (ex: acabou de logar); nesses casos SALVAR busca o valor
+  // atual normalmente antes de gravar.
+  let loadedFichaSha = null;
+
   // controla o efeito comemorativo de "subiu de nível": só dispara quando o nível sobe
   // organicamente (ex: ganhando XP), nunca ao carregar uma ficha salva ou criar uma nova
   let lastKnownLevel = null;
@@ -2456,19 +2462,20 @@ body{
     try{
       // fichas do mestre ativas entram na iniciativa com as mesmas regras das fichas de jogador —
       // por isso busca as duas pastas (fichas/ e fichas_mestre/) e junta os nomes ativos das duas.
-      const activeNames = [];
-      for(const path of [FICHAS_PATH, FICHAS_MESTRE_PATH]){
-        const files = (await githubListFolder(path))
-          .filter(f => f.type === 'file' && f.name.endsWith('.json'));
-        for(const file of files){
-          try{
-            const raw = await fetch(file.download_url).then(r=>r.text());
-            const data = JSON.parse(raw);
-            const ativoVal = data.ativo === undefined ? 'Ativo' : data.ativo;
-            if(ativoVal === 'Ativo' && data.nome) activeNames.push(data.nome);
-          }catch(e){ /* ficha inválida ou corrompida — ignora */ }
-        }
-      }
+      // As duas pastas e todos os arquivos dentro delas são buscados em paralelo (Promise.all) em vez
+      // de um de cada vez — com várias fichas salvas, isso reduz bastante o tempo de espera aqui.
+      const folderFileLists = await Promise.all(
+        [FICHAS_PATH, FICHAS_MESTRE_PATH].map(path =>
+          githubListFolder(path).then(list => list.filter(f => f.type === 'file' && f.name.endsWith('.json')))
+        )
+      );
+      const allFiles = folderFileLists.flat();
+      const fetchedData = await Promise.all(allFiles.map(file =>
+        fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
+      ));
+      const activeNames = fetchedData
+        .filter(data => data && data.nome && (data.ativo === undefined ? 'Ativo' : data.ativo) === 'Ativo')
+        .map(data => data.nome);
       // além das fichas ativas, o mestre pode informar quantos aliados/inimigos/monstros/boss extras
       // (sem ficha própria, só tokens genéricos do tabuleiro) também entram no sorteio.
       const extraGroups = [
@@ -2496,7 +2503,8 @@ body{
       iniciativaBtn.textContent = 'Erro, tente de novo';
       iniciativaHint.textContent = 'Não foi possível buscar as fichas salvas na mesa agora.';
     }
-    setTimeout(()=>{ iniciativaBtn.textContent = original; iniciativaBtn.disabled = false; }, 2200);
+    // botão volta ao normal rápido — só o tempo de ler a confirmação, sem travar o próximo clique por muito tempo.
+    setTimeout(()=>{ iniciativaBtn.textContent = original; iniciativaBtn.disabled = false; }, 900);
   });
 
   // ---------- flip ----------
@@ -2706,6 +2714,7 @@ body{
     // uma ficha existente através da lista (Fichas de Jogador/Fichas do Mestre) reatribui isso logo
     // em seguida, com o caminho exato do arquivo. "Nova ficha" (s={}) fica sem origem mesmo.
     loadedFichaPath = null;
+    loadedFichaSha = null;
 
     // carregar/zerar uma ficha nunca deve disparar o efeito comemorativo de nível, só XP ganho organicamente
     suppressLevelUpEffect = true;
@@ -2823,19 +2832,29 @@ body{
     return { sha: data.sha, content: b64DecodeUnicode(data.content.replace(/\n/g,'')) };
   }
 
-  // Cria ou atualiza um arquivo no repositório.
-  async function githubPutFile(path, jsonObj, message){
-    const existing = await githubGetFileMeta(path).catch(()=>null);
-    const body = {
-      message,
-      content: b64EncodeUnicode(JSON.stringify(jsonObj, null, 2))
+  // Cria ou atualiza um arquivo no repositório. Por padrão busca o sha atual antes de gravar (2
+  // requisições). Quando quem chama já sabe o sha (ex: acabou de carregar ou salvar esse mesmo
+  // arquivo nesta sessão), pode passar `knownSha` (string = sha conhecido, null = ficha nova, ainda
+  // sem arquivo) pra pular essa busca e gravar direto — corta pela metade o tempo de um salvamento
+  // comum. Se o sha usado estiver desatualizado (outra pessoa salvou por cima nesse meio tempo), o
+  // GitHub recusa com 409/422 e aí sim busca o sha real e tenta de novo uma única vez.
+  async function githubPutFile(path, jsonObj, message, knownSha){
+    let sha = knownSha;
+    if(sha === undefined){
+      const existing = await githubGetFileMeta(path).catch(()=>null);
+      sha = existing && existing.sha ? existing.sha : null;
+    }
+    const buildBody = (shaVal) => {
+      const b = { message, content: b64EncodeUnicode(JSON.stringify(jsonObj, null, 2)) };
+      if(shaVal) b.sha = shaVal;
+      return b;
     };
-    if(existing && existing.sha) body.sha = existing.sha;
-    const res = await fetch(apiUrl(path), {
-      method:'PUT',
-      headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
-      body: JSON.stringify(body)
-    });
+    const putHeaders = { ...githubHeaders(true), 'Content-Type':'application/json' };
+    let res = await fetch(apiUrl(path), { method:'PUT', headers: putHeaders, body: JSON.stringify(buildBody(sha)) });
+    if(!res.ok && (res.status === 409 || res.status === 422)){
+      const existing = await githubGetFileMeta(path).catch(()=>null);
+      res = await fetch(apiUrl(path), { method:'PUT', headers: putHeaders, body: JSON.stringify(buildBody(existing && existing.sha)) });
+    }
     if(!res.ok){
       const errBody = await res.json().catch(()=>({}));
       throw new Error(errBody.message || `PUT ${res.status}`);
@@ -3506,17 +3525,14 @@ body{
       try{
         const files = (await githubListFolder(githubPath))
           .filter(f => f.type === 'file' && f.name.endsWith('.json'));
-        const roster = [];
-        for(const file of files){
-          try{
-            const raw = await fetch(file.download_url).then(r=>r.text());
-            const data = JSON.parse(raw);
-            const ativoVal = data.ativo === undefined ? 'Ativo' : data.ativo;
-            if(ativoVal === 'Ativo' && data.nome){
-              roster.push({id: idPrefix + slugify(data.nome), name: data.nome, portrait: data.portrait || null});
-            }
-          }catch(e){ /* ficha inválida ou corrompida — ignora */ }
-        }
+        // busca o conteúdo de todos os arquivos em paralelo em vez de um de cada vez — bem mais
+        // rápido pra reconhecer fichas recém-marcadas como ativas quando tem várias salvas.
+        const fetchedData = await Promise.all(files.map(file =>
+          fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
+        ));
+        const roster = fetchedData
+          .filter(data => data && data.nome && (data.ativo === undefined ? 'Ativo' : data.ativo) === 'Ativo')
+          .map(data => ({id: idPrefix + slugify(data.nome), name: data.nome, portrait: data.portrait || null}));
         roster.sort((a,b)=> a.name.localeCompare(b.name));
         setRoster(roster);
         // remove do tabuleiro moedas desta lista que não estão mais ativas
@@ -3674,13 +3690,13 @@ body{
         boardLoadList.innerHTML = '<div class="master-empty">Nenhum tabuleiro salvo ainda.</div>';
         return;
       }
-      const boards = [];
-      for(const file of files){
-        try{
-          const raw = await fetch(file.download_url).then(r=>r.text());
-          boards.push({ path: file.path, sha: file.sha, data: JSON.parse(raw) });
-        }catch(err){ /* arquivo inválido — ignora */ }
-      }
+      // busca todos os tabuleiros em paralelo em vez de um de cada vez.
+      const boardResults = await Promise.all(files.map(file =>
+        fetch(file.download_url).then(r=>r.text())
+          .then(raw => ({ path: file.path, sha: file.sha, data: JSON.parse(raw) }))
+          .catch(()=>null)
+      ));
+      const boards = boardResults.filter(Boolean);
       if(boards.length === 0){
         boardLoadList.innerHTML = '<div class="master-empty">Nenhum tabuleiro legível encontrado.</div>';
         return;
@@ -3964,10 +3980,14 @@ body{
     try{
       // salvar a ficha na mesa não deve gerar aviso no Discord — só as ações da aba Mesa
       // (dados, print do tabuleiro, iniciativa) e o histórico de rolagens fazem isso.
-      await githubPutFile(path, state, `Salva ficha de ${state.nome}`);
+      // passa o sha já conhecido (se o caminho é o mesmo de antes) pra pular uma busca desnecessária
+      // no GitHub antes de gravar — corta pela metade o tempo desse salvamento.
+      const result = await githubPutFile(path, state, `Salva ficha de ${state.nome}`, path === loadedFichaPath ? loadedFichaSha : null);
       cloudSaveBtn.textContent = '✓ Salvo!';
-      // fixa essa origem — salvamentos seguintes nesta mesma sessão continuam indo pro mesmo lugar.
+      // fixa essa origem (e o sha novo, retornado pelo GitHub) — salvamentos seguintes nesta mesma
+      // sessão continuam indo pro mesmo lugar e já pulam a busca do sha também.
       loadedFichaPath = path;
+      loadedFichaSha = (result && result.content && result.content.sha) ? result.content.sha : null;
       // a partir do primeiro salvamento bem-sucedido, a regra de "só o mestre reduz atributo"
       // passa a valer (antes disso a distribuição inicial era livre).
       if(!fichaSaved){ fichaSaved = true; resetAttrGuard(); recalc(); }
@@ -3983,7 +4003,8 @@ body{
         cloudSaveBtn.textContent = 'Erro ao salvar';
       }
     }
-    setTimeout(()=>{ cloudSaveBtn.textContent = original; cloudSaveBtn.disabled = false; }, 2200);
+    // botão volta ao normal rápido — só o tempo de ler a confirmação, sem travar o próximo clique por muito tempo.
+    setTimeout(()=>{ cloudSaveBtn.textContent = original; cloudSaveBtn.disabled = false; }, 900);
   });
 
   // ---------- painel do mestre ----------
@@ -4004,13 +4025,14 @@ body{
           listEl.innerHTML = `<div class="master-empty">${emptyMsg}</div>`;
           return;
         }
-        const sheets = [];
-        for(const file of files){
-          try{
-            const raw = await fetch(file.download_url).then(r=>r.text());
-            sheets.push({ path: file.path, sha: file.sha, data: JSON.parse(raw) });
-          }catch(err){ /* ficha inválida ou corrompida — ignora */ }
-        }
+        // busca todas as fichas em paralelo em vez de uma de cada vez — a lista aparece bem mais
+        // rápido quando tem várias fichas salvas.
+        const sheetResults = await Promise.all(files.map(file =>
+          fetch(file.download_url).then(r=>r.text())
+            .then(raw => ({ path: file.path, sha: file.sha, data: JSON.parse(raw) }))
+            .catch(()=>null)
+        ));
+        const sheets = sheetResults.filter(Boolean);
         if(sheets.length === 0){
           listEl.innerHTML = '<div class="master-empty">Nenhuma ficha legível encontrada.</div>';
           return;
@@ -4048,10 +4070,12 @@ body{
           card.querySelector('.mc-view').addEventListener('click', ()=>{
             if(confirm(`Carregar a ficha de "${data.nome}" na tela principal? Isso substitui o que está aberto agora (salve antes se precisar).`)){
               applyState(data);
-              // guarda de onde essa ficha veio (pasta + arquivo exatos) — assim, salvar de novo
-              // atualiza o mesmo arquivo original, preservando se é ficha de jogador ou do mestre,
-              // independente de quem estiver logado no momento em que for salva.
+              // guarda de onde essa ficha veio (pasta + arquivo exatos, e o sha atual do arquivo) —
+              // assim, salvar de novo atualiza o mesmo arquivo original (preservando se é ficha de
+              // jogador ou do mestre, independente de quem estiver logado no momento em que for
+              // salva) e pula a busca do sha, já que acabamos de buscá-lo agora.
               loadedFichaPath = path;
+              loadedFichaSha = sha;
               modalEl.hidden = true;
             }
           });
