@@ -50,15 +50,15 @@ body{
   position:fixed;
   top:0;
   left:0;
-  width:170px;
-  height:auto;
+  height:100vh;
+  width:auto;
   pointer-events:none;
   z-index:-1;
   filter:drop-shadow(0 8px 18px rgba(0,0,0,.7));
   opacity:.85;
 }
 @media (max-width:700px){
-  .corner-hero{width:100px;}
+  .corner-hero{height:60vh;}
 }
 
 .footer-banner{
@@ -269,6 +269,11 @@ body{
   /* contorno dourado exclusivo dos personagens de jogador no tabuleiro (não se aplica a aliados/inimigos/obstáculos) */
   box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 1.5px rgba(255,244,214,.85), 0 0 0 2.5px var(--hero-ring-color);
 }
+/* fichas do MESTRE ganham um contorno preto extra por fora do dourado, pra diferenciar de
+   relance dos personagens de jogador (que ficam só com o contorno dourado simples) */
+.board-token.token-hero.token-hero-mestre{
+  box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 1.5px rgba(255,244,214,.85), 0 0 0 2.5px var(--hero-ring-color), 0 0 0 4.5px #000;
+}
 /* contorno verde nos ícones de aliado (padrão e a variante "Aliado (Fera)") */
 .board-token.token-aliado,
 .board-token.token-aliado_fera{
@@ -296,6 +301,7 @@ body{
   border:1px solid var(--border-brown);border-radius:4px;
   padding:3px 8px;
   font-family:'Cinzel',serif;font-size:10.5px;letter-spacing:.03em;
+  text-transform:uppercase;
   color:var(--ink);
   box-shadow:var(--shadow);
   z-index:50;
@@ -683,6 +689,64 @@ body{
 }
 .field input:focus, .field select:focus, .field textarea:focus{
   outline:2px solid var(--gold-bright);
+}
+
+/* interruptor Ativo/Inativo — Inativo fica à esquerda, Ativo à direita; o lado selecionado
+   acende (texto claro) e o lado não selecionado fica apagado/sombreado */
+.status-toggle{
+  position:relative;
+  display:flex;
+  width:100%;
+  max-width:230px;
+  height:34px;
+  border-radius:17px;
+  background:linear-gradient(180deg,#241b10,#140e08);
+  border:1px solid var(--border-brown);
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.55);
+  cursor:pointer;
+  user-select:none;
+  overflow:hidden;
+}
+.status-toggle:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px;}
+.status-toggle-label{
+  position:relative;
+  z-index:1;
+  flex:1;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Cinzel',serif;
+  font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  color:rgba(238,226,200,.32);
+  transition:color .2s ease, text-shadow .2s ease;
+}
+.status-toggle-knob{
+  position:absolute;
+  top:2px;left:2px;
+  width:calc(50% - 3px);
+  height:calc(100% - 4px);
+  border-radius:15px;
+  background:linear-gradient(180deg,#f2d24b,#c9a227);
+  box-shadow:0 1px 3px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.4);
+  transition:transform .22s ease;
+}
+/* estado Ativo (padrão marcado via classe JS): o interruptor desliza pra direita e o texto
+   "Ativo" acende; "Inativo" fica apagado com sombreamento */
+.status-toggle.is-ativo .status-toggle-knob{ transform:translateX(100%); }
+.status-toggle.is-ativo .status-toggle-ativo{
+  color:#3a2a08;
+  text-shadow:0 1px 0 rgba(255,255,255,.35);
+}
+.status-toggle.is-ativo .status-toggle-inativo{
+  color:rgba(238,226,200,.28);
+  text-shadow:none;
+}
+/* estado Inativo (padrão, sem a classe): "Inativo" acende à esquerda */
+.status-toggle:not(.is-ativo) .status-toggle-inativo{
+  color:#3a2a08;
+  text-shadow:0 1px 0 rgba(255,255,255,.35);
+}
+.status-toggle:not(.is-ativo) .status-toggle-ativo{
+  color:rgba(238,226,200,.28);
+  text-shadow:none;
 }
 
 /* stepper de XP (só +/-, sem digitação) */
@@ -1281,8 +1345,8 @@ body{
   <button id="masterMestreBtn" class="mestre-only">🔒 Fichas do Mestre</button>
   <button id="rollLogBtn" class="mestre-only">🎲 Histórico de Rolagens</button>
   <button id="mesaBtn" class="mestre-only">🖥️ Mesa</button>
-  <button class="github-btn" id="githubConfigBtn">🔑 Meu token do GitHub</button>
-  <button class="github-btn" id="webhookConfigBtn">🔗 Webhook do Discord</button>
+  <button class="github-btn mestre-only" id="githubConfigBtn">🔑 Meu token do GitHub</button>
+  <button class="github-btn mestre-only" id="webhookConfigBtn">🔗 Webhook do Discord</button>
   <button id="newBtn">Nova ficha</button>
   <button class="logout-btn" id="logoutBtn">🚪 Sair</button>
 </div>
@@ -1323,10 +1387,12 @@ body{
 
             <div class="field" style="margin-top:14px;">
               <label>Status na Iniciativa</label>
-              <select id="fichaAtivo" title="Esta ficha participa da iniciativa?">
-                <option value="Ativo">Ativo</option>
-                <option value="Inativo" selected>Inativo</option>
-              </select>
+              <input type="hidden" id="fichaAtivo" value="Inativo">
+              <div class="status-toggle" id="fichaAtivoToggle" role="switch" tabindex="0" aria-checked="false" title="Esta ficha participa da iniciativa? Clique para alternar (salva a ficha automaticamente).">
+                <span class="status-toggle-label status-toggle-inativo">Inativo</span>
+                <span class="status-toggle-label status-toggle-ativo">Ativo</span>
+                <span class="status-toggle-knob"></span>
+              </div>
             </div>
 
             <div class="field">
@@ -1546,12 +1612,6 @@ body{
     <p class="modal-sub">Fichas que os jogadores salvaram com "SALVAR" nesta mesma página aparecem aqui.</p>
     <button id="refreshMaster" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
     <div id="masterList" class="master-list"></div>
-
-    <div class="mestre-only">
-      <h2 class="board-title" style="margin-top:22px;">🔴 Fichas ao vivo (tempo real)</h2>
-      <p class="modal-sub">Atualiza sozinho enquanto o jogador estiver com a ficha aberta e logado — não precisa salvar nada.</p>
-      <div id="liveList" class="master-list"></div>
-    </div>
   </div>
 </div>
 
@@ -2040,6 +2100,38 @@ body{
     recalc();
   });
 
+  // Redimensiona/comprime uma imagem escolhida pelo usuário antes de guardar como data URL — fotos
+  // de celular direto vêm com vários MB, e como essas imagens ficam salvas dentro do JSON da ficha/
+  // tabuleiro (que é buscado inteiro do GitHub toda vez que alguém abre a lista de fichas ou de
+  // tabuleiros), isso deixa tudo mais pesado e lento pra carregar. Redimensionar aqui na hora do
+  // upload resolve pra fotos novas — fotos já salvas antes dessa mudança continuam grandes até a
+  // pessoa trocar de novo. Retorna uma data URL JPEG.
+  function resizeImageFile(file, maxDim, quality){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const img = new Image();
+        img.onload = ()=>{
+          let { width, height } = img;
+          if(width > maxDim || height > maxDim){
+            const scale = maxDim / Math.max(width, height);
+            width = Math.max(1, Math.round(width * scale));
+            height = Math.max(1, Math.round(height * scale));
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width; canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = ()=> reject(new Error('Não foi possível ler essa imagem.'));
+        img.src = reader.result;
+      };
+      reader.onerror = ()=> reject(new Error('Não foi possível ler esse arquivo.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   // ---------- portrait ----------
   const portraitBox = $('portrait');
   const portraitInput = $('portraitInput');
@@ -2047,12 +2139,15 @@ body{
   portraitInput.addEventListener('change', (e)=>{
     const file = e.target.files[0];
     if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ()=>{
-      portraitData = reader.result;
+    // retrato só precisa ser nítido no quadradinho pequeno da ficha — 480px de lado já sobra.
+    resizeImageFile(file, 480, 0.85).then(dataUrl=>{
+      portraitData = dataUrl;
       renderPortrait();
-    };
-    reader.readAsDataURL(file);
+    }).catch(err=>{
+      console.error(err);
+      alert('Não foi possível usar essa imagem como retrato. Tente outra foto.');
+    });
+    e.target.value = '';
   });
   const portraitBackBox = $('portraitBack');
   function renderPortrait(){
@@ -2500,17 +2595,18 @@ body{
     try{
       // fichas do mestre ativas entram na iniciativa com as mesmas regras das fichas de jogador —
       // por isso busca as duas pastas (fichas/ e fichas_mestre/) e junta os nomes ativos das duas.
-      // As duas pastas e todos os arquivos dentro delas são buscados em paralelo (Promise.all) em vez
-      // de um de cada vez — com várias fichas salvas, isso reduz bastante o tempo de espera aqui.
+      // As duas pastas são buscadas em paralelo, e os arquivos dentro delas em lotes de 3 por vez
+      // (mapWithConcurrency) em vez de um de cada vez — reduz bastante o tempo de espera aqui sem
+      // travar a aba de uma vez só (algumas fichas têm retrato de foto, que pode ser grande).
       const folderFileLists = await Promise.all(
         [FICHAS_PATH, FICHAS_MESTRE_PATH].map(path =>
           githubListFolder(path).then(list => list.filter(f => f.type === 'file' && f.name.endsWith('.json')))
         )
       );
       const allFiles = folderFileLists.flat();
-      const fetchedData = await Promise.all(allFiles.map(file =>
+      const fetchedData = await mapWithConcurrency(allFiles, 3, file =>
         fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
-      ));
+      );
       const activeNames = fetchedData
         .filter(data => data && data.nome && (data.ativo === undefined ? 'Ativo' : data.ativo) === 'Ativo')
         .map(data => data.nome);
@@ -2539,7 +2635,10 @@ body{
     }catch(err){
       console.error(err);
       iniciativaBtn.textContent = 'Erro, tente de novo';
-      iniciativaHint.textContent = 'Não foi possível buscar as fichas salvas na mesa agora.';
+      // mostra o motivo específico (ex: limite de leituras do GitHub atingido) quando disponível.
+      iniciativaHint.textContent = (err && err.message && err.message.indexOf('Limite de leituras') === 0)
+        ? err.message
+        : 'Não foi possível buscar as fichas salvas na mesa agora.';
     }
     // botão volta ao normal rápido — só o tempo de ler a confirmação, sem travar o próximo clique por muito tempo.
     setTimeout(()=>{ iniciativaBtn.textContent = original; iniciativaBtn.disabled = false; }, 900);
@@ -2735,8 +2834,8 @@ body{
       else addItemRow(it.nome||'', it.qtd||0);
     });
     // fichas novas (sem ativo salvo ainda) começam Inativas — só viram Ativas quando o
-    // jogador ou o mestre alterar o campo manualmente e salvar.
-    $('fichaAtivo').value = s.ativo || 'Inativo';
+    // jogador ou o mestre clicar no interruptor (o que já salva a ficha na hora).
+    setFichaAtivo(s.ativo || 'Inativo');
     extraSkillRows.innerHTML='';
     (s.habilidadesExtras && s.habilidadesExtras.length ? s.habilidadesExtras : [{},{}]).forEach(h=> addExtraSkillRow(h.nome||'', h.attr||'FOR', h.desc||'', h.imagem||''));
 
@@ -2849,6 +2948,25 @@ body{
     return headers;
   }
 
+  // Mensagem mais clara pra quando o GitHub bloqueia uma requisição por limite de uso — sem token
+  // configurado o limite é de só 60 leituras por hora (por navegador), o que esgota rápido com o
+  // grupo todo usando a mesa. Com token configurado (🔑) o limite sobe pra 5000/hora.
+  function friendlyGithubError(res){
+    if(res.status === 403){
+      const remaining = res.headers.get('X-RateLimit-Remaining');
+      if(remaining === '0'){
+        const resetHeader = res.headers.get('X-RateLimit-Reset');
+        let when = '';
+        if(resetHeader){
+          const resetDate = new Date(parseInt(resetHeader,10) * 1000);
+          when = ` (libera de novo às ${resetDate.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})})`;
+        }
+        return `Limite de leituras do GitHub atingido por agora${when}. Configure seu token do GitHub (🔑 Meu token do GitHub) pra ter um limite bem maior (de 60 pra 5000 por hora), ou espere um pouco e tente de novo.`;
+      }
+    }
+    return `GET ${res.status}`;
+  }
+
   function apiUrl(path){
     return `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
   }
@@ -2857,7 +2975,7 @@ body{
   async function githubGetFileMeta(path){
     const res = await fetch(apiUrl(path), { headers: githubHeaders(false) });
     if(res.status === 404) return null;
-    if(!res.ok) throw new Error(`GET ${res.status}`);
+    if(!res.ok) throw new Error(friendlyGithubError(res));
     return res.json();
   }
 
@@ -2865,7 +2983,7 @@ body{
   async function githubGetFileContent(path){
     const res = await fetch(apiUrl(path), { headers: githubHeaders(false) });
     if(res.status === 404) return null;
-    if(!res.ok) throw new Error(`GET ${res.status}`);
+    if(!res.ok) throw new Error(friendlyGithubError(res));
     const data = await res.json();
     return { sha: data.sha, content: b64DecodeUnicode(data.content.replace(/\n/g,'')) };
   }
@@ -2918,9 +3036,27 @@ body{
   async function githubListFolder(path){
     const res = await fetch(apiUrl(path), { headers: githubHeaders(false) });
     if(res.status === 404) return [];
-    if(!res.ok) throw new Error(`GET ${res.status}`);
+    if(!res.ok) throw new Error(friendlyGithubError(res));
     const data = await res.json();
     return Array.isArray(data) ? data : [];
+  }
+
+  // Roda fn(item) pra cada item da lista, no máximo `limit` de cada vez, em vez de todos ao mesmo
+  // tempo. Buscar tudo de uma vez (ex: várias fichas, cada uma podendo ter um retrato de foto de
+  // vários MB) pode travar a aba por um instante decodificando tudo junto — isso ainda é bem mais
+  // rápido que buscar um de cada vez, mas evita o travamento de um "tudo de uma vez só".
+  async function mapWithConcurrency(items, limit, fn){
+    const results = new Array(items.length);
+    let next = 0;
+    async function worker(){
+      while(next < items.length){
+        const current = next++;
+        results[current] = await fn(items[current], current);
+      }
+    }
+    const workerCount = Math.max(1, Math.min(limit, items.length));
+    await Promise.all(Array.from({length: workerCount}, worker));
+    return results;
   }
 
   // ---------- histórico compartilhado de rolagens ----------
@@ -3391,7 +3527,10 @@ body{
     // o próprio token da âncora "vaza" visualmente por cima delas via CSS.
     if(token && token.anchorR === r && token.anchorC === c){
       const t = document.createElement('div');
-      t.className = 'board-token token-' + token.kind + tokenSizeClass(token.size) + (isBlockKind(token.kind) ? ' token-block' : '');
+      // fichas do MESTRE (id prefixado "mestre:") recebem uma classe extra que soma um contorno
+      // preto por fora do dourado — ajuda a diferenciar de relance de personagens de jogador.
+      const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
+      t.className = 'board-token token-' + token.kind + tokenSizeClass(token.size) + (isBlockKind(token.kind) ? ' token-block' : '') + (isMestreHero ? ' token-hero-mestre' : '');
       t.draggable = true;
       if(isBlockKind(token.kind)){
         // sem imagem nem texto — o visual de mármore vem só do CSS (.token-block); mantém o
@@ -3413,6 +3552,9 @@ body{
         const tip = document.createElement('div');
         tip.className = 'board-token-tip';
         tip.textContent = tokenTooltipText(token);
+        // cor do texto do menu suspenso sempre igual à cor do contorno daquele ícone
+        // (dourado pra fichas, verde pra aliados, vermelho pra inimigo/monstro/boss)
+        tip.style.color = tokenRingColorHex(token.kind) || 'var(--ink)';
         cell.appendChild(tip);
       }
     }
@@ -3607,11 +3749,12 @@ body{
       try{
         const files = (await githubListFolder(githubPath))
           .filter(f => f.type === 'file' && f.name.endsWith('.json'));
-        // busca o conteúdo de todos os arquivos em paralelo em vez de um de cada vez — bem mais
-        // rápido pra reconhecer fichas recém-marcadas como ativas quando tem várias salvas.
-        const fetchedData = await Promise.all(files.map(file =>
+        // busca o conteúdo dos arquivos em lotes de 3 por vez em vez de um de cada vez — bem mais
+        // rápido pra reconhecer fichas recém-marcadas como ativas quando tem várias salvas, sem
+        // tentar decodificar todas de uma vez só (algumas podem ter retrato de foto grande).
+        const fetchedData = await mapWithConcurrency(files, 3, file =>
           fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
-        ));
+        );
         const roster = fetchedData
           .filter(data => data && data.nome && (data.ativo === undefined ? 'Ativo' : data.ativo) === 'Ativo')
           .map(data => ({id: idPrefix + slugify(data.nome), name: data.nome, portrait: data.portrait || null}));
@@ -3629,7 +3772,10 @@ body{
         renderTray();
       }catch(err){
         console.error(err);
-        if(trayEl) trayEl.innerHTML = '<div class="tray-empty">Não foi possível buscar as fichas ativas agora.</div>';
+        const msg = (err && err.message && err.message.indexOf('Limite de leituras') === 0)
+          ? err.message
+          : 'Não foi possível buscar as fichas ativas agora.';
+        if(trayEl) trayEl.innerHTML = `<div class="tray-empty">${escapeHtml(msg)}</div>`;
       }
     };
   }
@@ -3697,9 +3843,14 @@ body{
   boardBgInput.addEventListener('change', (e)=>{
     const file = e.target.files && e.target.files[0];
     if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ()=> applyBoardBackground(reader.result);
-    reader.readAsDataURL(file);
+    // o mapa de fundo cobre o tabuleiro inteiro, então precisa de mais resolução que um retrato,
+    // mas ainda bem menos que a foto crua da câmera — 1600px de lado já fica nítido.
+    resizeImageFile(file, 1600, 0.85).then(dataUrl=>{
+      applyBoardBackground(dataUrl);
+    }).catch(err=>{
+      console.error(err);
+      alert('Não foi possível usar essa imagem como fundo do tabuleiro. Tente outra imagem.');
+    });
     boardBgInput.value = '';
   });
   boardBgResetBtn.addEventListener('click', ()=> applyBoardBackground(null));
@@ -3781,12 +3932,13 @@ body{
         boardLoadList.innerHTML = '<div class="master-empty">Nenhum tabuleiro salvo ainda.</div>';
         return;
       }
-      // busca todos os tabuleiros em paralelo em vez de um de cada vez.
-      const boardResults = await Promise.all(files.map(file =>
+      // busca os tabuleiros em lotes de 3 por vez em vez de um de cada vez — tabuleiros podem ter
+      // uma imagem de fundo customizada grande, então evita decodificar várias juntas de uma vez só.
+      const boardResults = await mapWithConcurrency(files, 3, file =>
         fetch(file.download_url).then(r=>r.text())
           .then(raw => ({ path: file.path, sha: file.sha, data: JSON.parse(raw) }))
           .catch(()=>null)
-      ));
+      );
       const boards = boardResults.filter(Boolean);
       if(boards.length === 0){
         boardLoadList.innerHTML = '<div class="master-empty">Nenhum tabuleiro legível encontrado.</div>';
@@ -3837,7 +3989,10 @@ body{
       });
     }catch(err){
       console.error(err);
-      boardLoadList.innerHTML = '<div class="master-empty">Não foi possível carregar a lista agora (verifique sua conexão ou tente atualizar de novo).</div>';
+      const msg = (err && err.message && err.message.indexOf('Limite de leituras') === 0)
+        ? err.message
+        : 'Não foi possível carregar a lista agora (verifique sua conexão ou tente atualizar de novo).';
+      boardLoadList.innerHTML = `<div class="master-empty">${escapeHtml(msg)}</div>`;
     }
   }
 
@@ -4012,6 +4167,14 @@ body{
         ctx.strokeStyle = ringColor;
         ctx.stroke();
       }
+      // fichas do MESTRE ganham um contorno preto extra por fora do dourado, igual ao tabuleiro na tela
+      if(tok.kind === 'hero' && typeof tok.id === 'string' && tok.id.indexOf('mestre:') === 0){
+        ctx.beginPath();
+        ctx.arc(cx,cy,radius+3.5,0,Math.PI*2);
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#000';
+        ctx.stroke();
+      }
     }
 
     return canvas.toDataURL('image/png');
@@ -4043,14 +4206,17 @@ body{
 
   // ---------- salvar na mesa ----------
   const cloudSaveBtn = $('cloudSaveBtn');
-  cloudSaveBtn.addEventListener('click', async ()=>{
+  // lógica de salvar extraída numa função à parte (em vez de ficar só dentro do listener do botão)
+  // pra poder ser reaproveitada pelo interruptor Ativo/Inativo, que também precisa salvar sozinho
+  // assim que for alternado (ver fichaAtivoToggle mais abaixo).
+  async function saveFicha(){
     const state = collectState();
     if(!state.nome || !state.nome.trim()){
       alert('Escreva o nome do personagem antes de salvar na mesa — é ele que identifica sua ficha para o mestre.');
       return;
     }
     if(!getToken()){
-      alert('Configure seu token do GitHub primeiro (botão "🔑 Meu token do GitHub") para poder salvar.');
+      alert('Configure seu token do GitHub primeiro para poder salvar.');
       tokenModal.hidden = false;
       return;
     }
@@ -4098,6 +4264,29 @@ body{
     }
     // botão volta ao normal rápido — só o tempo de ler a confirmação, sem travar o próximo clique por muito tempo.
     setTimeout(()=>{ cloudSaveBtn.textContent = original; cloudSaveBtn.disabled = false; }, 900);
+  }
+  cloudSaveBtn.addEventListener('click', saveFicha);
+
+  // ---------- interruptor Ativo/Inativo ----------
+  // Inativo fica à esquerda, Ativo à direita; clicar alterna de um lado pro outro e já salva a
+  // ficha na hora (independente de quem estiver logado — mestre ou jogador), sem precisar clicar
+  // em "SALVAR" separadamente.
+  function setFichaAtivo(val){
+    const hidden = $('fichaAtivo');
+    const toggle = $('fichaAtivoToggle');
+    hidden.value = val;
+    const isAtivo = val === 'Ativo';
+    toggle.classList.toggle('is-ativo', isAtivo);
+    toggle.setAttribute('aria-checked', String(isAtivo));
+  }
+  function toggleFichaAtivo(){
+    const novoValor = $('fichaAtivo').value === 'Ativo' ? 'Inativo' : 'Ativo';
+    setFichaAtivo(novoValor);
+    saveFicha();
+  }
+  $('fichaAtivoToggle').addEventListener('click', toggleFichaAtivo);
+  $('fichaAtivoToggle').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleFichaAtivo(); }
   });
 
   // ---------- painel do mestre ----------
@@ -4118,13 +4307,14 @@ body{
           listEl.innerHTML = `<div class="master-empty">${emptyMsg}</div>`;
           return;
         }
-        // busca todas as fichas em paralelo em vez de uma de cada vez — a lista aparece bem mais
-        // rápido quando tem várias fichas salvas.
-        const sheetResults = await Promise.all(files.map(file =>
+        // busca as fichas em lotes de 3 por vez em vez de todas de uma vez (ou uma de cada vez) —
+        // a lista aparece bem mais rápido quando tem várias fichas salvas, sem travar a aba
+        // decodificando todas juntas de uma vez só (algumas têm retrato de foto grande).
+        const sheetResults = await mapWithConcurrency(files, 3, file =>
           fetch(file.download_url).then(r=>r.text())
             .then(raw => ({ path: file.path, sha: file.sha, data: JSON.parse(raw) }))
             .catch(()=>null)
-        ));
+        );
         const sheets = sheetResults.filter(Boolean);
         if(sheets.length === 0){
           listEl.innerHTML = '<div class="master-empty">Nenhuma ficha legível encontrada.</div>';
@@ -4203,7 +4393,10 @@ body{
         applyRoleVisibility(); // os botões "Apagar" recém-criados também precisam respeitar o papel atual
       }catch(err){
         console.error(err);
-        listEl.innerHTML = '<div class="master-empty">Não foi possível carregar as fichas agora (verifique sua conexão ou tente atualizar de novo).</div>';
+        const msg = (err && err.message && err.message.indexOf('Limite de leituras') === 0)
+          ? err.message
+          : 'Não foi possível carregar as fichas agora (verifique sua conexão ou tente atualizar de novo).';
+        listEl.innerHTML = `<div class="master-empty">${escapeHtml(msg)}</div>`;
       }
     };
   }
@@ -4276,7 +4469,6 @@ body{
   let currentRole = null;
   let currentUser = null;
   let selectedLoginRole = null;
-  let liveSyncHandle = null;
 
   const loginGate = $('loginGate');
   const loginError = $('loginError');
@@ -4327,100 +4519,6 @@ body{
     });
   }
 
-  // ---- ficha ao vivo (tempo real, só o mestre vê) ----
-  function scheduleLiveSync(){
-    if(!fbReady || !currentUser) return;
-    clearTimeout(liveSyncHandle);
-    liveSyncHandle = setTimeout(()=>{
-      try{
-        const state = collectState();
-        // a chave é só o nome do personagem (sem o papel de quem está editando) — assim, se o
-        // mestre abrir a ficha de um jogador pra corrigir um atributo, a edição atualiza o MESMO
-        // registro ao vivo daquele personagem, em vez de criar uma cópia separada "_mestre".
-        const key = slugify(state.nome);
-        fbDb.ref('mesa/live/' + key).set(Object.assign({}, state, {
-          _role: currentRole,
-          _updatedAt: firebase.database.ServerValue.TIMESTAMP,
-        }));
-      }catch(err){ console.error(err); }
-    }, 250);
-  }
-  const liveCardEl = $('card');
-  if(liveCardEl){
-    liveCardEl.addEventListener('input', scheduleLiveSync);
-    liveCardEl.addEventListener('change', scheduleLiveSync);
-  }
-
-  // mesma lógica de cor do gráfico de vida/mana da ficha principal (recalc()), reaproveitada
-  // nos cartõezinhos de "Fichas ao vivo" — vida pode passar do máximo (overheal vira verde)
-  function vidaPieGradient(cur, max){
-    const ratio = max > 0 ? cur/max : 0;
-    if(ratio <= 1){
-      const pct = Math.max(0, ratio) * 100;
-      return `conic-gradient(#a11f1f 0% ${pct}%, #14100c ${pct}% 100%)`;
-    }
-    const overflowPct = Math.min(1, ratio - 1) * 100;
-    return `conic-gradient(#2f8f3f 0% ${overflowPct}%, #a11f1f ${overflowPct}% 100%)`;
-  }
-  function manaPieGradient(cur, max){
-    const pct = max > 0 ? Math.max(0, Math.min(1, cur/max)) * 100 : 0;
-    return `conic-gradient(#1f5fa1 0% ${pct}%, #14100c ${pct}% 100%)`;
-  }
-
-  function renderLiveFichas(snapshotVal){
-    const liveList = $('liveList');
-    if(!liveList) return;
-    const entries = Object.values(snapshotVal || {});
-    if(entries.length === 0){
-      liveList.innerHTML = '<div class="master-empty">Nenhum jogador conectado agora.</div>';
-      return;
-    }
-    entries.sort((a,b)=> (a.nome||'').localeCompare(b.nome||''));
-    liveList.innerHTML = '';
-    entries.forEach(data=>{
-      const xp = parseFloat(data.xp)||0;
-      const level = Math.floor(1 + xp/10);
-      const base = data.base || {}; const mods = data.mods || {};
-      const attrOrder = ['for','con','des','int','von','car'];
-      const totalsCalc = {};
-      attrOrder.forEach(k=>{ totalsCalc[k] = (parseFloat(base[k])||0) + (parseFloat(mods[k])||0); });
-      const attrsHtml = attrOrder.map(k=> `<span>${statLabels[k]} <strong>${totalsCalc[k]}</strong></span>`).join('');
-      const vidaMaxCalc = 10 + totalsCalc.for + totalsCalc.con;
-      const manaMaxCalc = totalsCalc.int + totalsCalc.von;
-      const curVidaVal = (data.curVida===undefined||data.curVida===null||data.curVida==='') ? vidaMaxCalc : data.curVida;
-      const curManaVal = (data.curMana===undefined||data.curMana===null||data.curMana==='') ? manaMaxCalc : data.curMana;
-      const vidaPct = vidaMaxCalc > 0 ? Math.round((parseFloat(curVidaVal)||0)/vidaMaxCalc*100) : 0;
-      const manaPct = manaMaxCalc > 0 ? Math.round(Math.max(0, Math.min(1, (parseFloat(curManaVal)||0)/manaMaxCalc))*100) : 0;
-      const card = document.createElement('div');
-      card.className = 'master-card';
-      card.innerHTML = `
-        <div>
-          <div class="mc-name">🔴 ${escapeHtml(data.nome||'(sem nome)')} <span style="color:var(--ink-faint);font-weight:400;">— Nv. ${level} · ${data._role==='mestre'?'Mestre':'Jogador'}</span></div>
-          <div class="mc-meta">${escapeHtml(data.deidade||'')}</div>
-          <div class="mc-vitals">Vida ${escapeHtml(String(curVidaVal))} / ${vidaMaxCalc} · Mana ${escapeHtml(String(curManaVal))} / ${manaMaxCalc} · Ouro ${escapeHtml(String((data.inventory && data.inventory[0] && data.inventory[0].qtd) || 0))}</div>
-          <div class="mc-attrs">${attrsHtml}</div>
-        </div>
-        <div class="mc-pies">
-          <div class="pie-wrap">
-            <div class="pie" style="background:${vidaPieGradient(parseFloat(curVidaVal)||0, vidaMaxCalc)}"></div>
-            <span class="pie-label">Vida</span>
-            <span class="pie-pct">${vidaPct}%</span>
-          </div>
-          <div class="pie-wrap">
-            <div class="pie" style="background:${manaPieGradient(parseFloat(curManaVal)||0, manaMaxCalc)}"></div>
-            <span class="pie-label">Mana</span>
-            <span class="pie-pct">${manaPct}%</span>
-          </div>
-        </div>`;
-      liveList.appendChild(card);
-    });
-  }
-
-  function subscribeLiveFichas(){
-    if(!fbReady) return;
-    fbDb.ref('mesa/live').on('value', (snap)=>{ renderLiveFichas(snap.val()); });
-  }
-
   function resolveTokenPortrait(tok){
     if(tok.kind === 'hero'){
       const hero = heroRoster.find(h => h.id === tok.id) || mestreRoster.find(h => h.id === tok.id);
@@ -4447,13 +4545,11 @@ body{
       currentRole = role;
       loginGate.hidden = true;
       applyRoleVisibility();
-      scheduleLiveSync();
       fbDb.ref('mesa/config/webhook').on('value', (snap)=>{
         const val = snap.val();
         firebaseSyncedWebhook = (val === null || val === undefined) ? null : val;
         refreshWebhookStatus();
       });
-      if(currentRole === 'mestre') subscribeLiveFichas();
     });
   }
 
