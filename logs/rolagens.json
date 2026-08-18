@@ -1,13 +1,5 @@
 [
   {
-    "nome": "(sem nome)",
-    "tipo": "sorte",
-    "escolha": "cara",
-    "resultado": "cara",
-    "verdict": "acerto",
-    "ts": 1786984147229
-  },
-  {
     "nome": "Zeus",
     "tipo": "dano",
     "qtd": 5,
@@ -114,5 +106,13 @@
       14,
       11
     ]
+  },
+  {
+    "nome": "Zeus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "resultado": 10,
+    "resultLabel": "Acerto",
+    "ts": 1787011409857
   }
 ]
