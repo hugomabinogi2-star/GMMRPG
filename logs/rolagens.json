@@ -2,21 +2,6 @@
   {
     "nome": "Zeus",
     "tipo": "dano",
-    "qtd": 5,
-    "maxVal": 10,
-    "rolls": [
-      10,
-      10,
-      9,
-      3,
-      2
-    ],
-    "resultado": 34,
-    "ts": 1787008509083
-  },
-  {
-    "nome": "Zeus",
-    "tipo": "dano",
     "qtd": 1,
     "maxVal": 15,
     "rolls": [
@@ -107,5 +92,20 @@
     "resultado": 11,
     "resultLabel": "Erro",
     "ts": 1787011456619
+  },
+  {
+    "nome": "Zeus",
+    "tipo": "dano",
+    "qtd": 5,
+    "maxVal": 2,
+    "rolls": [
+      2,
+      2,
+      1,
+      1,
+      1
+    ],
+    "resultado": 7,
+    "ts": 1787012087897
   }
 ]
