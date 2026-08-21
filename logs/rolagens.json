@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "von",
     "statValor": 4,
-    "resultado": 9,
-    "resultLabel": "Erro",
-    "ts": 1787309051669
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "von",
-    "statValor": 4,
     "resultado": 12,
     "resultLabel": "Erro",
     "ts": 1787309054633
@@ -94,5 +85,19 @@
     "resultLabel": "Erro",
     "ts": 1787311233815,
     "habilidade": "O Ápice do Vinho"
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "dano",
+    "qtd": 3,
+    "maxVal": 10,
+    "rolls": [
+      10,
+      5,
+      5
+    ],
+    "resultado": 20,
+    "habilidade": "O Ápice do Vinho",
+    "ts": 1787311257486
   }
 ]
