@@ -2,17 +2,6 @@
   {
     "nome": "ASMODEUS",
     "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 1,
-    "resultado": 15,
-    "resultLabel": "Erro",
-    "ts": 1787331751472,
-    "habilidade": "espadadas duplas",
-    "habilidadeDesc": "Aceira com o pau em ate duas casas de distancia."
-  },
-  {
-    "nome": "ASMODEUS",
-    "tipo": "atributo",
     "statKey": "des",
     "statValor": 16,
     "resultado": 15,
@@ -92,5 +81,14 @@
     "resultado": 13,
     "resultLabel": "Acerto",
     "ts": 1787355184002
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 15,
+    "resultado": 5,
+    "resultLabel": "Acerto",
+    "ts": 1787355186098
   }
 ]
