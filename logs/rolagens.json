@@ -4,16 +4,6 @@
     "tipo": "atributo",
     "statKey": "car",
     "statValor": 7,
-    "resultado": 1,
-    "resultLabel": "Erro Crítico",
-    "ts": 1787313553521,
-    "habilidade": "O Ápice do Vinho"
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
-    "statValor": 7,
     "resultado": 17,
     "resultLabel": "Acerto",
     "ts": 1787313578561,
@@ -95,5 +85,20 @@
     "resultado": 17,
     "resultLabel": "Acerto",
     "ts": 1787315916730
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 15,
+    "resultado": 5,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1787315942116,
+    "mode": "vantagem",
+    "rolls": [
+      3,
+      5
+    ],
+    "habilidade": "PAULADA DE CARNE"
   }
 ]
