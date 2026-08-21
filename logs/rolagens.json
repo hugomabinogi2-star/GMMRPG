@@ -1,18 +1,6 @@
 [
   {
     "nome": "Sexus",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 6,
-    "rolls": [
-      5
-    ],
-    "resultado": 5,
-    "habilidade": "O Ápice do Vinho",
-    "ts": 1787309102692
-  },
-  {
-    "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "von",
     "statValor": 4,
@@ -96,5 +84,14 @@
     "resultado": 4,
     "resultLabel": "Erro",
     "ts": 1787313473423
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 7,
+    "resultado": 18,
+    "resultLabel": "Acerto",
+    "ts": 1787313476148
   }
 ]
