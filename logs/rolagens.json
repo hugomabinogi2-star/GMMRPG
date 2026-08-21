@@ -1,14 +1,6 @@
 [
   {
     "nome": "Zeus",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 11,
-    "resultLabel": "Erro",
-    "ts": 1787011456619
-  },
-  {
-    "nome": "Zeus",
     "tipo": "dano",
     "qtd": 5,
     "maxVal": 2,
@@ -104,5 +96,13 @@
     "resultado": 14,
     "resultLabel": "Erro",
     "ts": 1787309108705
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "sorte",
+    "escolha": "cara",
+    "resultado": "cara",
+    "verdict": "acerto",
+    "ts": 1787309243268
   }
 ]
