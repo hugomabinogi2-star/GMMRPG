@@ -1,21 +1,6 @@
 [
   {
     "nome": "Sexus",
-    "tipo": "dano",
-    "qtd": 4,
-    "maxVal": 10,
-    "rolls": [
-      8,
-      7,
-      4,
-      2
-    ],
-    "resultado": 21,
-    "habilidade": "O Ápice do Vinho",
-    "ts": 1787313597246
-  },
-  {
-    "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 4,
@@ -109,5 +94,16 @@
     "resultado": 60,
     "habilidade": "PAULADA DE CARNE",
     "ts": 1787315954311
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 10,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1787319996343,
+    "habilidade": "PAULADA DE CARNE",
+    "habilidadeDesc": "Pau neles"
   }
 ]
