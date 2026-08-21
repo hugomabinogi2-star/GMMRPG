@@ -1,21 +1,6 @@
 [
   {
     "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
-    "statValor": 15,
-    "resultado": 5,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1787315942116,
-    "mode": "vantagem",
-    "rolls": [
-      3,
-      5
-    ],
-    "habilidade": "PAULADA DE CARNE"
-  },
-  {
-    "nome": "Sexus",
     "tipo": "dano",
     "qtd": 8,
     "maxVal": 10,
@@ -122,6 +107,22 @@
     "rolls": [
       6,
       9
+    ],
+    "habilidade": "PAULADA DE CARNE",
+    "habilidadeDesc": "Pau neles"
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 10,
+    "resultado": 19,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1787320467481,
+    "mode": "vantagem",
+    "rolls": [
+      1,
+      19
     ],
     "habilidade": "PAULADA DE CARNE",
     "habilidadeDesc": "Pau neles"
