@@ -1,14 +1,5 @@
 [
   {
-    "nome": "(sem nome)",
-    "tipo": "atributo",
-    "statKey": "int",
-    "statValor": 15,
-    "resultado": 1,
-    "resultLabel": "Erro Crítico",
-    "ts": 1787331945529
-  },
-  {
     "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "for",
@@ -88,5 +79,14 @@
     "resultado": 17,
     "resultLabel": "Acerto",
     "ts": 1787355217625
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 15,
+    "resultado": 6,
+    "resultLabel": "Acerto",
+    "ts": 1787355219529
   }
 ]
