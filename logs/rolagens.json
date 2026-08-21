@@ -4,20 +4,6 @@
     "tipo": "atributo",
     "statKey": "car",
     "statValor": 1,
-    "resultado": 17,
-    "resultLabel": "Erro — Vantagem",
-    "ts": 1787321083506,
-    "mode": "vantagem",
-    "rolls": [
-      5,
-      17
-    ]
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
-    "statValor": 1,
     "resultado": 14,
     "resultLabel": "Erro — Vantagem",
     "ts": 1787321085877,
@@ -132,5 +118,14 @@
     "ts": 1787331763109,
     "habilidade": "espadadas duplas",
     "habilidadeDesc": "Aceira com o pau em ate duas casas de distancia."
+  },
+  {
+    "nome": "(sem nome)",
+    "tipo": "atributo",
+    "statKey": "int",
+    "statValor": 15,
+    "resultado": 2,
+    "resultLabel": "Erro",
+    "ts": 1787331868704
   }
 ]
