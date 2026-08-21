@@ -4,17 +4,6 @@
     "tipo": "atributo",
     "statKey": "car",
     "statValor": 10,
-    "resultado": 17,
-    "resultLabel": "Acerto",
-    "ts": 1787320033555,
-    "habilidade": "PAULADA DE CARNE",
-    "habilidadeDesc": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
-    "statValor": 10,
     "resultado": 7,
     "resultLabel": "Erro",
     "ts": 1787320450905,
@@ -125,6 +114,20 @@
     "rolls": [
       4,
       16
+    ]
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 1,
+    "resultado": 17,
+    "resultLabel": "Erro — Vantagem",
+    "ts": 1787321083506,
+    "mode": "vantagem",
+    "rolls": [
+      5,
+      17
     ]
   }
 ]
