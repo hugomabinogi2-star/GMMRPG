@@ -4,17 +4,6 @@
     "tipo": "atributo",
     "statKey": "car",
     "statValor": 10,
-    "resultado": 4,
-    "resultLabel": "Erro",
-    "ts": 1787320458544,
-    "habilidade": "PAULADA DE CARNE",
-    "habilidadeDesc": "Pau neles"
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
-    "statValor": 10,
     "resultado": 9,
     "resultLabel": "Erro",
     "ts": 1787320461358,
@@ -137,6 +126,22 @@
     "rolls": [
       2,
       8
+    ],
+    "habilidade": "PAULADA DE CARNE",
+    "habilidadeDesc": "Aceira com o pau em ate duas casas de distancia."
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 15,
+    "resultado": 19,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1787321230900,
+    "mode": "vantagem",
+    "rolls": [
+      19,
+      15
     ],
     "habilidade": "PAULADA DE CARNE",
     "habilidadeDesc": "Aceira com o pau em ate duas casas de distancia."
