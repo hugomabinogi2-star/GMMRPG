@@ -1,13 +1,5 @@
 [
   {
-    "nome": "Goblinatus",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 10,
-    "resultLabel": "Acerto",
-    "ts": 1787008731528
-  },
-  {
     "nome": "Ares",
     "tipo": "atributo",
     "statKey": "for",
@@ -104,5 +96,14 @@
     "resultado": 12,
     "resultLabel": "Erro",
     "ts": 1787309054633
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "von",
+    "statValor": 4,
+    "resultado": 16,
+    "resultLabel": "Acerto",
+    "ts": 1787309058574
   }
 ]
