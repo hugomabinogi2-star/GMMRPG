@@ -1,14 +1,6 @@
 [
   {
     "nome": "Sexus",
-    "tipo": "sorte",
-    "escolha": "cara",
-    "resultado": "cara",
-    "verdict": "acerto",
-    "ts": 1787309243268
-  },
-  {
-    "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 4,
@@ -93,5 +85,14 @@
     "resultado": 7,
     "resultLabel": "Erro",
     "ts": 1787313503836
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 7,
+    "resultado": 12,
+    "resultLabel": "Erro",
+    "ts": 1787313506487
   }
 ]
