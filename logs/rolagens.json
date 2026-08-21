@@ -1,15 +1,6 @@
 [
   {
     "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "von",
-    "statValor": 4,
-    "resultado": 16,
-    "resultLabel": "Acerto",
-    "ts": 1787309058574
-  },
-  {
-    "nome": "Sexus",
     "tipo": "dano",
     "qtd": 1,
     "maxVal": 6,
@@ -99,5 +90,14 @@
     "resultado": 11,
     "resultLabel": "Erro",
     "ts": 1787313456612
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 3,
+    "resultLabel": "Erro",
+    "ts": 1787313469021
   }
 ]
