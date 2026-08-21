@@ -1,17 +1,6 @@
 [
   {
     "nome": "Goblinatus",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 10,
-    "rolls": [
-      8
-    ],
-    "resultado": 8,
-    "ts": 1787008721222
-  },
-  {
-    "nome": "Goblinatus",
     "tipo": "atributo",
     "statKey": "for",
     "resultado": 10,
@@ -106,5 +95,14 @@
     "resultado": 9,
     "resultLabel": "Erro",
     "ts": 1787309051669
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "von",
+    "statValor": 4,
+    "resultado": 12,
+    "resultLabel": "Erro",
+    "ts": 1787309054633
   }
 ]
