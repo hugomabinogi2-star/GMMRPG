@@ -4,20 +4,6 @@
     "tipo": "atributo",
     "statKey": "car",
     "statValor": 1,
-    "resultado": 16,
-    "resultLabel": "Erro — Vantagem",
-    "ts": 1787321080619,
-    "mode": "vantagem",
-    "rolls": [
-      4,
-      16
-    ]
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
-    "statValor": 1,
     "resultado": 17,
     "resultLabel": "Erro — Vantagem",
     "ts": 1787321083506,
@@ -133,6 +119,17 @@
     "resultado": 15,
     "resultLabel": "Erro",
     "ts": 1787331751472,
+    "habilidade": "espadadas duplas",
+    "habilidadeDesc": "Aceira com o pau em ate duas casas de distancia."
+  },
+  {
+    "nome": "ASMODEUS",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 16,
+    "resultado": 15,
+    "resultLabel": "Acerto",
+    "ts": 1787331763109,
     "habilidade": "espadadas duplas",
     "habilidadeDesc": "Aceira com o pau em ate duas casas de distancia."
   }
