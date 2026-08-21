@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "car",
     "statValor": 7,
-    "resultado": 9,
-    "resultLabel": "Erro",
-    "ts": 1787313509136
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
-    "statValor": 7,
     "resultado": 15,
     "resultLabel": "Acerto",
     "ts": 1787313512341
@@ -96,5 +87,13 @@
     "resultado": 16,
     "resultLabel": "Acerto",
     "ts": 1787314386515
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "sorte",
+    "escolha": "cara",
+    "resultado": "coroa",
+    "verdict": "erro",
+    "ts": 1787314466739
   }
 ]
