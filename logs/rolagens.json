@@ -1,16 +1,5 @@
 [
   {
-    "nome": "Zeus",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 10,
-    "rolls": [
-      5
-    ],
-    "resultado": 5,
-    "ts": 1787008560895
-  },
-  {
     "nome": "Goblinatus",
     "tipo": "dano",
     "qtd": 1,
@@ -108,5 +97,14 @@
     "resultado": 2,
     "resultLabel": "Erro",
     "ts": 1787309043449
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "von",
+    "statValor": 4,
+    "resultado": 9,
+    "resultLabel": "Erro",
+    "ts": 1787309051669
   }
 ]
