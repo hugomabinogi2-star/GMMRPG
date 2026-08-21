@@ -3,19 +3,6 @@
     "nome": "Ares",
     "tipo": "atributo",
     "statKey": "for",
-    "resultado": 13,
-    "resultLabel": "Erro — Vantagem",
-    "ts": 1787009642875,
-    "mode": "vantagem",
-    "rolls": [
-      13,
-      11
-    ]
-  },
-  {
-    "nome": "Ares",
-    "tipo": "atributo",
-    "statKey": "for",
     "resultado": 14,
     "resultLabel": "Acerto — Vantagem",
     "ts": 1787009650806,
@@ -105,5 +92,17 @@
     "resultado": 16,
     "resultLabel": "Acerto",
     "ts": 1787309058574
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      3
+    ],
+    "resultado": 3,
+    "habilidade": "",
+    "ts": 1787309090694
   }
 ]
