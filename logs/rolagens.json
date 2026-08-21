@@ -1,14 +1,6 @@
 [
   {
     "nome": "Sexus",
-    "tipo": "sorte",
-    "escolha": "cara",
-    "resultado": "coroa",
-    "verdict": "erro",
-    "ts": 1787314466739
-  },
-  {
-    "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "car",
     "statValor": 15,
@@ -113,6 +105,17 @@
     "resultado": 4,
     "resultLabel": "Erro",
     "ts": 1787320458544,
+    "habilidade": "PAULADA DE CARNE",
+    "habilidadeDesc": "Pau neles"
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 10,
+    "resultado": 9,
+    "resultLabel": "Erro",
+    "ts": 1787320461358,
     "habilidade": "PAULADA DE CARNE",
     "habilidadeDesc": "Pau neles"
   }
