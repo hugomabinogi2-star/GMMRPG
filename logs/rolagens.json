@@ -3,20 +3,6 @@
     "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "car",
-    "statValor": 1,
-    "resultado": 14,
-    "resultLabel": "Erro — Vantagem",
-    "ts": 1787321085877,
-    "mode": "vantagem",
-    "rolls": [
-      14,
-      8
-    ]
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
     "statValor": 15,
     "resultado": 16,
     "resultLabel": "Acerto — Vantagem",
@@ -127,5 +113,14 @@
     "resultado": 2,
     "resultLabel": "Erro",
     "ts": 1787331868704
+  },
+  {
+    "nome": "(sem nome)",
+    "tipo": "atributo",
+    "statKey": "int",
+    "statValor": 15,
+    "resultado": 7,
+    "resultLabel": "Acerto",
+    "ts": 1787331895105
   }
 ]
