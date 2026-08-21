@@ -1,16 +1,6 @@
 [
   {
     "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
-    "resultado": 11,
-    "resultLabel": "Erro",
-    "ts": 1787311233815,
-    "habilidade": "O Ápice do Vinho"
-  },
-  {
-    "nome": "Sexus",
     "tipo": "dano",
     "qtd": 3,
     "maxVal": 10,
@@ -94,5 +84,15 @@
     "resultado": 15,
     "resultLabel": "Acerto",
     "ts": 1787313512341
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 7,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1787313553521,
+    "habilidade": "O Ápice do Vinho"
   }
 ]
