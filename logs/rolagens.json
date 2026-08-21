@@ -5,17 +5,6 @@
     "qtd": 1,
     "maxVal": 15,
     "rolls": [
-      1
-    ],
-    "resultado": 1,
-    "ts": 1787008536324
-  },
-  {
-    "nome": "Zeus",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 15,
-    "rolls": [
       4
     ],
     "resultado": 4,
@@ -107,5 +96,19 @@
     ],
     "resultado": 7,
     "ts": 1787012087897
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 2,
+    "resultLabel": "Erro — Desvantagem",
+    "ts": 1787309014215,
+    "mode": "desvantagem",
+    "rolls": [
+      2,
+      19
+    ]
   }
 ]
