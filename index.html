@@ -3854,9 +3854,10 @@ body{
     }
     playYaaySound();
     // avisa no Discord que o personagem subiu de nível, com o nome em negrito e o retrato da
-    // ficha anexado (se houver um) — igual ao resto das mensagens, independe do token do GitHub.
+    // ficha dentro da mesma bolinha com anel da Deidade usada nos ícones de rolagem (se houver
+    // um retrato) — igual ao resto das mensagens, independe do token do GitHub.
     const nome = (els.nome.value || '').trim() || '(sem nome)';
-    postToDiscord(`🎉 **${nome}** PASSA PARA O NÍVEL ${newLevel}!`, portraitData || null);
+    postToDiscord(`🎉 **${nome}** PASSA PARA O NÍVEL ${newLevel}!`, buildLevelUpImageDataUrl());
   }
 
   // ---------- dice roller ----------
@@ -4656,21 +4657,23 @@ body{
 
   // desenha o ícone `key` dentro de uma moldura circular na cor da Deidade atual e devolve um data
   // URL PNG pronto pra anexar na mensagem do Discord — mesmo "selo" visual nas 9 rolagens possíveis.
-  function buildRollIconDataUrl(key){
-    const img = ROLL_ICON_SOURCES[key] ? getRollIconImg(key) : null;
-    if(!img || !img.complete || !img.naturalWidth) return null; // ainda carregando (raríssimo) — sem imagem dessa vez
-    const SIZE = 320;
-    const canvas = document.createElement('canvas');
-    canvas.width = SIZE; canvas.height = SIZE;
-    const ctx = canvas.getContext('2d');
-    const deityColor = DEITY_EYE_COLOR[els.deidade.value] || '#e0b656';
-    const cx = SIZE/2, cy = SIZE/2, r = SIZE/2 - 12;
+  // pega o <img> do retrato já carregado na tela (a caixa de retrato já usa <img src="portraitData">
+  // — ver renderPortrait() lá em cima), pra poder desenhar ele num <canvas> sem precisar recarregar
+  // a imagem do zero. Sem retrato (ou ainda carregando, raríssimo) devolve null.
+  function getPortraitImgEl(){
+    const el = portraitBox && portraitBox.querySelector('img');
+    return (el && el.complete && el.naturalWidth) ? el : null;
+  }
 
+  // desenha o fundo (pedra clara) e o anel de contorno luminoso na cor da Deidade — a "moldura"
+  // usada tanto pelos 9 ícones de rolagem quanto pela imagem de subida de nível, sempre igual.
+  function drawRollFrameBg(ctx, cx, cy, r){
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, Math.PI*2);
     ctx.fillStyle = '#f7ecd6';
     ctx.fill();
-
+  }
+  function drawRollFrameRing(ctx, cx, cy, r, deityColor){
     // brilho suave atrás do anel, na cor da divindade
     ctx.save();
     ctx.beginPath();
@@ -4688,6 +4691,40 @@ body{
     ctx.lineWidth = 8;
     ctx.strokeStyle = deityColor;
     ctx.stroke();
+  }
+  // desenha uma imagem "cobrindo" o círculo inteiro (recortada, sem distorcer), centralizada —
+  // mesma lógica de background-size:cover do CSS, só que dentro de um <canvas>.
+  function drawImageCoveringCircle(ctx, img, cx, cy, r, alpha){
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.clip();
+    if(alpha !== undefined) ctx.globalAlpha = alpha;
+    const iw = img.naturalWidth, ih = img.naturalHeight;
+    const scale = Math.max((r*2)/iw, (r*2)/ih);
+    const dw = iw*scale, dh = ih*scale;
+    ctx.drawImage(img, cx-dw/2, cy-dh/2, dw, dh);
+    ctx.restore();
+  }
+
+  function buildRollIconDataUrl(key){
+    const img = ROLL_ICON_SOURCES[key] ? getRollIconImg(key) : null;
+    if(!img || !img.complete || !img.naturalWidth) return null; // ainda carregando (raríssimo) — sem imagem dessa vez
+    const SIZE = 320;
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE; canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    const deityColor = DEITY_EYE_COLOR[els.deidade.value] || '#e0b656';
+    const cx = SIZE/2, cy = SIZE/2, r = SIZE/2 - 12;
+
+    drawRollFrameBg(ctx, cx, cy, r);
+
+    // retrato do personagem (se houver) como fundo dentro da bolinha, meio apagado por baixo do
+    // ícone — assim o desenho continua legível em cima de qualquer foto.
+    const portraitImg = getPortraitImgEl();
+    if(portraitImg) drawImageCoveringCircle(ctx, portraitImg, cx, cy, r, 0.5);
+
+    drawRollFrameRing(ctx, cx, cy, r, deityColor);
 
     // ícone centralizado, sempre ocupando a mesma proporção da moldura (~58%), não importa o
     // formato original de cada imagem — mantém a mesma diagramação nas 9 rolagens.
@@ -4695,6 +4732,26 @@ body{
     const scale = Math.min(box/img.naturalWidth, box/img.naturalHeight);
     const iw = img.naturalWidth*scale, ih = img.naturalHeight*scale;
     ctx.drawImage(img, cx-iw/2, cy-ih/2, iw, ih);
+
+    return canvas.toDataURL('image/png');
+  }
+
+  // imagem da mensagem de subida de nível: o retrato do personagem inteiro (sem ícone por cima,
+  // já que aqui ele É o protagonista) dentro da mesma moldura circular com o anel da Deidade.
+  // Sem retrato cadastrado, devolve null (a mensagem sai só com o texto, como já era antes).
+  function buildLevelUpImageDataUrl(){
+    const portraitImg = getPortraitImgEl();
+    if(!portraitImg) return null;
+    const SIZE = 320;
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE; canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    const deityColor = DEITY_EYE_COLOR[els.deidade.value] || '#e0b656';
+    const cx = SIZE/2, cy = SIZE/2, r = SIZE/2 - 12;
+
+    drawRollFrameBg(ctx, cx, cy, r);
+    drawImageCoveringCircle(ctx, portraitImg, cx, cy, r);
+    drawRollFrameRing(ctx, cx, cy, r, deityColor);
 
     return canvas.toDataURL('image/png');
   }
