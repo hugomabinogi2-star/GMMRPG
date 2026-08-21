@@ -4219,7 +4219,8 @@ body{
         [itens[i], itens[j]] = [itens[j], itens[i]];
       }
       const linhas = itens.map((nome, idx) => `${idx+1}. ${nome}`).join('\n');
-      await postToDiscord(`⚔️ **ORDEM DE INICIATIVA!**\n${linhas}`);
+      // também é a guia MESA quem sorteia a iniciativa — mesma atribuição fixa ao mestre.
+      await postToDiscord(`⚔️ **O MESTRE** sorteou a **ORDEM DE INICIATIVA!**\n${linhas}`);
       iniciativaBtn.textContent = '✓ Enviado!';
       iniciativaHint.textContent = `Ordem sorteada: ${itens.join(' → ')}`;
     }catch(err){
@@ -5076,10 +5077,11 @@ body{
       mesaSendHint.textContent = 'Escreva uma mensagem ou adicione um print antes de enviar.';
       return;
     }
-    const autor = (els.nome && els.nome.value) || 'Alguém da mesa';
+    // a guia MESA é uma ferramenta do mestre — a mensagem sempre atribui a ele, independente de
+    // qual ficha estiver aberta no momento (não usa mais o nome do personagem carregado).
     const content = texto
-      ? `🖥️ **${autor}** enviou uma mensagem para a mesa:\n${texto}`
-      : `🖥️ **${autor}** enviou um print para a mesa.`;
+      ? `🖥️ **O MESTRE** enviou uma mensagem para a mesa:\n${texto}`
+      : `🖥️ **O MESTRE** enviou um print para a mesa.`;
 
     mesaSendBtn.disabled = true;
     mesaSendBtn.textContent = 'Enviando...';
@@ -6100,8 +6102,8 @@ body{
     boardSendHint.textContent = '';
     try{
       const dataUrl = await renderBoardToCanvas();
-      const autor = (els.nome && els.nome.value) || 'Alguém da mesa';
-      await postToDiscord(`🗺️ **${autor}** atualizou o tabuleiro da mesa:`, dataUrl);
+      // mesma regra: quem manda o print do tabuleiro é sempre o mestre, não a ficha aberta no momento.
+      await postToDiscord(`🗺️ **O MESTRE** atualizou o tabuleiro da mesa:`, dataUrl);
       boardSendHint.textContent = 'Enviado!';
     }catch(err){
       console.error(err);
