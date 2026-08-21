@@ -1,20 +1,5 @@
 [
   {
-    "nome": "Zeus",
-    "tipo": "dano",
-    "qtd": 5,
-    "maxVal": 2,
-    "rolls": [
-      2,
-      2,
-      1,
-      1,
-      1
-    ],
-    "resultado": 7,
-    "ts": 1787012087897
-  },
-  {
     "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "for",
@@ -104,5 +89,14 @@
     "resultado": "cara",
     "verdict": "acerto",
     "ts": 1787309243268
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 19,
+    "resultLabel": "Acerto",
+    "ts": 1787311186732
   }
 ]
