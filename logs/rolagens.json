@@ -4,17 +4,6 @@
     "tipo": "atributo",
     "statKey": "car",
     "statValor": 10,
-    "resultado": 1,
-    "resultLabel": "Erro Crítico",
-    "ts": 1787319996343,
-    "habilidade": "PAULADA DE CARNE",
-    "habilidadeDesc": "Pau neles"
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
-    "statValor": 10,
     "resultado": 17,
     "resultLabel": "Acerto",
     "ts": 1787320033555,
@@ -123,5 +112,19 @@
     ],
     "habilidade": "PAULADA DE CARNE",
     "habilidadeDesc": "Pau neles"
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 1,
+    "resultado": 16,
+    "resultLabel": "Erro — Vantagem",
+    "ts": 1787321080619,
+    "mode": "vantagem",
+    "rolls": [
+      4,
+      16
+    ]
   }
 ]
