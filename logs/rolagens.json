@@ -1,18 +1,5 @@
 [
   {
-    "nome": "Ares",
-    "tipo": "atributo",
-    "statKey": "for",
-    "resultado": 14,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1787009650806,
-    "mode": "vantagem",
-    "rolls": [
-      14,
-      11
-    ]
-  },
-  {
     "nome": "Zeus",
     "tipo": "atributo",
     "statKey": "for",
@@ -104,5 +91,17 @@
     "resultado": 3,
     "habilidade": "",
     "ts": 1787309090694
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      5
+    ],
+    "resultado": 5,
+    "habilidade": "O Ápice do Vinho",
+    "ts": 1787309102692
   }
 ]
