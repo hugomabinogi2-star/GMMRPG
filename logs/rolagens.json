@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "int",
     "statValor": 15,
-    "resultado": 2,
-    "resultLabel": "Erro",
-    "ts": 1787331868704
-  },
-  {
-    "nome": "(sem nome)",
-    "tipo": "atributo",
-    "statKey": "int",
-    "statValor": 15,
     "resultado": 7,
     "resultLabel": "Acerto",
     "ts": 1787331895105
@@ -88,5 +79,14 @@
     "resultado": 14,
     "resultLabel": "Acerto",
     "ts": 1787355187981
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 15,
+    "resultado": 20,
+    "resultLabel": "Acerto Garantido",
+    "ts": 1787355189541
   }
 ]
