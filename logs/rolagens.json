@@ -2,15 +2,6 @@
   {
     "nome": "Sexus",
     "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
-    "resultado": 2,
-    "resultLabel": "Erro",
-    "ts": 1787309043449
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
     "statKey": "von",
     "statValor": 4,
     "resultado": 9,
@@ -93,5 +84,15 @@
     "resultado": 8,
     "resultLabel": "Erro",
     "ts": 1787311221750
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 11,
+    "resultLabel": "Erro",
+    "ts": 1787311233815,
+    "habilidade": "O Ápice do Vinho"
   }
 ]
