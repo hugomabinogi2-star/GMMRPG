@@ -248,6 +248,52 @@ body{
 .login-error{min-height:18px;color:#e07a6b;font-family:'Inter',sans-serif;font-size:12.5px;margin-top:10px;}
 .login-hint{font-family:'Inter',sans-serif;font-size:11.5px;color:#8a7a5e;margin-top:16px;line-height:1.4;}
 
+/* ---------- trovoadas de fundo da tela de login ---------- */
+/* nuvens/relâmpagos bem sutis piscando no fundo preto atrás da caixa de login, trocando de cor
+   na ordem das divindades selecionáveis (ver DEITY_EYE_COLOR e loginLightningStrike() no
+   <script>). Fica atrás da caixa (z-index abaixo dela) e nunca captura clique/mouse. */
+.login-lightning{
+  position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+  --lightning-color:#8ecbff;--flash-x:50%;--flash-y:25%;
+}
+.login-gate .login-box{position:relative;z-index:1;}
+.login-lightning::before{
+  /* nuvens de tempestade escuras, bem sutis, só pra o fundo não ficar 100% liso */
+  content:'';position:absolute;inset:-10%;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 15%, rgba(255,255,255,.05), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 78% 22%, rgba(255,255,255,.04), transparent 60%),
+    radial-gradient(ellipse 70% 45% at 50% 88%, rgba(255,255,255,.03), transparent 60%);
+}
+.lightning-flash{
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse 75% 55% at var(--flash-x) var(--flash-y), var(--lightning-color) 0%, transparent 70%);
+  opacity:0;mix-blend-mode:screen;
+  transition:opacity .18s ease-out;
+}
+.lightning-flash.flashing{opacity:.5;transition:opacity .04s ease-in;}
+.lightning-bolt{
+  position:absolute;top:-8%;left:50%;
+  width:90px;height:280px;
+  background:linear-gradient(180deg, var(--lightning-color), transparent 92%);
+  opacity:0;
+  filter:drop-shadow(0 0 6px var(--lightning-color)) drop-shadow(0 0 16px var(--lightning-color));
+  clip-path:polygon(50% 0%,63% 20%,46% 24%,58% 44%,38% 48%,56% 70%,34% 74%,50% 100%,30% 76%,44% 72%,22% 50%,40% 46%,24% 24%,42% 20%);
+  transform-origin:top center;
+}
+.lightning-bolt.flashing{animation:lightning-bolt-flash .4s ease-out;}
+@keyframes lightning-bolt-flash{
+  0%{opacity:0;}
+  10%{opacity:1;}
+  18%{opacity:.25;}
+  28%{opacity:.85;}
+  45%{opacity:0;}
+  100%{opacity:0;}
+}
+@media (prefers-reduced-motion: reduce){
+  .lightning-flash, .lightning-bolt{transition:none;animation:none !important;}
+}
+
 .cloud-note{
   max-width:680px;text-align:center;font-size:11.5px;color:#d9c085;
   line-height:1.5;margin:-4px 0 22px;
@@ -1230,6 +1276,24 @@ body{
 .bottle-glow-red{fill:#ff3b3b;}
 .bottle-glow-green{fill:#39ff6a;}
 .bottle-glow-blue{fill:#3fa8ff;}
+/* gema cravejada na tampa/rolha da garrafa (rubi na de Vida, pedra azul na de Mana) — cor fixa,
+   com um halo desfocado atrás pulsando na mesma cor do líquido de dentro da garrafa (reaproveita
+   o mesmo pulsar suave já usado no brilho por trás do líquido). */
+.bottle-cap-gem-glow{
+  filter:blur(6px);
+  opacity:.85;
+  animation:deityEyeGlowPulse 2.6s ease-in-out infinite;
+}
+.bottle-cap-gem-glow-red{fill:#ff3b3b;}
+.bottle-cap-gem-glow-blue{fill:#3fa8ff;}
+.bottle-cap-gem{
+  stroke:rgba(0,0,0,.4);
+  stroke-width:.7;
+}
+.bottle-cap-gem-shine{
+  fill:rgba(255,255,255,.85);
+  pointer-events:none;
+}
 /* bolhinhas subindo dentro da garrafa, presas ao formato dela (recortadas junto com o líquido) —
    puramente decorativo, cada uma com seu próprio tamanho/atraso/duração fixados inline no HTML
    pra dar um movimento mais orgânico/menos repetitivo. */
@@ -1406,6 +1470,13 @@ body{
   background:rgba(90,60,20,.15);
   overflow:hidden;
   box-shadow:inset 0 1px 3px rgba(0,0,0,.3);
+  /* halo por fora da trilha, na cor da Deidade — como a trilha NÃO tem overflow:hidden aplicado a
+     si mesma (só aos filhos), esse brilho consegue vazar pra fora normalmente. */
+  animation:xpBarTrackGlow 2.4s ease-in-out infinite;
+}
+@keyframes xpBarTrackGlow{
+  0%,100%{ box-shadow:inset 0 1px 3px rgba(0,0,0,.3), 0 0 4px 0 var(--deity-eye-glow-soft, rgba(242,210,75,.55)); }
+  50%{ box-shadow:inset 0 1px 3px rgba(0,0,0,.3), 0 0 10px 2px var(--deity-eye-glow-soft, rgba(242,210,75,.85)); }
 }
 .xp-bar-fill{
   position:relative;
@@ -1416,11 +1487,37 @@ body{
   background:linear-gradient(180deg, var(--deity-eye-color,#f2d24b), var(--deity-eye-color,#c9a227));
   box-shadow:inset 0 1px 0 rgba(255,255,255,.4);
   transition:width .25s ease, background .5s ease;
+  overflow:hidden; /* mantém o brilho abaixo contido dentro da própria parte preenchida */
+  /* a trilha ao redor (.xp-bar-track) tem overflow:hidden, então um box-shadow "pra fora" daqui
+     seria cortado e nunca apareceria — por isso o brilho da parte preenchida usa brightness()
+     (não precisa de espaço extra) em vez de box-shadow. */
   animation:xpBarGlowPulse 2.4s ease-in-out infinite;
 }
 @keyframes xpBarGlowPulse{
-  0%,100%{ box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 0 4px 0 var(--deity-eye-glow-soft, rgba(242,210,75,.6)); }
-  50%{ box-shadow:inset 0 1px 0 rgba(255,255,255,.4), 0 0 11px 2px var(--deity-eye-glow-soft, rgba(242,210,75,.9)); }
+  0%,100%{ filter:brightness(1) saturate(1); }
+  50%{ filter:brightness(1.4) saturate(1.3); }
+}
+.xp-bar-fill::after{
+  /* faixa de brilho que desliza pela parte preenchida, tipo reflexo de luz passando — reforça a
+     sensação de "luminoso" além do brightness() pulsando acima. */
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(90deg, transparent 0%, rgba(255,255,255,.65) 45%, rgba(255,255,255,.95) 50%, rgba(255,255,255,.65) 55%, transparent 100%);
+  background-size:250% 100%;
+  mix-blend-mode:screen;
+  opacity:0;
+  animation:xpBarShine 2.4s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes xpBarShine{
+  0%{ background-position:140% 0; opacity:0; }
+  12%{ opacity:1; }
+  55%{ background-position:-40% 0; opacity:1; }
+  72%{ opacity:0; }
+  100%{ background-position:-40% 0; opacity:0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .xp-bar-track, .xp-bar-fill, .xp-bar-fill::after{ animation:none !important; }
 }
 .xp-bar-caption{
   font-family:'Inter',sans-serif;
@@ -1990,6 +2087,12 @@ body{
 <body>
 
 <div class="login-gate" id="loginGate">
+  <div class="login-lightning" id="loginLightning" aria-hidden="true">
+    <div class="lightning-flash"></div>
+    <div class="lightning-bolt bolt-1"></div>
+    <div class="lightning-bolt bolt-2"></div>
+    <div class="lightning-bolt bolt-3"></div>
+  </div>
   <div class="login-box">
     <h1>⚔️ Entrar na Mesa</h1>
     <p>Escolha seu papel e digite a senha da mesa para continuar.</p>
@@ -2359,6 +2462,12 @@ body{
                         <stop offset="55%" stop-color="#2f8f3f"/>
                         <stop offset="100%" stop-color="#a4ffb2"/>
                       </linearGradient>
+                      <!-- rubi cravejado na tampa — cor fixa (vermelha), não acompanha divindade -->
+                      <radialGradient id="bottleCapGemGrad_vida" cx="35%" cy="28%" r="80%">
+                        <stop offset="0%" stop-color="#ffb3b8"/>
+                        <stop offset="40%" stop-color="#e0263f"/>
+                        <stop offset="100%" stop-color="#6e0c18"/>
+                      </radialGradient>
                     </defs>
                     <rect class="bottle-glow-layer bottle-glow-red" id="bottleGlowVidaRed" x="2" y="193" width="96" height="0" rx="12"/>
                     <rect class="bottle-glow-layer bottle-glow-green" id="bottleGlowVidaGreen" x="2" y="193" width="96" height="0" rx="12"/>
@@ -2383,6 +2492,10 @@ body{
                     <circle class="bottle-stopper" cx="50" cy="21" r="17"/>
                     <path class="bottle-facet bottle-stopper-facet" d="M38 11 L62 31"/>
                     <path class="bottle-facet bottle-stopper-facet" d="M38 31 L62 11"/>
+                    <!-- rubi vermelho cravejado na tampa, com um brilho atrás na cor do líquido (vermelho) -->
+                    <circle class="bottle-cap-gem-glow bottle-cap-gem-glow-red" cx="50" cy="21" r="13"/>
+                    <circle class="bottle-cap-gem" cx="50" cy="21" r="8" fill="url(#bottleCapGemGrad_vida)"/>
+                    <ellipse class="bottle-cap-gem-shine" cx="47" cy="18" rx="2.2" ry="1.3" transform="rotate(-30 47 18)"/>
                   </svg>
                   <span class="pie-label">Vida</span>
                   <span class="pie-pct" id="pie_vida_pct">100%</span>
@@ -2398,6 +2511,12 @@ body{
                         <stop offset="55%" stop-color="#1f5fa1"/>
                         <stop offset="100%" stop-color="#7fc4ff"/>
                       </linearGradient>
+                      <!-- pedra azul cravejada na tampa — cor fixa, não acompanha divindade -->
+                      <radialGradient id="bottleCapGemGrad_mana" cx="35%" cy="28%" r="80%">
+                        <stop offset="0%" stop-color="#bfe3ff"/>
+                        <stop offset="40%" stop-color="#1f6fd6"/>
+                        <stop offset="100%" stop-color="#0b2e63"/>
+                      </radialGradient>
                     </defs>
                     <rect class="bottle-glow-layer bottle-glow-blue" id="bottleGlowMana" x="2" y="193" width="96" height="0" rx="12"/>
                     <path class="bottle-outline" d="M42 40 L58 40 L58 83 L85 110 L92 120 L92 178 L82 193 L18 193 L8 178 L8 120 L15 110 L42 83 Z"/>
@@ -2420,6 +2539,10 @@ body{
                     <circle class="bottle-stopper" cx="50" cy="21" r="17"/>
                     <path class="bottle-facet bottle-stopper-facet" d="M38 11 L62 31"/>
                     <path class="bottle-facet bottle-stopper-facet" d="M38 31 L62 11"/>
+                    <!-- pedra azul cravejada na tampa, com um brilho atrás na cor do líquido (azul) -->
+                    <circle class="bottle-cap-gem-glow bottle-cap-gem-glow-blue" cx="50" cy="21" r="13"/>
+                    <circle class="bottle-cap-gem" cx="50" cy="21" r="8" fill="url(#bottleCapGemGrad_mana)"/>
+                    <ellipse class="bottle-cap-gem-shine" cx="47" cy="18" rx="2.2" ry="1.3" transform="rotate(-30 47 18)"/>
                   </svg>
                   <span class="pie-label">Mana</span>
                   <span class="pie-pct" id="pie_mana_pct">100%</span>
@@ -3044,6 +3167,13 @@ body{
   // 0.5 na hora de desenhar no canvas final de 60x99.
   const CURSOR_GEM_POLY = [[68.4,132.2],[80.6,129.4],[91.9,132.2],[105.9,139.7],[100.3,146.3],
     [102.8,159.4],[93.75,178.1],[86.6,197.4],[76.9,178.1],[66.6,159.4],[62.8,142.5]];
+  // hotspot do cursor (pixel onde o clique realmente acontece) — fica bem na ponta do "bico" da
+  // flechinha, no canto superior esquerdo da arte. Pra encolher o cursor sem o bico "andar" pra
+  // longe de onde o mouse realmente está, a arte inteira é escalada em torno DESSE ponto (ver
+  // CURSOR_SCALE abaixo), então o bico continua sempre no mesmo pixel.
+  const CURSOR_HOTSPOT_X = 2, CURSOR_HOTSPOT_Y = 1;
+  // encolhe o cursor inteiro (flechinha + gema) — pedido do usuário pra deixar o mouse menor.
+  const CURSOR_SCALE = 0.72;
   const cursorBaseImg = new Image();
   let cursorBaseImgReady = false;
   cursorBaseImg.onload = () => {
@@ -3059,15 +3189,26 @@ body{
     const canvas = document.createElement('canvas');
     canvas.width = CURSOR_W; canvas.height = CURSOR_H;
     const ctx = canvas.getContext('2d');
-    const gx = 42.6, gy = 77.1; // centro aproximado da gema, já na escala final 60x99
-    const grad = ctx.createRadialGradient(gx,gy,0, gx,gy,34);
-    grad.addColorStop(0, colorHex+'cc');
-    grad.addColorStop(.5, colorHex+'55');
+    // centro da gema no canvas original (60x99, sem encolher) e sua posição já encolhida em
+    // torno do hotspot — é ali que o brilho e o nascimento das estrelinhas devem ficar.
+    const gx0 = 42.6, gy0 = 77.1; // centro aproximado da gema, já na escala final 60x99
+    const gx = CURSOR_HOTSPOT_X + (gx0 - CURSOR_HOTSPOT_X) * CURSOR_SCALE;
+    const gy = CURSOR_HOTSPOT_Y + (gy0 - CURSOR_HOTSPOT_Y) * CURSOR_SCALE;
+    // brilho atrás da gema: mais intenso que antes, mas concentrado num raio bem menor, pra luz
+    // não "vazar" tanto pra fora do cursor.
+    const grad = ctx.createRadialGradient(gx,gy,0, gx,gy,16);
+    grad.addColorStop(0, colorHex+'ff');
+    grad.addColorStop(.4, colorHex+'cc');
     grad.addColorStop(1, colorHex+'00');
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,CURSOR_W,CURSOR_H);
-    ctx.drawImage(cursorBaseImg, 0, 0, CURSOR_W, CURSOR_H);
     ctx.save();
+    // encolhe a arte inteira (flechinha + gema) em torno do hotspot — o bico continua exatamente
+    // onde o navegador espera o clique, só o resto da arte fica menor ao redor dele.
+    ctx.translate(CURSOR_HOTSPOT_X, CURSOR_HOTSPOT_Y);
+    ctx.scale(CURSOR_SCALE, CURSOR_SCALE);
+    ctx.translate(-CURSOR_HOTSPOT_X, -CURSOR_HOTSPOT_Y);
+    ctx.drawImage(cursorBaseImg, 0, 0, CURSOR_W, CURSOR_H);
     ctx.beginPath();
     CURSOR_GEM_POLY.forEach(([x,y], i) => {
       const px = x*0.5, py = y*0.5;
@@ -3080,20 +3221,26 @@ body{
     ctx.fillRect(0,0,CURSOR_W,CURSOR_H);
     ctx.restore();
     const dataUri = canvas.toDataURL('image/png');
-    document.documentElement.style.setProperty('--cursor-full', `url("${dataUri}") 2 1, auto`);
+    document.documentElement.style.setProperty('--cursor-full', `url("${dataUri}") ${CURSOR_HOTSPOT_X} ${CURSOR_HOTSPOT_Y}, auto`);
   }
 
   // rastro de estrelinhas atrás do cursor, na mesma cor da gema/divindade atual — um pequeno
   // <span> "★" é criado a cada poucos pixels de movimento do mouse (throttle por distância, não
   // por tempo, pra ficar denso quando o mouse anda rápido e não gastar à toa quando ele fica
   // parado), ganha uma animação CSS de subir+crescer+sumir, e se remove sozinho quando ela acaba.
+  // Nascem deslocadas do ponto exato do mouse (que é o hotspot/bico do cursor, lá em cima da
+  // arte) pra saírem de baixo da luz da gema, não do bico — por isso o deslocamento X/Y abaixo,
+  // calculado a partir de onde a gema encolhida (CURSOR_SCALE) ficou, um pouco mais pra baixo
+  // ainda que o centro dela.
+  const STAR_SPAWN_OFFSET_X = Math.round(CURSOR_HOTSPOT_X + (42.6 - CURSOR_HOTSPOT_X) * CURSOR_SCALE);
+  const STAR_SPAWN_OFFSET_Y = Math.round(CURSOR_HOTSPOT_Y + (77.1 - CURSOR_HOTSPOT_Y) * CURSOR_SCALE + 10);
   let lastStarX = null, lastStarY = null;
   function spawnCursorStar(x, y){
     const star = document.createElement('span');
     star.className = 'cursor-star';
     star.textContent = '★';
-    star.style.left = x + 'px';
-    star.style.top = y + 'px';
+    star.style.left = (x + STAR_SPAWN_OFFSET_X) + 'px';
+    star.style.top = (y + STAR_SPAWN_OFFSET_Y) + 'px';
     star.style.color = lastCursorColor || '#ffd23f';
     star.style.textShadow = `0 0 6px ${hexToRgba(lastCursorColor || '#ffd23f', .9)}, 0 0 12px ${hexToRgba(lastCursorColor || '#ffd23f', .6)}`;
     document.body.appendChild(star);
@@ -3105,7 +3252,7 @@ body{
   document.addEventListener('mousemove', (e) => {
     if(lastStarX !== null){
       const dx = e.clientX - lastStarX, dy = e.clientY - lastStarY;
-      if((dx*dx + dy*dy) < 400) return; // menos de ~20px andados — ainda não solta outra estrela
+      if((dx*dx + dy*dy) < 130) return; // menos de ~11px andados — rastro bem mais denso que antes
     }
     lastStarX = e.clientX; lastStarY = e.clientY;
     spawnCursorStar(e.clientX, e.clientY);
@@ -4176,8 +4323,8 @@ body{
     if(mode === 'vantagem') resultLabel += ' — Vantagem';
     else if(mode === 'desvantagem') resultLabel += ' — Desvantagem';
 
-    // acerto rende +1 de XP automaticamente; 20 natural (acerto garantido) rende +2 em vez de +1.
-    if(roll === 20) xpStep(2);
+    // acerto rende +1 de XP automaticamente; 20 natural (acerto garantido) rende +5 em vez de +1.
+    if(roll === 20) xpStep(5);
     else if(verdict === 'acerto') xpStep(1);
 
     const logEntry = { nome: els.nome.value || '(sem nome)', tipo:'atributo', statKey: stat, statValor: statVal, resultado: roll, resultLabel, ts: Date.now() };
@@ -4189,6 +4336,7 @@ body{
     if(habilidadeAtributo){
       logEntry.habilidade = habilidadeAtributo.nome;
       if(habilidadeAtributo.desc) logEntry.habilidadeDesc = habilidadeAtributo.desc;
+      if(habilidadeAtributo.imagem) logEntry.habilidadeImagem = habilidadeAtributo.imagem;
     }
     pushRollLog(logEntry);
   }
@@ -4579,8 +4727,8 @@ body{
     return (nameInput && nameInput.value.trim()) || '';
   }
   // se a habilidade marcada usa o MESMO atributo que acabou de ser rolado (attrCode em formato
-  // curto, ex: 'VON'), devolve o nome E a descrição dela — senão devolve null (rolagem de
-  // atributo continua igual, sem nada extra na mensagem).
+  // curto, ex: 'VON'), devolve o nome, a descrição E a imagem de alcance dela — senão devolve
+  // null (rolagem de atributo continua igual, sem nada extra na mensagem).
   function getSelectedSkillForAttr(attrCode){
     const checked = extraSkillRows.querySelector('.extra-skill-select:checked');
     if(!checked) return null;
@@ -4591,13 +4739,21 @@ body{
     const nameInput = row.querySelector('input[type=text]');
     const nome = (nameInput && nameInput.value.trim()) || '';
     if(!nome) return null;
-    // a descrição mora no painel "📖", que é IRMÃO de .extra-skill-row (os dois dentro do mesmo
-    // .extra-skill-entry) — não dá pra buscar .extra-skill-desc dentro de row, precisa subir pro
-    // entry primeiro.
+    // a descrição e a imagem de alcance moram no painel "📖", que é IRMÃO de .extra-skill-row (os
+    // dois dentro do mesmo .extra-skill-entry) — não dá pra buscar dentro de row, precisa subir
+    // pro entry primeiro.
     const entry = row.closest('.extra-skill-entry');
     const descEl = entry && entry.querySelector('.extra-skill-desc');
     const desc = (descEl && descEl.value.trim()) || '';
-    return { nome, desc };
+    // imagem de alcance escolhida pra essa habilidade (ver SKILL_IMAGE_OPTIONS mais abaixo) — se
+    // tiver uma selecionada, ela é anexada junto no Discord ao lado do ícone da rolagem (ver
+    // pushRollLog()).
+    const imageValueEl = entry && entry.querySelector('.extra-skill-image-value');
+    const imgOpt = (imageValueEl && imageValueEl.value)
+      ? SKILL_IMAGE_OPTIONS.find(o => o.value === imageValueEl.value)
+      : null;
+    const imagem = imgOpt ? imgOpt.img : '';
+    return { nome, desc, imagem };
   }
   const EXTRA_SKILL_ATTRS = ['FOR','DES','CON','INT','VON','CAR','PASSIVA'];
   // ícones de habilidade pra escolher na descrição — cada um mostra o alcance/área da habilidade
@@ -4985,16 +5141,27 @@ body{
   // Retorna 'sent' (postou), 'no-webhook' (nenhum webhook configurado — falha silenciosa antiga,
   // agora sinalizada pro chamador poder avisar quem clicou) ou 'error' (webhook configurado mas o
   // POST falhou — link inválido/removido no Discord, rede, etc).
-  async function postToDiscord(content, imageDataUrl){
+  // imageDataUrl2 é opcional — usada pra anexar uma SEGUNDA imagem na mesma mensagem (hoje só a
+  // imagem de alcance da habilidade, quando a rolagem de atributo carrega uma habilidade marcada
+  // com uma imagem escolhida — ver pushRollLog()). Sem ela, o comportamento continua exatamente
+  // como antes (uma imagem só, ou nenhuma).
+  async function postToDiscord(content, imageDataUrl, imageDataUrl2){
     const webhookUrl = getWebhook();
     if(!webhookUrl) return 'no-webhook';
     try{
-      if(imageDataUrl){
-        const blob = await (await fetch(imageDataUrl)).blob();
-        const ext = (blob.type && blob.type.split('/')[1]) || 'png';
+      if(imageDataUrl || imageDataUrl2){
         const form = new FormData();
         form.append('payload_json', JSON.stringify({ content }));
-        form.append('files[0]', blob, `retrato.${ext}`);
+        if(imageDataUrl){
+          const blob = await (await fetch(imageDataUrl)).blob();
+          const ext = (blob.type && blob.type.split('/')[1]) || 'png';
+          form.append('files[0]', blob, `retrato.${ext}`);
+        }
+        if(imageDataUrl2){
+          const blob2 = await (await fetch(imageDataUrl2)).blob();
+          const ext2 = (blob2.type && blob2.type.split('/')[1]) || 'png';
+          form.append('files[1]', blob2, `habilidade.${ext2}`);
+        }
         const res = await fetch(webhookUrl, { method: 'POST', body: form });
         return res.ok ? 'sent' : 'error';
       }
@@ -5191,7 +5358,11 @@ body{
     // não mais o retrato do personagem — o retrato agora é só pra mensagem de subida de nível.
     const iconKey = rollIconKeyFor(entry);
     const imagemParaDiscord = iconKey ? buildRollIconDataUrl(iconKey) : null;
-    postToDiscord(formatRollMessage(entry), imagemParaDiscord); // independe do token do GitHub
+    // quando a rolagem de atributo carrega uma habilidade marcada com uma imagem de alcance
+    // escolhida (ver getSelectedSkillForAttr()), ela vai anexada junto, ao lado do ícone da
+    // rolagem, na mesma mensagem do Discord.
+    const imagemHabilidade = entry.habilidadeImagem || null;
+    postToDiscord(formatRollMessage(entry), imagemParaDiscord, imagemHabilidade); // independe do token do GitHub
 
     if(!getToken()) return;
     try{
@@ -6664,6 +6835,42 @@ body{
   const loginGate = $('loginGate');
   const loginError = $('loginError');
   const loginPasswordInput = $('loginPasswordInput');
+
+  // ---------- trovoadas de fundo (tela de login) ----------
+  // pisca relâmpagos no fundo preto da tela de login, ciclando pelas cores das divindades
+  // selecionáveis, na mesma ordem em que elas aparecem no seletor de divindade (DEITY_EYE_COLOR
+  // é montado nessa mesma ordem, então Object.values() já entrega a sequência certa).
+  (function initLoginLightning(){
+    const lightningEl = $('loginLightning');
+    if(!lightningEl) return;
+    const flashEl = lightningEl.querySelector('.lightning-flash');
+    const bolts = Array.from(lightningEl.querySelectorAll('.lightning-bolt'));
+    const deityColors = Object.values(DEITY_EYE_COLOR);
+    let colorIdx = 0;
+    function loginLightningStrike(){
+      if(loginGate.hidden) return; // só pisca enquanto a tela de login está de fato visível
+      const color = deityColors[colorIdx % deityColors.length];
+      colorIdx++;
+      lightningEl.style.setProperty('--lightning-color', color);
+      lightningEl.style.setProperty('--flash-x', (20 + Math.random()*60).toFixed(1) + '%');
+      lightningEl.style.setProperty('--flash-y', (8 + Math.random()*30).toFixed(1) + '%');
+      flashEl.classList.remove('flashing'); void flashEl.offsetWidth; flashEl.classList.add('flashing');
+      setTimeout(()=> flashEl.classList.remove('flashing'), 220);
+      // 1 ou 2 relâmpagos caindo em posições aleatórias junto com o clarão
+      const shuffled = bolts.slice().sort(()=> Math.random() - .5);
+      const count = 1 + (Math.random() < .4 ? 1 : 0);
+      shuffled.slice(0, count).forEach(bolt=>{
+        bolt.style.left = (8 + Math.random()*80).toFixed(1) + '%';
+        bolt.style.transform = `rotate(${(-8 + Math.random()*16).toFixed(1)}deg) scaleX(${(0.7 + Math.random()*0.7).toFixed(2)})`;
+        bolt.classList.remove('flashing'); void bolt.offsetWidth; bolt.classList.add('flashing');
+      });
+    }
+    function scheduleNextLoginLightning(){
+      loginLightningStrike();
+      setTimeout(scheduleNextLoginLightning, 2200 + Math.random()*3200);
+    }
+    scheduleNextLoginLightning();
+  })();
 
   if(!fbReady){
     // Sem Firebase configurado ainda: libera a ficha normalmente, sem exigir login
