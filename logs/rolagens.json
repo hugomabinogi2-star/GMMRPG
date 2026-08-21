@@ -3,22 +3,6 @@
     "nome": "Sexus",
     "tipo": "atributo",
     "statKey": "car",
-    "statValor": 10,
-    "resultado": 13,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1787320595244,
-    "mode": "vantagem",
-    "rolls": [
-      13,
-      12
-    ],
-    "habilidade": "PAULADA DE CARNE",
-    "habilidadeDesc": "Pau neles"
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
     "statValor": 1,
     "resultado": 16,
     "resultLabel": "Erro — Vantagem",
@@ -138,6 +122,17 @@
     "resultado": 4,
     "resultLabel": "Erro",
     "ts": 1787331748907,
+    "habilidade": "espadadas duplas",
+    "habilidadeDesc": "Aceira com o pau em ate duas casas de distancia."
+  },
+  {
+    "nome": "ASMODEUS",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 1,
+    "resultado": 15,
+    "resultLabel": "Erro",
+    "ts": 1787331751472,
     "habilidade": "espadadas duplas",
     "habilidadeDesc": "Aceira com o pau em ate duas casas de distancia."
   }
