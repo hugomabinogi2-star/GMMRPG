@@ -1167,36 +1167,66 @@ body{
   border:1px solid var(--ink-faint);
   border-radius:4px;
 }
-.pie{
-  position:relative;
-  width:84px;height:84px;
-  border-radius:50%;
-  border:2px solid var(--border-brown);
-  box-shadow:inset 0 0 10px rgba(0,0,0,.4), 0 2px 5px rgba(0,0,0,.3);
-  transition:background .25s ease, box-shadow .35s ease;
+/* garrafas de cristal de Vida/Mana — o "líquido" sobe e desce de baixo pra cima dentro do
+   contorno da garrafa (em vez do gráfico em pizza de antes), com bolhinhas subindo por dentro e
+   um brilho luminoso saindo de trás do vidro, na altura atual do líquido. */
+.vital-bottle{
+  width:70px;height:140px;
+  overflow:visible;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));
 }
-/* leve brilho colorido nos gráficos de Vida (vermelho) e Mana (azul) — as cores dos gráficos em
-   si continuam as mesmas, só ganham um halo suave por fora, como se tivessem luz própria. */
-#pie_vida{box-shadow:inset 0 0 10px rgba(0,0,0,.4), 0 2px 5px rgba(0,0,0,.3), 0 0 10px rgba(161,31,31,.55), 0 0 3px rgba(255,120,90,.45);}
-#pie_mana{box-shadow:inset 0 0 10px rgba(0,0,0,.4), 0 2px 5px rgba(0,0,0,.3), 0 0 10px rgba(31,95,161,.55), 0 0 3px rgba(110,170,255,.45);}
-/* bolhinhas subindo dentro dos gráficos de Vida/Mana, como se fossem um recipiente com líquido —
-   puramente decorativo em CSS (sem JS), cada uma com seu próprio tamanho/atraso/duração fixados
-   inline no HTML pra dar um movimento mais orgânico/menos repetitivo. */
-.pie-bubbles{position:absolute;inset:0;overflow:hidden;border-radius:50%;pointer-events:none;}
-.pie-bubbles .bubble{
-  position:absolute;
-  bottom:-10px;
-  border-radius:50%;
-  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.9), rgba(255,255,255,.15) 60%, rgba(255,255,255,0) 100%);
-  animation-name:pieBubbleRise;
+.bottle-outline{
+  fill:rgba(255,255,255,.05);
+  stroke:var(--border-brown);
+  stroke-width:2.2;
+}
+.bottle-stopper{
+  fill:rgba(255,255,255,.16);
+  stroke:var(--border-brown);
+  stroke-width:1.8;
+}
+.bottle-facet{
+  stroke:rgba(255,255,255,.4);
+  stroke-width:.9;
+  fill:none;
+  pointer-events:none;
+}
+/* o preenchimento em si — muda de altura (atributo y/height, ver recalc()) conforme a vida/mana
+   sobe ou desce; a vida verde (acima do máximo) usa o mesmo mecanismo, só que por cima da
+   vermelha, ambas ancoradas no fundo da garrafa. */
+.bottle-liquid{
+  transition:y .35s ease, height .35s ease;
+}
+.bottle-liquid-surface{
+  fill:rgba(255,255,255,.65);
+  transition:y .35s ease;
+}
+/* brilho por trás do líquido, sem o recorte exato do contorno da garrafa — assim a luz "vaza" um
+   pouco pra fora do vidro em vez de ficar presa só dentro dele; pulsa devagar, tipo o resto dos
+   brilhos da ficha. */
+.bottle-glow-layer{
+  transition:y .35s ease, height .35s ease;
+  filter:blur(7px);
+  opacity:.85;
+  animation:deityEyeGlowPulse 2.6s ease-in-out infinite;
+}
+.bottle-glow-red{fill:#ff3b3b;}
+.bottle-glow-green{fill:#39ff6a;}
+.bottle-glow-blue{fill:#3fa8ff;}
+/* bolhinhas subindo dentro da garrafa, presas ao formato dela (recortadas junto com o líquido) —
+   puramente decorativo, cada uma com seu próprio tamanho/atraso/duração fixados inline no HTML
+   pra dar um movimento mais orgânico/menos repetitivo. */
+.bottle-bubble{
+  fill:rgba(255,255,255,.88);
+  animation-name:bottleBubbleRise;
   animation-timing-function:linear;
   animation-iteration-count:infinite;
 }
-@keyframes pieBubbleRise{
+@keyframes bottleBubbleRise{
   0%{transform:translateY(0); opacity:0;}
-  12%{opacity:.65;}
+  10%{opacity:.85;}
   85%{opacity:.5;}
-  100%{transform:translateY(-96px); opacity:0;}
+  100%{transform:translateY(-80px); opacity:0;}
 }
 .pie-label{
   font-family:'Cinzel',serif;
@@ -2249,8 +2279,8 @@ body{
             </div>
 
             <div class="panel">
-              <h2>Modificadores <button type="button" class="panel-toggle-btn" id="modToggleBtn" aria-label="Minimizar Modificadores" title="Minimizar/expandir Modificadores">▾</button></h2>
-              <div class="mods-grid" id="modsGrid">
+              <h2>Modificadores <button type="button" class="panel-toggle-btn is-collapsed" id="modToggleBtn" aria-label="Expandir Modificadores" title="Minimizar/expandir Modificadores">▾</button></h2>
+              <div class="mods-grid collapsed" id="modsGrid">
                 <div class="mod-row"><span class="lbl ar-ap-tip">DEFESA<div class="cs-tooltip">Defesa Física</div></span><input type="number" id="m_ar" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_ar" data-dir="-1" aria-label="Diminuir modificador de Defesa">−</button><button type="button" class="mod-step-btn" data-target="m_ar" data-dir="1" aria-label="Aumentar modificador de Defesa">+</button></div></div>
                 <div class="mod-row"><span class="lbl ar-ap-tip">RESISTÊNCIA<div class="cs-tooltip">Resistência Mágica</div></span><input type="number" id="m_ap" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_ap" data-dir="-1" aria-label="Diminuir modificador de Resistência">−</button><button type="button" class="mod-step-btn" data-target="m_ap" data-dir="1" aria-label="Aumentar modificador de Resistência">+</button></div></div>
                 <div class="mod-row"><span class="lbl ar-ap-tip">VIDA<div class="cs-tooltip">Soma direto ao total de Vida</div></span><input type="number" id="m_vida" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_vida" data-dir="-1" aria-label="Diminuir modificador de Vida">−</button><button type="button" class="mod-step-btn" data-target="m_vida" data-dir="1" aria-label="Aumentar modificador de Vida">+</button></div></div>
@@ -2296,30 +2326,83 @@ body{
               </div>
               <div class="pie-row">
                 <div class="pie-wrap">
-                  <div class="pie" id="pie_vida">
-                    <div class="pie-bubbles">
-                      <span class="bubble" style="left:14%;width:5px;height:5px;animation-duration:3.4s;animation-delay:0s;"></span>
-                      <span class="bubble" style="left:34%;width:7px;height:7px;animation-duration:4.1s;animation-delay:.6s;"></span>
-                      <span class="bubble" style="left:50%;width:4px;height:4px;animation-duration:2.8s;animation-delay:1.2s;"></span>
-                      <span class="bubble" style="left:64%;width:6px;height:6px;animation-duration:3.7s;animation-delay:.3s;"></span>
-                      <span class="bubble" style="left:78%;width:5px;height:5px;animation-duration:4.4s;animation-delay:1.8s;"></span>
-                      <span class="bubble" style="left:24%;width:3px;height:3px;animation-duration:3.1s;animation-delay:2.2s;"></span>
-                    </div>
-                  </div>
+                  <svg class="vital-bottle" id="bottle_vida" viewBox="0 0 100 200" aria-hidden="true">
+                    <defs>
+                      <clipPath id="bottleBodyClip_vida">
+                        <path d="M15 110 L85 110 L92 120 L92 178 L82 193 L18 193 L8 178 L8 120 Z"/>
+                      </clipPath>
+                      <linearGradient id="bottleLiquidGrad_vidaRed" x1="0" y1="1" x2="0" y2="0">
+                        <stop offset="0%" stop-color="#5c0f0f"/>
+                        <stop offset="55%" stop-color="#c22626"/>
+                        <stop offset="100%" stop-color="#ff8a6e"/>
+                      </linearGradient>
+                      <linearGradient id="bottleLiquidGrad_vidaGreen" x1="0" y1="1" x2="0" y2="0">
+                        <stop offset="0%" stop-color="#0e4d1f"/>
+                        <stop offset="55%" stop-color="#2f8f3f"/>
+                        <stop offset="100%" stop-color="#a4ffb2"/>
+                      </linearGradient>
+                    </defs>
+                    <rect class="bottle-glow-layer bottle-glow-red" id="bottleGlowVidaRed" x="2" y="193" width="96" height="0" rx="12"/>
+                    <rect class="bottle-glow-layer bottle-glow-green" id="bottleGlowVidaGreen" x="2" y="193" width="96" height="0" rx="12"/>
+                    <path class="bottle-outline" d="M42 40 L58 40 L58 83 L85 110 L92 120 L92 178 L82 193 L18 193 L8 178 L8 120 L15 110 L42 83 Z"/>
+                    <g clip-path="url(#bottleBodyClip_vida)">
+                      <rect class="bottle-liquid bottle-liquid-red" id="bottleLiquidVidaRed" x="0" y="193" width="100" height="0" fill="url(#bottleLiquidGrad_vidaRed)"/>
+                      <rect class="bottle-liquid bottle-liquid-green" id="bottleLiquidVidaGreen" x="0" y="193" width="100" height="0" fill="url(#bottleLiquidGrad_vidaGreen)"/>
+                      <rect class="bottle-liquid-surface" id="bottleSurfaceVida" x="0" y="193" width="100" height="2.2"/>
+                      <circle class="bottle-bubble" cx="24" cy="188" r="2.6" style="animation-duration:3.1s;animation-delay:0s"/>
+                      <circle class="bottle-bubble" cx="36" cy="188" r="3.4" style="animation-duration:3.8s;animation-delay:.5s"/>
+                      <circle class="bottle-bubble" cx="46" cy="188" r="2.2" style="animation-duration:2.7s;animation-delay:1.1s"/>
+                      <circle class="bottle-bubble" cx="55" cy="188" r="3.8" style="animation-duration:4.2s;animation-delay:.2s"/>
+                      <circle class="bottle-bubble" cx="64" cy="188" r="2.4" style="animation-duration:3.4s;animation-delay:1.6s"/>
+                      <circle class="bottle-bubble" cx="73" cy="188" r="3.1" style="animation-duration:3.9s;animation-delay:.8s"/>
+                      <circle class="bottle-bubble" cx="29" cy="188" r="2" style="animation-duration:2.9s;animation-delay:2s"/>
+                      <circle class="bottle-bubble" cx="60" cy="188" r="2.6" style="animation-duration:3.6s;animation-delay:1.3s"/>
+                      <circle class="bottle-bubble" cx="41" cy="188" r="3.2" style="animation-duration:4.5s;animation-delay:2.3s"/>
+                    </g>
+                    <path class="bottle-facet" d="M32 118 L32 186"/>
+                    <path class="bottle-facet" d="M50 114 L50 190"/>
+                    <path class="bottle-facet" d="M68 118 L68 186"/>
+                    <circle class="bottle-stopper" cx="50" cy="21" r="17"/>
+                    <path class="bottle-facet bottle-stopper-facet" d="M38 11 L62 31"/>
+                    <path class="bottle-facet bottle-stopper-facet" d="M38 31 L62 11"/>
+                  </svg>
                   <span class="pie-label">Vida</span>
                   <span class="pie-pct" id="pie_vida_pct">100%</span>
                 </div>
                 <div class="pie-wrap">
-                  <div class="pie" id="pie_mana">
-                    <div class="pie-bubbles">
-                      <span class="bubble" style="left:18%;width:4px;height:4px;animation-duration:3.6s;animation-delay:.9s;"></span>
-                      <span class="bubble" style="left:38%;width:6px;height:6px;animation-duration:4.3s;animation-delay:.1s;"></span>
-                      <span class="bubble" style="left:54%;width:5px;height:5px;animation-duration:2.9s;animation-delay:1.6s;"></span>
-                      <span class="bubble" style="left:68%;width:3px;height:3px;animation-duration:3.9s;animation-delay:.5s;"></span>
-                      <span class="bubble" style="left:82%;width:6px;height:6px;animation-duration:4.6s;animation-delay:2.1s;"></span>
-                      <span class="bubble" style="left:28%;width:5px;height:5px;animation-duration:3.3s;animation-delay:1.3s;"></span>
-                    </div>
-                  </div>
+                  <svg class="vital-bottle" id="bottle_mana" viewBox="0 0 100 200" aria-hidden="true">
+                    <defs>
+                      <clipPath id="bottleBodyClip_mana">
+                        <path d="M15 110 L85 110 L92 120 L92 178 L82 193 L18 193 L8 178 L8 120 Z"/>
+                      </clipPath>
+                      <linearGradient id="bottleLiquidGrad_mana" x1="0" y1="1" x2="0" y2="0">
+                        <stop offset="0%" stop-color="#0e2f5c"/>
+                        <stop offset="55%" stop-color="#1f5fa1"/>
+                        <stop offset="100%" stop-color="#7fc4ff"/>
+                      </linearGradient>
+                    </defs>
+                    <rect class="bottle-glow-layer bottle-glow-blue" id="bottleGlowMana" x="2" y="193" width="96" height="0" rx="12"/>
+                    <path class="bottle-outline" d="M42 40 L58 40 L58 83 L85 110 L92 120 L92 178 L82 193 L18 193 L8 178 L8 120 L15 110 L42 83 Z"/>
+                    <g clip-path="url(#bottleBodyClip_mana)">
+                      <rect class="bottle-liquid bottle-liquid-blue" id="bottleLiquidMana" x="0" y="193" width="100" height="0" fill="url(#bottleLiquidGrad_mana)"/>
+                      <rect class="bottle-liquid-surface" id="bottleSurfaceMana" x="0" y="193" width="100" height="2.2"/>
+                      <circle class="bottle-bubble" cx="26" cy="188" r="2.4" style="animation-duration:3.3s;animation-delay:.3s"/>
+                      <circle class="bottle-bubble" cx="38" cy="188" r="3.2" style="animation-duration:3.9s;animation-delay:.9s"/>
+                      <circle class="bottle-bubble" cx="48" cy="188" r="2" style="animation-duration:2.8s;animation-delay:1.4s"/>
+                      <circle class="bottle-bubble" cx="57" cy="188" r="3.6" style="animation-duration:4.4s;animation-delay:.1s"/>
+                      <circle class="bottle-bubble" cx="66" cy="188" r="2.6" style="animation-duration:3.5s;animation-delay:1.9s"/>
+                      <circle class="bottle-bubble" cx="74" cy="188" r="3" style="animation-duration:4.1s;animation-delay:.6s"/>
+                      <circle class="bottle-bubble" cx="31" cy="188" r="2.2" style="animation-duration:3s;animation-delay:2.2s"/>
+                      <circle class="bottle-bubble" cx="61" cy="188" r="2.4" style="animation-duration:3.7s;animation-delay:1.1s"/>
+                      <circle class="bottle-bubble" cx="43" cy="188" r="3" style="animation-duration:4.6s;animation-delay:2.5s"/>
+                    </g>
+                    <path class="bottle-facet" d="M32 118 L32 186"/>
+                    <path class="bottle-facet" d="M50 114 L50 190"/>
+                    <path class="bottle-facet" d="M68 118 L68 186"/>
+                    <circle class="bottle-stopper" cx="50" cy="21" r="17"/>
+                    <path class="bottle-facet bottle-stopper-facet" d="M38 11 L62 31"/>
+                    <path class="bottle-facet bottle-stopper-facet" d="M38 31 L62 11"/>
+                  </svg>
                   <span class="pie-label">Mana</span>
                   <span class="pie-pct" id="pie_mana_pct">100%</span>
                 </div>
@@ -2765,7 +2848,10 @@ body{
     boFor:$('bo_for'), boCon:$('bo_con'), boDes:$('bo_des'), boInt:$('bo_int'), boVon:$('bo_von'), boCar:$('bo_car'),
     lvNum:$('lvNum'), levelRank:$('levelRank'), pointsMeter:$('pointsMeter'), levelSeal:$('levelSeal'), attrPointsBadge:$('attrPointsBadge'),
     maxVida:$('max_vida'), maxMana:$('max_mana'), valAr:$('val_ar'), valAp:$('val_ap'),
-    pieVida:$('pie_vida'), pieMana:$('pie_mana'), pieVidaPct:$('pie_vida_pct'), pieManaPct:$('pie_mana_pct'),
+    pieVidaPct:$('pie_vida_pct'), pieManaPct:$('pie_mana_pct'),
+    bottleLiquidVidaRed:$('bottleLiquidVidaRed'), bottleLiquidVidaGreen:$('bottleLiquidVidaGreen'),
+    bottleGlowVidaRed:$('bottleGlowVidaRed'), bottleGlowVidaGreen:$('bottleGlowVidaGreen'), bottleSurfaceVida:$('bottleSurfaceVida'),
+    bottleLiquidMana:$('bottleLiquidMana'), bottleGlowMana:$('bottleGlowMana'), bottleSurfaceMana:$('bottleSurfaceMana'),
     xpBarFill:$('xpBarFill'), xpBarCaption:$('xpBarCaption'),
     barreiraMax:$('barreira_max'), barreiraCur:$('barreira_cur'), barreiraDisplay:$('barreira_display'),
   };
@@ -3375,20 +3461,40 @@ body{
     if(num(els.curMana) > manaMax) els.curMana.value = manaMax;
     if(num(els.curVida) > vidaMax*2) els.curVida.value = vidaMax*2;
 
-    // pie charts — fatia colorida = vida/mana restante, fatia preta = perdida
+    // garrafas de Vida/Mana — o líquido sobe de baixo pra cima dentro do corpo da garrafa (região
+    // entre y=110, topo do corpo, e y=193, base — ver os <path> de contorno/recorte no HTML).
+    // A vida verde (acima do máximo) usa o MESMO fundo (y=193) que a vermelha — quando ela existe
+    // a vermelha já está sempre 100% cheia, então a verde sobe "por cima" dela, cobrindo de baixo
+    // pra cima conforme o overheal cresce, igual ao comportamento antigo do gráfico em pizza.
+    const BOTTLE_BODY_TOP = 110, BOTTLE_BODY_BOTTOM = 193, BOTTLE_BODY_H = BOTTLE_BODY_BOTTOM - BOTTLE_BODY_TOP;
+    function setBottleLiquid(liquidEl, glowEl, ratio){
+      const h = Math.max(0, Math.min(1, ratio)) * BOTTLE_BODY_H;
+      const y = (BOTTLE_BODY_BOTTOM - h).toFixed(1);
+      if(liquidEl){ liquidEl.setAttribute('y', y); liquidEl.setAttribute('height', h.toFixed(1)); }
+      if(glowEl){ glowEl.setAttribute('y', y); glowEl.setAttribute('height', h.toFixed(1)); }
+      return parseFloat(y);
+    }
     const vidaRatio = vidaMax > 0 ? num(els.curVida)/vidaMax : 0;
     const manaPct = manaMax > 0 ? Math.max(0, Math.min(1, num(els.curMana)/manaMax)) * 100 : 0;
 
+    let vidaSurfaceY;
     if(vidaRatio <= 1){
-      // dentro do normal: vermelho = vida atual, preto = vida perdida
-      const vidaPct = Math.max(0, vidaRatio) * 100;
-      els.pieVida.style.background = `conic-gradient(#a11f1f 0% ${vidaPct}%, #14100c ${vidaPct}% 100%)`;
+      // dentro do normal: só a vermelha sobe, a verde fica no fundo (altura 0, escondida)
+      vidaSurfaceY = setBottleLiquid(els.bottleLiquidVidaRed, els.bottleGlowVidaRed, vidaRatio);
+      setBottleLiquid(els.bottleLiquidVidaGreen, els.bottleGlowVidaGreen, 0);
     } else {
-      // acima do máximo (overheal): verde cresce a partir do início, substituindo o vermelho
-      const overflowPct = Math.min(1, vidaRatio - 1) * 100;
-      els.pieVida.style.background = `conic-gradient(#2f8f3f 0% ${overflowPct}%, #a11f1f ${overflowPct}% 100%)`;
+      // acima do máximo (overheal): vermelha fica travada em 100% (garrafa cheia) e a verde sobe
+      // por cima dela, começando do fundo, conforme o overheal cresce.
+      const redY = setBottleLiquid(els.bottleLiquidVidaRed, els.bottleGlowVidaRed, 1);
+      const overflowRatio = Math.min(1, vidaRatio - 1);
+      const greenY = setBottleLiquid(els.bottleLiquidVidaGreen, els.bottleGlowVidaGreen, overflowRatio);
+      vidaSurfaceY = Math.min(redY, greenY);
     }
-    els.pieMana.style.background = `conic-gradient(#1f5fa1 0% ${manaPct}%, #14100c ${manaPct}% 100%)`;
+    if(els.bottleSurfaceVida) els.bottleSurfaceVida.setAttribute('y', vidaSurfaceY.toFixed(1));
+
+    const manaSurfaceY = setBottleLiquid(els.bottleLiquidMana, els.bottleGlowMana, manaPct/100);
+    if(els.bottleSurfaceMana) els.bottleSurfaceMana.setAttribute('y', manaSurfaceY.toFixed(1));
+
     els.pieVidaPct.textContent = Math.round(vidaRatio * 100) + '%';
     els.pieManaPct.textContent = Math.round(manaPct) + '%';
 
@@ -3460,6 +3566,10 @@ body{
       if(opts.onStep) opts.onStep();
     }
     buttons.forEach(btn=> btn.addEventListener('click', ()=> step(parseInt(btn.dataset.dir, 10))));
+    // se o valor do <select> escondido for trocado por fora (ex: applyState() carregando uma
+    // ficha salva), a caixinha visível precisa acompanhar — sem isso ela ficava presa mostrando
+    // a última opção sincronizada (ex: "Zeus") mesmo com a Deidade certa já selecionada por baixo.
+    select.addEventListener('change', sync);
     sync();
   }
   wireArrowSelect($('diceStat'));
@@ -3857,7 +3967,9 @@ body{
     // ficha dentro da mesma bolinha com anel da Deidade usada nos ícones de rolagem (se houver
     // um retrato) — igual ao resto das mensagens, independe do token do GitHub.
     const nome = (els.nome.value || '').trim() || '(sem nome)';
-    postToDiscord(`🎉 **${nome}** PASSA PARA O NÍVEL ${newLevel}!`, buildLevelUpImageDataUrl());
+    const deidadeNome = (els.deidade.value || '').trim();
+    const bencaoTxt = deidadeNome ? ` POR UMA BENÇÃO DE **${deidadeNome}**` : '';
+    postToDiscord(`🎉 **${nome}** PASSA PARA O NÍVEL ${newLevel}${bencaoTxt}!`, buildLevelUpImageDataUrl());
   }
 
   // ---------- dice roller ----------
@@ -3988,10 +4100,14 @@ body{
 
     const logEntry = { nome: els.nome.value || '(sem nome)', tipo:'atributo', statKey: stat, statValor: statVal, resultado: roll, resultLabel, ts: Date.now() };
     if(twoDice){ logEntry.mode = mode; logEntry.rolls = [die1, die2]; }
-    // se a habilidade marcada na ficha usa este mesmo atributo, o nome dela entra na mensagem
-    // enviada pro Discord (mesma ideia já usada na rolagem de dano, mas aqui só quando bate o atributo).
-    const habilidadeAtributo = getSelectedSkillNameForAttr(statLabels[stat]);
-    if(habilidadeAtributo) logEntry.habilidade = habilidadeAtributo;
+    // se a habilidade marcada na ficha usa este mesmo atributo, o nome (e a descrição, se tiver
+    // uma escrita) dela entram na mensagem enviada pro Discord (mesma ideia já usada na rolagem
+    // de dano, mas aqui só quando bate o atributo).
+    const habilidadeAtributo = getSelectedSkillForAttr(statLabels[stat]);
+    if(habilidadeAtributo){
+      logEntry.habilidade = habilidadeAtributo.nome;
+      if(habilidadeAtributo.desc) logEntry.habilidadeDesc = habilidadeAtributo.desc;
+    }
     pushRollLog(logEntry);
   }
 
@@ -4381,16 +4497,25 @@ body{
     return (nameInput && nameInput.value.trim()) || '';
   }
   // se a habilidade marcada usa o MESMO atributo que acabou de ser rolado (attrCode em formato
-  // curto, ex: 'VON'), devolve o nome dela — senão devolve '' (rolagem de atributo continua igual).
-  function getSelectedSkillNameForAttr(attrCode){
+  // curto, ex: 'VON'), devolve o nome E a descrição dela — senão devolve null (rolagem de
+  // atributo continua igual, sem nada extra na mensagem).
+  function getSelectedSkillForAttr(attrCode){
     const checked = extraSkillRows.querySelector('.extra-skill-select:checked');
-    if(!checked) return '';
+    if(!checked) return null;
     const row = checked.closest('.extra-skill-row');
-    if(!row) return '';
+    if(!row) return null;
     const attrDisplay = row.querySelector('.extra-skill-attr-display');
-    if(!attrDisplay || attrDisplay.dataset.attr !== attrCode) return '';
+    if(!attrDisplay || attrDisplay.dataset.attr !== attrCode) return null;
     const nameInput = row.querySelector('input[type=text]');
-    return (nameInput && nameInput.value.trim()) || '';
+    const nome = (nameInput && nameInput.value.trim()) || '';
+    if(!nome) return null;
+    // a descrição mora no painel "📖", que é IRMÃO de .extra-skill-row (os dois dentro do mesmo
+    // .extra-skill-entry) — não dá pra buscar .extra-skill-desc dentro de row, precisa subir pro
+    // entry primeiro.
+    const entry = row.closest('.extra-skill-entry');
+    const descEl = entry && entry.querySelector('.extra-skill-desc');
+    const desc = (descEl && descEl.value.trim()) || '';
+    return { nome, desc };
   }
   const EXTRA_SKILL_ATTRS = ['FOR','DES','CON','INT','VON','CAR','PASSIVA'];
   // ícones de habilidade pra escolher na descrição — cada um mostra o alcance/área da habilidade
@@ -4543,6 +4668,9 @@ body{
   function applyState(s){
     els.nome.value = s.nome||'';
     els.deidade.value = s.deidade||'Zeus';
+    // avisa o seletor de setas da Deidade que o valor mudou por fora, pra caixinha visível
+    // acompanhar (ver o listener 'change' novo dentro de wireArrowSelect).
+    els.deidade.dispatchEvent(new Event('change', { bubbles:true }));
     els.xp.dataset.total = s.xp ?? 0; // total acumulado de verdade; recalc() (chamado no fim desta função) atualiza o campo visível a partir dele
     els.historia.value = s.historia||'';
     // sempre reatribui (mesmo numa ficha nova/em branco, sem "base"/"mods" salvos) — senão "Nova
@@ -4596,6 +4724,13 @@ body{
   $('newBtn').addEventListener('click', ()=>{
     if(confirm('Isso vai limpar todos os campos da ficha atual. Deseja continuar?')){
       applyState({});
+      // ficha nova sempre começa com Modificadores minimizado (independe de como o painel estava
+      // antes de clicar em "Nova ficha").
+      if(modsGrid && modToggleBtn){
+        modsGrid.classList.add('collapsed');
+        modToggleBtn.classList.add('is-collapsed');
+        modToggleBtn.setAttribute('aria-label', 'Expandir Modificadores');
+      }
     }
   });
 
@@ -4962,9 +5097,11 @@ body{
     const rollsDetalhe = (Array.isArray(entry.rolls) && entry.rolls.length === 2)
       ? ` (dados: ${entry.rolls.join(' / ')})`
       : '';
-    // se a habilidade marcada usa o mesmo atributo rolado, o nome dela entra entre "ROLOU" e o atributo.
+    // se a habilidade marcada usa o mesmo atributo rolado, o nome dela entra entre "ROLOU" e o
+    // atributo, e a descrição (se tiver uma escrita) vai numa linha de citação embaixo.
     const habilidadeAtributoTxt = entry.habilidade ? `**${entry.habilidade}** ` : '';
-    return `🎲 "${nome}" ROLOU ${habilidadeAtributoTxt}"${statNome}${statValorTxt}" — RESULTADO **${entry.resultado}**${label}${rollsDetalhe}`;
+    const habilidadeDescTxt = entry.habilidadeDesc ? `\n> ${entry.habilidadeDesc}` : '';
+    return `🎲 "${nome}" ROLOU ${habilidadeAtributoTxt}"${statNome}${statValorTxt}" — RESULTADO **${entry.resultado}**${label}${rollsDetalhe}${habilidadeDescTxt}`;
   }
 
   async function pushRollLog(entry){
@@ -5047,7 +5184,8 @@ body{
             ? ` (dados: ${entry.rolls.map(r=>escapeHtml(String(r))).join(' / ')})`
             : '';
           const habilidadeAtributoTxtLog = entry.habilidade ? `${escapeHtml(entry.habilidade)} ` : '';
-          texto = `"${nome}" ROLOU ${habilidadeAtributoTxtLog}"${escapeHtml(statNomeRaw)}${statValorTxt}" — RESULTADO ${escapeHtml(String(entry.resultado))}${label}${rollsDetalhe}`;
+          const habilidadeDescTxtLog = entry.habilidadeDesc ? `<br><em>${escapeHtml(entry.habilidadeDesc)}</em>` : '';
+          texto = `"${nome}" ROLOU ${habilidadeAtributoTxtLog}"${escapeHtml(statNomeRaw)}${statValorTxt}" — RESULTADO ${escapeHtml(String(entry.resultado))}${label}${rollsDetalhe}${habilidadeDescTxtLog}`;
         }
         const hora = entry.ts ? new Date(entry.ts).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
         const row = document.createElement('div');
