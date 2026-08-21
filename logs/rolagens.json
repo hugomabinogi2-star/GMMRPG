@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 4,
-    "resultado": 2,
-    "resultLabel": "Erro",
-    "ts": 1787314380545
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
     "resultado": 6,
     "resultLabel": "Erro",
     "ts": 1787314382874
@@ -107,5 +98,16 @@
     "ts": 1787320033555,
     "habilidade": "PAULADA DE CARNE",
     "habilidadeDesc": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 10,
+    "resultado": 7,
+    "resultLabel": "Erro",
+    "ts": 1787320450905,
+    "habilidade": "PAULADA DE CARNE",
+    "habilidadeDesc": "Pau neles"
   }
 ]
