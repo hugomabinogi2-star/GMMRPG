@@ -5,20 +5,6 @@
     "statKey": "for",
     "statValor": 4,
     "resultado": 2,
-    "resultLabel": "Erro — Desvantagem",
-    "ts": 1787309014215,
-    "mode": "desvantagem",
-    "rolls": [
-      2,
-      19
-    ]
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
-    "resultado": 2,
     "resultLabel": "Erro",
     "ts": 1787309043449
   },
@@ -98,5 +84,14 @@
     "resultado": 19,
     "resultLabel": "Acerto",
     "ts": 1787311186732
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 8,
+    "resultLabel": "Erro",
+    "ts": 1787311221750
   }
 ]
