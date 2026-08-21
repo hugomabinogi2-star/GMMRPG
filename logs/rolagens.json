@@ -5,18 +5,6 @@
     "qtd": 1,
     "maxVal": 6,
     "rolls": [
-      3
-    ],
-    "resultado": 3,
-    "habilidade": "",
-    "ts": 1787309090694
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 6,
-    "rolls": [
       5
     ],
     "resultado": 5,
@@ -99,5 +87,14 @@
     "resultado": 3,
     "resultLabel": "Erro",
     "ts": 1787313469021
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 7,
+    "resultado": 4,
+    "resultLabel": "Erro",
+    "ts": 1787313473423
   }
 ]
