@@ -80,6 +80,23 @@
   25%{ opacity:1; transform:translate(-50%,-50%) scale(1.15) rotate(12deg); }
   100%{ opacity:0; transform:translate(-50%,-50%) scale(.4) rotate(28deg) translateY(-22px); }
 }
+/* caveirinhas foscas que "murcham" sobre o quadro de atributos quando um ponto é RETIRADO de
+   um atributo (ver spawnAttrSkulls()) — irmã sombria do attr-burst-star acima, tocada só na
+   redução (nunca no aumento) de um atributo; por isso caem/afundam em vez de subir/brilhar. */
+.attr-burst-skull{
+  position:fixed;
+  z-index:99999;
+  pointer-events:none;
+  line-height:1;
+  transform:translate(-50%,-50%);
+  animation:attr-skull-droop 1.1s ease-in forwards;
+  user-select:none;
+}
+@keyframes attr-skull-droop{
+  0%{ opacity:0; transform:translate(-50%,-50%) scale(.3) rotate(0deg) translateY(0); }
+  25%{ opacity:.9; transform:translate(-50%,-50%) scale(1.05) rotate(-8deg) translateY(2px); }
+  100%{ opacity:0; transform:translate(-50%,-50%) scale(.55) rotate(-16deg) translateY(26px); }
+}
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
 body{
@@ -1870,11 +1887,12 @@ body{
 .cs-tooltip{
   position:absolute;left:0;top:100%;margin-top:6px;
   width:min(280px,70vw);
+  height:max-content;
   background:linear-gradient(160deg,var(--paper-l),var(--paper));
   border:1px solid var(--border-brown);border-radius:4px;
   padding:10px 12px;
-  font-family:'EB Garamond',serif;font-style:italic;font-size:14.5px;line-height:1.4;
-  color:var(--ink-soft);letter-spacing:normal;text-align:left;
+  font-family:'EB Garamond',serif;font-style:italic;font-weight:400;font-size:14.5px;line-height:1.4;
+  color:var(--ink-soft);letter-spacing:normal;text-align:left;text-transform:none;
   box-shadow:var(--shadow);
   z-index:20;
   opacity:0;visibility:hidden;transform:translateY(-4px);
@@ -3123,6 +3141,36 @@ body{
     });
   }
 
+  // "chuva" de caveirinhas tristes espalhadas sobre o quadro de atributos, tocada toda vez que
+  // um ponto é RETIRADO de um atributo (FOR/CON/DES/INT/VON/CAR) — irmã sombria de
+  // spawnAttrStars() logo acima; cor cinza fixa (não acompanha a divindade — a ideia aqui é
+  // "triste", não "mágico").
+  function spawnAttrSkulls(){
+    const grids = document.querySelectorAll('.attr-grid');
+    grids.forEach(grid=>{
+      if(grid.offsetParent === null) return; // ignora a cópia escondida (ex.: outra aba/face)
+      const rect = grid.getBoundingClientRect();
+      const glowColor = '#9aa0ab';
+      const count = 10;
+      for(let i=0;i<count;i++){
+        const skull = document.createElement('span');
+        skull.className = 'attr-burst-skull';
+        skull.textContent = '💀';
+        const x = rect.left + Math.random()*rect.width;
+        const y = rect.top + Math.random()*rect.height;
+        skull.style.left = x + 'px';
+        skull.style.top = y + 'px';
+        const size = 11 + Math.random()*13;
+        skull.style.fontSize = size.toFixed(1) + 'px';
+        skull.style.filter = `drop-shadow(0 0 5px ${hexToRgba(glowColor, .6)})`;
+        skull.style.animationDelay = Math.floor(Math.random()*180) + 'ms';
+        document.body.appendChild(skull);
+        skull.addEventListener('animationend', () => skull.remove());
+        setTimeout(() => skull.remove(), 1400);
+      }
+    });
+  }
+
   function updateDeityEyeGlow(){
     const nome = els.deidade.value;
     const color = DEITY_EYE_COLOR[nome] || '#ffd23f';
@@ -3324,10 +3372,14 @@ body{
     const xp = parseFloat(els.xp.dataset.total) || 0;
     const levelInfo = levelInfoFromXp(xp);
     const levelFloor = levelInfo.level;
-    els.levelSeal.title = 'Nível ' + levelFloor;
     const romanLevel = toRoman(levelFloor);
-    els.lvNum.textContent = romanLevel;
-    els.lvNum.style.fontSize = romanLevel.length <= 3 ? '' : romanLevel.length === 4 ? '17px' : romanLevel.length === 5 ? '15px' : romanLevel.length === 6 ? '13px' : '11px';
+    // guarda os dois formatos pro listener de hover (wireado uma única vez lá embaixo) trocar
+    // o numeral exibido sem precisar chamar recalc() de novo — ver perto de "modToggleBtn".
+    els.lvNum.dataset.level = levelFloor;
+    els.lvNum.dataset.roman = romanLevel;
+    const hoveringSeal = els.levelSeal.matches(':hover');
+    els.lvNum.textContent = hoveringSeal ? levelFloor : romanLevel;
+    els.lvNum.style.fontSize = hoveringSeal ? '' : (romanLevel.length <= 3 ? '' : romanLevel.length === 4 ? '17px' : romanLevel.length === 5 ? '15px' : romanLevel.length === 6 ? '13px' : '11px');
 
     if(lastKnownLevel !== null && levelFloor > lastKnownLevel && !suppressLevelUpEffect){
       celebrateLevelUp(levelFloor);
@@ -3605,6 +3657,24 @@ body{
     });
   }
 
+  // joia de Nível: sem tooltip nativo (não tem mais "title") — em vez disso, passar o mouse
+  // por cima troca o numeral romano por número normal (ex: "XIV" vira "14"), e volta pro
+  // romano quando o mouse sai. Os valores certos ficam guardados em data-attributes por
+  // recalc() (ver mais abaixo), pra esse listener não precisar recalcular nada sozinho.
+  if(els.levelSeal && els.lvNum){
+    els.levelSeal.addEventListener('mouseenter', ()=>{
+      const arabic = els.lvNum.dataset.level;
+      if(arabic){ els.lvNum.textContent = arabic; els.lvNum.style.fontSize = ''; }
+    });
+    els.levelSeal.addEventListener('mouseleave', ()=>{
+      const roman = els.lvNum.dataset.roman;
+      if(roman){
+        els.lvNum.textContent = roman;
+        els.lvNum.style.fontSize = roman.length <= 3 ? '' : roman.length === 4 ? '17px' : roman.length === 5 ? '15px' : roman.length === 6 ? '13px' : '11px';
+      }
+    });
+  }
+
   // ---------- Vida/Mana: só sobem ou descem pelos botões </>, o campo não é digitável ----------
   function vidaStep(delta){
     const max = parseFloat(els.maxVida.textContent) || 0;
@@ -3690,8 +3760,13 @@ body{
     if(next === val) return; // já no limite, ou o botão deveria estar desabilitado
     el.value = next;
     recalc();
-    playChiimSound(); // som próprio (não o plim genérico) — combina com o efeito de estrelinhas
-    spawnAttrStars();
+    if(delta > 0){
+      playChiimSound(); // som próprio (não o plim genérico) — combina com o efeito de estrelinhas
+      spawnAttrStars();
+    } else {
+      playAttrSadSound(); // som triste — combina com o efeito de caveirinhas
+      spawnAttrSkulls();
+    }
   }
   ATTR_KEYS.forEach(key=>{
     const dec = $('dec_' + key);
@@ -3860,6 +3935,13 @@ body{
   function playChiimSound(){
     playTone(1760, 0.22, { type:'triangle', gain:0.13, freqEnd:2637 });
     playTone(2637, 0.16, { type:'sine', gain:0.09, delay:0.04 });
+  }
+  // som triste (duas notas descendo, tipo "womp womp") — só nos botões de RETIRAR ponto de
+  // atributo, combinando com o efeitinho de caveirinhas que toca junto. Irmão sombrio do
+  // "chiim" acima, que só toca ao distribuir (aumentar) um ponto.
+  function playAttrSadSound(){
+    playTone(392.00, 0.3, { type:'sawtooth', gain:0.12, freqEnd:329.63 });
+    playTone(329.63, 0.34, { type:'sawtooth', gain:0.11, freqEnd:261.63, delay:0.18 });
   }
   // som de martelo batendo em ferro — só nos botões da Barreira (‹/›/⟳): um impacto seco (ruído
   // filtrado) seguido de uma ressonância metálica curta.
