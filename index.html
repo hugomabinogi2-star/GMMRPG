@@ -3013,6 +3013,9 @@ body{
       </div>
       <button id="iniciativaBtn" type="button" class="dice-roll-btn init-btn">⚔️ INICIATIVA!</button>
       <div class="dice-hint" id="iniciativaHint"></div>
+      <p class="init-hint-sub">Ou sorteie com base em quem já está posicionado no tabuleiro logo abaixo (heróis e aliados/inimigos/monstros/boss — blocos não contam).</p>
+      <button id="iniciativaTabuleiroBtn" type="button" class="dice-roll-btn init-btn">🗺️ INICIATIVA PELO TABULEIRO</button>
+      <div class="dice-hint" id="iniciativaTabuleiroHint"></div>
     </div>
 
     <div class="mesa-preview-wrap" id="mesaPreviewWrap" hidden>
@@ -4754,6 +4757,52 @@ body{
     }
     // botão volta ao normal rápido — só o tempo de ler a confirmação, sem travar o próximo clique por muito tempo.
     setTimeout(()=>{ iniciativaBtn.textContent = original; iniciativaBtn.disabled = false; }, 900);
+  });
+
+  // ---------- iniciativa pelo tabuleiro ----------
+  // mesmo sorteio (embaralha e manda pro Discord) da INICIATIVA! de cima, mas em vez de buscar
+  // fichas salvas no GitHub + contadores manuais, usa direto quem já está posicionado no
+  // tabuleiro AGORA — cada token de herói (kind:'hero') e de aliado/inimigo/monstro/boss
+  // (ENEMY_KINDS) vira um item; blocos/obstáculos (isBlockKind) ficam de fora, não são
+  // combatentes. tokenTooltipText() já monta o nome certo pra cada um (nome da ficha pro herói,
+  // "Rótulo N" pro resto — mesmo texto que já aparece na dica ao passar o mouse em cada peça).
+  // Como o tabuleiro já está todo na memória (boardTokens), não precisa buscar nada — o sorteio é
+  // instantâneo, sem espera de rede antes de mandar pro Discord.
+  const iniciativaTabuleiroBtn = $('iniciativaTabuleiroBtn');
+  const iniciativaTabuleiroHint = $('iniciativaTabuleiroHint');
+  iniciativaTabuleiroBtn.addEventListener('click', async ()=>{
+    const seenIds = new Set();
+    const itens = [];
+    for(const key in boardTokens){
+      const tok = boardTokens[key];
+      if(!tok || seenIds.has(tok.id)) continue;
+      seenIds.add(tok.id);
+      if(isBlockKind(tok.kind)) continue;
+      itens.push(tokenTooltipText(tok));
+    }
+    if(!itens.length){
+      iniciativaTabuleiroHint.textContent = 'Não há nenhum herói ou inimigo posicionado no tabuleiro agora.';
+      return;
+    }
+    const original = iniciativaTabuleiroBtn.textContent;
+    iniciativaTabuleiroBtn.disabled = true;
+    iniciativaTabuleiroBtn.textContent = 'Sorteando...';
+    iniciativaTabuleiroHint.textContent = '';
+    try{
+      for(let i = itens.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [itens[i], itens[j]] = [itens[j], itens[i]];
+      }
+      const linhas = itens.map((nome, idx) => `${idx+1}. **${nome}**`).join('\n');
+      await postToDiscord(`⚔️ **O MESTRE** sorteou a **ORDEM DE INICIATIVA pelo tabuleiro!**\n${linhas}`);
+      iniciativaTabuleiroBtn.textContent = '✓ Enviado!';
+      iniciativaTabuleiroHint.textContent = `Ordem sorteada: ${itens.join(' → ')}`;
+    }catch(err){
+      console.error(err);
+      iniciativaTabuleiroBtn.textContent = 'Erro, tente de novo';
+      iniciativaTabuleiroHint.textContent = 'Não foi possível enviar a ordem de iniciativa agora.';
+    }
+    setTimeout(()=>{ iniciativaTabuleiroBtn.textContent = original; iniciativaTabuleiroBtn.disabled = false; }, 900);
   });
 
   // ---------- flip ----------
