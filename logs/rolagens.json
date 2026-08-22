@@ -77,5 +77,14 @@
       5,
       18
     ]
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 1,
+    "resultado": 5,
+    "resultLabel": "Erro",
+    "ts": 1787425951859
   }
 ]
