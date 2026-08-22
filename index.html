@@ -407,6 +407,37 @@ body{
 }
 #chatSendBtn:hover{filter:brightness(1.08);}
 
+/* ---------- mini-tabuleiro ao vivo (faixa acima do chat) ---------- */
+/* espelha em tempo real (via Firebase, mesa/liveBoard/*) o que o mestre está montando na aba
+   "🖥️ Mesa" — ver scheduleBoardMetaPush()/scheduleBoardMarksPush()/scheduleBoardTokensPush() e
+   connectLiveBoard() no <script>. Igual ao chat, é minimizável e fica lembrado por navegador
+   (rpg_ficha_liveboard_minimized), começa minimizado. Cada jogador só consegue arrastar a PRÓPRIA
+   ficha aqui dentro (ver isMyLiveToken()) — colocar/tirar peças do tabuleiro continua exclusivo da
+   aba Mesa do mestre. Reaproveita as MESMAS classes visuais do tabuleiro de verdade
+   (.board-outer/.board-grid/.board-cell/.board-token/.mark-*, lá em cima) pra não duplicar nenhum
+   estilo — só ajusta largura mínima/máxima pra caber numa faixa mais estreita, com rolagem própria
+   em vez de forçar a página inteira a ficar larga.
+*/
+.panel.live-board-panel{
+  display:flex;flex-direction:column;
+  text-transform:none;
+}
+.live-board-panel[hidden]{display:none;}
+.live-board-panel h2{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  text-transform:uppercase;flex:none;
+}
+.live-board-panel-body{display:flex;flex-direction:column;gap:8px;}
+.live-board-panel.minimized .live-board-panel-body{display:none;}
+.live-board-wrap{
+  overflow:auto;max-height:380px;
+  margin:4px 0 0;padding:2px;
+  display:flex;justify-content:center;
+}
+.live-board-wrap .board-outer{min-width:340px;max-width:640px;}
+.live-board-hint{font-size:11px;color:var(--ink-faint);min-height:14px;text-align:center;}
+.board-token.live-board-token-mine{cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 2px var(--gold-bright);}
+
 /* ---------- ficha travada (ver de outro jogador) ---------- */
 /* trava tudo dentro do miolo da ficha (input, select, botão, o interruptor Ativo/Inativo etc, sem
    precisar listar cada um) deixando só o próprio container .face-inner com pointer-events normal,
@@ -2744,6 +2775,28 @@ body{
           <div class="cs-rank level-rank cs-rank-C" id="levelRank" title="Ranking do aventureiro">C</div>
         </div>
 
+        <!-- mini-tabuleiro ao vivo: faixa cheia, logo ACIMA do chat da mesa (ver comentário do
+             chat-panel logo abaixo) — espelha em tempo real o tabuleiro que o mestre monta na aba
+             "🖥️ Mesa" pra todo mundo logado, e deixa cada jogador arrastar a própria ficha dentro
+             do limite de casas (1 + bônus de DES). Ver CSS ".live-board-panel" acima e
+             connectLiveBoard()/renderLiveBoardMini() no <script>. -->
+        <div class="panel live-board-panel" id="liveBoardPanel" hidden>
+          <h2>🗺️ Tabuleiro ao Vivo<span class="chat-panel-head-actions">
+            <button id="liveBoardMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
+          </span></h2>
+          <div class="live-board-panel-body" id="liveBoardPanelBody">
+            <div class="live-board-wrap" id="liveBoardWrap">
+              <div class="board-outer" id="liveBoardOuter">
+                <div class="board-corner"></div>
+                <div class="board-colheader" id="liveBoardColHeader"></div>
+                <div class="board-rowheader" id="liveBoardRowHeader"></div>
+                <div class="board-grid" id="liveBoardGrid"></div>
+              </div>
+            </div>
+            <div class="live-board-hint" id="liveBoardHint"></div>
+          </div>
+        </div>
+
         <!-- chat da mesa: faixa cheia, logo abaixo do texto da divindade (.deity-lore, dentro do
              .ribbon acima) e antes do resto da ficha (.front-grid) — deixou de ser um painel
              estreito dentro da Coluna 3 pra caber muito mais mensagem visível de uma vez. -->
@@ -4152,13 +4205,26 @@ body{
     if(!fbReady || !fbDb || !currentUser) return;
     const ownerUid = loadedFichaOwnerUid || ((currentRole === 'jogador') ? currentUser.uid : null);
     if(!ownerUid) return;
-    fbDb.ref('mesa/live/' + ownerUid).set({
-      nome: els.nome.value || '',
+    const nome = els.nome.value || '';
+    const payload = {
+      nome,
       vida: num(els.curVida), vidaMax: parseFloat(els.maxVida.textContent) || 0,
       mana: num(els.curMana), manaMax: parseFloat(els.maxMana.textContent) || 0,
       escudo: num(els.barreiraCur), escudoMax: num(els.barreiraMax),
       ts: firebase.database.ServerValue.TIMESTAMP
-    });
+    };
+    // status Ativo/Inativo (ver setFichaAtivo()) também vai junto aqui — é o que deixa o
+    // interruptor valer na hora pro tabuleiro/bandeja de fichas (ver isHeroLiveActive()/
+    // onLiveAtivoChanged() mais abaixo), sem precisar que ninguém clique em SALVAR. Só publica
+    // esse campo quando a ficha aberta tem nome (mesmo critério que o roster usa pra listar
+    // alguém) — toda conta de jogador recém-logada abre com uma ficha em branco (ver
+    // startNewFicha()) e essa ficha em branco NÃO é o personagem de ninguém no roster; publicar
+    // "Inativo" a partir dela sobrescreveria por engano o status real do personagem verdadeiro
+    // dessa conta (que pode estar Ativo e colocado no tabuleiro) só por ter feito login de novo,
+    // sem essa pessoa ter mexido em nada. Sem esse campo, quem está ouvindo cai de volta no
+    // status salvo no GitHub (ver isHeroLiveActive()), que é o comportamento certo aqui.
+    if(nome) payload.ativo = ($('fichaAtivo') || {}).value || 'Inativo';
+    fbDb.ref('mesa/live/' + ownerUid).set(payload);
   }
 
   Object.values(els).forEach(el=>{
@@ -6589,6 +6655,56 @@ body{
   function boardKey(r,c){ return r + '_' + c; }
   function getCellEl(r,c){ return boardGrid.children[r * BOARD_COLS + c]; }
 
+  // monta o mesmo formato "tokensOut" usado tanto pra salvar um tabuleiro no GitHub (SALVAR) quanto
+  // pra publicar ao vivo no Firebase (scheduleBoardTokensPush(), mais abaixo) — sem a imagem
+  // (portrait) de cada peça, que é resolvida de novo na hora de exibir via resolveTokenPortrait()
+  // (roster já carregado) em vez de reenviar o retrato inteiro toda vez que algo no tabuleiro muda.
+  function collectBoardTokensOut(){
+    const tokensOut = {};
+    Object.keys(boardTokens).forEach(key=>{
+      const t = boardTokens[key];
+      tokensOut[key] = {
+        id:t.id, kind:t.kind, name:t.name, size:t.size||1, anchorR:t.anchorR, anchorC:t.anchorC, seq:t.seq || null,
+        donoChave: t.donoChave || null, ownerUid: t.ownerUid || null, bonusDes: t.bonusDes || 0,
+      };
+    });
+    return tokensOut;
+  }
+
+  // ---------- tabuleiro ao vivo (Firebase) — ver .live-board-panel/renderLiveBoardMini() ----------
+  // Publica o que o mestre está montando na aba Mesa em mesa/liveBoard/* pra todo mundo ver na hora,
+  // no mini-tabuleiro acima do chat. Separado em 3 nós (meta/marks/tokens) — cada mudança só reenvia
+  // o pedaço que de fato mudou; "meta" carrega o fundo custom (pode ser uma imagem grande em base64),
+  // então só é reenviado quando tamanho/cor/fundo realmente mudam, não a cada peça movida ou casa
+  // marcada. Debounce de 500ms igual ao pushLiveVitals() — várias mudanças seguidas (ex: arrastando
+  // várias peças, ou pintando várias casas) viram um envio só. Precisa vir ANTES das funções que
+  // mexem no tabuleiro (setMark, applyBoardBackground etc, mais abaixo) porque algumas delas já
+  // chamam essas funções de push direto no corpo — const não é hoisted, então a ordem importa aqui.
+  // O try/catch em volta de fbReady é necessário porque applyBoardGridColor() (mais abaixo) é
+  // chamada uma vez, sem nenhum jogador logado, já na carga inicial da página — momento em que
+  // fbReady/fbDb/currentUser (declaradas só lá pra baixo, perto do login) ainda estão na "zona
+  // morta" do JavaScript (TDZ); sem o catch, essa leitura antecipada derrubaria a página inteira
+  // (nada depois dali rodaria, nem a tela de login).
+  function makeDebouncedBoardPush(path, collect){
+    let timer = null;
+    return function schedule(){
+      let ready = false;
+      try{ ready = !!(fbReady && fbDb && currentUser); }catch(err){ ready = false; }
+      if(!ready) return;
+      if(timer) clearTimeout(timer);
+      timer = setTimeout(()=>{
+        timer = null;
+        fbDb.ref(path).set(collect()).catch(err=> console.error('Não foi possível publicar o tabuleiro ao vivo:', err));
+      }, 500);
+    };
+  }
+  const scheduleBoardMetaPush = makeDebouncedBoardPush('mesa/liveBoard/meta', ()=> ({
+    rows: BOARD_ROWS, cols: BOARD_COLS, gridColor: boardGridColor, background: boardBackground || null,
+    ts: firebase.database.ServerValue.TIMESTAMP,
+  }));
+  const scheduleBoardMarksPush = makeDebouncedBoardPush('mesa/liveBoard/marks', ()=> Object.assign({}, boardMarks));
+  const scheduleBoardTokensPush = makeDebouncedBoardPush('mesa/liveBoard/tokens', collectBoardTokensOut);
+
   function buildBoardGrid(){
     boardGrid.innerHTML = '';
     boardGrid.style.gridTemplateColumns = `repeat(${BOARD_COLS}, 1fr)`;
@@ -6673,6 +6789,7 @@ body{
     const key = boardKey(r,c);
     if(value) boardMarks[key] = value; else delete boardMarks[key];
     renderBoardCell(r,c);
+    scheduleBoardMarksPush();
   }
 
   function cycleMark(r,c){
@@ -6763,6 +6880,7 @@ body{
     clearTokenFootprint(token);
     cells.forEach(([cr,cc])=> renderBoardCell(cr,cc));
     if(token.kind === 'hero'){ renderHeroTray(); renderMestreTray(); }
+    scheduleBoardTokensPush();
   }
 
   function findHeroCell(heroId){
@@ -6781,13 +6899,13 @@ body{
     if(payload.source === 'tray'){
       if(payload.kind === 'hero'){
         const hero = heroRoster.find(h => h.id === payload.heroId) || mestreRoster.find(h => h.id === payload.heroId);
-        if(!hero) return;
+        if(!hero || !isHeroLiveActive(hero)) return; // ficha virou Inativa ao vivo entre o arrasto começar e soltar
         const prevKey = findHeroCell(hero.id);
         const prevToken = prevKey ? boardTokens[prevKey] : null;
         if(!canPlace(r, c, 1, prevToken ? prevToken.id : null)) return;
         let prevCells = [];
         if(prevToken){ prevCells = footprintCells(prevToken.anchorR, prevToken.anchorC, 1); clearTokenFootprint(prevToken); }
-        const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:1};
+        const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:1, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0};
         placeToken(r, c, token);
         prevCells.forEach(([pr,pc]) => renderBoardCell(pr,pc));
         renderBoardCell(r,c);
@@ -6822,6 +6940,71 @@ body{
       footprintCells(r, c, size).forEach(([fr,fc]) => renderBoardCell(fr,fc));
       if(tok.kind === 'hero'){ renderHeroTray(); renderMestreTray(); }
     }
+    scheduleBoardTokensPush();
+  }
+
+  // ---------- status Ativo/Inativo ao vivo (Firebase) ----------
+  // O interruptor Ativo/Inativo da própria ficha (ver setFichaAtivo() mais abaixo) decide quem
+  // aparece na bandeja pra colocar no tabuleiro — antes, isso só valia depois de clicar em SALVAR
+  // (o GitHub é quem alimenta heroRoster/mestreRoster). Pra funcionar na hora, sem depender de
+  // salvar, o próprio interruptor também publica o status em mesa/live/{uid} (mesmo caminho e
+  // formato da rodada anterior, "vitais ao vivo" — ver pushLiveVitals()); aqui a gente escuta esse
+  // mesmo caminho, por conta conhecida (ownerUid de cada ficha do roster), e usa o valor mais
+  // recente pra decidir quem fica na bandeja — sobrepondo o que estava salvo no GitHub, que só
+  // reflete o status de quando a ficha foi salva pela última vez.
+  const liveAtivoOverrides = {}; // uid -> 'Ativo' | 'Inativo' (só entra depois que o listener liga)
+  const liveAtivoListeners = {}; // uid -> {ref, cb}, pra nunca duplicar assinatura da mesma conta
+
+  // undefined (listener ainda não ligou, ou ficha sem ownerUid nenhum — ex: ficha do mestre, que
+  // não tem ownerUid próprio) sempre conta como "ativo" — é exatamente o que o roster já filtrado
+  // pelo GitHub já diz (só chegou até aqui porque data.ativo era 'Ativo' na última vez salva).
+  function isHeroLiveActive(hero){
+    if(!hero || !hero.ownerUid) return true;
+    const override = liveAtivoOverrides[hero.ownerUid];
+    return override === undefined ? true : override === 'Ativo';
+  }
+
+  function ensureLiveAtivoListener(uid){
+    if(!uid || liveAtivoListeners[uid] || !fbReady || !fbDb) return;
+    const ref = fbDb.ref('mesa/live/' + uid);
+    const cb = ref.on('value', (snap)=>{
+      const val = snap.val();
+      const next = (val && val.ativo) || undefined;
+      if(liveAtivoOverrides[uid] === next) return; // sem mudança de verdade, evita rerender à toa
+      liveAtivoOverrides[uid] = next;
+      onLiveAtivoChanged(uid);
+    });
+    liveAtivoListeners[uid] = { ref, cb };
+  }
+
+  // desliga TODAS as assinaturas de mesa/live/{uid} ligadas até agora (uma por conta do roster) —
+  // chamado no logout (ver onAuthStateChanged() lá embaixo), senão elas ficam penduradas pra sempre
+  // no mesmo navegador: como o Firebase Auth signOut() não desliga listener nenhum sozinho, uma
+  // conta trocada nesse mesmo navegador continuaria recebendo (e reagindo a) atualizações de contas
+  // que não são mais a que está logada agora.
+  function disconnectLiveAtivoListeners(){
+    Object.keys(liveAtivoListeners).forEach(uid=>{
+      const { ref, cb } = liveAtivoListeners[uid];
+      ref.off('value', cb);
+      delete liveAtivoListeners[uid];
+    });
+    Object.keys(liveAtivoOverrides).forEach(uid=> delete liveAtivoOverrides[uid]);
+  }
+
+  // quando alguém vira Inativo AO VIVO, some da bandeja (rerender já cuida disso, ver
+  // isHeroLiveActive() acima) e, se a ficha dela já estava colocada no tabuleiro de verdade do
+  // mestre, também é retirada de lá — reaproveita removeTokenAt(), que já cuida de rerender a
+  // casa e publicar a remoção em mesa/liveBoard/tokens (ver scheduleBoardTokensPush()) sozinho.
+  function onLiveAtivoChanged(uid){
+    renderHeroTray();
+    renderMestreTray();
+    if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens) pra tirar peça
+    if(liveAtivoOverrides[uid] !== 'Inativo') return;
+    [...heroRoster, ...mestreRoster].filter(h => h.ownerUid === uid).forEach(hero=>{
+      const key = findHeroCell(hero.id);
+      const tok = key ? boardTokens[key] : null;
+      if(tok) removeTokenAt(tok.anchorR, tok.anchorC);
+    });
   }
 
   // Gera a função que desenha uma bandeja de moedas de personagem (jogador ou mestre) —
@@ -6830,7 +7013,7 @@ body{
     return function renderTray(){
       if(!trayEl) return;
       trayEl.innerHTML = '';
-      const roster = getRoster();
+      const roster = getRoster().filter(isHeroLiveActive);
       if(roster.length === 0){
         const empty = document.createElement('div');
         empty.className = 'tray-empty';
@@ -6942,7 +7125,18 @@ body{
         );
         const roster = fetchedData
           .filter(data => data && data.nome && (data.ativo === undefined ? 'Ativo' : data.ativo) === 'Ativo')
-          .map(data => ({id: idPrefix + slugify(data.nome), name: data.nome, portrait: data.portrait || null}));
+          .map(data => ({
+            id: idPrefix + slugify(data.nome), name: data.nome, portrait: data.portrait || null,
+            // dono da ficha (mesmo par donoChave/ownerUid gravado por collectState() — ver isFichaEditable())
+            // — carregado pro token junto do resto pra o mini-tabuleiro ao vivo saber de quem é cada
+            // peça sem precisar buscar a ficha de novo (ver isMyLiveToken() no <script>).
+            donoChave: data.donoChave || null, ownerUid: data.ownerUid || null,
+            // bônus de DES já calculado NA HORA de salvar (mesma fórmula de recalc(): floor((base+mod)/2))
+            // — carregado pro token pra o limite de movimento (1 + bônus) no mini-tabuleiro ao vivo usar
+            // sempre o DES da FICHA dona da peça, não o de qualquer ficha que esteja aberta no navegador
+            // no momento (o login sempre abre uma ficha em branco — ver startNewFicha()).
+            bonusDes: Math.floor(((parseFloat(data.base && data.base.des) || 0) + (parseFloat(data.mods && data.mods.des) || 0)) / 2),
+          }));
         roster.sort((a,b)=> a.name.localeCompare(b.name));
         setRoster(roster);
         // remove do tabuleiro moedas desta lista que não estão mais ativas
@@ -6954,6 +7148,9 @@ body{
             renderBoardCell(r,c);
           }
         });
+        // liga um listener por conta (ver ensureLiveAtivoListener()) pra cada dono do roster —
+        // é isso que faz o interruptor Ativo/Inativo valer na hora, sem esperar ninguém salvar de novo.
+        roster.forEach(hero=> ensureLiveAtivoListener(hero.ownerUid));
         renderTray();
       }catch(err){
         console.error(err);
@@ -6984,6 +7181,8 @@ body{
     renderHeroTray();
     renderMestreTray();
     boardSendHint.textContent = '';
+    scheduleBoardMarksPush();
+    scheduleBoardTokensPush();
   });
 
   boardResizeBtn.addEventListener('click', ()=>{
@@ -7010,6 +7209,9 @@ body{
     renderHeroTray();
     renderMestreTray();
     boardSendHint.textContent = '';
+    scheduleBoardMetaPush();
+    scheduleBoardMarksPush();
+    scheduleBoardTokensPush();
   });
 
   // ---- fundo customizado do tabuleiro (mapa por cima, casas semitransparentes) ----
@@ -7022,6 +7224,7 @@ body{
       boardGrid.style.backgroundImage = '';
       boardGrid.classList.remove('has-custom-bg');
     }
+    scheduleBoardMetaPush();
   }
   boardBgChooseBtn.addEventListener('click', ()=> boardBgInput.click());
   boardBgInput.addEventListener('change', (e)=>{
@@ -7051,6 +7254,7 @@ body{
     boardGridColorSwatches.forEach(sw=>{
       sw.classList.toggle('selected', sw.dataset.hex.toLowerCase() === boardGridColor.toLowerCase());
     });
+    scheduleBoardMetaPush();
   }
   boardGridColorSwatches.forEach(sw=>{
     sw.addEventListener('click', ()=> applyBoardGridColor(sw.dataset.hex));
@@ -7078,6 +7282,7 @@ body{
       const token = {
         id: rt.id, kind: rt.kind, name: rt.name, size: rt.size || 1,
         portrait: isBlockKind(rt.kind) ? null : resolveTokenPortrait(rt),
+        donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0,
       };
       if(rt.seq) token.seq = rt.seq;
       placeToken(rt.anchorR, rt.anchorC, token);
@@ -7089,6 +7294,8 @@ body{
     renderHeroTray();
     renderMestreTray();
     boardSendHint.textContent = '';
+    scheduleBoardMarksPush();
+    scheduleBoardTokensPush();
   }
 
   boardSaveBtn.addEventListener('click', async ()=>{
@@ -7099,11 +7306,7 @@ body{
       tokenModal.hidden = false;
       return;
     }
-    const tokensOut = {};
-    Object.keys(boardTokens).forEach(key=>{
-      const t = boardTokens[key];
-      tokensOut[key] = { id:t.id, kind:t.kind, name:t.name, size:t.size||1, anchorR:t.anchorR, anchorC:t.anchorC, seq:t.seq || null };
-    });
+    const tokensOut = collectBoardTokensOut();
     const data = { nome: name, rows: BOARD_ROWS, cols: BOARD_COLS, marks: boardMarks, tokens: tokensOut, background: boardBackground || null, gridColor: boardGridColor };
     const path = `${BOARDS_PATH}/${slugify(name)}.json`;
     const original = boardSaveBtn.textContent;
@@ -7488,9 +7691,12 @@ body{
   cloudSaveBtn.addEventListener('click', saveFicha);
 
   // ---------- interruptor Ativo/Inativo ----------
-  // Inativo fica à esquerda, Ativo à direita; clicar alterna de um lado pro outro. Só muda o valor
-  // na tela — NÃO salva sozinho (o auto-save aqui não funcionava direito); como qualquer outro
-  // campo da ficha, só grava no repositório quando a pessoa clicar em "SALVAR".
+  // Inativo fica à esquerda, Ativo à direita; clicar alterna de um lado pro outro. Continua NÃO
+  // salvando a ficha inteira sozinho (o auto-save aqui não funcionava direito) — pra isso, como
+  // qualquer outro campo, ainda depende de clicar em "SALVAR". Mas o status em si (só ele, não a
+  // ficha toda) publica na hora em mesa/live/{uid} (ver pushLiveVitals()/scheduleLiveVitalsPush()
+  // lá em cima e isHeroLiveActive()/ensureLiveAtivoListener() mais abaixo) — é assim que sumir/
+  // aparecer na bandeja do tabuleiro passa a valer imediatamente, sem depender de salvar.
   function setFichaAtivo(val){
     const hidden = $('fichaAtivo');
     const toggle = $('fichaAtivoToggle');
@@ -7498,6 +7704,7 @@ body{
     const isAtivo = val === 'Ativo';
     toggle.classList.toggle('is-ativo', isAtivo);
     toggle.setAttribute('aria-checked', String(isAtivo));
+    scheduleLiveVitalsPush();
   }
   function toggleFichaAtivo(){
     const novoValor = $('fichaAtivo').value === 'Ativo' ? 'Inativo' : 'Ativo';
@@ -7921,6 +8128,226 @@ body{
     return cfg ? cfg.img : null;
   }
 
+  // ---------- mini-tabuleiro ao vivo (faixa acima do chat, ver .live-board-panel) ----------
+  // Espelho READ-ONLY do que está publicado em mesa/liveBoard/* (ver scheduleBoardMeta/Marks/
+  // TokensPush() lá em cima), com UMA exceção: cada jogador pode arrastar a PRÓPRIA ficha (ver
+  // isMyLiveToken()) dentro do limite de 1 + bônus de DES (Manhattan: |Δlinha| + |Δcoluna|, então
+  // uma casa na diagonal "custa" 2 igual a duas casas retas — ver handleLiveBoardDrop()). Mantém
+  // seu próprio estado (liveBoardState) TOTALMENTE separado de boardTokens/BOARD_ROWS/etc — aquelas
+  // variáveis continuam sendo só o editor de verdade do mestre (aba Mesa); aqui é só um espelho.
+  const liveBoardPanelEl  = $('liveBoardPanel');
+  const liveBoardOuterEl  = $('liveBoardOuter');
+  const liveBoardColHeaderEl = $('liveBoardColHeader');
+  const liveBoardRowHeaderEl = $('liveBoardRowHeader');
+  const liveBoardGridEl   = $('liveBoardGrid');
+  const liveBoardHintEl   = $('liveBoardHint');
+  const LIVE_BOARD_MIN_KEY = 'rpg_ficha_liveboard_minimized';
+
+  let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {} };
+  let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null;
+  let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null;
+
+  function liveBoardKey(r,c){ return r + '_' + c; }
+
+  // "É minha essa ficha?" — heróis do mestre ("mestre:" no id) valem pra qualquer conta logada como
+  // mestre (não existe distinção entre contas de mestre neste app); heróis de jogador comparam pela
+  // MESMA chave/uid gravados na própria ficha ao salvar (donoChave, com fallback pro ownerUid legado
+  // — ver isFichaEditable()/collectState()). Peça de inimigo/monstro/obstáculo nunca é "minha".
+  function isMyLiveToken(token){
+    if(!token || token.kind !== 'hero') return false;
+    if(typeof token.id === 'string' && token.id.indexOf('mestre:') === 0) return currentRole === 'mestre';
+    if(token.donoChave) return !!currentUserKey && token.donoChave === currentUserKey;
+    if(token.ownerUid) return !!currentUser && token.ownerUid === currentUser.uid;
+    return false;
+  }
+
+  function buildLiveBoardHeaders(){
+    const cols = liveBoardState.cols || 24, rows = liveBoardState.rows || 24;
+    liveBoardColHeaderEl.innerHTML = '';
+    liveBoardColHeaderEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    for(let c = 0; c < cols; c++){
+      const cell = document.createElement('div');
+      cell.className = 'board-header-cell';
+      cell.textContent = columnLabel(c);
+      liveBoardColHeaderEl.appendChild(cell);
+    }
+    liveBoardRowHeaderEl.innerHTML = '';
+    liveBoardRowHeaderEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    for(let r = 0; r < rows; r++){
+      const cell = document.createElement('div');
+      cell.className = 'board-header-cell';
+      cell.textContent = r + 1;
+      liveBoardRowHeaderEl.appendChild(cell);
+    }
+  }
+
+  function renderLiveBoardMini(){
+    if(!liveBoardGridEl) return;
+    const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
+    buildLiveBoardHeaders();
+    liveBoardGridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    liveBoardGridEl.innerHTML = '';
+    liveBoardGridEl.classList.toggle('has-custom-bg', !!liveBoardState.background);
+    liveBoardGridEl.style.backgroundImage = liveBoardState.background ? `url(${liveBoardState.background})` : '';
+    // cor da grade fica num custom property LOCAL (no próprio container, não em :root) — assim não
+    // briga com a cor que o mestre esteja ajustando ao vivo na aba Mesa (ver applyBoardGridColor()).
+    liveBoardOuterEl.style.setProperty('--grid-line-color', hexToRgba(liveBoardState.gridColor || '#ffffff', .35));
+    for(let r = 0; r < rows; r++){
+      for(let c = 0; c < cols; c++){
+        const cell = document.createElement('div');
+        cell.className = 'board-cell ' + ((r + c) % 2 === 0 ? 'cell-light' : 'cell-dark');
+        const mark = liveBoardState.marks[liveBoardKey(r,c)];
+        if(mark) cell.classList.add('mark-' + mark);
+        cell.addEventListener('dragover', (e)=> e.preventDefault());
+        cell.addEventListener('drop', (e)=>{ e.preventDefault(); handleLiveBoardDrop(r, c, e); });
+        const token = liveBoardState.tokens[liveBoardKey(r,c)];
+        if(token && token.anchorR === r && token.anchorC === c){
+          const t = document.createElement('div');
+          const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
+          const mine = isMyLiveToken(token);
+          t.className = 'board-token token-' + token.kind + tokenSizeClass(token.size)
+            + (isBlockKind(token.kind) ? ' token-block' : '')
+            + (isMestreHero ? ' token-hero-mestre' : '')
+            + (mine ? ' live-board-token-mine' : '');
+          if(isBlockKind(token.kind)){
+            t.title = token.name;
+          } else {
+            const portrait = resolveTokenPortrait(token);
+            if(portrait) t.style.backgroundImage = `url("${portrait}")`;
+            else t.innerHTML = `<span class="token-fallback">${escapeHtml((token.name||'?').slice(0,2).toUpperCase())}</span>`;
+          }
+          if(mine){
+            t.draggable = true;
+            t.addEventListener('dragstart', (e)=>{
+              e.dataTransfer.setData('text/plain', JSON.stringify({r: token.anchorR, c: token.anchorC, id: token.id}));
+            });
+          }
+          cell.appendChild(t);
+        }
+        liveBoardGridEl.appendChild(cell);
+      }
+    }
+  }
+
+  function handleLiveBoardDrop(r, c, e){
+    let payload;
+    try{ payload = JSON.parse(e.dataTransfer.getData('text/plain')); }catch(err){ return; }
+    if(!payload) return;
+    const oldKey = liveBoardKey(payload.r, payload.c);
+    const tok = liveBoardState.tokens[oldKey];
+    if(!tok || tok.id !== payload.id || !isMyLiveToken(tok)) return;
+    if(r === payload.r && c === payload.c) return;
+    const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
+    if(r < 0 || c < 0 || r >= rows || c >= cols) return;
+    const newKey = liveBoardKey(r, c);
+    const occupant = liveBoardState.tokens[newKey];
+    if(occupant && occupant.id !== tok.id){ liveBoardHintEl.textContent = 'Essa casa já está ocupada.'; return; }
+    // distância de Manhattan (|Δlinha| + |Δcoluna|) — cada casa na diagonal cobre 1 linha + 1
+    // coluna ao mesmo tempo, então já "custa" o mesmo que 2 casas retas com essa conta, sem
+    // precisar de nenhuma lógica extra pra diagonal custar mais.
+    const dist = Math.abs(r - payload.r) + Math.abs(c - payload.c);
+    // bônus de DES vem gravado no próprio token (ver bonusDes em makeRosterLoader()) — é sempre o
+    // DES da ficha DONA da peça, não o de qualquer ficha aberta no navegador nesse momento (o login
+    // sempre abre uma ficha em branco, ver startNewFicha()).
+    const bonusDes = tok.bonusDes || 0;
+    const limit = 1 + bonusDes;
+    if(dist > limit){
+      liveBoardHintEl.textContent = `Muito longe! Seu limite agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES).`;
+      return;
+    }
+    liveBoardHintEl.textContent = '';
+    const movedToken = Object.assign({}, tok, { anchorR: r, anchorC: c });
+    delete liveBoardState.tokens[oldKey];
+    liveBoardState.tokens[newKey] = movedToken;
+    renderLiveBoardMini();
+    const patch = {}; patch[oldKey] = null; patch[newKey] = movedToken;
+    fbDb.ref('mesa/liveBoard/tokens').update(patch).catch(err=> console.error('Não foi possível mover a ficha no tabuleiro ao vivo:', err));
+  }
+
+  // Além de alimentar o mini-tabuleiro, essa mesma leitura de mesa/liveBoard/tokens também
+  // devolve pro tabuleiro DE VERDADE do mestre (boardTokens, aba Mesa) qualquer herói que um
+  // jogador tenha movido por aqui — senão, na próxima vez que o mestre mexesse em qualquer coisa
+  // do tabuleiro, o broadcast dele (com a posição antiga) apagaria o movimento do jogador. Só
+  // ATUALIZA posição de herói já existente ou coloca um novo — nunca remove um herói local só
+  // porque não apareceu no snapshot (evita sumiço por causa de uma corrida entre abas).
+  function mergeRemoteHeroTokensIntoLocalBoard(remoteTokensObj){
+    if(currentRole !== 'mestre') return;
+    const remoteHeroes = {};
+    Object.values(remoteTokensObj || {}).forEach(rt=>{
+      if(rt && rt.kind === 'hero' && rt.id && rt.anchorR != null && rt.anchorC != null) remoteHeroes[rt.id] = rt;
+    });
+    const affected = new Set();
+    Object.values(remoteHeroes).forEach(rt=>{
+      const localKey = findHeroCell(rt.id);
+      const localTok = localKey ? boardTokens[localKey] : null;
+      if(localTok && localTok.anchorR === rt.anchorR && localTok.anchorC === rt.anchorC) return;
+      if(!canPlace(rt.anchorR, rt.anchorC, 1, localTok ? localTok.id : null)) return;
+      if(localTok){
+        footprintCells(localTok.anchorR, localTok.anchorC, 1).forEach(([r,c])=> affected.add(boardKey(r,c)));
+        clearTokenFootprint(localTok);
+      }
+      const token = {
+        id: rt.id, kind: 'hero', name: rt.name, size: 1,
+        portrait: resolveTokenPortrait(rt), donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0,
+      };
+      if(rt.seq) token.seq = rt.seq;
+      placeToken(rt.anchorR, rt.anchorC, token);
+      affected.add(boardKey(rt.anchorR, rt.anchorC));
+    });
+    if(affected.size){
+      affected.forEach(key=>{ const [r,c] = key.split('_').map(Number); renderBoardCell(r,c); });
+      renderHeroTray();
+      renderMestreTray();
+    }
+  }
+
+  function disconnectLiveBoard(){
+    if(liveBoardMetaRef){ liveBoardMetaRef.off('value', liveBoardMetaCb); liveBoardMetaRef = null; liveBoardMetaCb = null; }
+    if(liveBoardMarksRef){ liveBoardMarksRef.off('value', liveBoardMarksCb); liveBoardMarksRef = null; liveBoardMarksCb = null; }
+    if(liveBoardTokensRef){ liveBoardTokensRef.off('value', liveBoardTokensCb); liveBoardTokensRef = null; liveBoardTokensCb = null; }
+    liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {} };
+    renderLiveBoardMini();
+  }
+
+  function connectLiveBoard(){
+    if(liveBoardTokensRef) return; // já conectado
+    liveBoardMetaRef = fbDb.ref('mesa/liveBoard/meta');
+    liveBoardMetaCb = liveBoardMetaRef.on('value', (snap)=>{
+      const val = snap.val() || {};
+      liveBoardState.rows = val.rows || 24;
+      liveBoardState.cols = val.cols || 24;
+      liveBoardState.gridColor = val.gridColor || '#ffffff';
+      liveBoardState.background = val.background || null;
+      renderLiveBoardMini();
+    });
+    liveBoardMarksRef = fbDb.ref('mesa/liveBoard/marks');
+    liveBoardMarksCb = liveBoardMarksRef.on('value', (snap)=>{
+      liveBoardState.marks = snap.val() || {};
+      renderLiveBoardMini();
+    });
+    liveBoardTokensRef = fbDb.ref('mesa/liveBoard/tokens');
+    liveBoardTokensCb = liveBoardTokensRef.on('value', (snap)=>{
+      const val = snap.val() || {};
+      liveBoardState.tokens = val;
+      renderLiveBoardMini();
+      mergeRemoteHeroTokensIntoLocalBoard(val);
+    });
+    // roster (retrato de cada ficha ativa) precisa estar carregado pra resolver as imagens aqui —
+    // reaproveita loadHeroRoster()/loadMestreRoster() (mesma leitura pública do GitHub que já
+    // alimenta a aba Mesa do mestre e a lista "Fichas de Jogador", sem exigir token nenhum pra ler).
+    loadHeroRoster();
+    loadMestreRoster();
+  }
+
+  function setLiveBoardMinimized(min){
+    liveBoardPanelEl.classList.toggle('minimized', min);
+    $('liveBoardMinimizeBtn').textContent = min ? '▸' : '▾';
+    $('liveBoardMinimizeBtn').title = min ? 'Expandir' : 'Minimizar';
+    localStorage.setItem(LIVE_BOARD_MIN_KEY, min ? '1' : '0');
+  }
+  $('liveBoardMinimizeBtn').addEventListener('click', ()=> setLiveBoardMinimized(!liveBoardPanelEl.classList.contains('minimized')));
+  setLiveBoardMinimized(localStorage.getItem(LIVE_BOARD_MIN_KEY) !== '0');
+
   // ---------- chat da mesa (global — todo mundo logado, mestre e jogadores, no mesmo chat) ----------
   const chatPanelEl = $('chatPanel');
   const chatMessagesEl = $('chatMessages');
@@ -8231,6 +8658,9 @@ body{
         applyRoleVisibility();
         disconnectChat();
         $('chatPanel').hidden = true;
+        disconnectLiveBoard();
+        $('liveBoardPanel').hidden = true;
+        disconnectLiveAtivoListeners();
         return;
       }
       // resolve o papel: primeiro tenta users/{uid} (contas cadastradas por aqui, ver
@@ -8284,6 +8714,8 @@ body{
       });
       $('chatPanel').hidden = false;
       connectChat();
+      $('liveBoardPanel').hidden = false;
+      connectLiveBoard();
     });
   }
 
