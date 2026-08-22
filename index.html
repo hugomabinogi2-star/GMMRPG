@@ -318,12 +318,18 @@ body{
   width:24px;height:24px;line-height:1;font-size:13px;color:var(--ink-soft);cursor:pointer;
 }
 .chat-min-btn:hover{border-color:var(--gold-bright);color:var(--ink);}
-.chat-panel-body{display:flex;flex-direction:column;min-height:0;flex:1;}
+.chat-panel-body{display:flex;flex-direction:column;min-height:0;flex:1;position:relative;}
 .chat-panel.minimized .chat-panel-body{display:none;}
 .chat-panel.minimized{max-height:none;}
+/* fundo animado do chat: estrelinhas (ou caveirinhas) subindo continuamente atrás das mensagens e
+   do campo de digitar — ver .chat-bg-fx/.chat-bg-star mais abaixo e spawnChatBgParticle() no
+   <script>. position:absolute tira a camada do fluxo (não empurra layout nenhum), por isso
+   .chat-messages e .chat-input-row precisam de position:relative + z-index:1 pra ficarem sempre
+   por cima dela, legíveis. */
 .chat-messages{
   flex:1;min-height:220px;max-height:440px;overflow-y:auto;
   padding:2px 2px 8px;display:flex;flex-direction:column;gap:7px;
+  position:relative;z-index:1;
 }
 .chat-msg-empty{color:var(--ink-faint);font-size:12px;font-style:italic;text-align:center;padding:14px 0;}
 .chat-msg{font-size:12.5px;line-height:1.35;color:var(--ink);word-wrap:break-word;}
@@ -352,6 +358,40 @@ body{
 .cm-img{max-width:100%;max-height:180px;border-radius:4px;border:1px solid var(--ink-faint);display:block;}
 .chat-input-row{
   display:flex;gap:6px;padding-top:9px;border-top:1px solid var(--ink-faint);flex:none;
+  position:relative;z-index:1;
+}
+/* camada de fundo animado do chat — ver comentário em .chat-panel-body acima. Cobre o corpo
+   inteiro (mensagens + campo de digitar), fica atrás de tudo (z-index:0) e nunca captura clique
+   (pointer-events:none). overflow:hidden corta qualquer estrelinha que suba além do topo/base
+   antes da animação terminar de sumir. */
+.chat-bg-fx{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  pointer-events:none;
+  z-index:0;
+}
+/* cada estrelinha (★) ou caveirinha (💀, vida crítica) nasce já com cor/tamanho/duração decididos
+   em spawnChatBgParticle() — a única coisa que a animação CSS faz é subir + aparecer/sumir nas
+   pontas, num movimento linear (sem acelerar/desacelerar) pra várias delas nunca ficarem
+   "grudadas" na mesma altura por muito tempo. --rise-dist é escrito por partícula (altura do
+   próprio .chat-bg-fx no momento em que ela nasce, +uma folga), pra sempre atravessar a caixa
+   inteira não importa o tamanho dela. */
+.chat-bg-star{
+  position:absolute;
+  bottom:-8%;
+  line-height:1;
+  user-select:none;
+  animation-name:chat-bg-star-rise;
+  animation-timing-function:linear;
+  animation-fill-mode:forwards;
+  will-change:transform,opacity;
+}
+@keyframes chat-bg-star-rise{
+  0%{ opacity:0; transform:translateY(0); }
+  10%{ opacity:.55; }
+  85%{ opacity:.5; }
+  100%{ opacity:0; transform:translateY(calc(-1 * var(--rise-dist, 260px))); }
 }
 #chatInput{
   flex:1;min-width:0;box-sizing:border-box;padding:7px 9px;font-family:'Inter',sans-serif;font-size:12.5px;
@@ -809,6 +849,14 @@ body{
 .mc-owner-badge{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:400;color:var(--ink-faint);text-shadow:none;margin-left:6px;}
 .master-card .mc-meta{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
 .master-card .mc-vitals{font-size:11px;color:var(--ink-faint);margin-top:3px;}
+/* aparece assim que a primeira atualização "ao vivo" chega pra esta ficha (ver o listener em
+   mesa/live/{uid} dentro de makeFichasListLoader()) — some de novo toda vez que a lista recarrega,
+   até a próxima atualização chegar. */
+.mc-live-badge{
+  display:inline-block;margin-left:6px;color:#3d8c4a;font-weight:600;
+  animation:mcLivePulse 1.8s ease-in-out infinite;
+}
+@keyframes mcLivePulse{ 0%,100%{opacity:1;} 50%{opacity:.45;} }
 .master-card .mc-attrs{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:11px;color:var(--ink-soft);}
 .master-card .mc-attrs span{font-family:'Cinzel',serif;letter-spacing:.03em;}
 .master-card .mc-attrs strong{color:var(--ink);font-family:'Inter',sans-serif;}
@@ -1106,24 +1154,29 @@ body{
 }
 .portrait-back span{font-size:11px;}
 
-/* vela acima do retrato — não faz parte do quadro do retrato (por isso position:absolute, fora do
-   fluxo de .portrait-wrap: assim o retrato sobe e fica alinhado com o topo do quadro de Atributos,
-   igual antes de a vela existir) e fica flutuando acima dele, encostada na borda esquerda do
-   retrato. A chama reage à cor da Deidade escolhida (reaproveita as mesmas variáveis já usadas em
-   outros elementos reativos, --deity-eye-color/--deity-eye-glow-soft, então não precisa de nenhum
-   JS extra pra acompanhar a troca de Deidade) e ilumina de leve a área ao redor. A cera vai
-   "derretendo"/encolhendo conforme o personagem ganha XP dentro do nível atual (--candle-wax-pct,
-   1 = vela nova/cheia, atualizado em recalc() -> updateCandle()), reacendendo cheia a cada vez que
-   sobe de nível (o XP dentro do bloco volta a 0). */
+/* vela — morava colada na borda esquerda do retrato; agora fica no topo da ficha, dentro do
+   .ribbon (que já é position:relative), no canto oposto ao selo de Nível (.seal fica em
+   top:2px;right:10px — a vela espelha isso em top:2px;left:10px). A chama reage à cor da Deidade
+   escolhida (reaproveita as mesmas variáveis já usadas em outros elementos reativos,
+   --deity-eye-color/--deity-eye-glow-soft, então não precisa de nenhum JS extra pra acompanhar a
+   troca de Deidade) e ilumina de leve a área ao redor. A cera vai "derretendo"/encolhendo conforme
+   o personagem ganha XP dentro do nível atual (--candle-wax-pct, 1 = vela nova/cheia, atualizado
+   em recalc() -> updateCandle()), reacendendo cheia a cada vez que sobe de nível (o XP dentro do
+   bloco volta a 0). */
 .candle-wrap{
   --candle-wax-pct:1;
   position:absolute;
-  left:6px;
-  bottom:100%;
+  left:10px;
+  top:2px;
   width:56px;
   height:74px;
   pointer-events:none;
   z-index:2;
+}
+@media (max-width:760px){
+  /* mesmo encolhido do .seal nessa largura — mantém a vela do mesmo tamanho relativo ao selo de
+     Nível do outro lado, em vez de reajustar cada medida interna dela uma por uma. */
+  .candle-wrap{transform:scale(.74);transform-origin:top left;}
 }
 .candle-glow-wash{
   position:absolute;
@@ -2602,6 +2655,15 @@ body{
         <div class="rivet bl"></div><div class="rivet br"></div>
 
         <div class="ribbon">
+          <!-- vela: morava colada no retrato, agora fica aqui no topo da ficha, do lado oposto
+               ao selo de Nível (que fica em .seal, à direita) — ver .candle-wrap no <style>. -->
+          <div class="candle-wrap" id="candleWrap" aria-hidden="true">
+            <div class="candle-glow-wash"></div>
+            <div class="candle-flame"></div>
+            <div class="candle-wick"></div>
+            <div class="candle-wax"></div>
+            <div class="candle-holder"></div>
+          </div>
           <h1>Ficha de Herói</h1>
           <div class="deity-lore" id="deityLore">
             <div class="deity-lore-name" id="deityLoreName"></div>
@@ -2662,10 +2724,14 @@ body{
           <h2>💬 Chat da Mesa<span class="chat-panel-head-actions">
             <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
             <button id="chatImageBtn" class="chat-min-btn" title="Enviar imagem no chat" type="button">🖼️</button>
+            <button id="chatEscudoPrintBtn" class="chat-min-btn" title="Mandar um print do Escudo atual" type="button">🛡️</button>
+            <button id="chatVidaPrintBtn" class="chat-min-btn" title="Mandar um print da Vida atual" type="button">🔴</button>
+            <button id="chatManaPrintBtn" class="chat-min-btn" title="Mandar um print da Mana atual" type="button">🔵</button>
             <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
           </span></h2>
           <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
           <div class="chat-panel-body" id="chatPanelBody">
+            <div class="chat-bg-fx" id="chatBgFx" aria-hidden="true"></div>
             <div class="chat-messages" id="chatMessages">
               <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
             </div>
@@ -2681,13 +2747,6 @@ body{
           <!-- Coluna 1: retrato + identidade + habilidades + inventário -->
           <div>
             <div class="portrait-wrap">
-              <div class="candle-wrap" id="candleWrap" aria-hidden="true">
-                <div class="candle-glow-wash"></div>
-                <div class="candle-flame"></div>
-                <div class="candle-wick"></div>
-                <div class="candle-wax"></div>
-                <div class="candle-holder"></div>
-              </div>
               <div class="portrait" id="portrait">
                 <span>Clique para<br>adicionar retrato</span>
               </div>
@@ -2809,7 +2868,6 @@ body{
             <div class="panel">
               <h2 class="vitalidade-title">Vitalidade</h2>
               <div class="barreira-box">
-                <div class="vlabel">Escudo</div>
                 <div class="barreira-row">
                   <div class="barreira-field">
                     <label>Máximo</label>
@@ -4038,6 +4096,35 @@ body{
     updateDeityLore();
     updateDeityEyeGlow();
     updateBarreiraShield();
+    scheduleLiveVitalsPush();
+  }
+
+  // ---------- vitais "ao vivo" (Vida/Mana/Escudo) pro mestre ver em "Fichas de Jogador" sem
+  // precisar que alguém clique em SALVAR ---------
+  // Publica um resuminho leve em mesa/live/{uid} sempre que a Vida/Mana/Escudo mudam — a lista de
+  // "Fichas de Jogador" (ver makeFichasListLoader()) escuta esse mesmo caminho e atualiza os
+  // números na hora, por cima do que tiver salvo no GitHub. Só publica quando dá pra saber com
+  // certeza de QUEM é a ficha (mesma regra de ownerUid usada em collectState() — um mestre
+  // corrigindo a ficha de outra pessoa publica no lugar certo; um mestre numa ficha em branco, ou
+  // sem ninguém logado, não publica nada). recalc() roda a CADA tecla/clique na ficha inteira,
+  // então isto é atrasado (debounce) pra não virar um POST no Firebase a cada letra digitada.
+  let liveVitalsTimer = null;
+  function scheduleLiveVitalsPush(){
+    if(!fbReady || !fbDb || !currentUser) return;
+    if(liveVitalsTimer) clearTimeout(liveVitalsTimer);
+    liveVitalsTimer = setTimeout(pushLiveVitals, 600);
+  }
+  function pushLiveVitals(){
+    if(!fbReady || !fbDb || !currentUser) return;
+    const ownerUid = loadedFichaOwnerUid || ((currentRole === 'jogador') ? currentUser.uid : null);
+    if(!ownerUid) return;
+    fbDb.ref('mesa/live/' + ownerUid).set({
+      nome: els.nome.value || '',
+      vida: num(els.curVida), vidaMax: parseFloat(els.maxVida.textContent) || 0,
+      mana: num(els.curMana), manaMax: parseFloat(els.maxMana.textContent) || 0,
+      escudo: num(els.barreiraCur), escudoMax: num(els.barreiraMax),
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
   }
 
   Object.values(els).forEach(el=>{
@@ -5610,6 +5697,112 @@ body{
     drawRollFrameRing(ctx, cx, cy, r, deityColor);
 
     return canvas.toDataURL('image/png');
+  }
+
+  // ---------- "prints" do Escudo/Vida/Mana pros 3 botões novos do chat ----------
+  // Em vez de tentar redesenhar o escudo/as garrafas do zero num <canvas> (fácil desalinhar do
+  // visual de verdade toda vez que ele mudar), estas funções CLONAM o próprio pedaço de HTML/SVG
+  // já na tela — assim herdam automaticamente qualquer ajuste visual futuro nesses elementos, sem
+  // precisar lembrar de atualizar aqui também. Como o clone sai do documento principal (que tem
+  // toda a folha de estilo, incluindo variáveis de cor da Deidade), ele carrega junto só o CSS
+  // estritamente necessário pra ele mesmo (com as cores da Deidade já resolvidas pra valor fixo,
+  // já que fora do documento principal um var(--deity-eye-color) não teria de onde puxar) — daí
+  // vira um SVG autocontido, vira um data URL, e é desenhado num <canvas> só pra sair como PNG.
+
+  // Escudo: mistura HTML (a foto do escudo) com SVG (os dois anéis de luz) — por causa disso usa
+  // um <foreignObject>, que sabe renderizar HTML dentro de um SVG.
+  function buildEscudoPrintDataUrl(){
+    return new Promise((resolve)=>{
+      const wrap = document.querySelector('.barreira-shield-wrap');
+      if(!wrap){ resolve(null); return; }
+      const deityColor = DEITY_EYE_COLOR[els.deidade.value] || '#e0b656';
+      const deityGlow = hexToRgba(deityColor, .55);
+      const clone = wrap.cloneNode(true);
+      clone.removeAttribute('id');
+      // clone.outerHTML segue as regras de serialização HTML (ex: <input readonly> sem valor,
+      // <img ...> sem autofechar) — inválido como XML, e por estar dentro de um <foreignObject>
+      // dentro de um <svg> isso faz o data URI inteiro falhar em carregar (img.onerror) sem
+      // nenhum erro no console. XMLSerializer produz XML bem-formado (atributos booleanos viram
+      // readonly="", tags void ficam autofechadas), igual já é usado pras garrafas mais abaixo.
+      const cloneHtml = new XMLSerializer().serializeToString(clone);
+      const styleText = `
+        .barreira-shield-wrap{position:relative;width:150px;height:150px;}
+        .barreira-ring{position:absolute;inset:-11px;width:172px;height:172px;transform:rotate(-90deg);overflow:visible;}
+        .barreira-ring-track{fill:none;stroke:rgba(0,0,0,.3);stroke-width:5;}
+        .barreira-ring-fill{fill:none;stroke:${deityColor};stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 4px ${deityColor}) drop-shadow(0 0 9px ${deityGlow});}
+        .barreira-shield{position:relative;width:100%;height:100%;border-radius:50%;overflow:hidden;background:#000;border:3px solid #8a661f;box-shadow:0 2px 6px rgba(0,0,0,.5), inset 0 0 12px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,225,150,.25);}
+        .barreira-shield img{width:100%;height:100%;object-fit:cover;display:block;}
+        .barreira-shield-inner-ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+        .barreira-shield-ring-track{fill:none;stroke:rgba(0,0,0,.35);stroke-width:3.5;}
+        .barreira-shield-ring-fill{fill:none;stroke:${deityColor};stroke-width:3.5;stroke-linecap:round;filter:drop-shadow(0 0 4px ${deityColor}) drop-shadow(0 0 9px ${deityGlow});}
+      `;
+      const PAD = 30, BOX = 150 + PAD*2;
+      const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="${BOX}" height="${BOX}">
+        <foreignObject x="0" y="0" width="${BOX}" height="${BOX}">
+          <div xmlns="http://www.w3.org/1999/xhtml" style="width:${BOX}px;height:${BOX}px;display:flex;align-items:center;justify-content:center;">
+            <style>${styleText}</style>
+            ${cloneHtml}
+          </div>
+        </foreignObject>
+      </svg>`;
+      const img = new Image();
+      img.onload = ()=>{
+        const SIZE = 320;
+        const canvas = document.createElement('canvas');
+        canvas.width = SIZE; canvas.height = SIZE;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f3e6c8';
+        ctx.fillRect(0, 0, SIZE, SIZE);
+        ctx.drawImage(img, 0, 0, SIZE, SIZE);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = ()=> resolve(null);
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+    });
+  }
+
+  // Vida/Mana: as garrafas (#bottle_vida/#bottle_mana) já são um <svg> autocontido (com os
+  // próprios gradientes em <defs>), então não precisa de foreignObject — só clona o <svg> inteiro,
+  // grude um <style> com as classes .bottle-*/.vital-bottle (essas moram na folha de estilo da
+  // página, não no próprio SVG) e serializa direto.
+  const BOTTLE_PRINT_STYLE = `
+    .vital-bottle{width:70px;height:140px;overflow:visible;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35));}
+    .bottle-outline{fill:rgba(255,255,255,.05);stroke:#a9822f;stroke-width:2.2;}
+    .bottle-stopper{fill:rgba(255,255,255,.16);stroke:#a9822f;stroke-width:1.8;}
+    .bottle-facet{stroke:rgba(255,255,255,.4);stroke-width:.9;fill:none;}
+    .bottle-liquid-surface{fill:rgba(255,255,255,.65);}
+    .bottle-glow-layer{filter:blur(7px);opacity:.85;}
+    .bottle-glow-red{fill:#ff3b3b;} .bottle-glow-green{fill:#39ff6a;} .bottle-glow-blue{fill:#3fa8ff;}
+    .bottle-cap-gem-glow{filter:blur(6px);opacity:.85;}
+    .bottle-cap-gem-glow-red{fill:#ff3b3b;} .bottle-cap-gem-glow-blue{fill:#3fa8ff;}
+    .bottle-cap-gem{stroke:rgba(0,0,0,.4);stroke-width:.7;}
+    .bottle-cap-gem-shine{fill:rgba(255,255,255,.85);}
+    .bottle-bubble{fill:rgba(255,255,255,.88);}
+  `;
+  function buildBottlePrintDataUrl(bottleId){
+    return new Promise((resolve)=>{
+      const svgEl = document.getElementById(bottleId);
+      if(!svgEl){ resolve(null); return; }
+      const clone = svgEl.cloneNode(true);
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+      const styleTag = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+      styleTag.textContent = BOTTLE_PRINT_STYLE;
+      clone.insertBefore(styleTag, clone.firstChild);
+      const svgStr = new XMLSerializer().serializeToString(clone);
+      const img = new Image();
+      img.onload = ()=>{
+        const W = 200, H = 400;
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#f3e6c8';
+        ctx.fillRect(0, 0, W, H);
+        ctx.drawImage(img, 0, 0, W, H);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = ()=> resolve(null);
+      img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+    });
   }
 
   // decide qual dos 9 ícones combina com esta rolagem — ver a ordem de prioridade no comentário lá
@@ -7231,7 +7424,18 @@ body{
   // Gera a função que busca/renderiza uma lista de fichas do GitHub — reaproveitada tanto para
   // "Fichas de Jogador" (pasta FICHAS_PATH) quanto para "Fichas do Mestre" (pasta FICHAS_MESTRE_PATH).
   function makeFichasListLoader(githubPath, listEl, modalEl, emptyMsg){
-    return async function loadList(){
+    // "ao vivo": enquanto a lista estiver na tela, cada ficha com dono (ownerUid) escuta
+    // mesa/live/{uid} (ver pushLiveVitals() lá em cima, perto de recalc()) e atualiza Vida/Mana/
+    // Escudo na hora, sem precisar que ninguém clique em SALVAR nem reabra a lista. Preciso
+    // guardar as referências aqui fora pra poder desligar todas de uma vez (senão elas ficam
+    // acumulando toda vez que a lista recarrega ou o modal fecha e abre de novo).
+    let liveListeners = [];
+    function detachLiveListeners(){
+      liveListeners.forEach(({ref, cb}) => ref.off('value', cb));
+      liveListeners = [];
+    }
+    async function loadList(){
+      detachLiveListeners();
       listEl.innerHTML = '<div class="master-empty">Buscando fichas no repositório...</div>';
       try{
         const files = (await githubListFolder(githubPath))
@@ -7270,6 +7474,8 @@ body{
           const manaMaxCalc = totalsCalc.int + totalsCalc.von;
           const curVidaVal = (data.curVida === undefined || data.curVida === null || data.curVida === '') ? vidaMaxCalc : data.curVida;
           const curManaVal = (data.curMana === undefined || data.curMana === null || data.curMana === '') ? manaMaxCalc : data.curMana;
+          const escudoMaxVal = parseFloat(data.barreiraMax) || 0;
+          const escudoCurVal = (data.barreiraCur === undefined || data.barreiraCur === null || data.barreiraCur === '') ? escudoMaxVal : data.barreiraCur;
           const card = document.createElement('div');
           card.className = 'master-card';
           // avisa de cara, na lista, quando a ficha já tem dono e não é a de quem está olhando —
@@ -7280,7 +7486,13 @@ body{
             <div>
               <div class="mc-name">${escapeHtml(data.nome||'(sem nome)')} <span style="color:var(--ink-faint);font-weight:400;">— Nv. ${level}</span>${ownerBadge}</div>
               <div class="mc-meta">${escapeHtml(data.deidade||'')}</div>
-              <div class="mc-vitals">Vida ${escapeHtml(String(curVidaVal))} / ${vidaMaxCalc} · Mana ${escapeHtml(String(curManaVal))} / ${manaMaxCalc} · Ouro ${escapeHtml(String((data.inventory && data.inventory[0] && data.inventory[0].qtd) || 0))}</div>
+              <div class="mc-vitals">
+                Vida <span class="mc-live-vida">${escapeHtml(String(curVidaVal))}</span> / <span class="mc-live-vidamax">${vidaMaxCalc}</span> ·
+                Mana <span class="mc-live-mana">${escapeHtml(String(curManaVal))}</span> / <span class="mc-live-manamax">${manaMaxCalc}</span> ·
+                Escudo <span class="mc-live-escudo">${escapeHtml(String(escudoCurVal))}</span> / <span class="mc-live-escudomax">${escudoMaxVal}</span> ·
+                Ouro ${escapeHtml(String((data.inventory && data.inventory[0] && data.inventory[0].qtd) || 0))}
+                <span class="mc-live-badge" hidden title="Estes valores estão sendo atualizados ao vivo, sem precisar salvar a ficha">● ao vivo</span>
+              </div>
               <div class="mc-attrs">${attrsHtml}</div>
             </div>
             <div class="mc-actions">
@@ -7326,6 +7538,26 @@ body{
             }
           });
           listEl.appendChild(card);
+
+          // vitais ao vivo: só dá pra escutar quando a ficha já tem um dono conhecido (ownerUid) —
+          // ficha legada/sem dono não tem em qual uid procurar, fica só com o valor salvo mesmo.
+          if(fbReady && fbDb && data.ownerUid){
+            const liveRef = fbDb.ref('mesa/live/' + data.ownerUid);
+            const cb = liveRef.on('value', (snap)=>{
+              const live = snap.val();
+              if(!live) return;
+              const setTxt = (sel, val) => { const el = card.querySelector(sel); if(el && val !== undefined && val !== null) el.textContent = val; };
+              setTxt('.mc-live-vida', live.vida);
+              setTxt('.mc-live-vidamax', live.vidaMax);
+              setTxt('.mc-live-mana', live.mana);
+              setTxt('.mc-live-manamax', live.manaMax);
+              setTxt('.mc-live-escudo', live.escudo);
+              setTxt('.mc-live-escudomax', live.escudoMax);
+              const badge = card.querySelector('.mc-live-badge');
+              if(badge) badge.hidden = false;
+            });
+            liveListeners.push({ ref: liveRef, cb });
+          }
         });
         applyRoleVisibility(); // os botões "Apagar" recém-criados também precisam respeitar o papel atual
       }catch(err){
@@ -7335,7 +7567,9 @@ body{
           : 'Não foi possível carregar as fichas agora (verifique sua conexão ou tente atualizar de novo).';
         listEl.innerHTML = `<div class="master-empty">${escapeHtml(msg)}</div>`;
       }
-    };
+    }
+    loadList.detachLiveListeners = detachLiveListeners;
+    return loadList;
   }
 
   const loadMasterList = makeFichasListLoader(
@@ -7351,8 +7585,8 @@ body{
     masterModal.hidden = false;
     loadMasterList();
   });
-  $('closeMaster').addEventListener('click', ()=> masterModal.hidden = true);
-  masterModal.addEventListener('click', (e)=>{ if(e.target === masterModal) masterModal.hidden = true; });
+  $('closeMaster').addEventListener('click', ()=>{ masterModal.hidden = true; loadMasterList.detachLiveListeners(); });
+  masterModal.addEventListener('click', (e)=>{ if(e.target === masterModal){ masterModal.hidden = true; loadMasterList.detachLiveListeners(); } });
   $('refreshMaster').addEventListener('click', loadMasterList);
 
   $('masterMestreBtn').addEventListener('click', ()=>{
@@ -7363,8 +7597,8 @@ body{
     masterMestreModal.hidden = false;
     loadMasterMestreList();
   });
-  $('closeMasterMestre').addEventListener('click', ()=> masterMestreModal.hidden = true);
-  masterMestreModal.addEventListener('click', (e)=>{ if(e.target === masterMestreModal) masterMestreModal.hidden = true; });
+  $('closeMasterMestre').addEventListener('click', ()=>{ masterMestreModal.hidden = true; loadMasterMestreList.detachLiveListeners(); });
+  masterMestreModal.addEventListener('click', (e)=>{ if(e.target === masterMestreModal){ masterMestreModal.hidden = true; loadMasterMestreList.detachLiveListeners(); } });
   $('refreshMasterMestre').addEventListener('click', loadMasterMestreList);
 
   // ---------- firebase: login (mestre/jogador), ficha ao vivo ----------
@@ -7751,18 +7985,113 @@ body{
     });
     postChatToDiscord(nome, '', dataUrl);
   }
+  // ---------- botões de "print" (escudo/vida/mana atuais) no topo do chat ----------
+  // Clona os widgets ao vivo (escudo/garrafas) pra gerar uma imagem fiel ao que está na ficha
+  // no momento do clique — ver buildEscudoPrintDataUrl()/buildBottlePrintDataUrl() mais acima.
+  // Isso é um "evento" de app (igual uma rolagem), não um texto digitado, então usa postToDiscord
+  // (que já cuida de espelhar no chat E mandar pro Discord, respeitando SILENCIAR).
+  async function sendVitalPrint(kind){
+    if(!fbReady || !currentUser){ alert('Entre na sua conta pra mandar esse print.'); return; }
+    const nome = els.nome.value.trim() || '(sem nome)';
+    let img, label, cur, max;
+    if(kind === 'escudo'){
+      img = await buildEscudoPrintDataUrl();
+      label = 'ESCUDO ATUAL';
+      cur = num(els.barreiraCur); max = num(els.barreiraMax);
+    } else if(kind === 'vida'){
+      img = await buildBottlePrintDataUrl('bottle_vida');
+      label = 'VIDA ATUAL';
+      cur = num(els.curVida); max = parseFloat(els.maxVida.textContent) || 0;
+    } else {
+      img = await buildBottlePrintDataUrl('bottle_mana');
+      label = 'MANA ATUAL';
+      cur = num(els.curMana); max = parseFloat(els.maxMana.textContent) || 0;
+    }
+    const content = `${label} DE "${nome}" (${cur} / ${max})`;
+    postToDiscord(content, img);
+  }
+  const chatEscudoPrintBtn = $('chatEscudoPrintBtn');
+  const chatVidaPrintBtn = $('chatVidaPrintBtn');
+  const chatManaPrintBtn = $('chatManaPrintBtn');
+  if(chatEscudoPrintBtn) chatEscudoPrintBtn.addEventListener('click', ()=> sendVitalPrint('escudo'));
+  if(chatVidaPrintBtn) chatVidaPrintBtn.addEventListener('click', ()=> sendVitalPrint('vida'));
+  if(chatManaPrintBtn) chatManaPrintBtn.addEventListener('click', ()=> sendVitalPrint('mana'));
+
   chatInputEl.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') sendChatMessage(); });
 
   // botão de minimizar: só esconde o corpo da caixa (mensagens + campo de digitar), mantendo o
   // cabeçalho visível pra poder reabrir; o estado escolhido fica salvo por navegador.
+  // ---------- fundo animado do chat: estrelinhas (ou caveirinhas) subindo ----------
+  // Cada partícula nasce já com forma/cor decididas a partir do estado ATUAL do personagem (não
+  // muda depois de nascida) — prioridade, da mais urgente pra trás:
+  //   1) Vida <= 10% do máximo -> vira uma caveirinha 💀, não importa Escudo/overheal (sinal de
+  //      perigo sempre vence os outros, o personagem pode estar blindado e mesmo assim quase morto).
+  //   2) Escudo atual > 1 -> estrela na cor da Deidade selecionada (mesma cor de outros efeitos
+  //      reativos da ficha, ver DEITY_EYE_COLOR).
+  //   3) Sem Escudo, mas com "vida verde" (overheal — Vida atual acima do máximo) -> estrela verde.
+  //   4) Nenhum dos anteriores (sem Escudo, sem overheal) -> estrela vermelha.
+  const chatBgFxEl = $('chatBgFx');
+  function chatBgParticleState(){
+    const vidaMax = parseFloat(els.maxVida.textContent) || 0;
+    const vidaAtual = num(els.curVida);
+    const escudoAtual = num(els.barreiraCur);
+    if(vidaMax > 0 && vidaAtual <= vidaMax * 0.1) return { glyph:'💀', color:null };
+    if(escudoAtual > 1) return { glyph:'★', color: DEITY_EYE_COLOR[els.deidade.value] || '#e0b656' };
+    if(vidaMax > 0 && vidaAtual > vidaMax) return { glyph:'★', color:'#3fd66b' };
+    return { glyph:'★', color:'#ff4d4d' };
+  }
+  function spawnChatBgParticle(){
+    if(!chatBgFxEl) return;
+    const rect = chatBgFxEl.getBoundingClientRect();
+    if(rect.height < 10) return; // painel minimizado/fora da tela — não gasta partícula à toa
+    const { glyph, color } = chatBgParticleState();
+    const el = document.createElement('span');
+    el.className = 'chat-bg-star';
+    el.textContent = glyph;
+    const size = 10 + Math.random() * 16; // tamanhos diversos, ~10 a 26px
+    el.style.fontSize = size.toFixed(1) + 'px';
+    el.style.left = (2 + Math.random() * 96) + '%';
+    el.style.setProperty('--rise-dist', Math.round(rect.height + 50) + 'px');
+    const dur = 5 + Math.random() * 5; // 5 a 10s — velocidades variadas, não sobe tudo junto
+    el.style.animationDuration = dur.toFixed(2) + 's';
+    if(color){
+      el.style.color = color;
+      el.style.textShadow = `0 0 5px ${hexToRgba(color, .85)}, 0 0 10px ${hexToRgba(color, .5)}`;
+    } else {
+      el.style.textShadow = '0 0 4px rgba(0,0,0,.6)'; // caveirinha: sem tingir, só uma sombra leve
+    }
+    chatBgFxEl.appendChild(el);
+    el.addEventListener('animationend', () => el.remove());
+    setTimeout(() => el.remove(), (dur + 1) * 1000); // rede de segurança, igual às outras estrelinhas
+  }
+  let chatBgFxTimer = null;
+  function scheduleNextChatBgParticle(){
+    chatBgFxTimer = setTimeout(() => {
+      spawnChatBgParticle();
+      scheduleNextChatBgParticle();
+    }, 350 + Math.random() * 500); // nasce uma nova a cada ~0.35–0.85s
+  }
+  function stopChatBgFx(){
+    if(chatBgFxTimer){ clearTimeout(chatBgFxTimer); chatBgFxTimer = null; }
+  }
+  function startChatBgFx(){
+    if(chatBgFxTimer) return; // já rodando
+    scheduleNextChatBgParticle();
+  }
+
   function setChatMinimized(min){
     chatPanelEl.classList.toggle('minimized', min);
     $('chatMinimizeBtn').textContent = min ? '▸' : '▾';
     $('chatMinimizeBtn').title = min ? 'Expandir' : 'Minimizar';
     localStorage.setItem(CHAT_MIN_KEY, min ? '1' : '0');
+    // painel minimizado esconde .chat-panel-body (display:none) — pausa o efeito de fundo junto,
+    // sem sentido gastar timer/DOM com estrelinhas que ninguém está vendo.
+    if(min) stopChatBgFx(); else startChatBgFx();
   }
   $('chatMinimizeBtn').addEventListener('click', ()=> setChatMinimized(!chatPanelEl.classList.contains('minimized')));
-  setChatMinimized(localStorage.getItem(CHAT_MIN_KEY) === '1');
+  // chat agora começa MINIMIZADO por padrão (só fica aberto de cara se a pessoa já tinha
+  // escolhido deixar aberto nesse navegador antes — daí o valor salvo é exatamente '0').
+  setChatMinimized(localStorage.getItem(CHAT_MIN_KEY) !== '0');
 
   // botão de limpar o chat (🧹, só o mestre vê — ver .mestre-only) — as mensagens de evento podem
   // acumular imagens (retratos, prints do tabuleiro) e engordar o banco com o tempo; isso dá uma
