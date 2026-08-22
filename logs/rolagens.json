@@ -15,5 +15,14 @@
     "resultado": 12,
     "resultLabel": "Erro",
     "ts": 1787418289309
+  },
+  {
+    "nome": "João Baiden",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 10,
+    "resultado": 7,
+    "resultLabel": "Erro",
+    "ts": 1787421700867
   }
 ]
