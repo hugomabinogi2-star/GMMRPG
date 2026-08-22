@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "nome": "Sexus",
+    "tipo": "sorte",
+    "escolha": "cara",
+    "resultado": "cara",
+    "verdict": "acerto",
+    "ts": 1787414310524
+  }
+]
