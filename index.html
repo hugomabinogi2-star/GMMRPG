@@ -312,6 +312,7 @@ body{
 }
 .chat-panel-title{font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:var(--ink);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.chat-panel-head-actions{display:flex;gap:6px;flex:none;}
 .chat-min-btn{
   flex:none;background:none;border:1px solid var(--ink-faint);border-radius:4px;
   width:24px;height:24px;line-height:1;font-size:13px;color:var(--ink-soft);cursor:pointer;
@@ -329,6 +330,19 @@ body{
 .chat-msg .cm-name{font-family:'Cinzel',serif;font-weight:700;color:var(--gold-text);}
 .chat-msg.cm-mestre .cm-name{color:#8a3b2e;}
 .chat-msg .cm-time{color:var(--ink-faint);font-size:10px;margin-left:5px;}
+/* mensagens de EVENTO (rolagem, iniciativa, nível, morte, mesa) — mesmo texto/imagens que vão pro
+   Discord, com uma faixa lateral e fundo levemente destacado pra diferenciar de uma linha digitada
+   por uma pessoa (ver appendChatMessage()/postToChatEvent() no <script>). */
+.chat-msg.cm-evento{
+  background:rgba(120,85,40,.09);border-left:3px solid var(--gold-bright);
+  border-radius:0 4px 4px 0;padding:6px 8px;
+}
+.chat-msg.cm-evento strong{color:var(--gold-text);}
+.chat-msg.cm-evento .cm-quote{
+  border-left:2px solid var(--ink-faint);padding-left:7px;margin:3px 0;color:var(--ink-soft);font-style:italic;
+}
+.cm-img-wrap{margin-top:6px;}
+.cm-img{max-width:100%;max-height:180px;border-radius:4px;border:1px solid var(--ink-faint);display:block;}
 .chat-input-row{
   display:flex;gap:6px;padding:9px 10px;border-top:1px solid var(--ink-faint);flex:none;
 }
@@ -2436,7 +2450,10 @@ body{
 <div class="chat-panel" id="chatPanel" hidden>
   <div class="chat-panel-head">
     <span class="chat-panel-title">💬 Chat da Mesa</span>
-    <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
+    <span class="chat-panel-head-actions">
+      <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
+      <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
+    </span>
   </div>
   <div class="chat-panel-body" id="chatPanelBody">
     <div class="chat-messages" id="chatMessages">
@@ -5568,6 +5585,11 @@ body{
     // sai pro Discord, seja qual for a origem (rolagem, subida de nível, morte, guia MESA etc.),
     // não importa a ficha — mas nunca se aplica a uma sessão de jogador (ver isSilenceActive()).
     if(isSilenceActive()) return 'silenced';
+    // espelha a mesma mensagem (e imagens) no chat da mesa, igual ao Discord — roda independente
+    // do webhook do Discord estar configurado (esse canal não depende do Discord), só depende do
+    // Firebase e de estar logado (ver postToChatEvent()). Não espera terminar (fire-and-forget),
+    // pra não atrasar o envio pro Discord por causa do chat.
+    postToChatEvent(content, imageDataUrl, imageDataUrl2);
     const webhookUrl = getWebhook();
     if(!webhookUrl) return 'no-webhook';
     try{
@@ -7512,17 +7534,58 @@ body{
     chatListenerRef.on('child_added', appendChatMessage);
   }
 
+  // Aplica uma formatação bem simples equivalente à do Discord dentro do texto (já escapado):
+  // linhas começando com "> " viram uma citação destacada, e trechos entre "**" viram negrito.
+  // Usado só nas mensagens de EVENTO (rolagens, iniciativa, nível, morte, mesa) — mensagens
+  // digitadas por gente (sendChatMessage) nunca passam por aqui, sempre saem como texto puro.
+  function formatChatEventText(text){
+    const escaped = escapeHtml(text);
+    return escaped.split('\n').map(line=>{
+      const q = line.match(/^&gt;\s?(.*)$/);
+      return q ? `<div class="cm-quote">${q[1]}</div>` : line;
+    }).join('<br>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+
   function appendChatMessage(snap){
     const msg = snap.val();
     if(!msg) return;
     if(chatMessagesEmptyEl) chatMessagesEmptyEl.style.display = 'none';
     const el = document.createElement('div');
-    el.className = 'chat-msg' + (msg.role === 'mestre' ? ' cm-mestre' : '');
+    const isEvento = msg.kind === 'evento';
+    el.className = 'chat-msg' + (msg.role === 'mestre' ? ' cm-mestre' : '') + (isEvento ? ' cm-evento' : '');
     const time = msg.ts ? new Date(msg.ts).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : '';
-    el.innerHTML = `<span class="cm-name">${escapeHtml(msg.nome || '???')}:</span> ${escapeHtml(msg.texto || '')}`
-      + (time ? `<span class="cm-time">${time}</span>` : '');
+    let bodyHtml;
+    if(isEvento){
+      // mensagem automática (rolagem, iniciativa, subida de nível, morte, guia Mesa) — mesmo
+      // texto e imagens que vão pro Discord; sem o prefixo "nome:" porque o texto já conta quem
+      // fez o quê (ex: "Zeus" ROLOU...). msg.imagem/imagem2 são data URLs geradas pelo próprio
+      // app (canvas ou upload local) — nunca texto digitado por alguém, seguro inserir direto.
+      bodyHtml = formatChatEventText(msg.texto || '');
+      if(msg.imagem) bodyHtml += `<div class="cm-img-wrap"><img class="cm-img" src="${msg.imagem}" alt="" loading="lazy"></div>`;
+      if(msg.imagem2) bodyHtml += `<div class="cm-img-wrap"><img class="cm-img" src="${msg.imagem2}" alt="" loading="lazy"></div>`;
+    }else{
+      bodyHtml = `<span class="cm-name">${escapeHtml(msg.nome || '???')}:</span> ${escapeHtml(msg.texto || '')}`;
+    }
+    el.innerHTML = bodyHtml + (time ? `<span class="cm-time">${time}</span>` : '');
     chatMessagesEl.appendChild(el);
     chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  }
+
+  // Espelha uma mensagem de evento (rolagem, iniciativa, nível, morte, guia Mesa) no chat da
+  // mesa, com o mesmo texto e imagens enviadas ao Discord — ver a chamada em postToDiscord().
+  // Roda independente do webhook do Discord estar configurado (esse canal não depende dele), só
+  // precisa do Firebase configurado e de alguém logado; sem isso, some sem erro (fire-and-forget,
+  // igual ao postToDiscord de uma rolagem).
+  function postToChatEvent(content, imageDataUrl, imageDataUrl2){
+    if(!fbReady || !fbDb || !currentUser) return;
+    const nome = (els.nome && els.nome.value ? els.nome.value.trim() : '')
+      || (currentUser.email ? currentUser.email.split('@')[0] : '')
+      || (currentRole === 'mestre' ? 'Mestre' : 'Jogador');
+    fbDb.ref('mesa/chat').push({
+      kind: 'evento', nome, role: currentRole, texto: content,
+      imagem: imageDataUrl || null, imagem2: imageDataUrl2 || null,
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
   }
 
   function sendChatMessage(){
@@ -7536,7 +7599,7 @@ body{
       || (currentUser.email ? currentUser.email.split('@')[0] : '')
       || (currentRole === 'mestre' ? 'Mestre' : 'Jogador');
     fbDb.ref('mesa/chat').push({
-      nome, role: currentRole, texto: texto.slice(0, 500), ts: firebase.database.ServerValue.TIMESTAMP
+      kind: 'texto', nome, role: currentRole, texto: texto.slice(0, 500), ts: firebase.database.ServerValue.TIMESTAMP
     });
     chatInputEl.value = '';
   }
@@ -7553,6 +7616,19 @@ body{
   }
   $('chatMinimizeBtn').addEventListener('click', ()=> setChatMinimized(!chatPanelEl.classList.contains('minimized')));
   setChatMinimized(localStorage.getItem(CHAT_MIN_KEY) === '1');
+
+  // botão de limpar o chat (🧹, só o mestre vê — ver .mestre-only) — as mensagens de evento podem
+  // acumular imagens (retratos, prints do tabuleiro) e engordar o banco com o tempo; isso dá uma
+  // forma fácil de zerar tudo de vez em quando, igual ao "Limpar histórico" das rolagens.
+  const chatClearBtn = $('chatClearBtn');
+  if(chatClearBtn){
+    chatClearBtn.addEventListener('click', ()=>{
+      if(currentRole !== 'mestre') return; // segurança extra, além do botão já ficar escondido
+      if(!fbReady) return;
+      if(!confirm('Apagar todas as mensagens do chat da mesa? Isso não pode ser desfeito.')) return;
+      fbDb.ref('mesa/chat').remove();
+    });
+  }
 
   if(fbReady){
     fbAuth.onAuthStateChanged(async (user)=>{
