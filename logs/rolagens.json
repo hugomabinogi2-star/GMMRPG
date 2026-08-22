@@ -102,5 +102,14 @@
     "resultado": "coroa",
     "verdict": "erro",
     "ts": 1787396353849
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 10,
+    "resultado": 5,
+    "resultLabel": "Erro",
+    "ts": 1787406028592
   }
 ]
