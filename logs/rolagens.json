@@ -6,5 +6,14 @@
     "resultado": "cara",
     "verdict": "acerto",
     "ts": 1787414310524
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 1,
+    "resultado": 12,
+    "resultLabel": "Erro",
+    "ts": 1787418289309
   }
 ]
