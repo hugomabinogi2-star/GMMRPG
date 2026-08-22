@@ -111,5 +111,14 @@
     "resultado": 5,
     "resultLabel": "Erro",
     "ts": 1787406028592
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 10,
+    "resultado": 9,
+    "resultLabel": "Erro",
+    "ts": 1787406061466
   }
 ]
