@@ -437,6 +437,10 @@ body{
 .live-board-wrap .board-outer{min-width:340px;max-width:640px;}
 .live-board-hint{font-size:11px;color:var(--ink-faint);min-height:14px;text-align:center;}
 .board-token.live-board-token-mine{cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 2px var(--gold-bright);}
+/* pintado só enquanto o jogador arrasta a própria ficha no mini-tabuleiro ao vivo — ver
+   highlightLiveBoardReachable()/clearLiveBoardReachableHighlight() no <script> — pra ficar fácil
+   ver até onde dá pra mover sem precisar tentar soltar em cada casa uma por uma. */
+.board-cell.live-board-reachable{background:rgba(70,150,255,.4);box-shadow:inset 0 0 0 2px rgba(120,180,255,.85);}
 
 /* ---------- ficha travada (ver de outro jogador) ---------- */
 /* trava tudo dentro do miolo da ficha (input, select, botão, o interruptor Ativo/Inativo etc, sem
@@ -3112,7 +3116,7 @@ body{
           <div>
 
             <div class="panel dice-panel">
-              <h2>Rolagem de Dado (d20) <button type="button" class="panel-toggle-btn" id="diceToggleBtn" aria-label="Minimizar Rolagem de Dado" title="Minimizar/expandir Rolagem de Dado">▾</button></h2>
+              <h2>Rolagem de Atributo <button type="button" class="panel-toggle-btn" id="diceToggleBtn" aria-label="Minimizar Rolagem de Atributo" title="Minimizar/expandir Rolagem de Atributo">▾</button></h2>
               <div class="dice-panel-body" id="diceBody">
               <div class="dice-controls stacked">
                 <div class="arrow-select">
@@ -4215,7 +4219,7 @@ body{
     };
     // status Ativo/Inativo (ver setFichaAtivo()) também vai junto aqui — é o que deixa o
     // interruptor valer na hora pro tabuleiro/bandeja de fichas (ver isHeroLiveActive()/
-    // onLiveAtivoChanged() mais abaixo), sem precisar que ninguém clique em SALVAR. Só publica
+    // onLiveVitalsChanged() mais abaixo), sem precisar que ninguém clique em SALVAR. Só publica
     // esse campo quando a ficha aberta tem nome (mesmo critério que o roster usa pra listar
     // alguém) — toda conta de jogador recém-logada abre com uma ficha em branco (ver
     // startNewFicha()) e essa ficha em branco NÃO é o personagem de ninguém no roster; publicar
@@ -4223,7 +4227,21 @@ body{
     // dessa conta (que pode estar Ativo e colocado no tabuleiro) só por ter feito login de novo,
     // sem essa pessoa ter mexido em nada. Sem esse campo, quem está ouvindo cai de volta no
     // status salvo no GitHub (ver isHeroLiveActive()), que é o comportamento certo aqui.
-    if(nome) payload.ativo = ($('fichaAtivo') || {}).value || 'Inativo';
+    if(nome){
+      payload.ativo = ($('fichaAtivo') || {}).value || 'Inativo';
+      // bônus de DES junto (mesma fórmula de recalc(): floor(total/2)) — só faz sentido junto do
+      // nome/ativo, pelo mesmo motivo: sem isso, uma ficha nunca salva mas já Ativa (ver
+      // liveOnlyRosterEntries() mais abaixo) não teria como o mini-tabuleiro ao vivo saber o
+      // limite de movimento dela até a primeira vez que for salva de verdade.
+      payload.bonusDes = Math.floor((totals.des || 0) / 2);
+      // XP total acumulado (mesmo valor salvo em collectState()/xp — não o que aparece no campo
+      // da ficha, que só mostra o XP dentro do nível atual, ver recalc()) — é o que deixa o XP
+      // atualizar na hora nos cartões de "📜 Fichas de Jogador"/"🔒 Fichas do Mestre" (mc-live-xp),
+      // sem precisar salvar. Mesmo motivo do "if(nome)" acima: sem isso, entrar de novo numa
+      // conta (ficha em branco, XP zerado) apagaria por engano o XP de verdade mostrado no
+      // cartão da ficha real dessa conta.
+      payload.xp = parseFloat(els.xp.dataset.total) || 0;
+    }
     fbDb.ref('mesa/live/' + ownerUid).set(payload);
   }
 
@@ -4331,7 +4349,7 @@ body{
       btn.setAttribute('aria-label', collapsed ? `Expandir ${titulo}` : `Minimizar ${titulo}`);
     });
   }
-  wirePanelToggle('diceToggleBtn', 'diceBody', 'Rolagem de Dado');
+  wirePanelToggle('diceToggleBtn', 'diceBody', 'Rolagem de Atributo');
   wirePanelToggle('danoToggleBtn', 'danoBody', 'Rolagem de Dano');
   wirePanelToggle('sorteToggleBtn', 'sorteBody', 'Rolagem de Sorte');
 
@@ -5910,8 +5928,8 @@ body{
         const canvas = document.createElement('canvas');
         canvas.width = SIZE; canvas.height = SIZE;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#f3e6c8';
-        ctx.fillRect(0, 0, SIZE, SIZE);
+        // sem fundo sólido atrás do escudo — o canvas já nasce transparente, e PNG preserva o
+        // alpha, então o print fica só com o escudo em si, sem nenhuma caixa colorida ao redor.
         ctx.drawImage(img, 0, 0, SIZE, SIZE);
         resolve(canvas.toDataURL('image/png'));
       };
@@ -5954,8 +5972,8 @@ body{
         const canvas = document.createElement('canvas');
         canvas.width = W; canvas.height = H;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#f3e6c8';
-        ctx.fillRect(0, 0, W, H);
+        // sem fundo sólido atrás da garrafa — mesmo motivo do print do Escudo, ver
+        // buildEscudoPrintDataUrl() logo acima.
         ctx.drawImage(img, 0, 0, W, H);
         resolve(canvas.toDataURL('image/png'));
       };
@@ -6898,7 +6916,7 @@ body{
 
     if(payload.source === 'tray'){
       if(payload.kind === 'hero'){
-        const hero = heroRoster.find(h => h.id === payload.heroId) || mestreRoster.find(h => h.id === payload.heroId);
+        const hero = findRosterHero(payload.heroId);
         if(!hero || !isHeroLiveActive(hero)) return; // ficha virou Inativa ao vivo entre o arrasto começar e soltar
         const prevKey = findHeroCell(hero.id);
         const prevToken = prevKey ? boardTokens[prevKey] : null;
@@ -6947,63 +6965,74 @@ body{
   // O interruptor Ativo/Inativo da própria ficha (ver setFichaAtivo() mais abaixo) decide quem
   // aparece na bandeja pra colocar no tabuleiro — antes, isso só valia depois de clicar em SALVAR
   // (o GitHub é quem alimenta heroRoster/mestreRoster). Pra funcionar na hora, sem depender de
-  // salvar, o próprio interruptor também publica o status em mesa/live/{uid} (mesmo caminho e
-  // formato da rodada anterior, "vitais ao vivo" — ver pushLiveVitals()); aqui a gente escuta esse
-  // mesmo caminho, por conta conhecida (ownerUid de cada ficha do roster), e usa o valor mais
-  // recente pra decidir quem fica na bandeja — sobrepondo o que estava salvo no GitHub, que só
-  // reflete o status de quando a ficha foi salva pela última vez.
-  const liveAtivoOverrides = {}; // uid -> 'Ativo' | 'Inativo' (só entra depois que o listener liga)
-  const liveAtivoListeners = {}; // uid -> {ref, cb}, pra nunca duplicar assinatura da mesma conta
+  // salvar — inclusive numa ficha que NUNCA foi salva antes, que ainda nem existe no GitHub — o
+  // próprio interruptor também publica o status em mesa/live/{uid} (mesmo caminho e formato da
+  // rodada anterior, "vitais ao vivo" — ver pushLiveVitals()). Em vez de um listener por conta já
+  // conhecida do roster, a gente escuta o nó INTEIRO mesa/live de uma vez (ligado/desligado junto
+  // do resto do tabuleiro ao vivo — ver connectLiveBoard()/disconnectLiveBoard() mais abaixo) —
+  // isso permite não só sobrepor o status de quem já está no roster, como também ACRESCENTAR à
+  // bandeja quem está Ativo agora mas nunca clicou em SALVAR (ver liveOnlyRosterEntries()).
+  let liveVitalsAll = {}; // uid -> último payload publicado em mesa/live/{uid} (ver pushLiveVitals())
 
-  // undefined (listener ainda não ligou, ou ficha sem ownerUid nenhum — ex: ficha do mestre, que
-  // não tem ownerUid próprio) sempre conta como "ativo" — é exatamente o que o roster já filtrado
-  // pelo GitHub já diz (só chegou até aqui porque data.ativo era 'Ativo' na última vez salva).
+  // undefined (ninguém dessa conta com a ficha aberta agora, ou ficha sem ownerUid nenhum — ex:
+  // ficha do mestre, que não tem ownerUid próprio) sempre conta como "ativo" — é exatamente o que
+  // o roster já filtrado pelo GitHub já diz (só chegou até aqui porque data.ativo era 'Ativo' na
+  // última vez salva). Um payload publicado SEM o campo "ativo" (ficha em branco recém-aberta, ver
+  // pushLiveVitals()) também não conta como override — não fala nada sobre ESTE personagem.
   function isHeroLiveActive(hero){
     if(!hero || !hero.ownerUid) return true;
-    const override = liveAtivoOverrides[hero.ownerUid];
-    return override === undefined ? true : override === 'Ativo';
+    const live = liveVitalsAll[hero.ownerUid];
+    if(!live || live.ativo === undefined) return true;
+    return live.ativo === 'Ativo';
   }
 
-  function ensureLiveAtivoListener(uid){
-    if(!uid || liveAtivoListeners[uid] || !fbReady || !fbDb) return;
-    const ref = fbDb.ref('mesa/live/' + uid);
-    const cb = ref.on('value', (snap)=>{
-      const val = snap.val();
-      const next = (val && val.ativo) || undefined;
-      if(liveAtivoOverrides[uid] === next) return; // sem mudança de verdade, evita rerender à toa
-      liveAtivoOverrides[uid] = next;
-      onLiveAtivoChanged(uid);
-    });
-    liveAtivoListeners[uid] = { ref, cb };
+  // Alguém pode estar Ativo AGORA sem que a ficha dela exista no GitHub ainda (nunca clicou em
+  // SALVAR) — pra essas aparecerem na bandeja também, procura em liveVitalsAll por qualquer conta
+  // que ainda não está representada no roster já carregado (por ownerUid) e que esteja publicando
+  // um nome + "Ativo" agora mesmo. Usa o MESMO formato de id que o roster carregado do GitHub usa
+  // pra esse nome (idPrefix + slugify(nome)) — assim, se essa ficha for salva depois enquanto já
+  // está no tabuleiro, o próximo recarregamento do roster reconhece o mesmo id (mesma peça), em
+  // vez de duplicar.
+  function liveOnlyRosterEntries(idPrefix, existingRoster){
+    const known = new Set(existingRoster.map(h=> h.ownerUid).filter(Boolean));
+    return Object.keys(liveVitalsAll)
+      .filter(uid=> !known.has(uid))
+      .map(uid=> ({ uid, live: liveVitalsAll[uid] }))
+      .filter(({live})=> live && live.nome && live.ativo === 'Ativo')
+      .map(({uid, live})=> ({
+        id: idPrefix + slugify(live.nome), name: live.nome, portrait: null,
+        donoChave: null, ownerUid: uid, bonusDes: live.bonusDes || 0, liveOnly: true,
+      }));
   }
 
-  // desliga TODAS as assinaturas de mesa/live/{uid} ligadas até agora (uma por conta do roster) —
-  // chamado no logout (ver onAuthStateChanged() lá embaixo), senão elas ficam penduradas pra sempre
-  // no mesmo navegador: como o Firebase Auth signOut() não desliga listener nenhum sozinho, uma
-  // conta trocada nesse mesmo navegador continuaria recebendo (e reagindo a) atualizações de contas
-  // que não são mais a que está logada agora.
-  function disconnectLiveAtivoListeners(){
-    Object.keys(liveAtivoListeners).forEach(uid=>{
-      const { ref, cb } = liveAtivoListeners[uid];
-      ref.off('value', cb);
-      delete liveAtivoListeners[uid];
-    });
-    Object.keys(liveAtivoOverrides).forEach(uid=> delete liveAtivoOverrides[uid]);
+  // roster de jogador (heroRoster, carregado do GitHub) + qualquer conta Ativa agora que ainda não
+  // foi salva nenhuma vez — é essa junção que a bandeja da aba Mesa usa pra desenhar as moedas (ver
+  // makeRosterTrayRenderer()/handleBoardDrop() mais abaixo). Fichas do mestre não publicam status
+  // ao vivo (pushLiveVitals() só grava ownerUid pra ficha de jogador — ver mais acima), então o
+  // roster do mestre nunca ganha entrada "só ao vivo".
+  function liveHeroRoster(){ return heroRoster.concat(liveOnlyRosterEntries('', heroRoster)); }
+  function findRosterHero(heroId){
+    return liveHeroRoster().find(h => h.id === heroId) || mestreRoster.find(h => h.id === heroId);
   }
 
-  // quando alguém vira Inativo AO VIVO, some da bandeja (rerender já cuida disso, ver
-  // isHeroLiveActive() acima) e, se a ficha dela já estava colocada no tabuleiro de verdade do
-  // mestre, também é retirada de lá — reaproveita removeTokenAt(), que já cuida de rerender a
-  // casa e publicar a remoção em mesa/liveBoard/tokens (ver scheduleBoardTokensPush()) sozinho.
-  function onLiveAtivoChanged(uid){
+  // quando o retrato de mesa/live muda (alguém virou Ativo/Inativo, ou uma ficha nunca salva
+  // apareceu/sumiu), redesenha as duas bandejas e, se for o mestre olhando, tira do tabuleiro de
+  // verdade qualquer peça cujo dono não conte mais como ativo. Varre boardTokens diretamente (em
+  // vez de heroRoster/mestreRoster) porque uma peça de ficha NUNCA salva também precisa sumir
+  // sozinha — ela não existe em nenhum roster carregado do GitHub, só no próprio token (que já
+  // carrega o ownerUid dela, gravado na hora de colocar — ver handleBoardDrop()). Peça do mestre
+  // (id "mestre:...") nunca tem ownerUid, então nunca é removida por aqui. Reaproveita
+  // removeTokenAt(), que já cuida de rerender a casa e publicar a remoção em mesa/liveBoard/tokens
+  // (scheduleBoardTokensPush()) sozinho.
+  function onLiveVitalsChanged(){
     renderHeroTray();
     renderMestreTray();
     if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens) pra tirar peça
-    if(liveAtivoOverrides[uid] !== 'Inativo') return;
-    [...heroRoster, ...mestreRoster].filter(h => h.ownerUid === uid).forEach(hero=>{
-      const key = findHeroCell(hero.id);
-      const tok = key ? boardTokens[key] : null;
-      if(tok) removeTokenAt(tok.anchorR, tok.anchorC);
+    Object.keys(boardTokens).forEach(key=>{
+      const tok = boardTokens[key];
+      if(!tok || tok.kind !== 'hero' || !tok.ownerUid) return;
+      if(isHeroLiveActive({ ownerUid: tok.ownerUid })) return;
+      removeTokenAt(tok.anchorR, tok.anchorC);
     });
   }
 
@@ -7048,7 +7077,7 @@ body{
   }
 
   const renderHeroTray = makeRosterTrayRenderer(
-    ()=> heroRoster, boardTrayCoins,
+    ()=> liveHeroRoster(), boardTrayCoins,
     'Nenhuma ficha ativa encontrada. Peça para os jogadores usarem "SALVAR".'
   );
   const renderMestreTray = makeRosterTrayRenderer(
@@ -7139,18 +7168,20 @@ body{
           }));
         roster.sort((a,b)=> a.name.localeCompare(b.name));
         setRoster(roster);
+        // pra decidir quem sai do tabuleiro, soma a este roster (recém-buscado do GitHub) quem
+        // está Ativo ao vivo agora mas nunca salvou (só existe pro roster de jogador, idPrefix ''
+        // — ver liveOnlyRosterEntries()) — senão, todo recarregamento deste roster (ex: o botão de
+        // atualizar da bandeja) apagaria do tabuleiro qualquer peça colocada antes de ser salva.
+        const rosterWithLiveOnly = idPrefix === '' ? roster.concat(liveOnlyRosterEntries(idPrefix, roster)) : roster;
         // remove do tabuleiro moedas desta lista que não estão mais ativas
         Object.keys(boardTokens).forEach(key=>{
           const tok = boardTokens[key];
-          if(tok.kind === 'hero' && ownerMatches(tok.id) && !roster.find(h => h.id === tok.id)){
+          if(tok.kind === 'hero' && ownerMatches(tok.id) && !rosterWithLiveOnly.find(h => h.id === tok.id)){
             delete boardTokens[key];
             const [r,c] = key.split('_').map(Number);
             renderBoardCell(r,c);
           }
         });
-        // liga um listener por conta (ver ensureLiveAtivoListener()) pra cada dono do roster —
-        // é isso que faz o interruptor Ativo/Inativo valer na hora, sem esperar ninguém salvar de novo.
-        roster.forEach(hero=> ensureLiveAtivoListener(hero.ownerUid));
         renderTray();
       }catch(err){
         console.error(err);
@@ -7695,8 +7726,9 @@ body{
   // salvando a ficha inteira sozinho (o auto-save aqui não funcionava direito) — pra isso, como
   // qualquer outro campo, ainda depende de clicar em "SALVAR". Mas o status em si (só ele, não a
   // ficha toda) publica na hora em mesa/live/{uid} (ver pushLiveVitals()/scheduleLiveVitalsPush()
-  // lá em cima e isHeroLiveActive()/ensureLiveAtivoListener() mais abaixo) — é assim que sumir/
-  // aparecer na bandeja do tabuleiro passa a valer imediatamente, sem depender de salvar.
+  // lá em cima e isHeroLiveActive()/onLiveVitalsChanged() mais abaixo) — é assim que sumir/
+  // aparecer na bandeja do tabuleiro passa a valer imediatamente, sem depender de salvar (mesmo
+  // numa ficha nunca salva antes — ver liveOnlyRosterEntries()).
   function setFichaAtivo(val){
     const hidden = $('fichaAtivo');
     const toggle = $('fichaAtivoToggle');
@@ -7790,7 +7822,8 @@ body{
                 Vida <span class="mc-live-vida">${escapeHtml(String(curVidaVal))}</span> / <span class="mc-live-vidamax">${vidaMaxCalc}</span> ·
                 Mana <span class="mc-live-mana">${escapeHtml(String(curManaVal))}</span> / <span class="mc-live-manamax">${manaMaxCalc}</span> ·
                 Escudo <span class="mc-live-escudo">${escapeHtml(String(escudoCurVal))}</span> / <span class="mc-live-escudomax">${escudoMaxVal}</span> ·
-                Ouro ${escapeHtml(String((data.inventory && data.inventory[0] && data.inventory[0].qtd) || 0))}
+                Ouro ${escapeHtml(String((data.inventory && data.inventory[0] && data.inventory[0].qtd) || 0))} ·
+                XP <span class="mc-live-xp">${xp}</span>
                 <span class="mc-live-badge" hidden title="Estes valores estão sendo atualizados ao vivo, sem precisar salvar a ficha">● ao vivo</span>
               </div>
               <div class="mc-attrs">${attrsHtml}</div>
@@ -7854,6 +7887,7 @@ body{
               setTxt('.mc-live-manamax', live.manaMax);
               setTxt('.mc-live-escudo', live.escudo);
               setTxt('.mc-live-escudomax', live.escudoMax);
+              setTxt('.mc-live-xp', live.xp);
               const badge = card.querySelector('.mc-live-badge');
               if(badge) badge.hidden = false;
             });
@@ -8144,8 +8178,8 @@ body{
   const LIVE_BOARD_MIN_KEY = 'rpg_ficha_liveboard_minimized';
 
   let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {} };
-  let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null;
-  let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null;
+  let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null;
+  let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null;
 
   function liveBoardKey(r,c){ return r + '_' + c; }
 
@@ -8220,13 +8254,46 @@ body{
             t.draggable = true;
             t.addEventListener('dragstart', (e)=>{
               e.dataTransfer.setData('text/plain', JSON.stringify({r: token.anchorR, c: token.anchorC, id: token.id}));
+              highlightLiveBoardReachable(token);
             });
+            // 'dragend' sempre dispara depois de um arrasto, tenha ele terminado num drop válido,
+            // num drop recusado (handleLiveBoardDrop() volta cedo sem re-renderizar a grade nesses
+            // casos) ou solto fora do tabuleiro — por isso é o gatilho certo pra sempre limpar o
+            // destaque azul, não só o 'drop'.
+            t.addEventListener('dragend', clearLiveBoardReachableHighlight);
           }
           cell.appendChild(t);
         }
         liveBoardGridEl.appendChild(cell);
       }
     }
+  }
+
+  // pinta de azul, enquanto o jogador está arrastando a PRÓPRIA ficha, toda casa que ela
+  // conseguiria alcançar nesse arrasto — mesma regra de handleLiveBoardDrop() (distância de
+  // Manhattan até 1 + bônus de DES, sem cair em cima de outra peça) — só que calculada de
+  // antemão pra toda a grade de uma vez, em vez de casa por casa no "solta". Bota (r,c) do
+  // próprio token de fora (não faz sentido "poder mover" pra onde já está).
+  function highlightLiveBoardReachable(tok){
+    if(!liveBoardGridEl || !tok) return;
+    const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
+    const limit = 1 + (tok.bonusDes || 0);
+    for(let r = 0; r < rows; r++){
+      for(let c = 0; c < cols; c++){
+        if(r === tok.anchorR && c === tok.anchorC) continue;
+        const dist = Math.abs(r - tok.anchorR) + Math.abs(c - tok.anchorC);
+        if(dist > limit) continue;
+        const occupant = liveBoardState.tokens[liveBoardKey(r,c)];
+        if(occupant && occupant.id !== tok.id) continue; // casa ocupada por outra peça, não alcançável de verdade
+        const cellEl = liveBoardGridEl.children[r * cols + c];
+        if(cellEl) cellEl.classList.add('live-board-reachable');
+      }
+    }
+  }
+
+  function clearLiveBoardReachableHighlight(){
+    if(!liveBoardGridEl) return;
+    liveBoardGridEl.querySelectorAll('.live-board-reachable').forEach(el=> el.classList.remove('live-board-reachable'));
   }
 
   function handleLiveBoardDrop(r, c, e){
@@ -8262,6 +8329,13 @@ body{
     renderLiveBoardMini();
     const patch = {}; patch[oldKey] = null; patch[newKey] = movedToken;
     fbDb.ref('mesa/liveBoard/tokens').update(patch).catch(err=> console.error('Não foi possível mover a ficha no tabuleiro ao vivo:', err));
+    // avisa no chat (e no Discord, se tiver webhook) quem se moveu e pra onde — usa a MESMA
+    // notação de casa que já aparece nos cabeçalhos do próprio tabuleiro (coluna em letra, estilo
+    // planilha, ver columnLabel() + linha em número, 1-indexada — ver buildLiveBoardHeaders()),
+    // pra bater exatamente com o que todo mundo já está vendo desenhado ao redor da grade.
+    const fromLabel = columnLabel(payload.c) + (payload.r + 1);
+    const toLabel = columnLabel(c) + (r + 1);
+    postToDiscord(`🚶 **${tok.name}** se moveu de ${fromLabel} para ${toLabel}`, null);
   }
 
   // Além de alimentar o mini-tabuleiro, essa mesma leitura de mesa/liveBoard/tokens também
@@ -8305,6 +8379,12 @@ body{
     if(liveBoardMetaRef){ liveBoardMetaRef.off('value', liveBoardMetaCb); liveBoardMetaRef = null; liveBoardMetaCb = null; }
     if(liveBoardMarksRef){ liveBoardMarksRef.off('value', liveBoardMarksCb); liveBoardMarksRef = null; liveBoardMarksCb = null; }
     if(liveBoardTokensRef){ liveBoardTokensRef.off('value', liveBoardTokensCb); liveBoardTokensRef = null; liveBoardTokensCb = null; }
+    // desliga o listener único de mesa/live (status Ativo/Inativo ao vivo — ver isHeroLiveActive()
+    // mais acima) — senão ele fica pendurado pra sempre no mesmo navegador: como o Firebase Auth
+    // signOut() não desliga listener nenhum sozinho, uma conta trocada nesse mesmo navegador
+    // continuaria recebendo (e reagindo a) atualizações de mesa/live mesmo depois de deslogar.
+    if(liveVitalsRef){ liveVitalsRef.off('value', liveVitalsCb); liveVitalsRef = null; liveVitalsCb = null; }
+    liveVitalsAll = {};
     liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {} };
     renderLiveBoardMini();
   }
@@ -8331,6 +8411,14 @@ body{
       liveBoardState.tokens = val;
       renderLiveBoardMini();
       mergeRemoteHeroTokensIntoLocalBoard(val);
+    });
+    // um único listener pro nó inteiro de mesa/live — é o que faz o interruptor Ativo/Inativo (e a
+    // bandeja de fichas nunca salvas) valerem na hora (ver isHeroLiveActive()/onLiveVitalsChanged()
+    // mais acima).
+    liveVitalsRef = fbDb.ref('mesa/live');
+    liveVitalsCb = liveVitalsRef.on('value', (snap)=>{
+      liveVitalsAll = snap.val() || {};
+      onLiveVitalsChanged();
     });
     // roster (retrato de cada ficha ativa) precisa estar carregado pra resolver as imagens aqui —
     // reaproveita loadHeroRoster()/loadMestreRoster() (mesma leitura pública do GitHub que já
@@ -8660,7 +8748,6 @@ body{
         $('chatPanel').hidden = true;
         disconnectLiveBoard();
         $('liveBoardPanel').hidden = true;
-        disconnectLiveAtivoListeners();
         return;
       }
       // resolve o papel: primeiro tenta users/{uid} (contas cadastradas por aqui, ver
