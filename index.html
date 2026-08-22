@@ -371,16 +371,19 @@ body{
   pointer-events:none;
   z-index:0;
 }
-/* cada estrelinha (★) ou caveirinha (💀, vida crítica) nasce já com cor/tamanho/duração decididos
-   em spawnChatBgParticle() — a única coisa que a animação CSS faz é subir + aparecer/sumir nas
-   pontas, num movimento linear (sem acelerar/desacelerar) pra várias delas nunca ficarem
-   "grudadas" na mesma altura por muito tempo. --rise-dist é escrito por partícula (altura do
-   próprio .chat-bg-fx no momento em que ela nasce, +uma folga), pra sempre atravessar a caixa
-   inteira não importa o tamanho dela. */
+/* cada partícula (★ Escudo, + verde de vida verde/overheal, ❤ vermelho de vida normal, 💀 vida
+   crítica) nasce já com forma/cor/tamanho/duração decididos em spawnChatBgParticle()/
+   chatBgParticleState() — a única coisa que a animação CSS faz é subir + aparecer/sumir nas pontas,
+   num movimento linear (sem acelerar/desacelerar) pra várias delas nunca ficarem "grudadas" na
+   mesma altura por muito tempo. --rise-dist é escrito por partícula (altura do próprio .chat-bg-fx
+   no momento em que ela nasce, +uma folga), pra sempre atravessar a caixa inteira não importa o
+   tamanho dela. font-weight:700 é principalmente pro sinal de "+" não sair fino/apagado demais —
+   não atrapalha em nada ★/❤/💀, que já são bem visíveis sozinhos. */
 .chat-bg-star{
   position:absolute;
   bottom:-8%;
   line-height:1;
+  font-weight:700;
   user-select:none;
   animation-name:chat-bg-star-rise;
   animation-timing-function:linear;
@@ -411,6 +414,30 @@ body{
    applyFichaLockUI()/isFichaEditable() no <script>. A trava de verdade acontece em saveFicha(); isto
    aqui é só pra deixar claro na hora, antes mesmo de tentar salvar. */
 .card.ficha-locked .face-inner > *{pointer-events:none;}
+/* cadeado 🔒 sobreposto em cima de CADA botão travado — tanto os de dentro da ficha/chat quanto os
+   da barra de topo (menos Ver Verso/Fichas de Jogador, ver applyFichaLockUI() no <script>). Um
+   seletor só (".face-inner button"/"button" dentro da toolbar) pega TODOS os botões não importa a
+   profundidade dentro do HTML, sem precisar listar um por um — dos minúsculos ‹›/±/step-btn até os
+   grandes (ROLAR, Enviar do chat etc.), o cadeado sempre cobre a caixa inteira do próprio botão. */
+.card.ficha-locked .face-inner button,
+.toolbar.ficha-locked button{
+  position:relative;
+}
+.card.ficha-locked .face-inner button::after,
+.toolbar.ficha-locked button:not(#flipBtn):not(#masterBtn)::after{
+  content:'🔒';
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(20,14,6,.6);
+  color:#f3d9a8;
+  font-size:min(.9em, 15px);
+  line-height:1;
+  border-radius:inherit;
+}
+.toolbar.ficha-locked button:not(#flipBtn):not(#masterBtn){
+  pointer-events:none;
+  opacity:.85;
+}
 .ficha-lock-banner{
   position:absolute;top:-34px;left:50%;transform:translateX(-50%);
   background:linear-gradient(180deg,#5a2e22,#3a1c14);color:#f3d9c9;
@@ -3496,6 +3523,13 @@ body{
   // Com um dono definido, só ele (currentUser.uid igual) ou o mestre podem editar — ver
   // isFichaEditable()/applyFichaLockUI() mais abaixo.
   let loadedFichaOwnerUid = null;
+  // chave de dono (donoChave) — igual ao ownerUid acima, só que baseada numa CHAVE própria gerada
+  // uma única vez pra cada conta cadastrada (currentUserKey, ver generateAccountKey()/
+  // onAuthStateChanged() mais abaixo), em vez do uid do Firebase Auth diretamente. É essa chave que
+  // decide de verdade se a ficha carregada pode ser editada — ver isFichaEditable(). Fichas salvas
+  // antes desse recurso existir só têm ownerUid (sem chave); isFichaEditable() sabe cair pro
+  // comparativo antigo por uid nesse caso, sem precisar que ninguém resalve a ficha.
+  let loadedFichaOwnerChave = null;
 
   // controla o efeito comemorativo de "subiu de nível": só dispara quando o nível sobe
   // organicamente (ex: ganhando XP), nunca ao carregar uma ficha salva ou criar uma nova
@@ -4576,16 +4610,26 @@ body{
       osc.stop(t0 + duration + 0.05);
     });
   }
-  // som de moedas tilintando — só nos botões da linha de OURO (primeiro item do Inventário),
-  // diferenciando dela das outras linhas (que continuam com o "plim" padrão).
+  // som de moedas tilintando — nos botões da linha de OURO (primeiro item do Inventário) E no
+  // botão de jogar a moeda (rolagem de Sorte), diferenciando os dois do "plim" padrão das outras
+  // linhas/botões — mesmo som nos dois porque as duas coisas envolvem moeda de um jeito ou de outro.
   function playCoinsSound(){
     [1800, 2200, 1600, 2400].forEach((freq, i)=>{
       playTone(freq, 0.09, { type:'square', gain:0.05, delay: i*0.045 });
     });
   }
+  // tique metálico e brilhante — cada "cara/coroa" piscando durante a animação de jogar a moeda
+  // (ver rollSorteBtn mais abaixo) usa este som em vez do clique seco genérico do dado
+  // (playDiceTick()), pra soar mais como uma moeda girando/batendo no ar do que um dado caindo. A
+  // frequência varia um pouco a cada tique (freqBase aleatório) pra imitar o "flutter" real de uma
+  // moeda girando rápido, em vez de um som idêntico repetido.
+  function playCoinTossTickSound(){
+    const freqBase = 1500 + Math.random()*700;
+    playTone(freqBase, 0.05, { type:'triangle', freqEnd: freqBase*1.5, gain:0.09 });
+  }
   // botões com som próprio (chiim/martelo/oooooh/moedas) ficam de fora da delegação genérica de
   // "plim" abaixo, pra não tocar os dois sons ao mesmo tempo.
-  const CUSTOM_SOUND_BTN_SELECTOR = '.attr-step-btn, .barreira-step-btn, .deidade-arrow-btn, .item-coin-btn';
+  const CUSTOM_SOUND_BTN_SELECTOR = '.attr-step-btn, .barreira-step-btn, .deidade-arrow-btn, .item-coin-btn, #rollSorteBtn';
   document.addEventListener('click', (e)=>{
     const btn = e.target.closest('button');
     if(btn && !btn.matches(CUSTOM_SOUND_BTN_SELECTOR)) playPlim();
@@ -4902,9 +4946,26 @@ body{
   coinResult.src = COIN_FACES.cara;
   let sorteRollingInterval = null;
 
+  // quantidade atual de OURO — a linha travada (locked) do Inventário é sempre o primeiro item,
+  // ver addItemRow()/'OURO' no início do <script>. Usado só pra travar a Rolagem de Sorte abaixo.
+  function getOuroQty(){
+    const row = inventoryRows.querySelector('.item-row.locked .item-qty');
+    return row ? (parseFloat(row.value) || 0) : 0;
+  }
+
   rollSorteBtn.addEventListener('click', ()=>{
     if(sorteRollingInterval) return; // já rolando, ignora clique duplo
 
+    // rolar Sorte "custa" pelo menos 1 moeda de OURO — sem isso nem gira a moeda, só avisa no chat
+    // (e no Discord, se tiver webhook) que não dá, com o nome do personagem sempre em negrito,
+    // igual às outras mensagens automáticas (ex: aviso de morte em announceDeath()).
+    if(getOuroQty() < 1){
+      const nome = els.nome.value.trim() || '(sem nome)';
+      postToDiscord(`**${nome}** NÃO TEM MOEDAS PARA ROLAR SORTE`, null);
+      return;
+    }
+
+    playCoinsSound(); // mesmo som dos botões do OURO — ver CUSTOM_SOUND_BTN_SELECTOR acima
     const escolha = sorteChoice.value;
 
     rollSorteBtn.disabled = true;
@@ -4919,7 +4980,7 @@ body{
     const totalTicks = 10 + Math.floor(Math.random()*4);
     sorteRollingInterval = setInterval(()=>{
       coinResult.src = Math.random() < 0.5 ? COIN_FACES.cara : COIN_FACES.coroa;
-      playDiceTick();
+      playCoinTossTickSound();
       ticks++;
       if(ticks >= totalTicks){
         clearInterval(sorteRollingInterval);
@@ -5279,10 +5340,12 @@ body{
     ).join('');
     // campo de CUSTO (1 a 10) antes do seletor de atributo — só mostra o texto "CUSTO" como
     // tooltip (title) ao passar o mouse, não tem rótulo fixo na tela (economiza espaço na linha).
+    // Era uma lista suspensa (1 a 10); virou um botão só, com o valor atual escrito nele mesmo —
+    // cada clique avança pro próximo número (1→2→...→10→1, sempre em ciclo). O atributo/propriedade
+    // "value" do próprio <button> continua guardando o número escolhido (button.value existe de
+    // verdade no HTML, mesmo sem aparecer na tela), então o resto do código (collectState() etc,
+    // ver costEl.value mais abaixo) não precisou mudar nada além do wiring de clique.
     const custoValue = String(custo || '1');
-    const costOptsHtml = Array.from({length:10}, (_, i) => i+1).map(n =>
-      `<option value="${n}"${String(n) === custoValue ? ' selected' : ''}>${n}</option>`
-    ).join('');
     entry.innerHTML = `
       <div class="extra-skill-row">
         <input type="text" class="extra-skill-name" placeholder="Nome da habilidade" value="${escapeHtml(name)}">
@@ -5294,7 +5357,7 @@ body{
           <button type="button" class="extra-skill-attr-btn" data-dir="1" aria-label="Próximo atributo">›</button>
           <button type="button" class="skill-book-btn" title="Descrição da habilidade">📖</button>
           <input type="checkbox" class="extra-skill-select" title="Marcar para incluir o nome desta habilidade na rolagem de dano enviada ao Discord (só uma pode ficar marcada)">
-          <select class="extra-skill-cost" title="CUSTO">${costOptsHtml}</select>
+          <button type="button" class="extra-skill-cost" title="CUSTO" value="${custoValue}">${custoValue}</button>
           <button class="remove-btn" title="Remover">✕</button>
         </div>
       </div>
@@ -5337,6 +5400,15 @@ body{
     }
     refreshImageBtn();
     refreshHasDesc();
+
+    // botão de CUSTO: cada clique avança um número (1→2→...→10→1, sempre em ciclo) — o valor atual
+    // fica escrito no próprio botão, sem precisar de rótulo/lista à parte.
+    const costBtn = entry.querySelector('.extra-skill-cost');
+    costBtn.addEventListener('click', ()=>{
+      const next = (parseInt(costBtn.value, 10) % 10) + 1; // 1..10, volta pro 1 depois do 10
+      costBtn.value = String(next);
+      costBtn.textContent = String(next);
+    });
 
     bookBtn.addEventListener('click', ()=>{
       panelEl.hidden = !panelEl.hidden;
@@ -5393,6 +5465,10 @@ body{
       // havia nenhum (ficha nova ou legada) E quem está salvando é um jogador (o mestre nunca "se
       // torna dono" de uma ficha por essa via; as dele já vivem numa pasta separada, ver saveFicha()).
       ownerUid: loadedFichaOwnerUid || ((currentRole === 'jogador' && currentUser) ? currentUser.uid : null),
+      // mesma regra do ownerUid acima (nunca "rouba" dono, só atribui quando ainda não tinha e quem
+      // salva é jogador), só que gravando a CHAVE da conta (currentUserKey) em vez do uid — é ela
+      // que isFichaEditable() usa de verdade pra travar a ficha pra quem não é dono nem mestre.
+      donoChave: loadedFichaOwnerChave || ((currentRole === 'jogador' && currentUserKey) ? currentUserKey : null),
       nome: els.nome.value, deidade: els.deidade.value,
       xp: els.xp.dataset.total || 0, historia: els.historia.value,
       base: { for: els.bFor.value, con: els.bCon.value, des: els.bDes.value, int: els.bInt.value, von: els.bVon.value, car: els.bCar.value },
@@ -5470,6 +5546,7 @@ body{
     // completo (incluindo ownerUid, se ela já tiver um), e "Nova ficha" (s={}) não tem essa chave,
     // então volta a null (editável por qualquer um até ser salva pela primeira vez).
     loadedFichaOwnerUid = s.ownerUid || null;
+    loadedFichaOwnerChave = s.donoChave || null;
 
     // carregar/zerar uma ficha nunca deve disparar o efeito comemorativo de nível, só XP ganho organicamente
     // (e nem o aviso de morte, caso a ficha carregada já esteja com a vida zerada)
@@ -5482,17 +5559,33 @@ body{
   }
 
   // ---------- dono da ficha: trava a edição pra quem não é dono nem mestre ----------
+  // A comparação de verdade é pela CHAVE da conta (loadedFichaOwnerChave vs currentUserKey, ver
+  // generateAccountKey()/onAuthStateChanged()) — não pelo uid do Firebase Auth diretamente. Ainda
+  // assim isso cobre 3 "gerações" de ficha salva, da mais nova pra mais antiga:
+  //   1) tem donoChave -> compara pela chave (caminho normal, daqui pra frente).
+  //   2) sem donoChave mas com ownerUid (salva na rodada em que só existia o uid) -> cai pro
+  //      comparativo antigo por uid, sem exigir que a pessoa resalve a ficha só por causa disso.
+  //   3) sem os dois -> ficha nova ou bem legada, ainda sem dono nenhum, qualquer um edita.
   function isFichaEditable(){
     if(currentRole === 'mestre') return true; // mestre pode tudo, sempre
-    if(!loadedFichaOwnerUid) return true; // ficha nova ou legada, ainda sem dono definido
+    if(!loadedFichaOwnerChave && !loadedFichaOwnerUid) return true; // ficha nova ou legada, sem dono
+    if(loadedFichaOwnerChave) return !!currentUserKey && loadedFichaOwnerChave === currentUserKey;
     return !!currentUser && loadedFichaOwnerUid === currentUser.uid;
   }
+  // botões da barra de topo que continuam funcionando mesmo com a ficha travada — Ver Verso (só
+  // vira a ficha, não altera nada) e Fichas de Jogador (pra dar pra escolher outra ficha/voltar);
+  // todo o resto da barra (Salvar, Nova ficha, Sair, e os exclusivos de mestre, que de qualquer
+  // jeito nunca ficam travados já que mestre sempre edita tudo) ganha o mesmo cadeado sobreposto
+  // que o resto da ficha — ver #flipBtn/#masterBtn excluídos explicitamente em .toolbar.ficha-locked
+  // no CSS.
   function applyFichaLockUI(){
     const locked = !isFichaEditable();
     const cardEl = $('card');
     if(cardEl) cardEl.classList.toggle('ficha-locked', locked);
     const banner = $('fichaLockBanner');
     if(banner) banner.hidden = !locked;
+    const toolbarEl = document.querySelector('.toolbar');
+    if(toolbarEl) toolbarEl.classList.toggle('ficha-locked', locked);
     if(cloudSaveBtn){
       cloudSaveBtn.title = locked ? 'Você só pode salvar sua própria ficha — esta pertence a outro jogador.' : '';
     }
@@ -7527,6 +7620,7 @@ body{
             delBtn.textContent = 'Apagando...';
             try{
               await githubDeleteFile(path, sha, `Apaga ficha de ${data.nome}`);
+              playEvilLaughSound(); // riso maligno de fundo — mesmo som já usado no 1 natural
               card.remove();
               if(!listEl.querySelector('.master-card')){
                 listEl.innerHTML = `<div class="master-empty">${emptyMsg}</div>`;
@@ -7652,10 +7746,21 @@ body{
 
   let currentRole = null;
   let currentUser = null;
+  // chave própria da conta logada (uma por cadastro, gerada uma única vez — ver
+  // generateAccountKey()), gravada em users/{uid}/chave. É ela (não o uid puro) que decide se
+  // a pessoa pode editar a ficha carregada — ver isFichaEditable()/loadedFichaOwnerChave.
+  let currentUserKey = null;
   let selectedLoginRole = null;
   let loginMode = 'entrar'; // 'entrar' | 'cadastrar'
   let pendingSignupRole = null; // capturado de forma síncrona no início do cadastro (ver doSubmitLogin)
+  let pendingSignupChave = null; // idem, a chave gerada pro cadastro que está em andamento
   let chatListenerRef = null;
+  // gera uma chave de conta nova, única por cadastro — crypto.randomUUID() quando disponível
+  // (todo navegador atual tem), com um fallback simples pros raros que não tiverem.
+  function generateAccountKey(){
+    if(window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+    return 'k' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+  }
 
   const loginGate = $('loginGate');
   const loginError = $('loginError');
@@ -7779,8 +7884,9 @@ body{
         // captura de forma síncrona, antes do cadastro assíncrono, porque onAuthStateChanged pode
         // disparar antes mesmo do users/{uid} abaixo terminar de gravar.
         pendingSignupRole = selectedLoginRole;
+        pendingSignupChave = generateAccountKey();
         const cred = await fbAuth.createUserWithEmailAndPassword(email, senha);
-        await fbDb.ref('users/' + cred.user.uid).set({ role: selectedLoginRole, criadoEm: firebase.database.ServerValue.TIMESTAMP });
+        await fbDb.ref('users/' + cred.user.uid).set({ role: selectedLoginRole, chave: pendingSignupChave, criadoEm: firebase.database.ServerValue.TIMESTAMP });
       }
       loginPasswordInput.value = '';
       loginMasterPassInput.value = '';
@@ -8026,10 +8132,11 @@ body{
   // muda depois de nascida) — prioridade, da mais urgente pra trás:
   //   1) Vida <= 10% do máximo -> vira uma caveirinha 💀, não importa Escudo/overheal (sinal de
   //      perigo sempre vence os outros, o personagem pode estar blindado e mesmo assim quase morto).
-  //   2) Escudo atual > 1 -> estrela na cor da Deidade selecionada (mesma cor de outros efeitos
+  //   2) Escudo atual > 1 -> estrela ★ na cor da Deidade selecionada (mesma cor de outros efeitos
   //      reativos da ficha, ver DEITY_EYE_COLOR).
-  //   3) Sem Escudo, mas com "vida verde" (overheal — Vida atual acima do máximo) -> estrela verde.
-  //   4) Nenhum dos anteriores (sem Escudo, sem overheal) -> estrela vermelha.
+  //   3) Sem Escudo, mas com "vida verde" (overheal — Vida atual acima do máximo) -> um sinal de +
+  //      verde, em vez de estrela (deixa mais fácil bater o olho e diferenciar de longe do Escudo).
+  //   4) Nenhum dos anteriores (sem Escudo, sem overheal) -> um coraçãozinho vermelho.
   const chatBgFxEl = $('chatBgFx');
   function chatBgParticleState(){
     const vidaMax = parseFloat(els.maxVida.textContent) || 0;
@@ -8037,8 +8144,8 @@ body{
     const escudoAtual = num(els.barreiraCur);
     if(vidaMax > 0 && vidaAtual <= vidaMax * 0.1) return { glyph:'💀', color:null };
     if(escudoAtual > 1) return { glyph:'★', color: DEITY_EYE_COLOR[els.deidade.value] || '#e0b656' };
-    if(vidaMax > 0 && vidaAtual > vidaMax) return { glyph:'★', color:'#3fd66b' };
-    return { glyph:'★', color:'#ff4d4d' };
+    if(vidaMax > 0 && vidaAtual > vidaMax) return { glyph:'+', color:'#3fd66b' };
+    return { glyph:'❤', color:'#ff4d4d' };
   }
   function spawnChatBgParticle(){
     if(!chatBgFxEl) return;
@@ -8111,6 +8218,7 @@ body{
       currentUser = user;
       if(!user){
         currentRole = null;
+        currentUserKey = null;
         loginGate.hidden = false;
         // toda vez que a tela de login reaparece (login inicial, ou depois de um "Sair"), o
         // formulário volta pro modo Entrar em branco — sem isso, sair de uma conta durante um
@@ -8129,24 +8237,39 @@ body{
       // doSubmitLogin()); sem registro ainda mas com um cadastro acabado de acontecer nesta mesma
       // sessão, usa pendingSignupRole (e garante que fica gravado); por último, cai no
       // ROLE_ACCOUNTS legado, pras 2 contas originais criadas antes desse sistema existir.
-      let role = null;
+      // A CHAVE da conta (currentUserKey) vem junto dessa mesma leitura de users/{uid} — contas
+      // cadastradas antes desse recurso existir (inclusive as 2 do ROLE_ACCOUNTS) ainda não têm
+      // uma; nesse caso é gerada e gravada agora mesmo, sem exigir recadastro (ver o backfill logo
+      // abaixo, depois que o papel já está resolvido).
+      let role = null, chave = null;
       try{
         const rec = await fbDb.ref('users/' + user.uid).once('value').then(s=> s.val());
         if(rec && rec.role) role = rec.role;
+        if(rec && rec.chave) chave = rec.chave;
       }catch(err){ console.error('Não foi possível ler o papel do usuário:', err); }
       if(!role && pendingSignupRole){
         role = pendingSignupRole;
-        fbDb.ref('users/' + user.uid).set({ role, criadoEm: firebase.database.ServerValue.TIMESTAMP });
+        chave = pendingSignupChave || generateAccountKey();
+        fbDb.ref('users/' + user.uid).set({ role, chave, criadoEm: firebase.database.ServerValue.TIMESTAMP });
       }
       if(!role){
         role = Object.keys(ROLE_ACCOUNTS).find(r=> ROLE_ACCOUNTS[r] === user.email);
       }
       pendingSignupRole = null;
+      pendingSignupChave = null;
       if(!role){
         loginError.textContent = 'Essa conta ainda não tem um papel definido — cadastre-se de novo escolhendo Mestre ou Jogador.';
         fbAuth.signOut();
         return;
       }
+      // backfill: papel resolvido (seja de users/{uid} ou do ROLE_ACCOUNTS legado) mas a conta
+      // ainda não tem chave própria — gera uma agora e grava, sem precisar recadastrar.
+      if(!chave){
+        chave = generateAccountKey();
+        fbDb.ref('users/' + user.uid).set({ role, chave, criadoEm: firebase.database.ServerValue.TIMESTAMP })
+          .catch(err=> console.error('Não foi possível gravar a chave nova da conta:', err));
+      }
+      currentUserKey = chave;
       currentRole = role;
       loginGate.hidden = true;
       applyRoleVisibility();
