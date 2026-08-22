@@ -437,10 +437,6 @@ body{
 .live-board-wrap .board-outer{min-width:340px;max-width:640px;}
 .live-board-hint{font-size:11px;color:var(--ink-faint);min-height:14px;text-align:center;}
 .board-token.live-board-token-mine{cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 2px var(--gold-bright);}
-/* pintado só enquanto o jogador arrasta a própria ficha no mini-tabuleiro ao vivo — ver
-   highlightLiveBoardReachable()/clearLiveBoardReachableHighlight() no <script> — pra ficar fácil
-   ver até onde dá pra mover sem precisar tentar soltar em cada casa uma por uma. */
-.board-cell.live-board-reachable{background:rgba(70,150,255,.4);box-shadow:inset 0 0 0 2px rgba(120,180,255,.85);}
 
 /* ---------- ficha travada (ver de outro jogador) ---------- */
 /* trava tudo dentro do miolo da ficha (input, select, botão, o interruptor Ativo/Inativo etc, sem
@@ -619,6 +615,16 @@ body{
 .board-cell.mark-green{box-shadow:inset 0 0 0 999px rgba(46,178,74,.45);}
 .board-cell.mark-yellow{box-shadow:inset 0 0 0 999px rgba(224,190,40,.5);}
 .board-cell.mark-red{box-shadow:inset 0 0 0 999px rgba(196,48,38,.5);}
+/* casa alcançável, pintada só enquanto o jogador arrasta a própria ficha no mini-tabuleiro ao vivo
+   (ver highlightLiveBoardReachable()/clearLiveBoardReachableHighlight() no <script>) — usa o MESMO
+   truque de inset box-shadow gigante das marcações verde/amarelo/vermelho logo acima (em vez da
+   propriedade "background"), justamente pra ficar por cima da cor de base da casa (cell-light/
+   cell-dark, que define "background" e ganharia da nossa se a gente também usasse "background" —
+   CSS resolve empate de especificidade pela ordem de quem vem depois na folha de estilo) e também
+   por cima de qualquer marcação de cor que já exista na casa (esta regra vem depois das 3 acima).
+   Isso faz a marcação azul aparecer de verdade na própria casa, não só uma borda fina quase
+   invisível por baixo do fundo dela. */
+.board-cell.live-board-reachable{box-shadow:inset 0 0 0 999px rgba(70,150,255,.55);}
 .board-cell.drag-over{outline:2px solid var(--gold-bright);outline-offset:-2px;z-index:3;}
 
 /* fundo customizado: as casas ficam semitransparentes, só a grade linha x coluna aparece por cima */
@@ -704,6 +710,26 @@ body{
   pointer-events:none;
 }
 .board-cell:hover .board-token-tip{opacity:1;visibility:visible;}
+/* barra de Vida "ao vivo" abaixo do ícone — só personagens de jogador (ver renderBoardCell()),
+   só na visão do mestre (tabuleiro de verdade), e só ao passar o mouse (mesmo gatilho do menu
+   suspenso acima, só que essa fica embaixo do ícone em vez de em cima). Filha da CASA pelo mesmo
+   motivo do tip: o token tem overflow:hidden e cortaria a barra se ela fosse filha dele. */
+.board-token-hpbar{
+  position:absolute;
+  top:100%;left:50%;
+  transform:translate(-50%,3px);
+  width:32px;height:5px;
+  background:rgba(0,0,0,.55);
+  border:1px solid rgba(0,0,0,.7);
+  border-radius:3px;
+  overflow:hidden;
+  z-index:50;
+  opacity:0;visibility:hidden;
+  transition:opacity .12s;
+  pointer-events:none;
+}
+.board-token-hpbar-fill{height:100%;transition:width .2s, background-color .2s;}
+.board-cell:hover .board-token-hpbar{opacity:1;visibility:visible;}
 .board-token.token-size2{
   inset:auto;
   top:6%;left:6%;
@@ -887,6 +913,7 @@ body{
 }
 .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
 .modal-head h2{font-family:'Cinzel Decorative',serif;font-size:20px;color:var(--ink);margin:0;}
+.modal-head-actions{display:flex;align-items:center;gap:10px;}
 .modal-close{background:none;border:none;font-size:18px;color:var(--ink-soft);cursor:pointer;}
 .modal-close:hover{color:var(--wax);}
 .modal-sub{font-size:12px;color:var(--ink-faint);margin:4px 0 14px;}
@@ -2837,38 +2864,14 @@ body{
               <input type="file" id="portraitInput" accept="image/*" style="display:none;">
             </div>
 
-            <!-- XP mora aqui embaixo do retrato desde o ajuste de layout que liberou a Coluna 3
-                 pro chat + rolagens (ver "Coluna 3" mais abaixo); margin-top extra só pra não
-                 ficar colado direto na borda do retrato. -->
-            <div class="field" style="margin-top:16px;">
-              <div class="xp-stepper" aria-label="XP até o próximo nível">
-                <button type="button" class="xp-step-btn xp-step-btn-10" id="xpMinusBtn10" aria-label="Diminuir XP em 10">−10</button>
-                <button type="button" class="xp-step-btn" id="xpMinusBtn" aria-label="Diminuir XP">−</button>
-                <input type="number" id="f_xp" value="0" min="0" step="1" readonly data-total="0">
-                <button type="button" class="xp-step-btn" id="xpPlusBtn" aria-label="Aumentar XP">+</button>
-                <button type="button" class="xp-step-btn xp-step-btn-10" id="xpPlusBtn10" aria-label="Aumentar XP em 10">+10</button>
-              </div>
-            </div>
-            <div class="xp-bar-wrap">
-              <div class="xp-bar-track"><div class="xp-bar-fill" id="xpBarFill"></div></div>
-              <div class="xp-bar-caption" id="xpBarCaption">0 / 50 até o próximo nível</div>
-              <div class="dice-particle-layer" id="levelUpParticleLayer"></div>
-            </div>
-
-            <div class="field field-status-toggle" style="margin-top:14px;">
-              <input type="hidden" id="fichaAtivo" value="Inativo">
-              <div class="status-toggle" id="fichaAtivoToggle" role="switch" tabindex="0" aria-checked="false" aria-label="Status na Iniciativa" title="Status na Iniciativa — esta ficha participa da iniciativa? Clique para alternar — depois clique em SALVAR pra gravar.">
-                <span class="status-toggle-label status-toggle-inativo">Inativo</span>
-                <span class="status-toggle-label status-toggle-ativo">Ativo</span>
-                <span class="status-toggle-knob"></span>
-              </div>
-            </div>
-
             <!-- Nome e Deidade dividem a mesma linha agora: o campo de Nome encolheu (flex:1, mas
                  com min-width) e a caixinha da Deidade ficou do lado, com largura FIXA (não muda
                  mais de tamanho conforme o nome da divindade selecionada é maior/menor — ver
-                 .nome-deidade-row .deidade-arrow-select .arrow-select-display no <style>). -->
-            <div class="field">
+                 .nome-deidade-row .deidade-arrow-select .arrow-select-display no <style>). margin-top
+                 extra só pra não ficar colado direto na borda do retrato, já que o XP e o interruptor
+                 Ativo/Inativo que ficavam aqui no meio se mudaram pra Coluna 3 e pro topo da Coluna 2
+                 (ver os comentários "Coluna 2"/"Coluna 3" mais abaixo). -->
+            <div class="field" style="margin-top:16px;">
               <label>Nome</label>
               <div class="nome-deidade-row">
                 <input type="text" id="f_nome" placeholder="Nome do herói">
@@ -2911,6 +2914,16 @@ body{
 
           <!-- Coluna 2: atributos + vitais -->
           <div>
+            <!-- interruptor Ativo/Inativo: primeiro elemento da Coluna 2, bem acima do painel de
+                 Atributos — antes ficava na Coluna 1, entre o XP e o campo Nome. -->
+            <div class="field field-status-toggle">
+              <input type="hidden" id="fichaAtivo" value="Inativo">
+              <div class="status-toggle" id="fichaAtivoToggle" role="switch" tabindex="0" aria-checked="false" aria-label="Status na Iniciativa" title="Status na Iniciativa — esta ficha participa da iniciativa? Clique para alternar — depois clique em SALVAR pra gravar.">
+                <span class="status-toggle-label status-toggle-inativo">Inativo</span>
+                <span class="status-toggle-label status-toggle-ativo">Ativo</span>
+                <span class="status-toggle-knob"></span>
+              </div>
+            </div>
             <div class="panel">
               <h2>Atributos <span class="attr-points-badge" id="attrPointsBadge" title="Pontos acumulados ainda não distribuídos">24</span></h2>
               <div class="attr-grid">
@@ -3110,10 +3123,27 @@ body{
 
           </div>
 
-          <!-- Coluna 3: rolagens (XP foi pra Coluna 1, embaixo do retrato; o chat da mesa saiu
-               daqui e agora é uma faixa cheia acima do front-grid inteiro, ver logo abaixo de
-               .ribbon mais acima). -->
+          <!-- Coluna 3: XP (primeiro painel, bem no topo — mas ainda abaixo da faixa cheia do chat/
+               Tabuleiro ao Vivo, que fica acima do .front-grid inteiro, ver logo abaixo de .ribbon
+               mais acima) + rolagens. XP já morou na Coluna 1 (embaixo do retrato) antes disso. -->
           <div>
+
+            <!-- XP: margin-top zero de propósito — é o primeiro elemento da coluna, sem nada acima
+                 dele aqui dentro pra dar respiro. -->
+            <div class="field">
+              <div class="xp-stepper" aria-label="XP até o próximo nível">
+                <button type="button" class="xp-step-btn xp-step-btn-10" id="xpMinusBtn10" aria-label="Diminuir XP em 10">−10</button>
+                <button type="button" class="xp-step-btn" id="xpMinusBtn" aria-label="Diminuir XP">−</button>
+                <input type="number" id="f_xp" value="0" min="0" step="1" readonly data-total="0">
+                <button type="button" class="xp-step-btn" id="xpPlusBtn" aria-label="Aumentar XP">+</button>
+                <button type="button" class="xp-step-btn xp-step-btn-10" id="xpPlusBtn10" aria-label="Aumentar XP em 10">+10</button>
+              </div>
+            </div>
+            <div class="xp-bar-wrap">
+              <div class="xp-bar-track"><div class="xp-bar-fill" id="xpBarFill"></div></div>
+              <div class="xp-bar-caption" id="xpBarCaption">0 / 50 até o próximo nível</div>
+              <div class="dice-particle-layer" id="levelUpParticleLayer"></div>
+            </div>
 
             <div class="panel dice-panel">
               <h2>Rolagem de Atributo <button type="button" class="panel-toggle-btn" id="diceToggleBtn" aria-label="Minimizar Rolagem de Atributo" title="Minimizar/expandir Rolagem de Atributo">▾</button></h2>
@@ -3284,7 +3314,10 @@ body{
   <div class="modal-box">
     <div class="modal-head">
       <h2>🖥️ Mesa</h2>
-      <button id="closeMesa" class="modal-close">✕</button>
+      <div class="modal-head-actions">
+        <button id="popoutMesaBtn" class="modal-close" title="Abrir a Mesa numa janela separada — útil pra deixar aberta numa segunda tela enquanto joga">🗗</button>
+        <button id="closeMesa" class="modal-close">✕</button>
+      </div>
     </div>
     <p class="modal-sub">Envie uma mensagem e/ou um print direto para o log da mesa no Discord. Nada aqui fica salvo no GitHub.</p>
 
@@ -5675,10 +5708,11 @@ body{
     }
   }
 
-  // Reseta a tela pra uma ficha nova em branco — usado tanto pelo botão "Nova ficha" (com
-  // confirmação, ver logo abaixo) quanto automaticamente sempre que alguém acessa a página já
-  // logado, seja como mestre ou como jogador (ver onAuthStateChanged mais abaixo): a primeira tela
-  // depois de entrar precisa sempre ser a de uma ficha nova, nunca a última ficha mexida antes.
+  // Reseta a tela pra uma ficha nova em branco — usado pelo botão "Nova ficha" (com confirmação,
+  // ver logo abaixo) e como ponto de partida sempre que alguém acessa a página (ver
+  // onAuthStateChanged mais abaixo): pro mestre a tela sempre abre em branco; pro jogador, logo em
+  // seguida autoLoadOwnFicha() tenta substituir essa ficha em branco pela última ficha salva dele
+  // (ver comentário lá).
   function startNewFicha(){
     applyState({});
     // ficha nova sempre começa com Modificadores minimizado (independe de como o painel estava
@@ -5695,6 +5729,46 @@ body{
       startNewFicha();
     }
   });
+
+  // Carrega automaticamente a própria ficha do jogador assim que ele acessa (login novo ou sessão
+  // retomando) — evita ter que abrir "Ficha de Personagem" e procurar a ficha dele toda vez. Só
+  // roda pra jogador (mestre continua sempre em branco, ver startNewFicha() acima — ele não tem
+  // "uma" ficha própria, edita a de qualquer jogador). Procura entre as fichas salvas na pasta
+  // FICHAS_PATH aquela cujo donoChave bate com a chave da conta logada (currentUserKey) — com
+  // fallback pro ownerUid legado pra fichas salvas antes desse campo existir, mesmo esquema de
+  // isFichaEditable() mais abaixo. Se não achar nenhuma (jogador novo, sem ficha salva ainda) ou
+  // der erro de rede/GitHub, simplesmente deixa a ficha em branco que startNewFicha() já abriu.
+  async function autoLoadOwnFicha(){
+    if(currentRole !== 'jogador' || !currentUser) return;
+    try{
+      const files = (await githubListFolder(FICHAS_PATH))
+        .filter(f => f.type === 'file' && f.name.endsWith('.json'));
+      if(files.length === 0) return;
+      const sheetResults = await mapWithConcurrency(files, 3, file =>
+        fetch(file.download_url).then(r=>r.text())
+          .then(raw => ({ path: file.path, sha: file.sha, data: JSON.parse(raw) }))
+          .catch(()=>null)
+      );
+      const mine = sheetResults.filter(Boolean).find(({data}) =>
+        (data.donoChave && currentUserKey && data.donoChave === currentUserKey) ||
+        (!data.donoChave && data.ownerUid && data.ownerUid === currentUser.uid)
+      );
+      if(!mine) return;
+      // confere se, enquanto a busca rodava, o jogador já não mexeu na ficha em branco (ex: já
+      // digitou um nome) — nesse caso não atropela o que ele começou a digitar.
+      if(els.nome.value.trim() !== '') return;
+      applyState(mine.data);
+      loadedFichaPath = mine.path;
+      loadedFichaSha = mine.sha;
+      if(modsGrid && modToggleBtn){
+        modsGrid.classList.add('collapsed');
+        modToggleBtn.classList.add('is-collapsed');
+        modToggleBtn.setAttribute('aria-label', 'Expandir Modificadores');
+      }
+    }catch(err){
+      console.error('Não foi possível carregar a ficha automaticamente:', err);
+    }
+  }
 
   // ---------- cloud: GitHub como banco de dados ----------
   const GITHUB_OWNER  = 'hugomabinogi2-star';
@@ -5928,9 +6002,20 @@ body{
         const canvas = document.createElement('canvas');
         canvas.width = SIZE; canvas.height = SIZE;
         const ctx = canvas.getContext('2d');
-        // sem fundo sólido atrás do escudo — o canvas já nasce transparente, e PNG preserva o
-        // alpha, então o print fica só com o escudo em si, sem nenhuma caixa colorida ao redor.
-        ctx.drawImage(img, 0, 0, SIZE, SIZE);
+        const deityColor = DEITY_EYE_COLOR[els.deidade.value] || '#e0b656';
+        const cx = SIZE/2, cy = SIZE/2, r = SIZE/2 - 12;
+        // mesma moldura circular dos 9 ícones de rolagem (ver buildRollIconDataUrl() mais abaixo):
+        // fundo de pedra clara, retrato do personagem cobrindo o círculo por baixo (meio apagado),
+        // anel na cor da Deidade por cima, e o próprio escudo (já sem fundo sólido, ver comentário
+        // de antes) centralizado por cima de tudo, no lugar do ícone de rolagem.
+        drawRollFrameBg(ctx, cx, cy, r);
+        const portraitImg = getPortraitImgEl();
+        if(portraitImg) drawImageCoveringCircle(ctx, portraitImg, cx, cy, r, 0.5);
+        drawRollFrameRing(ctx, cx, cy, r, deityColor);
+        const box = SIZE * 0.58;
+        const iScale = Math.min(box/img.naturalWidth, box/img.naturalHeight);
+        const iw = img.naturalWidth*iScale, ih = img.naturalHeight*iScale;
+        ctx.drawImage(img, cx-iw/2, cy-ih/2, iw, ih);
         resolve(canvas.toDataURL('image/png'));
       };
       img.onerror = ()=> resolve(null);
@@ -5968,13 +6053,25 @@ body{
       const svgStr = new XMLSerializer().serializeToString(clone);
       const img = new Image();
       img.onload = ()=>{
-        const W = 200, H = 400;
+        const SIZE = 320;
         const canvas = document.createElement('canvas');
-        canvas.width = W; canvas.height = H;
+        canvas.width = SIZE; canvas.height = SIZE;
         const ctx = canvas.getContext('2d');
-        // sem fundo sólido atrás da garrafa — mesmo motivo do print do Escudo, ver
-        // buildEscudoPrintDataUrl() logo acima.
-        ctx.drawImage(img, 0, 0, W, H);
+        const deityColor = DEITY_EYE_COLOR[els.deidade.value] || '#e0b656';
+        const cx = SIZE/2, cy = SIZE/2, r = SIZE/2 - 12;
+        // mesma moldura circular dos 9 ícones de rolagem e do print do Escudo (ver
+        // buildEscudoPrintDataUrl() logo acima): fundo de pedra clara, retrato do personagem
+        // cobrindo o círculo por baixo (meio apagado), anel na cor da Deidade por cima, e a
+        // própria garrafa (sem fundo sólido) centralizada por cima de tudo, no lugar do ícone
+        // de rolagem.
+        drawRollFrameBg(ctx, cx, cy, r);
+        const portraitImg = getPortraitImgEl();
+        if(portraitImg) drawImageCoveringCircle(ctx, portraitImg, cx, cy, r, 0.5);
+        drawRollFrameRing(ctx, cx, cy, r, deityColor);
+        const box = SIZE * 0.58;
+        const iScale = Math.min(box/img.naturalWidth, box/img.naturalHeight);
+        const iw = img.naturalWidth*iScale, ih = img.naturalHeight*iScale;
+        ctx.drawImage(img, cx-iw/2, cy-ih/2, iw, ih);
         resolve(canvas.toDataURL('image/png'));
       };
       img.onerror = ()=> resolve(null);
@@ -6401,14 +6498,33 @@ body{
     mesaShowPreview(null);
   }
 
-  $('mesaBtn').addEventListener('click', ()=>{
+  // controla o auto-abrir da Mesa quando a página é aberta com "?mesa=1" na URL — ver o botão
+  // popoutMesaBtn logo abaixo e onde essa flag é consultada, dentro de onAuthStateChanged.
+  let autoOpenedMesaFromUrl = false;
+
+  function openMesaModal(){
     mesaModal.hidden = false;
     mesaSendHint.textContent = '';
     loadHeroRoster();
     loadMestreRoster();
-  });
+  }
+  $('mesaBtn').addEventListener('click', openMesaModal);
   $('closeMesa').addEventListener('click', ()=> mesaModal.hidden = true);
   mesaModal.addEventListener('click', (e)=>{ if(e.target === mesaModal) mesaModal.hidden = true; });
+
+  // botão "🗗" no cabeçalho do modal — abre a Mesa numa janela separada do navegador (útil pra
+  // deixar num monitor à parte enquanto o resto da ficha fica na tela principal). É a MESMA
+  // página, só que com "?mesa=1" na URL — ver AUTO_OPEN_MESA_FROM_URL mais abaixo, que detecta
+  // esse parâmetro assim que o login (mestre) terminar e abre o modal sozinho na janela nova, sem
+  // precisar clicar em "🖥️ Mesa" de novo lá dentro. Como é a mesma origem, a sessão já logada
+  // aqui normalmente já entra logada na janela nova também (mesmo Firebase Auth) — só pede login
+  // de novo se o navegador estiver isolando o armazenamento entre janelas (ex: aba anônima).
+  $('popoutMesaBtn').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const url = new URL(location.href);
+    url.searchParams.set('mesa', '1');
+    window.open(url.toString(), 'mesaJanela', 'width=1400,height=980,menubar=no,toolbar=no,location=no');
+  });
 
   mesaImageInput.addEventListener('change', ()=>{
     const file = mesaImageInput.files && mesaImageInput.files[0];
@@ -6873,7 +6989,47 @@ body{
         }
         cell.appendChild(tip);
       }
+      // barra de Vida "ao vivo" abaixo do ícone, ao passar o mouse — só personagens de JOGADOR
+      // (token.ownerUid), nunca fichas do mestre (essas nunca ganham ownerUid — pushLiveVitals()
+      // só publica vida/mana pra ficha de jogador, ver comentário perto de recalc() lá em cima) e
+      // só aqui, no tabuleiro de verdade do mestre — a mini "Tabuleiro ao Vivo" de cada jogador usa
+      // renderLiveBoardMini(), uma função totalmente separada, que não ganha essa barra.
+      if(token.kind === 'hero' && token.ownerUid){
+        const hpBar = document.createElement('div');
+        hpBar.className = 'board-token-hpbar';
+        hpBar.dataset.ownerUid = token.ownerUid;
+        const hpFill = document.createElement('div');
+        hpFill.className = 'board-token-hpbar-fill';
+        hpBar.appendChild(hpFill);
+        cell.appendChild(hpBar);
+        applyBoardHpBar(hpBar);
+      }
     }
+  }
+
+  // le o vida/vidaMax mais recente publicado em mesa/live/{uid} (liveVitalsAll, mesmo dado que
+  // alimenta Vida/Mana/Escudo "ao vivo" nas listas de fichas — ver pushLiveVitals()) e aplica na
+  // barrinha (largura em % + cor por faixa: verde >50%, amarelo 20-50%, vermelho <=20%). Sem dado
+  // "ao vivo" ainda pra esse dono (ex: acabou de entrar, ainda não fez nenhuma alteração), ou sem
+  // vidaMax válido, a barra fica escondida em vez de aparecer zerada/errada.
+  function applyBoardHpBar(hpBar){
+    const live = liveVitalsAll[hpBar.dataset.ownerUid];
+    const vidaMax = live ? parseFloat(live.vidaMax) : NaN;
+    if(!live || !(vidaMax > 0)){ hpBar.style.display = 'none'; return; }
+    hpBar.style.display = '';
+    const vida = Math.max(0, parseFloat(live.vida) || 0);
+    const pct = Math.max(0, Math.min(100, (vida / vidaMax) * 100));
+    const fill = hpBar.querySelector('.board-token-hpbar-fill');
+    fill.style.width = pct + '%';
+    fill.style.background = pct <= 20 ? '#e0433a' : (pct <= 50 ? '#e0b23c' : '#3fbf5e');
+    hpBar.title = `Vida ${vida} / ${vidaMax}`;
+  }
+
+  // chamado sempre que mesa/live muda (ver onLiveVitalsChanged() mais abaixo) — atualiza toda
+  // barrinha já desenhada no tabuleiro de verdade, sem precisar redesenhar a casa inteira (o token
+  // continua o mesmo, só a barra precisa refletir o valor novo).
+  function refreshBoardHpBars(){
+    document.querySelectorAll('#boardGrid .board-token-hpbar').forEach(applyBoardHpBar);
   }
 
   function tokenTooltipText(token){
@@ -7028,6 +7184,7 @@ body{
     renderHeroTray();
     renderMestreTray();
     if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens) pra tirar peça
+    refreshBoardHpBars(); // barrinha de Vida embaixo dos ícones — ver applyBoardHpBar()/renderBoardCell()
     Object.keys(boardTokens).forEach(key=>{
       const tok = boardTokens[key];
       if(!tok || tok.kind !== 'hero' || !tok.ownerUid) return;
@@ -8791,9 +8948,11 @@ body{
       loginGate.hidden = true;
       applyRoleVisibility();
       // sempre que alguém acessa (login novo ou sessão já logada retomando ao abrir a página), a
-      // primeira tela precisa ser a de uma ficha nova em branco — nunca a última ficha que estava
-      // sendo mexida antes, nem pra mestre nem pra jogador (ver startNewFicha()).
+      // tela começa em branco (startNewFicha()) — e, se for jogador, autoLoadOwnFicha() tenta logo
+      // depois substituir esse branco pela ficha salva dele automaticamente (ver comentário lá).
+      // Pro mestre fica só o branco mesmo: ele não tem "uma" ficha, edita a de qualquer jogador.
       startNewFicha();
+      autoLoadOwnFicha();
       fbDb.ref('mesa/config/webhook').on('value', (snap)=>{
         const val = snap.val();
         firebaseSyncedWebhook = (val === null || val === undefined) ? null : val;
@@ -8803,6 +8962,15 @@ body{
       connectChat();
       $('liveBoardPanel').hidden = false;
       connectLiveBoard();
+      // "?mesa=1" na URL (posto pelo botão "🗗" do modal da Mesa, ver popoutMesaBtn mais acima) —
+      // essa é a janela separada, abre a aba Mesa sozinha assim que o login (mestre) termina, sem
+      // esperar clique nenhum. Só uma vez por carregamento de página (autoOpenedMesaFromUrl), pra
+      // não reabrir o modal em cima de quem já fechou de propósito caso o Firebase reautentique de
+      // novo depois.
+      if(!autoOpenedMesaFromUrl && currentRole === 'mestre' && new URLSearchParams(location.search).get('mesa') === '1'){
+        autoOpenedMesaFromUrl = true;
+        openMesaModal();
+      }
     });
   }
 
