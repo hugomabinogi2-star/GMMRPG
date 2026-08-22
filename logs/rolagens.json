@@ -183,5 +183,14 @@
     "resultado": 2,
     "resultLabel": "Erro",
     "ts": 1787411607290
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "con",
+    "statValor": 1,
+    "resultado": 13,
+    "resultLabel": "Erro",
+    "ts": 1787411609423
   }
 ]
