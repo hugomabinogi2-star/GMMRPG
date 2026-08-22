@@ -294,24 +294,22 @@ body{
 .login-hint{font-family:'Inter',sans-serif;font-size:11.5px;color:#8a7a5e;margin-top:16px;line-height:1.4;}
 
 /* ---------- caixa de chat da mesa ---------- */
-/* fica flutuando fixa à direita da ficha; abaixo do .modal-overlay (z-index 50) pra qualquer modal
-   aberto continuar cobrindo ela por cima, e acima dos heróis decorativos de canto (z-index -1).
-   Um chat só, global, entre todo mundo que está logado (mestre e jogadores) — sem separação por
-   mesa/campanha. O estado minimizado/expandido escolhido pelo usuário fica salvo em localStorage. */
+/* deixou de ser uma caixa flutuante por cima da página — agora é um painel de verdade dentro da
+   Coluna 3 da ficha (.front-grid), acima das rolagens, com a mesma casca visual dos outros
+   painéis (.panel, ver mais abaixo). Um chat só, global, entre todo mundo que está logado
+   (mestre e jogadores) — sem separação por mesa/campanha. O estado minimizado/expandido escolhido
+   pelo usuário fica salvo em localStorage. Ao contrário do resto da ficha (que fica tudo em caixa
+   alta por causa de .card{text-transform:uppercase}), as mensagens/campo de digitar aqui ficam
+   com a caixa normal — só o título do painel continua maiúsculo, como os outros <h2>. */
 .chat-panel{
-  position:fixed;top:120px;right:18px;width:300px;max-height:calc(100vh - 150px);
-  display:flex;flex-direction:column;
-  background:linear-gradient(160deg,var(--paper-l),var(--paper));
-  border:1px solid var(--border-brown);border-radius:6px;box-shadow:var(--shadow);
-  z-index:40;
+  display:flex;flex-direction:column;max-height:420px;
+  text-transform:none;
 }
 .chat-panel[hidden]{display:none;}
-.chat-panel-head{
+.chat-panel h2{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
-  padding:10px 12px;border-bottom:1px solid var(--ink-faint);flex:none;
+  text-transform:uppercase;flex:none;
 }
-.chat-panel-title{font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:var(--ink);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .chat-panel-head-actions{display:flex;gap:6px;flex:none;}
 .chat-min-btn{
   flex:none;background:none;border:1px solid var(--ink-faint);border-radius:4px;
@@ -322,8 +320,8 @@ body{
 .chat-panel.minimized .chat-panel-body{display:none;}
 .chat-panel.minimized{max-height:none;}
 .chat-messages{
-  flex:1;min-height:120px;max-height:340px;overflow-y:auto;
-  padding:10px 12px;display:flex;flex-direction:column;gap:7px;
+  flex:1;min-height:120px;max-height:260px;overflow-y:auto;
+  padding:2px 2px 8px;display:flex;flex-direction:column;gap:7px;
 }
 .chat-msg-empty{color:var(--ink-faint);font-size:12px;font-style:italic;text-align:center;padding:14px 0;}
 .chat-msg{font-size:12.5px;line-height:1.35;color:var(--ink);word-wrap:break-word;}
@@ -344,7 +342,7 @@ body{
 .cm-img-wrap{margin-top:6px;}
 .cm-img{max-width:100%;max-height:180px;border-radius:4px;border:1px solid var(--ink-faint);display:block;}
 .chat-input-row{
-  display:flex;gap:6px;padding:9px 10px;border-top:1px solid var(--ink-faint);flex:none;
+  display:flex;gap:6px;padding-top:9px;border-top:1px solid var(--ink-faint);flex:none;
 }
 #chatInput{
   flex:1;min-width:0;box-sizing:border-box;padding:7px 9px;font-family:'Inter',sans-serif;font-size:12.5px;
@@ -356,9 +354,6 @@ body{
   border:1px solid #7a5c1e;border-radius:4px;cursor:pointer;
 }
 #chatSendBtn:hover{filter:brightness(1.08);}
-@media (max-width:1300px){
-  .chat-panel{position:static;width:auto;max-width:420px;margin:14px auto 0;max-height:60vh;}
-}
 
 /* ---------- ficha travada (ver de outro jogador) ---------- */
 /* trava tudo dentro do miolo da ficha (input, select, botão, o interruptor Ativo/Inativo etc, sem
@@ -2094,6 +2089,12 @@ body{
 /* modifiers */
 .mods-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;}
 .mods-grid.collapsed{display:none;}
+/* mesmo botão ▾ de minimizar/expandir de Modificadores, agora reaproveitado nos 3 painéis de
+   rolagem da Coluna 3 (Dado/Dano/Sorte) — ver diceToggleBtn/danoToggleBtn/sorteToggleBtn no
+   <script>. Ao contrário de Modificadores (que já nasce minimizado), estes começam abertos, já
+   que são as ferramentas mais usadas da ficha — só ganham a opção de encolher pra quem quiser
+   liberar espaço na tela. */
+.dice-panel-body.collapsed{display:none;}
 /* botão de minimizar/expandir no cabeçalho de Modificadores — flutua à direita do título, sem
    mudar a altura da faixa (border-bottom) que já existe embaixo de todo <h2> de painel. */
 .panel-toggle-btn{
@@ -2447,25 +2448,6 @@ body{
   <button class="logout-btn" id="logoutBtn">🚪 Sair</button>
 </div>
 
-<div class="chat-panel" id="chatPanel" hidden>
-  <div class="chat-panel-head">
-    <span class="chat-panel-title">💬 Chat da Mesa</span>
-    <span class="chat-panel-head-actions">
-      <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
-      <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
-    </span>
-  </div>
-  <div class="chat-panel-body" id="chatPanelBody">
-    <div class="chat-messages" id="chatMessages">
-      <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
-    </div>
-    <div class="chat-input-row">
-      <input type="text" id="chatInput" placeholder="Digite uma mensagem..." maxlength="500">
-      <button id="chatSendBtn" type="button">Enviar</button>
-    </div>
-  </div>
-</div>
-
 <div class="stage">
   <div class="ficha-lock-banner" id="fichaLockBanner" hidden>🔒 Ficha de outro jogador — somente visualização. Peça pro dono ou pro mestre editar.</div>
   <div class="sheet-glow" id="sheetGlowAll"></div>
@@ -2674,10 +2656,26 @@ body{
               <input type="file" id="portraitInput" accept="image/*" style="display:none;">
             </div>
 
+            <!-- XP mora aqui embaixo do retrato desde o ajuste de layout que liberou a Coluna 3
+                 pro chat + rolagens (ver "Coluna 3" mais abaixo). -->
+            <div class="field">
+              <div class="xp-stepper" aria-label="XP até o próximo nível">
+                <button type="button" class="xp-step-btn xp-step-btn-10" id="xpMinusBtn10" aria-label="Diminuir XP em 10">−10</button>
+                <button type="button" class="xp-step-btn" id="xpMinusBtn" aria-label="Diminuir XP">−</button>
+                <input type="number" id="f_xp" value="0" min="0" step="1" readonly data-total="0">
+                <button type="button" class="xp-step-btn" id="xpPlusBtn" aria-label="Aumentar XP">+</button>
+                <button type="button" class="xp-step-btn xp-step-btn-10" id="xpPlusBtn10" aria-label="Aumentar XP em 10">+10</button>
+              </div>
+            </div>
+            <div class="xp-bar-wrap">
+              <div class="xp-bar-track"><div class="xp-bar-fill" id="xpBarFill"></div></div>
+              <div class="xp-bar-caption" id="xpBarCaption">0 / 50 até o próximo nível</div>
+              <div class="dice-particle-layer" id="levelUpParticleLayer"></div>
+            </div>
+
             <div class="field field-status-toggle" style="margin-top:14px;">
-              <label>Status na Iniciativa</label>
               <input type="hidden" id="fichaAtivo" value="Inativo">
-              <div class="status-toggle" id="fichaAtivoToggle" role="switch" tabindex="0" aria-checked="false" title="Esta ficha participa da iniciativa? Clique para alternar — depois clique em SALVAR pra gravar.">
+              <div class="status-toggle" id="fichaAtivoToggle" role="switch" tabindex="0" aria-checked="false" aria-label="Status na Iniciativa" title="Status na Iniciativa — esta ficha participa da iniciativa? Clique para alternar — depois clique em SALVAR pra gravar.">
                 <span class="status-toggle-label status-toggle-inativo">Inativo</span>
                 <span class="status-toggle-label status-toggle-ativo">Ativo</span>
                 <span class="status-toggle-knob"></span>
@@ -2689,8 +2687,7 @@ body{
               <input type="text" id="f_nome" placeholder="Nome do aventureiro">
             </div>
             <div class="field">
-              <label>Deidade</label>
-              <div class="arrow-select deidade-arrow-select">
+              <div class="arrow-select deidade-arrow-select" aria-label="Deidade">
                 <button type="button" class="arrow-select-btn deidade-arrow-btn" data-dir="-1" aria-label="Divindade anterior">‹</button>
                 <div class="arrow-select-display"></div>
                 <button type="button" class="arrow-select-btn deidade-arrow-btn" data-dir="1" aria-label="Próxima divindade">›</button>
@@ -2928,26 +2925,28 @@ body{
 
           </div>
 
-          <!-- Coluna 3: XP e rolagens -->
+          <!-- Coluna 3: chat da mesa + rolagens (XP foi pra Coluna 1, embaixo do retrato) -->
           <div>
-            <div class="field">
-              <label>XP até o próximo nível</label>
-              <div class="xp-stepper">
-                <button type="button" class="xp-step-btn xp-step-btn-10" id="xpMinusBtn10" aria-label="Diminuir XP em 10">−10</button>
-                <button type="button" class="xp-step-btn" id="xpMinusBtn" aria-label="Diminuir XP">−</button>
-                <input type="number" id="f_xp" value="0" min="0" step="1" readonly data-total="0">
-                <button type="button" class="xp-step-btn" id="xpPlusBtn" aria-label="Aumentar XP">+</button>
-                <button type="button" class="xp-step-btn xp-step-btn-10" id="xpPlusBtn10" aria-label="Aumentar XP em 10">+10</button>
+
+            <div class="panel chat-panel" id="chatPanel" hidden>
+              <h2>💬 Chat da Mesa<span class="chat-panel-head-actions">
+                <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
+                <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
+              </span></h2>
+              <div class="chat-panel-body" id="chatPanelBody">
+                <div class="chat-messages" id="chatMessages">
+                  <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
+                </div>
+                <div class="chat-input-row">
+                  <input type="text" id="chatInput" placeholder="Digite uma mensagem..." maxlength="500">
+                  <button id="chatSendBtn" type="button">Enviar</button>
+                </div>
               </div>
-            </div>
-            <div class="xp-bar-wrap">
-              <div class="xp-bar-track"><div class="xp-bar-fill" id="xpBarFill"></div></div>
-              <div class="xp-bar-caption" id="xpBarCaption">0 / 50 até o próximo nível</div>
-              <div class="dice-particle-layer" id="levelUpParticleLayer"></div>
             </div>
 
             <div class="panel dice-panel">
-              <h2>Rolagem de Dado (d20)</h2>
+              <h2>Rolagem de Dado (d20) <button type="button" class="panel-toggle-btn" id="diceToggleBtn" aria-label="Minimizar Rolagem de Dado" title="Minimizar/expandir Rolagem de Dado">▾</button></h2>
+              <div class="dice-panel-body" id="diceBody">
               <div class="dice-controls stacked">
                 <div class="arrow-select">
                   <button type="button" class="arrow-select-btn" data-dir="-1" aria-label="Status anterior">‹</button>
@@ -2982,11 +2981,13 @@ body{
                 <div class="dice-particle-layer" id="diceParticleLayer"></div>
               </div>
               <button id="rollDiceBtn" type="button" class="dice-roll-btn">🎲 Rolar</button>
-              <div class="dice-hint" id="diceHint">Selecione um status e role o dado.</div>
+              <div class="dice-hint" id="diceHint"></div>
+              </div>
             </div>
 
             <div class="panel dice-panel">
-              <h2>Rolagem de Dano</h2>
+              <h2>Rolagem de Dano <button type="button" class="panel-toggle-btn" id="danoToggleBtn" aria-label="Minimizar Rolagem de Dano" title="Minimizar/expandir Rolagem de Dano">▾</button></h2>
+              <div class="dice-panel-body" id="danoBody">
               <div class="dice-controls dano-controls">
                 <div class="dano-stepper">
                   <input type="number" id="danoQtd" value="1" readonly title="Quantidade de dados">
@@ -3005,16 +3006,18 @@ body{
                 </div>
               </div>
               <div class="dice-display" id="danoDiceDisplay"></div>
-              <div class="dice-hint" id="danoHint">Defina a quantidade e o valor máximo do dado, e role.</div>
+              <div class="dice-hint" id="danoHint"></div>
               <div class="dano-total-box">
                 <span class="dano-total-label">Resultado final</span>
                 <span class="dano-total-value" id="danoTotalValue">—</span>
               </div>
               <button id="rollDanoBtn" type="button" class="dice-roll-btn">🎲 Rolar</button>
+              </div>
             </div>
 
             <div class="panel dice-panel">
-              <h2>Rolagem de Sorte</h2>
+              <h2>Rolagem de Sorte <button type="button" class="panel-toggle-btn" id="sorteToggleBtn" aria-label="Minimizar Rolagem de Sorte" title="Minimizar/expandir Rolagem de Sorte">▾</button></h2>
+              <div class="dice-panel-body" id="sorteBody">
               <div class="dice-controls sorte-controls">
                 <div class="arrow-select">
                   <button type="button" class="arrow-select-btn" data-dir="-1" aria-label="Opção anterior">‹</button>
@@ -3032,7 +3035,8 @@ body{
                 <div class="dice-particle-layer" id="sorteParticleLayer"></div>
               </div>
               <button id="rollSorteBtn" type="button" class="dice-roll-btn">🪙 Jogar</button>
-              <div class="dice-hint" id="sorteHint">Escolha cara ou coroa e jogue a moeda.</div>
+              <div class="dice-hint" id="sorteHint"></div>
+              </div>
             </div>
           </div>
 
@@ -4099,6 +4103,21 @@ body{
       modToggleBtn.setAttribute('aria-label', collapsed ? 'Expandir Modificadores' : 'Minimizar Modificadores');
     });
   }
+
+  // mesmo mecanismo acima, reaproveitado nos 3 painéis de rolagem da Coluna 3 (Dado/Dano/Sorte) —
+  // ao contrário de Modificadores, começam abertos (sem a classe "collapsed" já no HTML).
+  function wirePanelToggle(btnId, bodyId, titulo){
+    const btn = $(btnId), body = $(bodyId);
+    if(!btn || !body) return;
+    btn.addEventListener('click', ()=>{
+      const collapsed = body.classList.toggle('collapsed');
+      btn.classList.toggle('is-collapsed', collapsed);
+      btn.setAttribute('aria-label', collapsed ? `Expandir ${titulo}` : `Minimizar ${titulo}`);
+    });
+  }
+  wirePanelToggle('diceToggleBtn', 'diceBody', 'Rolagem de Dado');
+  wirePanelToggle('danoToggleBtn', 'danoBody', 'Rolagem de Dano');
+  wirePanelToggle('sorteToggleBtn', 'sorteBody', 'Rolagem de Sorte');
 
   // joia de Nível: sem tooltip nativo (não tem mais "title") — em vez disso, passar o mouse
   // por cima troca o numeral romano por número normal (ex: "XIV" vira "14"), e volta pro
