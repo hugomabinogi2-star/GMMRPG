@@ -262,6 +262,7 @@ body{
 .login-box h1{font-family:'Cinzel',serif;font-size:24px;margin:0 0 8px;color:var(--gold-text);}
 .login-box p{font-family:'Inter',sans-serif;font-size:13px;color:#c9b896;margin:0 0 18px;line-height:1.4;}
 .login-role-buttons{display:flex;gap:10px;margin-bottom:16px;}
+.login-role-buttons[hidden]{display:none;}
 .login-role-btn{
   flex:1;padding:12px 8px;font-family:'Cinzel',serif;font-weight:700;font-size:13px;
   background:linear-gradient(180deg,#3a2c18,#241a10);color:var(--gold-text);
@@ -269,27 +270,20 @@ body{
 }
 .login-role-btn.selected{border-color:var(--gold-bright);box-shadow:0 0 0 2px rgba(201,162,39,.4) inset;}
 .login-role-btn:hover{border-color:var(--gold-bright);}
-/* seletor de mesa (campanha) no login — a lista vem de campanha_list no Firebase (mais as 3
-   opções padrão CAMPANHA1/2/3, sempre presentes mesmo antes do Firebase responder), com uma
-   opção "+ Nova mesa…" que revela o campo de texto pra nomear e criar uma mesa nova na hora. */
-.login-campanha-field{margin-bottom:12px;text-align:left;}
-.login-campanha-field label{
-  display:block;font-family:'Cinzel',serif;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
-  color:#c9b896;margin-bottom:5px;
+/* abas Entrar/Cadastrar no topo da caixa de login — Entrar mostra só e-mail/senha; Cadastrar
+   revela também os botões de papel (Mestre/Jogador) e, se Mestre for escolhido, o campo de senha
+   extra de mestre (ver updateLoginFieldsVisibility() no <script>). */
+.login-mode-tabs{display:flex;gap:0;margin-bottom:16px;border:1px solid var(--border-brown);border-radius:5px;overflow:hidden;}
+.login-mode-tab{
+  flex:1;padding:9px 8px;font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;
+  background:rgba(0,0,0,.25);color:#c9b896;border:none;cursor:pointer;
 }
-#loginCampanhaSelect{
-  width:100%;box-sizing:border-box;padding:9px 10px;font-family:'Inter',sans-serif;font-size:13px;
-  border:1px solid var(--ink-faint);border-radius:5px;background:rgba(255,255,255,.92);color:var(--ink);
-  cursor:pointer;
-}
-#loginNovaCampanhaInput{
-  width:100%;box-sizing:border-box;padding:9px 10px;font-family:'Inter',sans-serif;font-size:13px;
-  border:1px solid var(--ink-faint);border-radius:5px;background:rgba(255,255,255,.92);margin-top:8px;
-}
-#loginPasswordInput{
+.login-mode-tab.selected{background:linear-gradient(180deg,var(--gold-bright),#a9822a);color:#2a1c08;}
+#loginEmailInput, #loginPasswordInput, #loginMasterPassInput{
   width:100%;box-sizing:border-box;padding:10px 12px;font-family:'Inter',sans-serif;font-size:14px;
   border:1px solid var(--ink-faint);border-radius:5px;margin-bottom:12px;background:rgba(255,255,255,.92);
 }
+#loginMasterPassInput{background:rgba(255,244,225,.95);}
 #loginSubmitBtn{
   width:100%;padding:11px;font-family:'Cinzel',serif;font-weight:700;font-size:14px;
   background:linear-gradient(180deg,var(--gold-bright),#a9822a);color:#2a1c08;
@@ -299,11 +293,11 @@ body{
 .login-error{min-height:18px;color:#e07a6b;font-family:'Inter',sans-serif;font-size:12.5px;margin-top:10px;}
 .login-hint{font-family:'Inter',sans-serif;font-size:11.5px;color:#8a7a5e;margin-top:16px;line-height:1.4;}
 
-/* ---------- caixa de chat da campanha ---------- */
+/* ---------- caixa de chat da mesa ---------- */
 /* fica flutuando fixa à direita da ficha; abaixo do .modal-overlay (z-index 50) pra qualquer modal
    aberto continuar cobrindo ela por cima, e acima dos heróis decorativos de canto (z-index -1).
-   Começa minimizada em telas estreitas (ver initChatMinimizedDefault() no <script>), e o estado
-   escolhido pelo usuário fica salvo em localStorage. */
+   Um chat só, global, entre todo mundo que está logado (mestre e jogadores) — sem separação por
+   mesa/campanha. O estado minimizado/expandido escolhido pelo usuário fica salvo em localStorage. */
 .chat-panel{
   position:fixed;top:120px;right:18px;width:300px;max-height:calc(100vh - 150px);
   display:flex;flex-direction:column;
@@ -318,7 +312,6 @@ body{
 }
 .chat-panel-title{font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:var(--ink);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.chat-panel-title #chatCampanhaLabel{color:var(--gold-text);}
 .chat-min-btn{
   flex:none;background:none;border:1px solid var(--ink-faint);border-radius:4px;
   width:24px;height:24px;line-height:1;font-size:13px;color:var(--ink-soft);cursor:pointer;
@@ -351,6 +344,24 @@ body{
 #chatSendBtn:hover{filter:brightness(1.08);}
 @media (max-width:1300px){
   .chat-panel{position:static;width:auto;max-width:420px;margin:14px auto 0;max-height:60vh;}
+}
+
+/* ---------- ficha travada (ver de outro jogador) ---------- */
+/* trava tudo dentro do miolo da ficha (input, select, botão, o interruptor Ativo/Inativo etc, sem
+   precisar listar cada um) deixando só o próprio container .face-inner com pointer-events normal,
+   pra continuar dando pra rolar a ficha com a roda do mouse/toque mesmo travada — ver
+   applyFichaLockUI()/isFichaEditable() no <script>. A trava de verdade acontece em saveFicha(); isto
+   aqui é só pra deixar claro na hora, antes mesmo de tentar salvar. */
+.card.ficha-locked .face-inner > *{pointer-events:none;}
+.ficha-lock-banner{
+  position:absolute;top:-34px;left:50%;transform:translateX(-50%);
+  background:linear-gradient(180deg,#5a2e22,#3a1c14);color:#f3d9c9;
+  border:1px solid #8a3b2e;border-radius:5px;padding:6px 14px;
+  font-family:'Inter',sans-serif;font-size:12px;white-space:nowrap;z-index:10;
+  box-shadow:0 2px 8px rgba(0,0,0,.4);
+}
+@media (max-width:700px){
+  .ficha-lock-banner{white-space:normal;max-width:88%;text-align:center;top:-56px;}
 }
 
 /* ---------- trovoadas de fundo da tela de login ---------- */
@@ -777,6 +788,7 @@ body{
   background:rgba(120,85,40,.06);
 }
 .master-card .mc-name{font-family:'Cinzel Decorative',serif;font-size:18px;font-weight:700;color:var(--gold-text);letter-spacing:.02em;text-shadow:0 1px 0 rgba(255,255,255,.3);}
+.mc-owner-badge{font-family:'Inter',sans-serif;font-size:10.5px;font-weight:400;color:var(--ink-faint);text-shadow:none;margin-left:6px;}
 .master-card .mc-meta{font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
 .master-card .mc-vitals{font-size:11px;color:var(--ink-faint);margin-top:3px;}
 .master-card .mc-attrs{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:11px;color:var(--ink-soft);}
@@ -2378,25 +2390,21 @@ body{
   </div>
   <div class="login-box">
     <h1>⚔️ Entrar na Mesa</h1>
-    <p>Escolha seu papel e digite a senha da mesa para continuar.</p>
-    <div class="login-role-buttons">
-      <button id="loginMestreBtn" type="button" class="login-role-btn">📜 Sou o Mestre</button>
-      <button id="loginJogadorBtn" type="button" class="login-role-btn">🗡️ Sou Jogador</button>
+    <p id="loginSubtitle">Entre com sua conta pra continuar.</p>
+    <div class="login-mode-tabs">
+      <button id="loginModeEntrarBtn" type="button" class="login-mode-tab">Entrar</button>
+      <button id="loginModeCadastrarBtn" type="button" class="login-mode-tab">Cadastrar</button>
     </div>
-    <div class="login-campanha-field">
-      <label for="loginCampanhaSelect">Mesa (campanha)</label>
-      <select id="loginCampanhaSelect">
-        <option value="campanha1">CAMPANHA1</option>
-        <option value="campanha2">CAMPANHA2</option>
-        <option value="campanha3">CAMPANHA3</option>
-        <option value="__nova__">+ Nova mesa…</option>
-      </select>
-      <input type="text" id="loginNovaCampanhaInput" placeholder="Nome da nova mesa" maxlength="40" hidden>
+    <div class="login-role-buttons" id="loginRoleButtons" hidden>
+      <button id="loginMestreBtn" type="button" class="login-role-btn">📜 Cadastrar como Mestre</button>
+      <button id="loginJogadorBtn" type="button" class="login-role-btn">🗡️ Cadastrar como Jogador</button>
     </div>
-    <input type="password" id="loginPasswordInput" placeholder="Senha da mesa" autocomplete="current-password">
+    <input type="email" id="loginEmailInput" placeholder="E-mail" autocomplete="username">
+    <input type="password" id="loginPasswordInput" placeholder="Senha" autocomplete="current-password">
+    <input type="password" id="loginMasterPassInput" placeholder="Senha de mestre" autocomplete="off" hidden>
     <button id="loginSubmitBtn" type="button">Entrar</button>
     <div id="loginError" class="login-error"></div>
-    <p class="login-hint">Peça a senha ao mestre da campanha. As duas senhas (mestre e jogador) são configuradas no Firebase deste projeto. Escolha a mesa (campanha) em que quer entrar, ou crie uma nova — cada mesa tem seu próprio chat, isolado das outras.</p>
+    <p class="login-hint" id="loginHint">Já tem conta? Entre com seu e-mail e senha. Ainda não tem conta nesta mesa? Clique em "Cadastrar", escolha se você é o Mestre ou um Jogador, e crie seu e-mail e senha.</p>
   </div>
 </div>
 
@@ -2427,12 +2435,12 @@ body{
 
 <div class="chat-panel" id="chatPanel" hidden>
   <div class="chat-panel-head">
-    <span class="chat-panel-title">💬 Chat — <span id="chatCampanhaLabel">Campanha</span></span>
+    <span class="chat-panel-title">💬 Chat da Mesa</span>
     <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
   </div>
   <div class="chat-panel-body" id="chatPanelBody">
     <div class="chat-messages" id="chatMessages">
-      <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda nesta mesa.</div>
+      <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
     </div>
     <div class="chat-input-row">
       <input type="text" id="chatInput" placeholder="Digite uma mensagem..." maxlength="500">
@@ -2442,6 +2450,7 @@ body{
 </div>
 
 <div class="stage">
+  <div class="ficha-lock-banner" id="fichaLockBanner" hidden>🔒 Ficha de outro jogador — somente visualização. Peça pro dono ou pro mestre editar.</div>
   <div class="sheet-glow" id="sheetGlowAll"></div>
   <div class="card" id="card">
 
@@ -3372,6 +3381,13 @@ body{
   // existe arquivo) ou sha desconhecido (ex: acabou de logar); nesses casos SALVAR busca o valor
   // atual normalmente antes de gravar.
   let loadedFichaSha = null;
+
+  // uid (do Firebase Auth) de quem é dono da ficha atualmente aberta — null numa ficha nova (ainda
+  // sem dono) ou numa ficha antiga, salva antes desse recurso existir ("legada"); nesses dois casos
+  // qualquer jogador pode editar e, ao salvar, se torna o dono dali em diante (ver collectState()).
+  // Com um dono definido, só ele (currentUser.uid igual) ou o mestre podem editar — ver
+  // isFichaEditable()/applyFichaLockUI() mais abaixo.
+  let loadedFichaOwnerUid = null;
 
   // controla o efeito comemorativo de "subiu de nível": só dispara quando o nível sobe
   // organicamente (ex: ganhando XP), nunca ao carregar uma ficha salva ou criar uma nova
@@ -5220,6 +5236,11 @@ body{
   // ---------- save / load ----------
   function collectState(){
     return {
+      // dono da ficha: mantém quem já era (mesmo se for o mestre salvando por cima da ficha de um
+      // jogador — não queremos que isso "roube" a ficha) — só atribui um dono novo quando ainda não
+      // havia nenhum (ficha nova ou legada) E quem está salvando é um jogador (o mestre nunca "se
+      // torna dono" de uma ficha por essa via; as dele já vivem numa pasta separada, ver saveFicha()).
+      ownerUid: loadedFichaOwnerUid || ((currentRole === 'jogador' && currentUser) ? currentUser.uid : null),
       nome: els.nome.value, deidade: els.deidade.value,
       xp: els.xp.dataset.total || 0, historia: els.historia.value,
       base: { for: els.bFor.value, con: els.bCon.value, des: els.bDes.value, int: els.bInt.value, von: els.bVon.value, car: els.bCar.value },
@@ -5293,6 +5314,10 @@ body{
     // em seguida, com o caminho exato do arquivo. "Nova ficha" (s={}) fica sem origem mesmo.
     loadedFichaPath = null;
     loadedFichaSha = null;
+    // o dono já vem certo direto de "s" nesse ponto: carregar uma ficha existente passa o objeto
+    // completo (incluindo ownerUid, se ela já tiver um), e "Nova ficha" (s={}) não tem essa chave,
+    // então volta a null (editável por qualquer um até ser salva pela primeira vez).
+    loadedFichaOwnerUid = s.ownerUid || null;
 
     // carregar/zerar uma ficha nunca deve disparar o efeito comemorativo de nível, só XP ganho organicamente
     // (e nem o aviso de morte, caso a ficha carregada já esteja com a vida zerada)
@@ -5301,6 +5326,24 @@ body{
     recalc();
     suppressLevelUpEffect = false;
     suppressDeathEffect = false;
+    applyFichaLockUI();
+  }
+
+  // ---------- dono da ficha: trava a edição pra quem não é dono nem mestre ----------
+  function isFichaEditable(){
+    if(currentRole === 'mestre') return true; // mestre pode tudo, sempre
+    if(!loadedFichaOwnerUid) return true; // ficha nova ou legada, ainda sem dono definido
+    return !!currentUser && loadedFichaOwnerUid === currentUser.uid;
+  }
+  function applyFichaLockUI(){
+    const locked = !isFichaEditable();
+    const cardEl = $('card');
+    if(cardEl) cardEl.classList.toggle('ficha-locked', locked);
+    const banner = $('fichaLockBanner');
+    if(banner) banner.hidden = !locked;
+    if(cloudSaveBtn){
+      cloudSaveBtn.title = locked ? 'Você só pode salvar sua própria ficha — esta pertence a outro jogador.' : '';
+    }
   }
 
   // Reseta a tela pra uma ficha nova em branco — usado tanto pelo botão "Nova ficha" (com
@@ -7004,6 +7047,12 @@ body{
   // pra poder ser reaproveitada pelo interruptor Ativo/Inativo, que também precisa salvar sozinho
   // assim que for alternado (ver fichaAtivoToggle mais abaixo).
   async function saveFicha(){
+    // trava de verdade do "dono da ficha": mesmo que os controles estejam visualmente travados
+    // (ver applyFichaLockUI()), essa checagem aqui é quem realmente impede o salvamento.
+    if(!isFichaEditable()){
+      alert('Você não pode salvar essa ficha — ela pertence a outro jogador. Só o dono da ficha ou o mestre podem editá-la.');
+      return;
+    }
     const state = collectState();
     if(!state.nome || !state.nome.trim()){
       alert('Escreva o nome do personagem antes de salvar na mesa — é ele que identifica sua ficha para o mestre.');
@@ -7132,9 +7181,13 @@ body{
           const curManaVal = (data.curMana === undefined || data.curMana === null || data.curMana === '') ? manaMaxCalc : data.curMana;
           const card = document.createElement('div');
           card.className = 'master-card';
+          // avisa de cara, na lista, quando a ficha já tem dono e não é a de quem está olhando —
+          // pra não precisar clicar em "Ver ficha" pra descobrir que ela vai abrir travada.
+          const isOwnFicha = !data.ownerUid || currentRole === 'mestre' || (currentUser && data.ownerUid === currentUser.uid);
+          const ownerBadge = isOwnFicha ? '' : '<span class="mc-owner-badge">🔒 de outro jogador</span>';
           card.innerHTML = `
             <div>
-              <div class="mc-name">${escapeHtml(data.nome||'(sem nome)')} <span style="color:var(--ink-faint);font-weight:400;">— Nv. ${level}</span></div>
+              <div class="mc-name">${escapeHtml(data.nome||'(sem nome)')} <span style="color:var(--ink-faint);font-weight:400;">— Nv. ${level}</span>${ownerBadge}</div>
               <div class="mc-meta">${escapeHtml(data.deidade||'')}</div>
               <div class="mc-vitals">Vida ${escapeHtml(String(curVidaVal))} / ${vidaMaxCalc} · Mana ${escapeHtml(String(curManaVal))} / ${manaMaxCalc} · Ouro ${escapeHtml(String((data.inventory && data.inventory[0] && data.inventory[0].qtd) || 0))}</div>
               <div class="mc-attrs">${attrsHtml}</div>
@@ -7241,12 +7294,25 @@ body{
     appId: "1:972682746571:web:2976484823d0afa460d94e",
   };
 
-  // As duas contas fixas (criadas por você em Authentication → Sign-in method → Email/senha).
-  // Cada uma tem sua própria senha — essa é a "senha da mesa" de cada papel.
+  // Antes, mestre e jogador eram só 2 contas fixas com senha compartilhada. Agora cada pessoa
+  // cadastra a própria conta (e-mail/senha escolhidos por ela) e o papel (mestre/jogador) fica
+  // gravado em users/{uid} no Firebase — ver doSubmitLogin()/onAuthStateChanged() mais abaixo.
+  // ROLE_ACCOUNTS continua existindo só como "legado": se uma conta ainda não tem registro em
+  // users/{uid} (as 2 contas originais, criadas manualmente antes dessa mudança), o papel dela é
+  // resolvido por aqui, batendo pelo e-mail — assim elas continuam funcionando sem precisar recadastrar.
   const ROLE_ACCOUNTS = {
     mestre:  'hugo.mabinogi2@gmail.com',
     jogador: 'jogador@gmail.com'
   };
+
+  // Senha extra exigida só pra se cadastrar como MESTRE (além do e-mail/senha da própria conta) —
+  // evita que qualquer um vire mestre sem querer ou de propósito; cadastro como jogador é livre.
+  // Troque esse valor por uma senha seguida sua antes de divulgar o link da ficha pro grupo.
+  // ATENÇÃO: essa checagem acontece só aqui no navegador (mesmo modelo de confiança já usado pro
+  // token do GitHub e pro webhook do Discord) — alguém com conhecimento técnico poderia contornar
+  // mexendo direto no console do navegador. Pra uma mesa entre amigos isso já é suficiente; não é
+  // proteção de nível bancário.
+  const MASTER_SIGNUP_PASSWORD = 'troque-esta-senha';
 
   const FIREBASE_CONFIGURED = !!(firebaseConfig.apiKey && firebaseConfig.apiKey.indexOf('SUA_API_KEY') === -1);
   let fbAuth = null, fbDb = null;
@@ -7262,49 +7328,16 @@ body{
   let currentRole = null;
   let currentUser = null;
   let selectedLoginRole = null;
+  let loginMode = 'entrar'; // 'entrar' | 'cadastrar'
+  let pendingSignupRole = null; // capturado de forma síncrona no início do cadastro (ver doSubmitLogin)
+  let chatListenerRef = null;
 
   const loginGate = $('loginGate');
   const loginError = $('loginError');
+  const loginEmailInput = $('loginEmailInput');
   const loginPasswordInput = $('loginPasswordInput');
-  const loginCampanhaSelect = $('loginCampanhaSelect');
-  const loginNovaCampanhaInput = $('loginNovaCampanhaInput');
-
-  // ---------- campanhas (mesas) e chat ----------
-  // Cada mesa é isolada só no chat (fichas, tabuleiro e histórico de rolagens continuam
-  // compartilhados globalmente, como sempre foram). CAMPANHA1/2/3 sempre aparecem no seletor,
-  // mesmo antes do Firebase responder; qualquer jogador ou mestre pode criar mesas novas na hora,
-  // sem senha extra — só a senha normal de mestre/jogador já usada pro login.
-  const CAMPANHA_DEFAULTS = {campanha1:'CAMPANHA1', campanha2:'CAMPANHA2', campanha3:'CAMPANHA3'};
-  const LAST_CAMPANHA_KEY = 'rpg_ficha_last_campanha';
-  let campanhaListCache = Object.assign({}, CAMPANHA_DEFAULTS);
-  let pendingCampanhaSlug = null;
-  let pendingCampanhaNome = null;
-  let currentCampanhaSlug = null;
-  let chatListenerRef = null;
-
-  function populateCampanhaOptions(extra){
-    campanhaListCache = Object.assign({}, CAMPANHA_DEFAULTS, extra || {});
-    const prevSelected = loginCampanhaSelect.value || localStorage.getItem(LAST_CAMPANHA_KEY) || 'campanha1';
-    loginCampanhaSelect.innerHTML = '';
-    Object.keys(campanhaListCache).forEach(slug=>{
-      const opt = document.createElement('option');
-      opt.value = slug;
-      opt.textContent = campanhaListCache[slug];
-      loginCampanhaSelect.appendChild(opt);
-    });
-    const novaOpt = document.createElement('option');
-    novaOpt.value = '__nova__';
-    novaOpt.textContent = '+ Nova mesa…';
-    loginCampanhaSelect.appendChild(novaOpt);
-    if(campanhaListCache[prevSelected] !== undefined) loginCampanhaSelect.value = prevSelected;
-  }
-  populateCampanhaOptions();
-
-  loginCampanhaSelect.addEventListener('change', ()=>{
-    const isNova = loginCampanhaSelect.value === '__nova__';
-    loginNovaCampanhaInput.hidden = !isNova;
-    if(isNova) loginNovaCampanhaInput.focus();
-  });
+  const loginMasterPassInput = $('loginMasterPassInput');
+  const loginRoleButtons = $('loginRoleButtons');
 
   // ---------- trovoadas de fundo (tela de login) ----------
   // pisca relâmpagos no fundo preto da tela de login, ciclando pelas cores das divindades
@@ -7346,67 +7379,96 @@ body{
     // Sem Firebase configurado ainda: libera a ficha normalmente, sem exigir login
     // (login e ficha ao vivo ficam inativos até o firebaseConfig ser preenchido).
     loginGate.hidden = true;
-  }else{
-    // mantém o seletor de mesas da tela de login sempre atualizado com as mesas já criadas por
-    // qualquer pessoa, mesmo antes de logar (junto com CAMPANHA1/2/3, que nunca somem da lista).
-    fbDb.ref('campanha_list').on('value', (snap)=>{
-      populateCampanhaOptions(snap.val() || {});
-    });
   }
 
   function selectLoginRole(role){
     selectedLoginRole = role;
     $('loginMestreBtn').classList.toggle('selected', role === 'mestre');
     $('loginJogadorBtn').classList.toggle('selected', role === 'jogador');
+    updateLoginFieldsVisibility();
   }
   $('loginMestreBtn').addEventListener('click', ()=> selectLoginRole('mestre'));
   $('loginJogadorBtn').addEventListener('click', ()=> selectLoginRole('jogador'));
 
-  async function doLogin(){
+  // alterna entre as abas Entrar/Cadastrar — Entrar só pede e-mail/senha de uma conta que já existe;
+  // Cadastrar revela os botões de papel e, escolhendo Mestre, o campo de senha extra.
+  function setLoginMode(mode){
+    loginMode = mode;
+    $('loginModeEntrarBtn').classList.toggle('selected', mode === 'entrar');
+    $('loginModeCadastrarBtn').classList.toggle('selected', mode === 'cadastrar');
+    $('loginSubmitBtn').textContent = mode === 'entrar' ? 'Entrar' : 'Cadastrar';
+    loginError.textContent = '';
+    if(mode === 'entrar'){
+      selectedLoginRole = null;
+      $('loginMestreBtn').classList.remove('selected');
+      $('loginJogadorBtn').classList.remove('selected');
+    }
+    updateLoginFieldsVisibility();
+  }
+  function updateLoginFieldsVisibility(){
+    const isCadastro = loginMode === 'cadastrar';
+    loginRoleButtons.hidden = !isCadastro;
+    loginMasterPassInput.hidden = !(isCadastro && selectedLoginRole === 'mestre');
+    if(loginMasterPassInput.hidden) loginMasterPassInput.value = '';
+    $('loginHint').textContent = isCadastro
+      ? 'Escolha se você é o Mestre ou um Jogador, e crie seu e-mail e senha (mínimo 6 caracteres). Cadastrar como Mestre pede também a senha de mestre, combinada à parte com quem organiza a mesa.'
+      : 'Entre com o e-mail e a senha que você já cadastrou nesta mesa.';
+  }
+  $('loginModeEntrarBtn').addEventListener('click', ()=> setLoginMode('entrar'));
+  $('loginModeCadastrarBtn').addEventListener('click', ()=> setLoginMode('cadastrar'));
+  setLoginMode('entrar');
+
+  // Traduz os erros mais comuns do Firebase Auth pra mensagens em português, tanto pra login quanto
+  // pra cadastro.
+  function friendlyAuthError(err){
+    const code = (err && err.code) || '';
+    if(code === 'auth/email-already-in-use') return 'Já existe uma conta cadastrada com esse e-mail — tente "Entrar" em vez de "Cadastrar".';
+    if(code === 'auth/invalid-email') return 'E-mail inválido.';
+    if(code === 'auth/weak-password') return 'A senha precisa ter pelo menos 6 caracteres.';
+    if(code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials') return 'E-mail ou senha incorretos.';
+    if(code === 'auth/user-not-found') return 'Não existe conta cadastrada com esse e-mail — clique em "Cadastrar" pra criar uma.';
+    if(code === 'auth/too-many-requests') return 'Muitas tentativas seguidas — espere um pouco e tente de novo.';
+    return 'Não foi possível continuar. Confira os dados e tente de novo.';
+  }
+
+  async function doSubmitLogin(){
     loginError.textContent = '';
     if(!fbReady){ loginError.textContent = 'O Firebase ainda não foi configurado nesta página.'; return; }
-    if(!selectedLoginRole){ loginError.textContent = 'Escolha se você é Mestre ou Jogador.'; return; }
+    const email = (loginEmailInput.value || '').trim();
     const senha = loginPasswordInput.value;
-    if(!senha){ loginError.textContent = 'Digite a senha.'; return; }
-    // resolve a mesa (campanha) escolhida — se for "+ Nova mesa…", valida o nome digitado e
-    // gera o slug (chave do Firebase) a partir dele com o slugify() já usado em outras partes.
-    let campanhaSlug = loginCampanhaSelect.value;
-    let campanhaNome;
-    if(campanhaSlug === '__nova__'){
-      const nome = (loginNovaCampanhaInput.value || '').trim();
-      if(!nome){ loginError.textContent = 'Digite um nome para a nova mesa.'; loginNovaCampanhaInput.focus(); return; }
-      campanhaSlug = slugify(nome);
-      campanhaNome = nome;
-    }else{
-      campanhaNome = campanhaListCache[campanhaSlug] || campanhaSlug;
-    }
-    // captura de forma síncrona, antes do signIn assíncrono, porque onAuthStateChanged dispara
-    // depois (às vezes bem depois) e também dispara sozinho ao recarregar a página com uma sessão
-    // já persistida — nesse caso não há esses "pending" e o fallback usa o último valor salvo.
-    pendingCampanhaSlug = campanhaSlug;
-    pendingCampanhaNome = campanhaNome;
+    if(!email){ loginError.textContent = 'Digite seu e-mail.'; return; }
+    if(!senha){ loginError.textContent = 'Digite sua senha.'; return; }
     const submitBtn = $('loginSubmitBtn');
     submitBtn.disabled = true;
     try{
-      await fbAuth.signInWithEmailAndPassword(ROLE_ACCOUNTS[selectedLoginRole], senha);
-      loginPasswordInput.value = '';
-      if(campanhaSlug === slugify(campanhaNome) && !campanhaListCache[campanhaSlug]){
-        // mesa nova: registra em campanha_list pra aparecer no seletor de todo mundo a partir de
-        // agora (nó separado do chat em si, pra abrir a tela de login não precisar puxar histórico
-        // de mensagens só pra listar os nomes das mesas).
-        fbDb.ref('campanha_list/' + campanhaSlug).set(campanhaNome);
+      if(loginMode === 'entrar'){
+        await fbAuth.signInWithEmailAndPassword(email, senha);
+      }else{
+        if(!selectedLoginRole){ loginError.textContent = 'Escolha se você vai se cadastrar como Mestre ou Jogador.'; submitBtn.disabled = false; return; }
+        if(senha.length < 6){ loginError.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; submitBtn.disabled = false; return; }
+        if(selectedLoginRole === 'mestre' && loginMasterPassInput.value !== MASTER_SIGNUP_PASSWORD){
+          loginError.textContent = 'Senha de mestre incorreta.';
+          submitBtn.disabled = false;
+          return;
+        }
+        // captura de forma síncrona, antes do cadastro assíncrono, porque onAuthStateChanged pode
+        // disparar antes mesmo do users/{uid} abaixo terminar de gravar.
+        pendingSignupRole = selectedLoginRole;
+        const cred = await fbAuth.createUserWithEmailAndPassword(email, senha);
+        await fbDb.ref('users/' + cred.user.uid).set({ role: selectedLoginRole, criadoEm: firebase.database.ServerValue.TIMESTAMP });
       }
-      localStorage.setItem(LAST_CAMPANHA_KEY, campanhaSlug);
+      loginPasswordInput.value = '';
+      loginMasterPassInput.value = '';
     }catch(err){
       console.error(err);
-      loginError.textContent = 'Senha incorreta, ou essa conta ainda não foi criada no Firebase.';
-      pendingCampanhaSlug = null;
-      pendingCampanhaNome = null;
+      loginError.textContent = friendlyAuthError(err);
+      pendingSignupRole = null;
     }
     submitBtn.disabled = false;
   }
-  $('loginSubmitBtn').addEventListener('click', doLogin);
-  loginPasswordInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doLogin(); });
+  $('loginSubmitBtn').addEventListener('click', doSubmitLogin);
+  loginPasswordInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doSubmitLogin(); });
+  loginEmailInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doSubmitLogin(); });
 
   $('logoutBtn').addEventListener('click', ()=>{
     if(fbReady) fbAuth.signOut();
@@ -7428,7 +7490,7 @@ body{
     return cfg ? cfg.img : null;
   }
 
-  // ---------- chat da mesa (campanha) ----------
+  // ---------- chat da mesa (global — todo mundo logado, mestre e jogadores, no mesmo chat) ----------
   const chatPanelEl = $('chatPanel');
   const chatMessagesEl = $('chatMessages');
   const chatMessagesEmptyEl = $('chatMessagesEmpty');
@@ -7440,17 +7502,13 @@ body{
       chatListenerRef.off('child_added', appendChatMessage);
       chatListenerRef = null;
     }
-    currentCampanhaSlug = null;
     chatMessagesEl.querySelectorAll('.chat-msg').forEach(el=> el.remove());
     if(chatMessagesEmptyEl) chatMessagesEmptyEl.style.display = '';
   }
 
-  function connectChatToCampanha(slug, nome){
-    if(currentCampanhaSlug === slug) return; // já conectado nessa mesma mesa, nada a fazer
-    disconnectChat();
-    currentCampanhaSlug = slug;
-    $('chatCampanhaLabel').textContent = nome;
-    chatListenerRef = fbDb.ref('campanha_chat/' + slug).limitToLast(200);
+  function connectChat(){
+    if(chatListenerRef) return; // já conectado, nada a fazer
+    chatListenerRef = fbDb.ref('mesa/chat').limitToLast(200);
     chatListenerRef.on('child_added', appendChatMessage);
   }
 
@@ -7469,12 +7527,15 @@ body{
 
   function sendChatMessage(){
     const texto = (chatInputEl.value || '').trim();
-    if(!texto || !currentCampanhaSlug || !fbReady) return;
+    if(!texto || !fbReady || !currentUser) return;
     // o nome exibido no chat reaproveita o nome já digitado na ficha (mesmo padrão já usado no
-    // histórico de rolagens), já que hoje mestre/jogador são contas únicas e compartilhadas —
-    // sem isso, toda mensagem apareceria genericamente como "Mestre" ou "Jogador".
-    const nome = (els.nome && els.nome.value ? els.nome.value.trim() : '') || (currentRole === 'mestre' ? 'Mestre' : 'Jogador');
-    fbDb.ref('campanha_chat/' + currentCampanhaSlug).push({
+    // histórico de rolagens); em branco, cai no início do e-mail da conta, e só em último caso
+    // no papel genérico — agora que cada jogador tem sua própria conta, isso já basta pra
+    // distinguir quem é quem sem precisar de mais um campo de cadastro.
+    const nome = (els.nome && els.nome.value ? els.nome.value.trim() : '')
+      || (currentUser.email ? currentUser.email.split('@')[0] : '')
+      || (currentRole === 'mestre' ? 'Mestre' : 'Jogador');
+    fbDb.ref('mesa/chat').push({
       nome, role: currentRole, texto: texto.slice(0, 500), ts: firebase.database.ServerValue.TIMESTAMP
     });
     chatInputEl.value = '';
@@ -7494,18 +7555,43 @@ body{
   setChatMinimized(localStorage.getItem(CHAT_MIN_KEY) === '1');
 
   if(fbReady){
-    fbAuth.onAuthStateChanged((user)=>{
+    fbAuth.onAuthStateChanged(async (user)=>{
       currentUser = user;
       if(!user){
         currentRole = null;
         loginGate.hidden = false;
+        // toda vez que a tela de login reaparece (login inicial, ou depois de um "Sair"), o
+        // formulário volta pro modo Entrar em branco — sem isso, sair de uma conta durante um
+        // cadastro (modo Cadastrar, com um papel já selecionado) deixava o formulário preso nesse
+        // modo, e a próxima tentativa de ENTRAR numa conta já existente era mandada por engano
+        // pro fluxo de CADASTRO (que falha, já que a conta já existe).
+        setLoginMode('entrar');
+        loginEmailInput.value = '';
+        loginPasswordInput.value = '';
         applyRoleVisibility();
         disconnectChat();
         $('chatPanel').hidden = true;
         return;
       }
-      const role = Object.keys(ROLE_ACCOUNTS).find(r=> ROLE_ACCOUNTS[r] === user.email);
+      // resolve o papel: primeiro tenta users/{uid} (contas cadastradas por aqui, ver
+      // doSubmitLogin()); sem registro ainda mas com um cadastro acabado de acontecer nesta mesma
+      // sessão, usa pendingSignupRole (e garante que fica gravado); por último, cai no
+      // ROLE_ACCOUNTS legado, pras 2 contas originais criadas antes desse sistema existir.
+      let role = null;
+      try{
+        const rec = await fbDb.ref('users/' + user.uid).once('value').then(s=> s.val());
+        if(rec && rec.role) role = rec.role;
+      }catch(err){ console.error('Não foi possível ler o papel do usuário:', err); }
+      if(!role && pendingSignupRole){
+        role = pendingSignupRole;
+        fbDb.ref('users/' + user.uid).set({ role, criadoEm: firebase.database.ServerValue.TIMESTAMP });
+      }
       if(!role){
+        role = Object.keys(ROLE_ACCOUNTS).find(r=> ROLE_ACCOUNTS[r] === user.email);
+      }
+      pendingSignupRole = null;
+      if(!role){
+        loginError.textContent = 'Essa conta ainda não tem um papel definido — cadastre-se de novo escolhendo Mestre ou Jogador.';
         fbAuth.signOut();
         return;
       }
@@ -7521,15 +7607,8 @@ body{
         firebaseSyncedWebhook = (val === null || val === undefined) ? null : val;
         refreshWebhookStatus();
       });
-      // resolve a mesa (campanha): a que acabou de ser escolhida no formulário (pendingCampanha*),
-      // ou, se essa sessão já estava logada e só retomou ao abrir a página (sem passar por
-      // doLogin() de novo), a última mesa usada nesse navegador, ou CAMPANHA1 por padrão.
-      const slug = pendingCampanhaSlug || localStorage.getItem(LAST_CAMPANHA_KEY) || 'campanha1';
-      const nome = pendingCampanhaNome || campanhaListCache[slug] || slug.toUpperCase();
-      pendingCampanhaSlug = null;
-      pendingCampanhaNome = null;
       $('chatPanel').hidden = false;
-      connectChatToCampanha(slug, nome);
+      connectChat();
     });
   }
 
