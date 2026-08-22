@@ -294,15 +294,17 @@ body{
 .login-hint{font-family:'Inter',sans-serif;font-size:11.5px;color:#8a7a5e;margin-top:16px;line-height:1.4;}
 
 /* ---------- caixa de chat da mesa ---------- */
-/* deixou de ser uma caixa flutuante por cima da página — agora é um painel de verdade dentro da
-   Coluna 3 da ficha (.front-grid), acima das rolagens, com a mesma casca visual dos outros
-   painéis (.panel, ver mais abaixo). Um chat só, global, entre todo mundo que está logado
-   (mestre e jogadores) — sem separação por mesa/campanha. O estado minimizado/expandido escolhido
-   pelo usuário fica salvo em localStorage. Ao contrário do resto da ficha (que fica tudo em caixa
-   alta por causa de .card{text-transform:uppercase}), as mensagens/campo de digitar aqui ficam
-   com a caixa normal — só o título do painel continua maiúsculo, como os outros <h2>. */
+/* deixou de ser uma caixa flutuante por cima da página, e depois deixou também de ser um painel
+   estreito dentro da Coluna 3 — agora é uma faixa CHEIA (mesma largura do resto da ficha), logo
+   abaixo do texto da divindade (.deity-lore) e antes do resto do conteúdo (.front-grid), com a
+   mesma casca visual dos outros painéis (.panel, ver mais abaixo). Um chat só, global, entre todo
+   mundo que está logado (mestre e jogadores) — sem separação por mesa/campanha. O estado
+   minimizado/expandido escolhido pelo usuário fica salvo em localStorage. Ao contrário do resto
+   da ficha (que fica tudo em caixa alta por causa de .card{text-transform:uppercase}), as
+   mensagens/campo de digitar aqui ficam com a caixa normal — só o título do painel continua
+   maiúsculo, como os outros <h2>. */
 .chat-panel{
-  display:flex;flex-direction:column;max-height:420px;
+  display:flex;flex-direction:column;max-height:560px;
   text-transform:none;
 }
 .chat-panel[hidden]{display:none;}
@@ -320,7 +322,7 @@ body{
 .chat-panel.minimized .chat-panel-body{display:none;}
 .chat-panel.minimized{max-height:none;}
 .chat-messages{
-  flex:1;min-height:120px;max-height:260px;overflow-y:auto;
+  flex:1;min-height:220px;max-height:440px;overflow-y:auto;
   padding:2px 2px 8px;display:flex;flex-direction:column;gap:7px;
 }
 .chat-msg-empty{color:var(--ink-faint);font-size:12px;font-style:italic;text-align:center;padding:14px 0;}
@@ -328,6 +330,13 @@ body{
 .chat-msg .cm-name{font-family:'Cinzel',serif;font-weight:700;color:var(--gold-text);}
 .chat-msg.cm-mestre .cm-name{color:#8a3b2e;}
 .chat-msg .cm-time{color:var(--ink-faint);font-size:10px;margin-left:5px;}
+/* botão ✕ de apagar mensagem — só aparece pra quem mandou a mensagem ou pro mestre (decidido em
+   isChatMessageDeletableByMe(), no <script>, na hora de montar o HTML de cada mensagem). */
+.cm-del-btn{
+  background:none;border:none;color:var(--ink-faint);font-size:11px;line-height:1;
+  padding:1px 3px;margin-left:6px;cursor:pointer;border-radius:3px;vertical-align:middle;
+}
+.cm-del-btn:hover{color:#fff;background:#b23b2e;}
 /* mensagens de EVENTO (rolagem, iniciativa, nível, morte, mesa) — mesmo texto/imagens que vão pro
    Discord, com uma faixa lateral e fundo levemente destacado pra diferenciar de uma linha digitada
    por uma pessoa (ver appendChatMessage()/postToChatEvent() no <script>). */
@@ -1891,8 +1900,16 @@ body{
   filter:brightness(1.18);
   box-shadow:0 0 12px var(--deity-eye-glow-soft, rgba(224,182,86,.8)), 0 1px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.22);
 }
-/* caixa de texto da Deidade: menor que o padrão dos outros seletores ‹ caixa › da ficha */
-.deidade-arrow-select .arrow-select-display{min-width:64px;max-width:110px;padding:5px 6px;font-size:12px;}
+/* caixa de texto da Deidade: menor que o padrão dos outros seletores ‹ caixa › da ficha, e agora
+   com largura FIXA (em vez de min/max variável) — não muda mais de tamanho conforme o nome da
+   divindade selecionada é mais curto/comprido (ex: "Zeus" vs "Perséfone"), pra não ficar
+   "pulando" de tamanho ao lado do campo Nome (ver .nome-deidade-row). */
+.deidade-arrow-select .arrow-select-display{width:100px;padding:5px 6px;font-size:12px;}
+/* Nome e Deidade lado a lado (ver Coluna 1 no HTML): o campo Nome ocupa o espaço que sobrar,
+   a Deidade fica com a largura fixa de sempre ao lado dele. */
+.nome-deidade-row{display:flex;gap:8px;align-items:stretch;}
+.nome-deidade-row input[type=text]{flex:1;min-width:0;}
+.nome-deidade-row .deidade-arrow-select{flex:none;}
 /* Rolagem de Dano: nem quantidade nem faces são digitáveis — os dois são contadores sequenciais
    simples (1,2,3,4,5,6...) trocados pelos botões ‹ › logo ABAIXO de cada caixa. */
 .dice-controls.dano-controls{align-items:flex-start;}
@@ -2638,6 +2655,27 @@ body{
           <div class="cs-rank level-rank cs-rank-C" id="levelRank" title="Ranking do aventureiro">C</div>
         </div>
 
+        <!-- chat da mesa: faixa cheia, logo abaixo do texto da divindade (.deity-lore, dentro do
+             .ribbon acima) e antes do resto da ficha (.front-grid) — deixou de ser um painel
+             estreito dentro da Coluna 3 pra caber muito mais mensagem visível de uma vez. -->
+        <div class="panel chat-panel" id="chatPanel" hidden>
+          <h2>💬 Chat da Mesa<span class="chat-panel-head-actions">
+            <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
+            <button id="chatImageBtn" class="chat-min-btn" title="Enviar imagem no chat" type="button">🖼️</button>
+            <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
+          </span></h2>
+          <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
+          <div class="chat-panel-body" id="chatPanelBody">
+            <div class="chat-messages" id="chatMessages">
+              <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
+            </div>
+            <div class="chat-input-row">
+              <input type="text" id="chatInput" placeholder="Digite uma mensagem..." maxlength="500">
+              <button id="chatSendBtn" type="button">Enviar</button>
+            </div>
+          </div>
+        </div>
+
         <div class="front-grid">
 
           <!-- Coluna 1: retrato + identidade + habilidades + inventário -->
@@ -2657,8 +2695,9 @@ body{
             </div>
 
             <!-- XP mora aqui embaixo do retrato desde o ajuste de layout que liberou a Coluna 3
-                 pro chat + rolagens (ver "Coluna 3" mais abaixo). -->
-            <div class="field">
+                 pro chat + rolagens (ver "Coluna 3" mais abaixo); margin-top extra só pra não
+                 ficar colado direto na borda do retrato. -->
+            <div class="field" style="margin-top:16px;">
               <div class="xp-stepper" aria-label="XP até o próximo nível">
                 <button type="button" class="xp-step-btn xp-step-btn-10" id="xpMinusBtn10" aria-label="Diminuir XP em 10">−10</button>
                 <button type="button" class="xp-step-btn" id="xpMinusBtn" aria-label="Diminuir XP">−</button>
@@ -2682,33 +2721,37 @@ body{
               </div>
             </div>
 
+            <!-- Nome e Deidade dividem a mesma linha agora: o campo de Nome encolheu (flex:1, mas
+                 com min-width) e a caixinha da Deidade ficou do lado, com largura FIXA (não muda
+                 mais de tamanho conforme o nome da divindade selecionada é maior/menor — ver
+                 .nome-deidade-row .deidade-arrow-select .arrow-select-display no <style>). -->
             <div class="field">
               <label>Nome</label>
-              <input type="text" id="f_nome" placeholder="Nome do aventureiro">
-            </div>
-            <div class="field">
-              <div class="arrow-select deidade-arrow-select" aria-label="Deidade">
-                <button type="button" class="arrow-select-btn deidade-arrow-btn" data-dir="-1" aria-label="Divindade anterior">‹</button>
-                <div class="arrow-select-display"></div>
-                <button type="button" class="arrow-select-btn deidade-arrow-btn" data-dir="1" aria-label="Próxima divindade">›</button>
-                <select id="f_deidade" hidden>
-                  <option>Zeus</option>
-                  <option>Hera</option>
-                  <option>Poseidon</option>
-                  <option>Deméter</option>
-                  <option>Ares</option>
-                  <option>Atena</option>
-                  <option>Apolo</option>
-                  <option>Ártemis</option>
-                  <option>Hefesto</option>
-                  <option>Afrodite</option>
-                  <option>Hermes</option>
-                  <option>Dionísio</option>
-                  <option>Hades</option>
-                  <option>Héstia</option>
-                  <option>Perséfone</option>
-                  <option>Eros</option>
-                </select>
+              <div class="nome-deidade-row">
+                <input type="text" id="f_nome" placeholder="Nome do herói">
+                <div class="arrow-select deidade-arrow-select" aria-label="Deidade">
+                  <button type="button" class="arrow-select-btn deidade-arrow-btn" data-dir="-1" aria-label="Divindade anterior">‹</button>
+                  <div class="arrow-select-display"></div>
+                  <button type="button" class="arrow-select-btn deidade-arrow-btn" data-dir="1" aria-label="Próxima divindade">›</button>
+                  <select id="f_deidade" hidden>
+                    <option>Zeus</option>
+                    <option>Hera</option>
+                    <option>Poseidon</option>
+                    <option>Deméter</option>
+                    <option>Ares</option>
+                    <option>Atena</option>
+                    <option>Apolo</option>
+                    <option>Ártemis</option>
+                    <option>Hefesto</option>
+                    <option>Afrodite</option>
+                    <option>Hermes</option>
+                    <option>Dionísio</option>
+                    <option>Hades</option>
+                    <option>Héstia</option>
+                    <option>Perséfone</option>
+                    <option>Eros</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div class="panel">
@@ -2925,24 +2968,10 @@ body{
 
           </div>
 
-          <!-- Coluna 3: chat da mesa + rolagens (XP foi pra Coluna 1, embaixo do retrato) -->
+          <!-- Coluna 3: rolagens (XP foi pra Coluna 1, embaixo do retrato; o chat da mesa saiu
+               daqui e agora é uma faixa cheia acima do front-grid inteiro, ver logo abaixo de
+               .ribbon mais acima). -->
           <div>
-
-            <div class="panel chat-panel" id="chatPanel" hidden>
-              <h2>💬 Chat da Mesa<span class="chat-panel-head-actions">
-                <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
-                <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
-              </span></h2>
-              <div class="chat-panel-body" id="chatPanelBody">
-                <div class="chat-messages" id="chatMessages">
-                  <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
-                </div>
-                <div class="chat-input-row">
-                  <input type="text" id="chatInput" placeholder="Digite uma mensagem..." maxlength="500">
-                  <button id="chatSendBtn" type="button">Enviar</button>
-                </div>
-              </div>
-            </div>
 
             <div class="panel dice-panel">
               <h2>Rolagem de Dado (d20) <button type="button" class="panel-toggle-btn" id="diceToggleBtn" aria-label="Minimizar Rolagem de Dado" title="Minimizar/expandir Rolagem de Dado">▾</button></h2>
@@ -5599,16 +5628,11 @@ body{
   // imagem de alcance da habilidade, quando a rolagem de atributo carrega uma habilidade marcada
   // com uma imagem escolhida — ver pushRollLog()). Sem ela, o comportamento continua exatamente
   // como antes (uma imagem só, ou nenhuma).
-  async function postToDiscord(content, imageDataUrl, imageDataUrl2){
-    // botão SILENCIAR (só o mestre vê) — enquanto ativo NUMA SESSÃO DE MESTRE, nenhuma mensagem
-    // sai pro Discord, seja qual for a origem (rolagem, subida de nível, morte, guia MESA etc.),
-    // não importa a ficha — mas nunca se aplica a uma sessão de jogador (ver isSilenceActive()).
-    if(isSilenceActive()) return 'silenced';
-    // espelha a mesma mensagem (e imagens) no chat da mesa, igual ao Discord — roda independente
-    // do webhook do Discord estar configurado (esse canal não depende do Discord), só depende do
-    // Firebase e de estar logado (ver postToChatEvent()). Não espera terminar (fire-and-forget),
-    // pra não atrasar o envio pro Discord por causa do chat.
-    postToChatEvent(content, imageDataUrl, imageDataUrl2);
+  // Faz o POST de verdade pro webhook do Discord — extraído de postToDiscord() pra poder ser
+  // reaproveitado também pelo caminho contrário (mensagem digitada/imagem enviada direto no chat
+  // da mesa, que agora também vai pro Discord — ver postChatToDiscord() logo abaixo). Não mexe no
+  // chat nem checa SILENCIAR: isso é responsabilidade de quem chama.
+  async function sendToDiscordWebhook(content, imageDataUrl, imageDataUrl2){
     const webhookUrl = getWebhook();
     if(!webhookUrl) return 'no-webhook';
     try{
@@ -5638,6 +5662,32 @@ body{
       console.warn('Não foi possível postar no Discord:', err);
       return 'error';
     }
+  }
+
+  async function postToDiscord(content, imageDataUrl, imageDataUrl2){
+    // botão SILENCIAR (só o mestre vê) — enquanto ativo NUMA SESSÃO DE MESTRE, nenhuma mensagem
+    // sai pro Discord, seja qual for a origem (rolagem, subida de nível, morte, guia MESA etc.),
+    // não importa a ficha — mas nunca se aplica a uma sessão de jogador (ver isSilenceActive()).
+    if(isSilenceActive()) return 'silenced';
+    // espelha a mesma mensagem (e imagens) no chat da mesa, igual ao Discord — roda independente
+    // do webhook do Discord estar configurado (esse canal não depende do Discord), só depende do
+    // Firebase e de estar logado (ver postToChatEvent()). Não espera terminar (fire-and-forget),
+    // pra não atrasar o envio pro Discord por causa do chat.
+    postToChatEvent(content, imageDataUrl, imageDataUrl2);
+    return sendToDiscordWebhook(content, imageDataUrl, imageDataUrl2);
+  }
+
+  // Caminho contrário do de cima: uma mensagem (texto ou imagem) digitada/enviada por alguém
+  // DIRETO no chat da mesa também vai pro Discord — chama só o envio pro webhook (sendToDiscordWebhook),
+  // nunca postToChatEvent()/postToDiscord() inteiro, senão a mensagem duplicaria no próprio chat
+  // (ela já foi gravada em mesa/chat por quem chamou esta função — ver sendChatMessage()/
+  // sendChatImageMessage()). Respeita o mesmo SILENCIAR de sempre.
+  function postChatToDiscord(nome, texto, imageDataUrl){
+    if(isSilenceActive()) return;
+    const content = texto
+      ? `💬 **${nome}**: ${texto}`
+      : `💬 **${nome}** enviou uma imagem no chat.`;
+    sendToDiscordWebhook(content, imageDataUrl || null, null);
   }
 
   function slugify(name){
@@ -7541,6 +7591,7 @@ body{
   function disconnectChat(){
     if(chatListenerRef){
       chatListenerRef.off('child_added', appendChatMessage);
+      chatListenerRef.off('child_removed', removeChatMessage);
       chatListenerRef = null;
     }
     chatMessagesEl.querySelectorAll('.chat-msg').forEach(el=> el.remove());
@@ -7551,6 +7602,19 @@ body{
     if(chatListenerRef) return; // já conectado, nada a fazer
     chatListenerRef = fbDb.ref('mesa/chat').limitToLast(200);
     chatListenerRef.on('child_added', appendChatMessage);
+    // faltava isto: sem escutar remoção, apagar uma mensagem (ou o chat inteiro, no botão 🧹) só
+    // sumia no banco — a tela continuava mostrando tudo até dar F5. Cada mensagem carrega o
+    // próprio id (ver data-msg-id em appendChatMessage) só pra esta função conseguir achar e tirar
+    // o elemento certo da tela.
+    chatListenerRef.on('child_removed', removeChatMessage);
+  }
+
+  function removeChatMessage(snap){
+    const el = chatMessagesEl.querySelector(`.chat-msg[data-msg-id="${snap.key}"]`);
+    if(el) el.remove();
+    if(chatMessagesEmptyEl && !chatMessagesEl.querySelector('.chat-msg')){
+      chatMessagesEmptyEl.style.display = '';
+    }
   }
 
   // Aplica uma formatação bem simples equivalente à do Discord dentro do texto (já escapado):
@@ -7572,6 +7636,7 @@ body{
     const el = document.createElement('div');
     const isEvento = msg.kind === 'evento';
     el.className = 'chat-msg' + (msg.role === 'mestre' ? ' cm-mestre' : '') + (isEvento ? ' cm-evento' : '');
+    el.dataset.msgId = snap.key;
     const time = msg.ts ? new Date(msg.ts).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : '';
     let bodyHtml;
     if(isEvento){
@@ -7583,12 +7648,37 @@ body{
       if(msg.imagem) bodyHtml += `<div class="cm-img-wrap"><img class="cm-img" src="${msg.imagem}" alt="" loading="lazy"></div>`;
       if(msg.imagem2) bodyHtml += `<div class="cm-img-wrap"><img class="cm-img" src="${msg.imagem2}" alt="" loading="lazy"></div>`;
     }else{
-      bodyHtml = `<span class="cm-name">${escapeHtml(msg.nome || '???')}:</span> ${escapeHtml(msg.texto || '')}`;
+      bodyHtml = `<span class="cm-name">${escapeHtml(msg.nome || '???')}:</span>` + (msg.texto ? ` ${escapeHtml(msg.texto)}` : '');
+      if(msg.imagem) bodyHtml += `<div class="cm-img-wrap"><img class="cm-img" src="${msg.imagem}" alt="" loading="lazy"></div>`;
+    }
+    // apagar mensagem: só quem mandou (mesmo uid) ou o mestre — ver isChatMessageDeletableByMe()
+    // e o listener de clique único em chatMessagesEl mais abaixo (delegação, já que as mensagens
+    // são criadas dinamicamente).
+    if(isChatMessageDeletableByMe(msg)){
+      bodyHtml += `<button type="button" class="cm-del-btn" data-msg-id="${snap.key}" title="Apagar esta mensagem" aria-label="Apagar esta mensagem">✕</button>`;
     }
     el.innerHTML = bodyHtml + (time ? `<span class="cm-time">${time}</span>` : '');
     chatMessagesEl.appendChild(el);
     chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
   }
+
+  function isChatMessageDeletableByMe(msg){
+    if(!currentUser) return false;
+    if(currentRole === 'mestre') return true; // mestre pode apagar qualquer mensagem
+    return !!(msg.uid && msg.uid === currentUser.uid); // senão, só quem mandou
+  }
+
+  // delegação de clique (um listener só, no container) porque as mensagens (e o botão ✕ de cada
+  // uma) são criadas dinamicamente por appendChatMessage() — não dá pra prender um listener em
+  // cada botão de antemão.
+  chatMessagesEl.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.cm-del-btn');
+    if(!btn || !fbReady) return;
+    const msgId = btn.dataset.msgId;
+    if(!msgId) return;
+    if(!confirm('Apagar esta mensagem do chat?')) return;
+    fbDb.ref('mesa/chat/' + msgId).remove();
+  });
 
   // Espelha uma mensagem de evento (rolagem, iniciativa, nível, morte, guia Mesa) no chat da
   // mesa, com o mesmo texto e imagens enviadas ao Discord — ver a chamada em postToDiscord().
@@ -7601,7 +7691,7 @@ body{
       || (currentUser.email ? currentUser.email.split('@')[0] : '')
       || (currentRole === 'mestre' ? 'Mestre' : 'Jogador');
     fbDb.ref('mesa/chat').push({
-      kind: 'evento', nome, role: currentRole, texto: content,
+      kind: 'evento', nome, role: currentRole, uid: currentUser.uid, texto: content,
       imagem: imageDataUrl || null, imagem2: imageDataUrl2 || null,
       ts: firebase.database.ServerValue.TIMESTAMP
     });
@@ -7617,12 +7707,50 @@ body{
     const nome = (els.nome && els.nome.value ? els.nome.value.trim() : '')
       || (currentUser.email ? currentUser.email.split('@')[0] : '')
       || (currentRole === 'mestre' ? 'Mestre' : 'Jogador');
+    const textoFinal = texto.slice(0, 500);
     fbDb.ref('mesa/chat').push({
-      kind: 'texto', nome, role: currentRole, texto: texto.slice(0, 500), ts: firebase.database.ServerValue.TIMESTAMP
+      kind: 'texto', nome, role: currentRole, uid: currentUser.uid, texto: textoFinal, ts: firebase.database.ServerValue.TIMESTAMP
     });
+    // mensagem digitada direto no chat também vai pro Discord agora, do mesmo jeito que uma
+    // rolagem vai — ver postChatToDiscord().
+    postChatToDiscord(nome, textoFinal, null);
     chatInputEl.value = '';
   }
   $('chatSendBtn').addEventListener('click', sendChatMessage);
+
+  // ---------- enviar imagem direto no chat ----------
+  const chatImageInput = $('chatImageInput');
+  const chatImageBtn = $('chatImageBtn');
+  if(chatImageBtn && chatImageInput){
+    chatImageBtn.addEventListener('click', ()=>{
+      if(!fbReady || !currentUser){ alert('Entre na sua conta pra enviar imagens no chat.'); return; }
+      chatImageInput.click();
+    });
+    chatImageInput.addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      e.target.value = '';
+      if(!file || !fbReady || !currentUser) return;
+      // imagem de chat pode ser um print/foto grande — 900px de lado já sobra pra ver detalhe
+      // sem inchar o banco à toa (resizeImageFile é a mesma função já usada pro retrato).
+      resizeImageFile(file, 900, 0.82).then(dataUrl=>{
+        sendChatImageMessage(dataUrl);
+      }).catch(err=>{
+        console.error(err);
+        alert('Não foi possível enviar essa imagem no chat. Tente outra imagem.');
+      });
+    });
+  }
+
+  function sendChatImageMessage(dataUrl){
+    const nome = (els.nome && els.nome.value ? els.nome.value.trim() : '')
+      || (currentUser.email ? currentUser.email.split('@')[0] : '')
+      || (currentRole === 'mestre' ? 'Mestre' : 'Jogador');
+    fbDb.ref('mesa/chat').push({
+      kind: 'texto', nome, role: currentRole, uid: currentUser.uid, texto: '', imagem: dataUrl,
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
+    postChatToDiscord(nome, '', dataUrl);
+  }
   chatInputEl.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') sendChatMessage(); });
 
   // botão de minimizar: só esconde o corpo da caixa (mensagens + campo de digitar), mantendo o
