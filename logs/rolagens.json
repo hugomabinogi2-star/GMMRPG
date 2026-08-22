@@ -33,5 +33,14 @@
     "resultado": 1,
     "resultLabel": "Erro Crítico",
     "ts": 1787421708045
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 1,
+    "resultado": 6,
+    "resultLabel": "Erro",
+    "ts": 1787422749413
   }
 ]
