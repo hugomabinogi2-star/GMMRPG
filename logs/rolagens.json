@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "car",
     "statValor": 15,
-    "resultado": 17,
-    "resultLabel": "Acerto",
-    "ts": 1787355217625
-  },
-  {
-    "nome": "Sexus",
-    "tipo": "atributo",
-    "statKey": "car",
-    "statValor": 15,
     "resultado": 6,
     "resultLabel": "Acerto",
     "ts": 1787355219529
@@ -100,5 +91,17 @@
     "resultado": 4,
     "habilidade": "PAULADA DE CARNE",
     "ts": 1787396178033
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 10,
+    "rolls": [
+      7
+    ],
+    "resultado": 7,
+    "habilidade": "",
+    "ts": 1787396192331
   }
 ]
