@@ -647,6 +647,24 @@ body{
 .board-mode-toggle.mode-active{border-color:var(--gold-bright);background:rgba(224,182,86,.14);}
 #boardDarkModeLabel:has(input:checked), #boardDarkModeLabel.mode-active{border-color:#5c5c5c;background:rgba(0,0,0,.18);}
 #boardDarkModeLabel:has(input:checked) .board-mode-toggle-name, #boardDarkModeLabel.mode-active .board-mode-toggle-name{color:#c9c9c9;}
+/* zoom do tabuleiro (mestre e "Tabuleiro ao Vivo") — ver setupBoardZoom() no <script>. Usa a
+   propriedade CSS "zoom" (não transform:scale) de propósito: "zoom" recalcula o tamanho de layout
+   de verdade, então o resto da página flui certinho ao redor do tabuleiro em qualquer nível; já
+   transform:scale só muda o visual, mantendo a caixa original no lugar (sobrepondo o que vem
+   depois quando aumenta, ou deixando um vão vazio quando diminui). Suportado por todo navegador
+   atual (Chrome/Edge/Safari sempre, Firefox 126+). */
+.board-zoom-controls{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0 10px;}
+.board-zoom-btn{
+  flex:none;background:none;border:1px solid var(--ink-faint);border-radius:4px;
+  width:26px;height:26px;line-height:1;font-size:15px;font-weight:700;color:var(--ink-soft);cursor:pointer;
+}
+.board-zoom-btn:hover{border-color:var(--gold-bright);color:var(--ink);}
+.board-zoom-btn:disabled{opacity:.4;cursor:default;}
+.board-zoom-btn:disabled:hover{border-color:var(--ink-faint);color:var(--ink-soft);}
+.board-zoom-readout{font-family:'Cinzel',serif;font-size:11.5px;color:var(--ink-soft);min-width:38px;text-align:center;}
+/* variante compacta, dentro do cabeçalho do painel "Tabuleiro ao Vivo" (mesma fileira do botão de
+   minimizar — ver .chat-panel-head-actions/.chat-min-btn) */
+.chat-panel-head-actions .board-zoom-readout{font-size:10.5px;min-width:30px;}
 .board-wrap{overflow-x:auto;margin:12px 0;display:flex;justify-content:center;}
 .board-outer{
   display:grid;
@@ -770,6 +788,11 @@ body{
   }
 }
 .board-token .token-fallback{font-family:'Cinzel',serif;font-weight:700;font-size:9px;color:#3a280e;}
+/* ficha de JOGADOR com Vida em 0 (ver isHeroDead()/liveVitalsAll no <script>) — troca o retrato
+   pela caveira, fundo escurecido; o anel colorido de fora (dourado/contorno do mestre) continua
+   normal, só o miolo muda, pra ainda dar pra ver de quem é a peça mesmo "caída". */
+.board-token.token-dead{background-color:#1c1a17;}
+.board-token .token-skull-icon{font-size:15px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.7));}
 /* menu suspenso ao passar o mouse num token do tabuleiro — mostra o nome do personagem (fichas) ou
    o tipo + número de ordem de colocação (aliados/inimigos/monstros/boss), pra o mestre identificar
    quem é quem de relance. Fica como filho da CASA (não do token, que tem overflow:hidden e cortaria
@@ -2840,6 +2863,9 @@ body{
              connectLiveBoard()/renderLiveBoardMini() no <script>. -->
         <div class="panel live-board-panel" id="liveBoardPanel" hidden>
           <h2>🗺️ Tabuleiro ao Vivo<span class="chat-panel-head-actions">
+            <button id="liveBoardZoomOutBtn" class="chat-min-btn" title="Diminuir zoom" type="button">−</button>
+            <span class="board-zoom-readout" id="liveBoardZoomReadout">100%</span>
+            <button id="liveBoardZoomInBtn" class="chat-min-btn" title="Aumentar zoom" type="button">+</button>
             <button id="liveBoardMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
           </span></h2>
           <div class="live-board-panel-body" id="liveBoardPanelBody">
@@ -3423,8 +3449,14 @@ body{
         </label>
       </div>
 
+      <div class="board-zoom-controls">
+        <button type="button" class="board-zoom-btn" id="boardZoomOutBtn" title="Diminuir zoom" aria-label="Diminuir zoom">−</button>
+        <span class="board-zoom-readout" id="boardZoomReadout">100%</span>
+        <button type="button" class="board-zoom-btn" id="boardZoomInBtn" title="Aumentar zoom" aria-label="Aumentar zoom">+</button>
+      </div>
+
       <div class="board-wrap">
-        <div class="board-outer">
+        <div class="board-outer" id="boardOuter">
           <div class="board-corner"></div>
           <div class="board-colheader" id="boardColHeader"></div>
           <div class="board-rowheader" id="boardRowHeader"></div>
@@ -6613,6 +6645,7 @@ body{
   let BOARD_ROWS = 24;
   let BOARD_COLS = 24;
   const boardGrid        = $('boardGrid');
+  const boardOuterEl     = $('boardOuter');
   const boardColHeader   = $('boardColHeader');
   const boardRowHeader   = $('boardRowHeader');
   const boardTrayCoins   = $('boardTrayCoins');
@@ -6638,6 +6671,36 @@ body{
   const boardBgChooseBtn  = $('boardBgChooseBtn');
   const boardBgResetBtn   = $('boardBgResetBtn');
   const boardGridColorSwatches = document.querySelectorAll('.board-grid-color-swatch');
+
+  // ---------- zoom do tabuleiro (mestre e "Tabuleiro ao Vivo") ----------
+  // Mesma função serve os dois tabuleiros (chamada uma vez pra cada, mais abaixo e lá na seção do
+  // mini-tabuleiro ao vivo) — cada um guarda o próprio nível de zoom separado no localStorage (a
+  // aba Mesa do mestre normalmente quer um zoom bem menor, já que mostra o tabuleiro inteiro, do
+  // que o mini "Tabuleiro ao Vivo" acima do chat). Usa a propriedade CSS "zoom" (ver comentário
+  // junto de .board-zoom-controls no <style>) direto no elemento .board-outer — afeta cabeçalhos de
+  // linha/coluna e a grade junto, sem precisar recalcular nada manualmente.
+  const BOARD_ZOOM_LEVELS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+  function setupBoardZoom(outerEl, readoutEl, outBtn, inBtn, storageKey){
+    if(!outerEl || !outBtn || !inBtn) return;
+    let idx = BOARD_ZOOM_LEVELS.indexOf(1);
+    try{
+      const saved = parseFloat(localStorage.getItem(storageKey));
+      const savedIdx = BOARD_ZOOM_LEVELS.indexOf(saved);
+      if(savedIdx >= 0) idx = savedIdx;
+    }catch(err){}
+    function apply(){
+      const level = BOARD_ZOOM_LEVELS[idx];
+      outerEl.style.zoom = level;
+      if(readoutEl) readoutEl.textContent = Math.round(level * 100) + '%';
+      outBtn.disabled = idx === 0;
+      inBtn.disabled = idx === BOARD_ZOOM_LEVELS.length - 1;
+      try{ localStorage.setItem(storageKey, String(level)); }catch(err){}
+    }
+    outBtn.addEventListener('click', ()=>{ if(idx > 0){ idx--; apply(); } });
+    inBtn.addEventListener('click', ()=>{ if(idx < BOARD_ZOOM_LEVELS.length - 1){ idx++; apply(); } });
+    apply();
+  }
+  setupBoardZoom(boardOuterEl, $('boardZoomReadout'), $('boardZoomOutBtn'), $('boardZoomInBtn'), 'rpg_ficha_board_zoom');
 
   // ---- menu do tabuleiro: abas Fichas dos Jogadores / Fichas do Mestre / Geral / Blocos ----
   document.querySelectorAll('.board-menu-tab').forEach(tabBtn=>{
@@ -6947,12 +7010,15 @@ body{
       // fichas do MESTRE (id prefixado "mestre:") recebem uma classe extra que soma um contorno
       // preto por fora do dourado — ajuda a diferenciar de relance de personagens de jogador.
       const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
-      t.className = 'board-token token-' + token.kind + tokenSizeClass(token.size) + (isBlockKind(token.kind) ? ' token-block' : '') + (isMestreHero ? ' token-hero-mestre' : '');
+      const dead = isHeroDead(token);
+      t.className = 'board-token token-' + token.kind + tokenSizeClass(token.size) + (isBlockKind(token.kind) ? ' token-block' : '') + (isMestreHero ? ' token-hero-mestre' : '') + (dead ? ' token-dead' : '');
       t.draggable = true;
       if(isBlockKind(token.kind)){
         // sem imagem nem texto — o visual de mármore vem só do CSS (.token-block); mantém o
         // title nativo simples aqui, blocos não precisam do menu suspenso com numeração.
         t.title = token.name;
+      } else if(dead){
+        t.innerHTML = `<span class="token-skull-icon">💀</span>`;
       } else if(token.portrait){
         t.style.backgroundImage = `url("${token.portrait}")`;
       } else {
@@ -7000,6 +7066,23 @@ body{
     }
   }
 
+  // ficha de JOGADOR (token.ownerUid) com Vida publicada em mesa/live/{uid} (mesmo liveVitalsAll
+  // usado pela barrinha logo abaixo) chegando a 0 — troca o ícone pela caveira (ver .token-dead/
+  // .token-skull-icon no <style>, e o uso aqui dentro de renderBoardCell()/renderLiveBoardMini()).
+  // Fichas do MESTRE nunca ganham ownerUid (pushLiveVitals() só publica pra ficha de jogador — ver
+  // comentário perto de recalc()), então nunca "morrem" por essa conta. Exige vidaMax > 0 publicado
+  // (mesma guarda de applyBoardHpBar() logo abaixo) — sem isso ainda não dá pra saber se é 0 de
+  // verdade ou só ninguém publicou nada ainda.
+  function isHeroDead(token){
+    if(!token || token.kind !== 'hero' || !token.ownerUid) return false;
+    const live = liveVitalsAll[token.ownerUid];
+    if(!live) return false;
+    const vidaMax = parseFloat(live.vidaMax);
+    if(!(vidaMax > 0)) return false;
+    const vida = parseFloat(live.vida);
+    return isFinite(vida) && vida <= 0;
+  }
+
   // le o vida/vidaMax mais recente publicado em mesa/live/{uid} (liveVitalsAll, mesmo dado que
   // alimenta Vida/Mana/Escudo "ao vivo" nas listas de fichas — ver pushLiveVitals()) e aplica na
   // barrinha (largura em % + cor por faixa: verde >50%, amarelo 20-50%, vermelho <=20%). Sem dado
@@ -7018,11 +7101,22 @@ body{
     hpBar.title = `Vida ${vida} / ${vidaMax}`;
   }
 
-  // chamado sempre que mesa/live muda (ver onLiveVitalsChanged() mais abaixo) — atualiza toda
-  // barrinha já desenhada no tabuleiro de verdade, sem precisar redesenhar a casa inteira (o token
-  // continua o mesmo, só a barra precisa refletir o valor novo).
+  // chamado sempre que mesa/live muda (ver onLiveVitalsChanged() mais abaixo) — refaz cada casa do
+  // tabuleiro de verdade que tenha uma ficha de JOGADOR (token.ownerUid): uma renderBoardCell()
+  // completa já cuida tanto de atualizar a barrinha de Vida (applyBoardHpBar(), chamada lá dentro)
+  // quanto de trocar o ícone pra caveira quando a Vida chega a 0 (isHeroDead(), também usada lá
+  // dentro) — as duas coisas nascem da mesma leitura de liveVitalsAll, não precisam de duas funções
+  // de atualização separadas.
   function refreshBoardHpBars(){
-    document.querySelectorAll('#boardGrid .board-token-hpbar').forEach(applyBoardHpBar);
+    const seenAnchors = new Set();
+    Object.keys(boardTokens).forEach(key=>{
+      const t = boardTokens[key];
+      if(!t || t.kind !== 'hero' || !t.ownerUid) return;
+      const anchorKey = boardKey(t.anchorR, t.anchorC);
+      if(seenAnchors.has(anchorKey)) return;
+      seenAnchors.add(anchorKey);
+      renderBoardCell(t.anchorR, t.anchorC);
+    });
   }
 
   function tokenTooltipText(token){
@@ -7148,13 +7242,15 @@ body{
   }
 
   // quando mesa/live muda (Vida/Mana/Escudo/XP ao vivo, ou uma ficha nunca salva aparece/muda de
-  // nome), redesenha as duas bandejas e, se for o mestre olhando, atualiza as barrinhas de Vida do
-  // tabuleiro de verdade.
+  // nome), redesenha as duas bandejas e o mini-tabuleiro ao vivo (a caveira de Vida 0 — ver
+  // isHeroDead() — depende diretamente desse dado, então precisa redesenhar pra TODO MUNDO, não só
+  // o mestre); só o mestre tem um tabuleiro de verdade (boardTokens) pra atualizar também.
   function onLiveVitalsChanged(){
     renderHeroTray();
     renderMestreTray();
+    renderLiveBoardMini(); // caveira de Vida 0 no mini-tabuleiro — no-op se o painel nem estiver montado
     if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens)
-    refreshBoardHpBars(); // barrinha de Vida embaixo dos ícones — ver applyBoardHpBar()/renderBoardCell()
+    refreshBoardHpBars(); // barrinha de Vida + caveira embaixo dos ícones — ver renderBoardCell()
   }
 
   // Gera a função que desenha uma bandeja de moedas de personagem (jogador ou mestre) —
@@ -7304,6 +7400,14 @@ body{
           }
         });
         renderTray();
+        // este fetch é assíncrono (busca no GitHub) — o mini-tabuleiro ao vivo já pode ter
+        // renderizado ANTES dele terminar (ver liveBoardTokensRef.on('value') em
+        // connectLiveBoard()), com heroRoster/mestreRoster ainda vazios, então os ícones saíram
+        // com as iniciais de reserva no lugar do retrato de verdade (isso valia até pro jogador
+        // olhando o PRÓPRIO ícone). Sem isto, nada nunca mandava o mini-tabuleiro se redesenhar
+        // depois que os retratos finalmente chegavam — re-renderiza agora que o roster está
+        // pronto (no-op se o painel nem estiver montado ainda, ver o "if" no topo dela).
+        renderLiveBoardMini();
       }catch(err){
         console.error(err);
         const msg = (err && err.message && err.message.indexOf('Limite de leituras') === 0)
@@ -8405,7 +8509,14 @@ body{
   function resolveTokenPortrait(tok){
     if(tok.kind === 'hero'){
       const hero = heroRoster.find(h => h.id === tok.id) || mestreRoster.find(h => h.id === tok.id);
-      return hero ? hero.portrait : null;
+      if(hero) return hero.portrait;
+      // Roster ainda não chegou (fetch assíncrono no GitHub, ver comentário em makeRosterLoader())
+      // ou falhou — mas se essa peça é a PRÓPRIA ficha de quem está olhando, o retrato dela já está
+      // carregado na tela mesmo assim (login de jogador sempre carrega a própria ficha sozinho, ver
+      // autoLoadOwnFicha()), em portraitData (ver renderPortrait()). Usa isso como fallback
+      // instantâneo, sem depender de rede nenhuma — resolve o ícone da própria ficha na hora.
+      if(isMyLiveToken(tok) && portraitData) return portraitData;
+      return null;
     }
     const cfg = ENEMY_KINDS.find(k => k.kind === tok.kind);
     return cfg ? cfg.img : null;
@@ -8425,12 +8536,51 @@ body{
   const liveBoardGridEl   = $('liveBoardGrid');
   const liveBoardHintEl   = $('liveBoardHint');
   const LIVE_BOARD_MIN_KEY = 'rpg_ficha_liveboard_minimized';
+  // zoom do mini-tabuleiro (ver setupBoardZoom(), lá em cima perto do zoom da aba Mesa) — chave de
+  // localStorage separada da do tabuleiro do mestre, cada um lembra o próprio nível.
+  setupBoardZoom(liveBoardOuterEl, $('liveBoardZoomReadout'), $('liveBoardZoomOutBtn'), $('liveBoardZoomInBtn'), 'rpg_ficha_liveboard_zoom');
 
   let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: false };
   let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null;
   let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null;
 
   function liveBoardKey(r,c){ return r + '_' + c; }
+
+  // Alcance de movimento de verdade, respeitando bloco (ver isBlockKind()/OBSTACLE_KINDS): busca em
+  // largura (4 direções — cima/baixo/esquerda/direita, nunca diagonal) a partir de (anchorR,anchorC)
+  // até `limit` passos, sem NUNCA atravessar uma casa ocupada por um bloco (nem como caminho, nem
+  // como destino) — é assim que "um bloco do lado cancela o movimento naquela direção": se o único
+  // jeito de chegar numa casa é passando por cima do bloco, essa casa simplesmente não entra no
+  // resultado, mesmo estando perto em linha reta. Sem NENHUM bloco no caminho, a distância aqui bate
+  // exatamente com a conta de Manhattan (|Δlinha|+|Δcoluna|) que o app já usava antes — 4 direções
+  // com custo 1 cada é o mesmo que o "preço" que a diagonal já pagava (2, igual a duas casas retas),
+  // então nada muda pra quem nunca usa bloco. Devolve um Map "r_c" -> distância (a casa de partida
+  // NÃO entra no resultado); não filtra por casa ocupada por OUTRA peça (isso cada chamador decide,
+  // conforme o caso — ver os 3 usos logo abaixo).
+  function computeLiveBoardReachable(anchorR, anchorC, limit){
+    const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
+    const visited = new Map();
+    const startKey = liveBoardKey(anchorR, anchorC);
+    visited.set(startKey, 0);
+    const queue = [[anchorR, anchorC, 0]];
+    let head = 0;
+    while(head < queue.length){
+      const [r, c, d] = queue[head++];
+      if(d >= limit) continue;
+      const neighbors = [[r-1,c],[r+1,c],[r,c-1],[r,c+1]];
+      for(const [nr, nc] of neighbors){
+        if(nr < 0 || nc < 0 || nr >= rows || nc >= cols) continue;
+        const key = liveBoardKey(nr, nc);
+        if(visited.has(key)) continue;
+        const occupant = liveBoardState.tokens[key];
+        if(occupant && isBlockKind(occupant.kind)) continue; // bloco: impassável, nem dá pra atravessar
+        visited.set(key, d + 1);
+        queue.push([nr, nc, d + 1]);
+      }
+    }
+    visited.delete(startKey);
+    return visited;
+  }
 
   // "É minha essa ficha?" — heróis do mestre ("mestre:" no id) valem pra qualquer conta logada como
   // mestre (não existe distinção entre contas de mestre neste app); heróis de jogador comparam pela
@@ -8473,18 +8623,13 @@ body{
   // no tabuleiro ainda, o conjunto fica vazio e nada aparece (nem marcação nem peça).
   function computeFogReachableKeys(){
     const reachable = new Set();
-    const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
     Object.keys(liveBoardState.tokens || {}).forEach(key=>{
       const tok = liveBoardState.tokens[key];
       if(!tok || key !== liveBoardKey(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça (peças grandes ocupam mais de uma casa apontando pro mesmo objeto)
       if(!isMyLiveToken(tok)) return;
       const limit = 1 + (tok.bonusDes || 0);
-      const r0 = tok.anchorR, c0 = tok.anchorC;
-      for(let r = Math.max(0, r0 - limit); r <= Math.min(rows - 1, r0 + limit); r++){
-        for(let c = Math.max(0, c0 - limit); c <= Math.min(cols - 1, c0 + limit); c++){
-          if(Math.abs(r - r0) + Math.abs(c - c0) <= limit) reachable.add(liveBoardKey(r, c));
-        }
-      }
+      reachable.add(key); // a própria casa da ficha sempre entra
+      computeLiveBoardReachable(tok.anchorR, tok.anchorC, limit).forEach((dist, reachKey)=> reachable.add(reachKey));
     });
     return reachable;
   }
@@ -8518,12 +8663,16 @@ body{
           const t = document.createElement('div');
           const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
           const mine = isMyLiveToken(token);
+          const dead = isHeroDead(token);
           t.className = 'board-token token-' + token.kind + tokenSizeClass(token.size)
             + (isBlockKind(token.kind) ? ' token-block' : '')
             + (isMestreHero ? ' token-hero-mestre' : '')
-            + (mine ? ' live-board-token-mine' : '');
+            + (mine ? ' live-board-token-mine' : '')
+            + (dead ? ' token-dead' : '');
           if(isBlockKind(token.kind)){
             t.title = token.name;
+          } else if(dead){
+            t.innerHTML = `<span class="token-skull-icon">💀</span>`;
           } else {
             const portrait = resolveTokenPortrait(token);
             if(portrait) t.style.backgroundImage = `url("${portrait}")`;
@@ -8542,6 +8691,21 @@ body{
             t.addEventListener('dragend', clearLiveBoardReachableHighlight);
           }
           cell.appendChild(t);
+          if(!isBlockKind(token.kind)){
+            // menu suspenso (hover) com o nome da ficha — mesmo elemento/estilo que o mestre já vê
+            // no tabuleiro de verdade (ver .board-token-tip e o trecho equivalente em
+            // renderBoardCell()); antes só o mestre tinha isso aqui, agora todo jogador também vê.
+            const tip = document.createElement('div');
+            tip.className = 'board-token-tip';
+            tip.textContent = tokenTooltipText(token);
+            if(token.kind === 'hero'){
+              tip.style.color = '#000';
+              tip.style.background = isMestreHero ? '#fff' : tokenRingColorHex(token.kind);
+            } else {
+              tip.style.color = tokenRingColorHex(token.kind) || 'var(--ink)';
+            }
+            cell.appendChild(tip);
+          }
         }
         liveBoardGridEl.appendChild(cell);
       }
@@ -8549,25 +8713,22 @@ body{
   }
 
   // pinta de azul, enquanto o jogador está arrastando a PRÓPRIA ficha, toda casa que ela
-  // conseguiria alcançar nesse arrasto — mesma regra de handleLiveBoardDrop() (distância de
-  // Manhattan até 1 + bônus de DES, sem cair em cima de outra peça) — só que calculada de
-  // antemão pra toda a grade de uma vez, em vez de casa por casa no "solta". Bota (r,c) do
-  // próprio token de fora (não faz sentido "poder mover" pra onde já está).
+  // conseguiria alcançar nesse arrasto — mesma regra de handleLiveBoardDrop() (computeLiveBoardReachable:
+  // até 1 + bônus de DES passos, sem atravessar bloco, sem cair em cima de outra peça) — só que
+  // calculada de antemão pra toda a grade de uma vez, em vez de casa por casa no "solta". A própria
+  // casa do token nunca entra no resultado de computeLiveBoardReachable() (não faz sentido "poder
+  // mover" pra onde já está).
   function highlightLiveBoardReachable(tok){
     if(!liveBoardGridEl || !tok) return;
-    const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
+    const cols = liveBoardState.cols || 24;
     const limit = 1 + (tok.bonusDes || 0);
-    for(let r = 0; r < rows; r++){
-      for(let c = 0; c < cols; c++){
-        if(r === tok.anchorR && c === tok.anchorC) continue;
-        const dist = Math.abs(r - tok.anchorR) + Math.abs(c - tok.anchorC);
-        if(dist > limit) continue;
-        const occupant = liveBoardState.tokens[liveBoardKey(r,c)];
-        if(occupant && occupant.id !== tok.id) continue; // casa ocupada por outra peça, não alcançável de verdade
-        const cellEl = liveBoardGridEl.children[r * cols + c];
-        if(cellEl) cellEl.classList.add('live-board-reachable');
-      }
-    }
+    computeLiveBoardReachable(tok.anchorR, tok.anchorC, limit).forEach((dist, key)=>{
+      const occupant = liveBoardState.tokens[key];
+      if(occupant && occupant.id !== tok.id) return; // casa ocupada por outra peça, não alcançável de verdade
+      const [r, c] = key.split('_').map(Number);
+      const cellEl = liveBoardGridEl.children[r * cols + c];
+      if(cellEl) cellEl.classList.add('live-board-reachable');
+    });
   }
 
   function clearLiveBoardReachableHighlight(){
@@ -8588,17 +8749,17 @@ body{
     const newKey = liveBoardKey(r, c);
     const occupant = liveBoardState.tokens[newKey];
     if(occupant && occupant.id !== tok.id){ liveBoardHintEl.textContent = 'Essa casa já está ocupada.'; return; }
-    // distância de Manhattan (|Δlinha| + |Δcoluna|) — cada casa na diagonal cobre 1 linha + 1
-    // coluna ao mesmo tempo, então já "custa" o mesmo que 2 casas retas com essa conta, sem
-    // precisar de nenhuma lógica extra pra diagonal custar mais.
-    const dist = Math.abs(r - payload.r) + Math.abs(c - payload.c);
     // bônus de DES vem gravado no próprio token (ver bonusDes em makeRosterLoader()) — é sempre o
     // DES da ficha DONA da peça, não o de qualquer ficha aberta no navegador nesse momento (o login
     // sempre abre uma ficha em branco, ver startNewFicha()).
     const bonusDes = tok.bonusDes || 0;
     const limit = 1 + bonusDes;
-    if(dist > limit){
-      liveBoardHintEl.textContent = `Muito longe! Seu limite agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES).`;
+    // computeLiveBoardReachable() já leva bloco em conta (ver comentário na definição dela, lá em
+    // cima) — uma casa que só dava pra alcançar "pulando" por cima de um bloco simplesmente não
+    // aparece nesse Map, então o movimento é recusado igual a "longe demais", mesmo estando perto
+    // em linha reta.
+    if(!computeLiveBoardReachable(payload.r, payload.c, limit).has(newKey)){
+      liveBoardHintEl.textContent = `Muito longe (ou bloqueado por um bloco no caminho)! Seu limite agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES).`;
       return;
     }
     liveBoardHintEl.textContent = '';
