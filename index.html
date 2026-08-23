@@ -217,6 +217,8 @@ body{
   box-shadow:0 1px 0 rgba(0,0,0,.5), inset 0 2px 5px rgba(0,0,0,.5), inset 0 -1px 0 rgba(255,255,255,.08);
 }
 .toolbar input[type=file]{display:none;}
+.toolbar .mesa-btn{--stone-base:linear-gradient(180deg,var(--gold-bright),#a9822a);border-color:#8a6a2e;color:#2a1c08;text-shadow:0 1px 0 rgba(255,255,255,.35);}
+.toolbar .mesa-btn:hover{border-color:#f2d24b;}
 .toolbar .flip-btn{--stone-base:linear-gradient(180deg,#a5695d,#5c342c);border-color:#7a453a;}
 .toolbar .flip-btn:hover{border-color:#d69a9a;}
 .toolbar .cloud-btn{--stone-base:linear-gradient(180deg,#5c7c8c,#2c4854);border-color:#436577;}
@@ -290,14 +292,6 @@ body{
   border:1px solid #7a5c1e;border-radius:5px;cursor:pointer;
 }
 #loginSubmitBtn:hover{filter:brightness(1.08);}
-.login-forgot-btn:not([hidden]){
-  display:block;width:100%;margin-top:10px;padding:0;
-  background:none;border:none;
-  font-family:'Inter',sans-serif;font-size:12px;color:#c9b896;
-  text-decoration:underline;cursor:pointer;
-}
-.login-forgot-btn:hover{color:var(--gold-bright);}
-.login-forgot-btn:disabled{cursor:default;opacity:.7;text-decoration:none;}
 #loginResetNewPass{
   width:100%;box-sizing:border-box;padding:10px 12px;font-family:'Inter',sans-serif;font-size:14px;
   border:1px solid var(--ink-faint);border-radius:5px;margin:14px 0 12px;background:rgba(255,255,255,.92);
@@ -464,9 +458,10 @@ body{
    aqui é só pra deixar claro na hora, antes mesmo de tentar salvar. */
 .card.ficha-locked .face-inner > *{pointer-events:none;}
 /* cadeado 🔒 sobreposto em cima de CADA botão travado — tanto os de dentro da ficha/chat quanto os
-   da barra de topo (menos Ver Verso/Fichas de Jogador/Nova ficha, ver applyFichaLockUI() no
+   da barra de topo (menos Ver Verso/Fichas de Jogador/Nova ficha/Sair, ver applyFichaLockUI() no
    <script> — Nova ficha precisa continuar funcionando mesmo olhando a ficha de outro jogador, pra
-   dar pra sair de lá sem precisar ir em Fichas de Jogador primeiro). Um seletor só (".face-inner
+   dar pra sair de lá sem precisar ir em Fichas de Jogador primeiro; Sair nunca pode ficar bloqueado
+   pra ninguém, travado ou não). Um seletor só (".face-inner
    button"/"button" dentro da toolbar) pega TODOS os botões não importa a profundidade dentro do
    HTML, sem precisar listar um por um — dos minúsculos ‹›/±/step-btn até os grandes (ROLAR, Enviar
    do chat etc.), o cadeado sempre cobre a caixa inteira do próprio botão. */
@@ -475,7 +470,7 @@ body{
   position:relative;
 }
 .card.ficha-locked .face-inner button::after,
-.toolbar.ficha-locked button:not(#flipBtn):not(#masterBtn):not(#newBtn)::after{
+.toolbar.ficha-locked button:not(#flipBtn):not(#masterBtn):not(#newBtn):not(#logoutBtn)::after{
   content:'🔒';
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
@@ -485,7 +480,7 @@ body{
   line-height:1;
   border-radius:inherit;
 }
-.toolbar.ficha-locked button:not(#flipBtn):not(#masterBtn):not(#newBtn){
+.toolbar.ficha-locked button:not(#flipBtn):not(#masterBtn):not(#newBtn):not(#logoutBtn){
   pointer-events:none;
   opacity:.85;
 }
@@ -979,6 +974,12 @@ body{
 .master-card button:hover{border-color:var(--ink);color:var(--ink);}
 .master-card .mc-delete{border-color:var(--wax);color:var(--wax-dark);}
 .master-card .mc-delete:hover{border-color:var(--wax-bright);background:rgba(138,45,33,.1);}
+
+/* ---------- modal de Configurações (só mestre) ---------- */
+.config-quick-actions{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
+.config-accounts-section{margin-top:18px;padding-top:14px;border-top:1px dashed var(--border-brown);}
+.config-accounts-section > label{display:block;font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:8px;}
+.config-accounts-section .mc-name{font-family:'Inter',sans-serif;font-size:13.5px;font-weight:600;color:var(--ink);text-shadow:none;letter-spacing:0;}
 
 /* ---------- stage / flip card ---------- */
 .stage{
@@ -2507,15 +2508,15 @@ body{
     <input type="password" id="loginPasswordInput" placeholder="Senha" autocomplete="current-password">
     <input type="password" id="loginMasterPassInput" placeholder="Senha de mestre" autocomplete="off" hidden>
     <button id="loginSubmitBtn" type="button">Entrar</button>
-    <button id="loginForgotBtn" type="button" class="login-forgot-btn">Esqueci minha senha</button>
     <div id="loginError" class="login-error"></div>
     <p class="login-hint" id="loginHint">Já tem conta? Entre com seu e-mail e senha. Ainda não tem conta nesta mesa? Clique em "Cadastrar", escolha se você é o Mestre ou um Jogador, e crie seu e-mail e senha.</p>
   </div>
 
   <!-- Caixa de "digitar a nova senha" — só aparece quando a página é aberta a partir do link que o
-       Firebase manda por e-mail depois de clicar em "Esqueci minha senha" (ver loginForgotBtn no
-       <script>, que registra esta mesma URL como endereço de retorno do e-mail). Fica escondida o
-       tempo todo, exceto nesse caso específico. -->
+       Firebase manda por e-mail depois que o MESTRE pede a redefinição de senha de alguém (ver
+       "Configurações" no <script>, seção de contas — não existe mais um botão de "esqueci minha
+       senha" na própria tela de login; quem esquece a senha pede pro mestre redefinir). Fica
+       escondida o tempo todo, exceto nesse caso específico. -->
   <div class="login-box" id="loginResetBox" hidden>
     <h1>🔑 Nova senha</h1>
     <p id="loginResetEmailLabel">Escolha a nova senha:</p>
@@ -2537,15 +2538,14 @@ body{
 </div>
 
 <div class="toolbar">
+  <button id="mesaBtn" class="mestre-only mesa-btn">🖥️ Mesa</button>
   <button class="flip-btn" id="flipBtn">↺ Ver verso</button>
   <button class="cloud-btn" id="cloudSaveBtn">SALVAR</button>
   <button id="silenceBtn" class="mestre-only silence-btn" aria-pressed="false" title="Quando marcado, nada do que acontecer na ficha é enviado ao Discord nem entra no histórico compartilhado">🔊 Silenciar</button>
   <button id="masterBtn">📜 Fichas de Jogador</button>
   <button id="masterMestreBtn" class="mestre-only">🔒 Fichas do Mestre</button>
-  <button id="mesaBtn" class="mestre-only">🖥️ Mesa</button>
-  <button class="github-btn mestre-only" id="githubConfigBtn">🔑 Meu token do GitHub</button>
-  <button class="github-btn mestre-only" id="webhookConfigBtn">🔗 Webhook do Discord</button>
   <button id="newBtn">Nova ficha</button>
+  <button id="configBtn" class="mestre-only">⚙️ Configurações</button>
   <button class="logout-btn" id="logoutBtn">🚪 Sair</button>
 </div>
 
@@ -2695,7 +2695,7 @@ body{
             <div class="candle-wax"></div>
             <div class="candle-holder"></div>
           </div>
-          <h1>Ficha de Herói</h1>
+          <h1 id="fichaTitleHeading">Ficha de Herói</h1>
           <div class="deity-lore" id="deityLore">
             <div class="deity-lore-name" id="deityLoreName"></div>
             <div class="deity-lore-text" id="deityLoreText"></div>
@@ -3226,6 +3226,25 @@ body{
   </div>
 </div>
 
+<div class="modal-overlay" id="configModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>⚙️ Configurações</h2>
+      <button id="closeConfig" class="modal-close">✕</button>
+    </div>
+    <div class="config-quick-actions">
+      <button class="mini-btn" id="githubConfigBtn">🔑 Meu token do GitHub</button>
+      <button class="mini-btn" id="webhookConfigBtn">🔗 Webhook do Discord</button>
+    </div>
+    <div class="config-accounts-section">
+      <label>Contas cadastradas</label>
+      <p class="modal-sub">Veja quem já se cadastrou nesta mesa, peça pra redefinir a senha de alguém (manda um e-mail com link pra escolher senha nova) ou remova o acesso de uma conta. <strong>Remover acesso</strong> tira o papel (Mestre/Jogador) da conta na hora — ela não consegue mais entrar na ficha, mas o login em si (e-mail/senha) continua existindo no Firebase; pra apagar o login de vez, use o Console do Firebase (ver CONFIGURAR_FIREBASE.md).</p>
+      <button id="refreshConfigAccounts" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
+      <div id="configAccountsList" class="master-list"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="mesaModal" hidden>
   <div class="modal-box">
     <div class="modal-head">
@@ -3235,37 +3254,6 @@ body{
         <button id="closeMesa" class="modal-close">✕</button>
       </div>
     </div>
-
-    <div class="panel dice-panel" id="rollLogPanel">
-      <h2>🎲 Histórico de Rolagens <button type="button" class="panel-toggle-btn" id="rollLogToggleBtn" aria-label="Minimizar Histórico de Rolagens" title="Minimizar/expandir Histórico de Rolagens">▾</button></h2>
-      <div id="rollLogBody">
-        <div class="roll-log-actions">
-          <button id="refreshRollLog" class="add-row-btn">↻ Atualizar histórico</button>
-          <button id="clearRollLog" class="add-row-btn danger-row-btn">🗑️ Limpar histórico</button>
-        </div>
-        <div id="rollLogList" class="roll-log-list"></div>
-      </div>
-    </div>
-
-    <div class="mesa-preview-wrap" id="mesaPreviewWrap" hidden>
-      <img id="mesaPreviewImg" alt="Pré-visualização do print">
-      <button id="mesaRemoveImg" class="mini-btn" type="button">Remover imagem</button>
-    </div>
-
-    <div class="token-field">
-      <label>Print (opcional — clique para escolher ou cole com Ctrl+V no campo de texto)</label>
-      <input type="file" id="mesaImageInput" accept="image/*">
-    </div>
-
-    <div class="token-field">
-      <label>Mensagem</label>
-      <textarea id="mesaMessageInput" rows="4" placeholder="Escreva algo pra mesa... (também aceita colar um print aqui)"></textarea>
-    </div>
-
-    <div class="modal-actions">
-      <button id="mesaSendBtn">📨 Enviar</button>
-    </div>
-    <div id="mesaSendHint" class="mesa-hint"></div>
 
     <div class="board-section">
       <h2 class="board-title">🗺️ Tabuleiro da Mesa</h2>
@@ -3307,15 +3295,6 @@ body{
         </div>
       </div>
 
-      <div class="board-wrap">
-        <div class="board-outer">
-          <div class="board-corner"></div>
-          <div class="board-colheader" id="boardColHeader"></div>
-          <div class="board-rowheader" id="boardRowHeader"></div>
-          <div class="board-grid" id="boardGrid"></div>
-        </div>
-      </div>
-
       <div class="board-menu">
         <div class="board-menu-tabs">
           <button type="button" class="board-menu-tab active" data-panel="boardPanelJogadores">Fichas dos Jogadores</button>
@@ -3349,6 +3328,15 @@ body{
         </div>
       </div>
 
+      <div class="board-wrap">
+        <div class="board-outer">
+          <div class="board-corner"></div>
+          <div class="board-colheader" id="boardColHeader"></div>
+          <div class="board-rowheader" id="boardRowHeader"></div>
+          <div class="board-grid" id="boardGrid"></div>
+        </div>
+      </div>
+
       <div class="board-menu board-menu-bottom-actions">
         <input type="file" id="boardBgInput" accept="image/*" style="display:none;">
         <button id="iniciativaTabuleiroBtn" class="mini-btn" type="button">🗺️ Iniciativa</button>
@@ -3360,6 +3348,42 @@ body{
       <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
       <div id="boardSendHint" class="mesa-hint"></div>
     </div>
+
+    <div class="panel dice-panel" id="mesaHeroSummaryPanel">
+      <h2>📋 Fichas dos Jogadores (resumo ao vivo)</h2>
+      <div id="mesaHeroSummaryList" class="master-list"></div>
+    </div>
+
+    <div class="panel dice-panel" id="rollLogPanel">
+      <h2>🎲 Histórico de Rolagens <button type="button" class="panel-toggle-btn" id="rollLogToggleBtn" aria-label="Minimizar Histórico de Rolagens" title="Minimizar/expandir Histórico de Rolagens">▾</button></h2>
+      <div id="rollLogBody">
+        <div class="roll-log-actions">
+          <button id="refreshRollLog" class="add-row-btn">↻ Atualizar histórico</button>
+          <button id="clearRollLog" class="add-row-btn danger-row-btn">🗑️ Limpar histórico</button>
+        </div>
+        <div id="rollLogList" class="roll-log-list"></div>
+      </div>
+    </div>
+
+    <div class="mesa-preview-wrap" id="mesaPreviewWrap" hidden>
+      <img id="mesaPreviewImg" alt="Pré-visualização do print">
+      <button id="mesaRemoveImg" class="mini-btn" type="button">Remover imagem</button>
+    </div>
+
+    <div class="token-field">
+      <label>Print (opcional — clique para escolher ou cole com Ctrl+V no campo de texto)</label>
+      <input type="file" id="mesaImageInput" accept="image/*">
+    </div>
+
+    <div class="token-field">
+      <label>Mensagem</label>
+      <textarea id="mesaMessageInput" rows="4" placeholder="Escreva algo pra mesa... (também aceita colar um print aqui)"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button id="mesaSendBtn">📨 Enviar</button>
+    </div>
+    <div id="mesaSendHint" class="mesa-hint"></div>
   </div>
 </div>
 
@@ -5428,6 +5452,17 @@ body{
     };
   }
 
+  // O título "Ficha de Herói" (topo da Coluna 1) passa a mostrar o nome do personagem assim que a
+  // ficha é salva ou carregada já com um nome preenchido — só volta a "Ficha de Herói" numa ficha
+  // nova/em branco (sem nome ainda). Chamada em applyState() (cobre carregar uma ficha salva) e no
+  // fim de saveFicha() (cobre digitar um nome novo e salvar, sem precisar recarregar a ficha).
+  function updateFichaTitleHeading(){
+    const heading = $('fichaTitleHeading');
+    if(!heading) return;
+    const nome = (els.nome.value || '').trim();
+    heading.textContent = nome || 'Ficha de Herói';
+  }
+
   function applyState(s){
     els.nome.value = s.nome||'';
     els.deidade.value = s.deidade||'Zeus';
@@ -5488,6 +5523,26 @@ body{
     suppressLevelUpEffect = false;
     suppressDeathEffect = false;
     applyFichaLockUI();
+
+    // toda guia minimizável começa minimizada sempre que uma ficha é acessada (nova, carregada
+    // automaticamente pro jogador, ou aberta pela lista de Fichas de Jogador/Fichas do Mestre) —
+    // não só Modificadores (que já nascia assim antes desta rodada): os 3 painéis de rolagem
+    // (Atributo/Dano/Sorte) e o Histórico de Rolagens (dentro da Mesa) também. Independe de como
+    // cada painel estava antes — sempre volta a fechado neste ponto.
+    [
+      [modToggleBtn, modsGrid, 'Modificadores'],
+      [$('diceToggleBtn'), $('diceBody'), 'Rolagem de Atributo'],
+      [$('danoToggleBtn'), $('danoBody'), 'Rolagem de Dano'],
+      [$('sorteToggleBtn'), $('sorteBody'), 'Rolagem de Sorte'],
+      [$('rollLogToggleBtn'), $('rollLogBody'), 'Histórico de Rolagens'],
+    ].forEach(([btn, body, titulo])=>{
+      if(!btn || !body) return;
+      body.classList.add('collapsed');
+      btn.classList.add('is-collapsed');
+      btn.setAttribute('aria-label', `Expandir ${titulo}`);
+    });
+
+    updateFichaTitleHeading();
   }
 
   // ---------- dono da ficha: trava a edição pra quem não é dono nem mestre ----------
@@ -5530,14 +5585,9 @@ body{
   // seguida autoLoadOwnFicha() tenta substituir essa ficha em branco pela última ficha salva dele
   // (ver comentário lá).
   function startNewFicha(){
+    // applyState() já cuida de deixar Modificadores/Rolagens/Histórico minimizados (ver o final
+    // dela) — vale pra qualquer acesso de ficha, não só ficha nova.
     applyState({});
-    // ficha nova sempre começa com Modificadores minimizado (independe de como o painel estava
-    // antes).
-    if(modsGrid && modToggleBtn){
-      modsGrid.classList.add('collapsed');
-      modToggleBtn.classList.add('is-collapsed');
-      modToggleBtn.setAttribute('aria-label', 'Expandir Modificadores');
-    }
   }
 
   $('newBtn').addEventListener('click', ()=>{
@@ -5576,11 +5626,6 @@ body{
       applyState(mine.data);
       loadedFichaPath = mine.path;
       loadedFichaSha = mine.sha;
-      if(modsGrid && modToggleBtn){
-        modsGrid.classList.add('collapsed');
-        modToggleBtn.classList.add('is-collapsed');
-        modToggleBtn.setAttribute('aria-label', 'Expandir Modificadores');
-      }
     }catch(err){
       console.error('Não foi possível carregar a ficha automaticamente:', err);
     }
@@ -6319,9 +6364,10 @@ body{
     loadHeroRoster();
     loadMestreRoster();
     loadRollLog();
+    loadMesaHeroSummary();
   }
   $('mesaBtn').addEventListener('click', openMesaModal);
-  $('closeMesa').addEventListener('click', ()=> mesaModal.hidden = true);
+  $('closeMesa').addEventListener('click', ()=>{ mesaModal.hidden = true; loadMesaHeroSummary.detachLiveListeners(); });
   mesaModal.addEventListener('click', (e)=>{ if(e.target === mesaModal) mesaModal.hidden = true; });
 
   // botão "🗗" no cabeçalho do modal — abre a Mesa numa janela separada do navegador (útil pra
@@ -7638,6 +7684,7 @@ body{
       // a partir do primeiro salvamento bem-sucedido, a regra de "só o mestre reduz atributo"
       // passa a valer (antes disso a distribuição inicial era livre).
       if(!fichaSaved){ fichaSaved = true; resetAttrGuard(); recalc(); }
+      updateFichaTitleHeading();
     }catch(err){
       console.error(err);
       if(err.message === 'NO_TOKEN'){
@@ -7663,7 +7710,12 @@ body{
 
   // Gera a função que busca/renderiza uma lista de fichas do GitHub — reaproveitada tanto para
   // "Fichas de Jogador" (pasta FICHAS_PATH) quanto para "Fichas do Mestre" (pasta FICHAS_MESTRE_PATH).
-  function makeFichasListLoader(githubPath, listEl, modalEl, emptyMsg){
+  function makeFichasListLoader(githubPath, listEl, modalEl, emptyMsg, opts){
+    // opts.readOnly (usado pelo painel "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa) —
+    // mostra o mesmo card com os mesmos dados/vitais ao vivo, mas sem os botões "Ver ficha"/
+    // "Apagar" nem o clique de carregar a ficha na tela: é só um resumo pra consulta, não um jeito
+    // de abrir a ficha de ninguém a partir daqui.
+    const readOnly = !!(opts && opts.readOnly);
     // "ao vivo": enquanto a lista estiver na tela, cada ficha com dono (ownerUid) escuta
     // mesa/live/{uid} (ver pushLiveVitals() lá em cima, perto de recalc()) e atualiza Vida/Mana/
     // Escudo na hora, sem precisar que ninguém clique em SALVAR nem reabra a lista. Preciso
@@ -7736,49 +7788,51 @@ body{
               </div>
               <div class="mc-attrs">${attrsHtml}</div>
             </div>
-            <div class="mc-actions">
+            ${readOnly ? '' : `<div class="mc-actions">
               <button class="mc-view">Ver ficha</button>
               <button class="mc-delete mestre-only">Apagar</button>
-            </div>`;
-          card.querySelector('.mc-view').addEventListener('click', ()=>{
-            if(confirm(`Carregar a ficha de "${data.nome}" na tela principal? Isso substitui o que está aberto agora (salve antes se precisar).`)){
-              applyState(data);
-              // guarda de onde essa ficha veio (pasta + arquivo exatos, e o sha atual do arquivo) —
-              // assim, salvar de novo atualiza o mesmo arquivo original (preservando se é ficha de
-              // jogador ou do mestre, independente de quem estiver logado no momento em que for
-              // salva) e pula a busca do sha, já que acabamos de buscá-lo agora.
-              loadedFichaPath = path;
-              loadedFichaSha = sha;
-              modalEl.hidden = true;
-            }
-          });
-          card.querySelector('.mc-delete').addEventListener('click', async ()=>{
-            if(fbReady && currentRole !== 'mestre'){
-              alert('Só o mestre pode apagar fichas.');
-              return;
-            }
-            if(!getToken()){
-              alert('Configure seu token do GitHub para poder apagar fichas.');
-              tokenModal.hidden = false;
-              return;
-            }
-            if(!confirm(`Apagar definitivamente a ficha de "${data.nome}" do repositório? Essa ação não pode ser desfeita.`)) return;
-            const delBtn = card.querySelector('.mc-delete');
-            delBtn.disabled = true;
-            delBtn.textContent = 'Apagando...';
-            try{
-              await githubDeleteFile(path, sha, `Apaga ficha de ${data.nome}`);
-              playEvilLaughSound(); // riso maligno de fundo — mesmo som já usado no 1 natural
-              card.remove();
-              if(!listEl.querySelector('.master-card')){
-                listEl.innerHTML = `<div class="master-empty">${emptyMsg}</div>`;
+            </div>`}`;
+          if(!readOnly){
+            card.querySelector('.mc-view').addEventListener('click', ()=>{
+              if(confirm(`Carregar a ficha de "${data.nome}" na tela principal? Isso substitui o que está aberto agora (salve antes se precisar).`)){
+                applyState(data);
+                // guarda de onde essa ficha veio (pasta + arquivo exatos, e o sha atual do arquivo) —
+                // assim, salvar de novo atualiza o mesmo arquivo original (preservando se é ficha de
+                // jogador ou do mestre, independente de quem estiver logado no momento em que for
+                // salva) e pula a busca do sha, já que acabamos de buscá-lo agora.
+                loadedFichaPath = path;
+                loadedFichaSha = sha;
+                modalEl.hidden = true;
               }
-            }catch(err){
-              console.error(err);
-              delBtn.disabled = false;
-              delBtn.textContent = 'Erro, tentar de novo';
-            }
-          });
+            });
+            card.querySelector('.mc-delete').addEventListener('click', async ()=>{
+              if(fbReady && currentRole !== 'mestre'){
+                alert('Só o mestre pode apagar fichas.');
+                return;
+              }
+              if(!getToken()){
+                alert('Configure seu token do GitHub para poder apagar fichas.');
+                tokenModal.hidden = false;
+                return;
+              }
+              if(!confirm(`Apagar definitivamente a ficha de "${data.nome}" do repositório? Essa ação não pode ser desfeita.`)) return;
+              const delBtn = card.querySelector('.mc-delete');
+              delBtn.disabled = true;
+              delBtn.textContent = 'Apagando...';
+              try{
+                await githubDeleteFile(path, sha, `Apaga ficha de ${data.nome}`);
+                playEvilLaughSound(); // riso maligno de fundo — mesmo som já usado no 1 natural
+                card.remove();
+                if(!listEl.querySelector('.master-card')){
+                  listEl.innerHTML = `<div class="master-empty">${emptyMsg}</div>`;
+                }
+              }catch(err){
+                console.error(err);
+                delBtn.disabled = false;
+                delBtn.textContent = 'Erro, tentar de novo';
+              }
+            });
+          }
           listEl.appendChild(card);
 
           // vitais ao vivo: só dá pra escutar quando a ficha já tem um dono conhecido (ownerUid) —
@@ -7823,6 +7877,15 @@ body{
     FICHAS_MESTRE_PATH, masterMestreList, masterMestreModal,
     'Nenhuma ficha do mestre salva ainda. Use "SALVAR" logado como mestre.'
   );
+  // painel "Fichas dos Jogadores (resumo ao vivo)" dentro da própria Mesa — mesmo card/dados ao
+  // vivo da lista "📜 Fichas de Jogador", só que só de leitura (sem "Ver ficha"/"Apagar") e sem
+  // modal pra fechar (por isso o 3º argumento null), pra dar uma visão rápida de todo mundo sem
+  // precisar abrir outra tela por cima da Mesa.
+  const loadMesaHeroSummary = makeFichasListLoader(
+    FICHAS_PATH, $('mesaHeroSummaryList'), null,
+    'Nenhuma ficha de jogador salva ainda. Peça para alguém usar "SALVAR" primeiro.',
+    { readOnly: true }
+  );
 
   $('masterBtn').addEventListener('click', ()=>{
     masterModal.hidden = false;
@@ -7843,6 +7906,95 @@ body{
   $('closeMasterMestre').addEventListener('click', ()=>{ masterMestreModal.hidden = true; loadMasterMestreList.detachLiveListeners(); });
   masterMestreModal.addEventListener('click', (e)=>{ if(e.target === masterMestreModal){ masterMestreModal.hidden = true; loadMasterMestreList.detachLiveListeners(); } });
   $('refreshMasterMestre').addEventListener('click', loadMasterMestreList);
+
+  // ---------- modal de Configurações (só mestre): token/webhook + lista de contas ----------
+  // Os botões de token do GitHub e webhook do Discord continuam com os mesmos ids de sempre
+  // (githubConfigBtn/webhookConfigBtn) — só mudaram de lugar no HTML (de dentro da barra de topo
+  // pra dentro deste modal); a wiring deles (mais abaixo, perto de tokenModal/webhookModal) não
+  // precisa mudar nada, já que $() acha o botão pelo id não importa onde ele esteja no HTML.
+  const configModal = $('configModal');
+  const configAccountsList = $('configAccountsList');
+
+  // Lista todas as contas cadastradas (users/{uid} no Firebase) pra o mestre poder redefinir senha
+  // ou remover o acesso de alguém. Depende da regra nova do Firebase pra "users" (ver seção 3 do
+  // CONFIGURAR_FIREBASE.md) que libera leitura da coleção inteira só pra quem é mestre — sem essa
+  // regra republicada, a lista simplesmente não carrega (erro de permissão, tratado abaixo). Só
+  // aparecem contas que já têm e-mail gravado no registro: contas cadastradas antes deste recurso
+  // existir ainda não têm esse campo — ele é preenchido sozinho (ver o backfill em
+  // onAuthStateChanged) assim que a própria conta logar pelo menos uma vez com a versão nova.
+  async function loadConfigAccounts(){
+    if(!fbReady){
+      configAccountsList.innerHTML = '<div class="master-empty">O Firebase ainda não foi configurado nesta página.</div>';
+      return;
+    }
+    configAccountsList.innerHTML = '<div class="master-empty">Buscando contas...</div>';
+    try{
+      const snap = await fbDb.ref('users').once('value');
+      const all = snap.val() || {};
+      const entries = Object.keys(all)
+        .filter(uid => !currentUser || uid !== currentUser.uid) // não lista a própria conta (a de quem está com o modal aberto)
+        .map(uid => ({ uid, ...all[uid] }))
+        .filter(rec => rec.email);
+      if(entries.length === 0){
+        configAccountsList.innerHTML = '<div class="master-empty">Nenhuma conta encontrada ainda (contas cadastradas antes desta atualização só aparecem aqui depois do próximo login de cada uma).</div>';
+        return;
+      }
+      entries.sort((a,b)=> (a.email||'').localeCompare(b.email||''));
+      configAccountsList.innerHTML = '';
+      entries.forEach(rec=>{
+        const card = document.createElement('div');
+        card.className = 'master-card';
+        card.innerHTML = `
+          <div>
+            <div class="mc-name">${escapeHtml(rec.email)}</div>
+            <div class="mc-meta">${rec.role === 'mestre' ? 'Mestre' : 'Jogador'}</div>
+          </div>
+          <div class="mc-actions">
+            <button class="mc-reset-pass" type="button">Redefinir senha</button>
+            <button class="mc-delete" type="button">Remover acesso</button>
+          </div>`;
+        card.querySelector('.mc-reset-pass').addEventListener('click', async ()=>{
+          const btn = card.querySelector('.mc-reset-pass');
+          btn.disabled = true;
+          const original = btn.textContent;
+          btn.textContent = 'Enviando...';
+          const result = await triggerPasswordReset(rec.email);
+          if(!result.ok) console.error(result.msg);
+          btn.textContent = result.ok ? 'E-mail enviado!' : 'Erro, tentar de novo';
+          setTimeout(()=>{ btn.disabled = false; btn.textContent = original; }, 1800);
+        });
+        card.querySelector('.mc-delete').addEventListener('click', async ()=>{
+          if(!confirm(`Remover o acesso de "${rec.email}" a esta mesa? Ela perde o papel de ${rec.role === 'mestre' ? 'Mestre' : 'Jogador'} agora mesmo e não consegue mais entrar na ficha. O login (e-mail/senha) em si continua existindo no Firebase — pra apagar ele de vez, use o Console do Firebase.`)) return;
+          const delBtn = card.querySelector('.mc-delete');
+          delBtn.disabled = true;
+          delBtn.textContent = 'Removendo...';
+          try{
+            await fbDb.ref('users/' + rec.uid).remove();
+            card.remove();
+            if(!configAccountsList.querySelector('.master-card')){
+              configAccountsList.innerHTML = '<div class="master-empty">Nenhuma conta encontrada.</div>';
+            }
+          }catch(err){
+            console.error(err);
+            delBtn.disabled = false;
+            delBtn.textContent = 'Erro, tentar de novo';
+          }
+        });
+        configAccountsList.appendChild(card);
+      });
+    }catch(err){
+      console.error(err);
+      configAccountsList.innerHTML = '<div class="master-empty">Não foi possível carregar as contas agora (confira se a regra nova do Firebase pra "users" foi republicada — ver CONFIGURAR_FIREBASE.md).</div>';
+    }
+  }
+
+  $('configBtn').addEventListener('click', ()=>{
+    configModal.hidden = false;
+    loadConfigAccounts();
+  });
+  $('closeConfig').addEventListener('click', ()=> configModal.hidden = true);
+  configModal.addEventListener('click', (e)=>{ if(e.target === configModal) configModal.hidden = true; });
+  $('refreshConfigAccounts').addEventListener('click', loadConfigAccounts);
 
   // ---------- firebase: login (mestre/jogador), ficha ao vivo ----------
 
@@ -7917,7 +8069,6 @@ body{
   const loginPasswordInput = $('loginPasswordInput');
   const loginMasterPassInput = $('loginMasterPassInput');
   const loginRoleButtons = $('loginRoleButtons');
-  const loginForgotBtn = $('loginForgotBtn');
   const loginNormalBox = $('loginNormalBox');
   const loginResetBox = $('loginResetBox');
   const loginResetEmailLabel = $('loginResetEmailLabel');
@@ -7995,8 +8146,6 @@ body{
     loginRoleButtons.hidden = !isCadastro;
     loginMasterPassInput.hidden = !(isCadastro && selectedLoginRole === 'mestre');
     if(loginMasterPassInput.hidden) loginMasterPassInput.value = '';
-    // "Esqueci minha senha" só faz sentido pra quem já tem conta — some durante o Cadastro.
-    loginForgotBtn.hidden = isCadastro;
     $('loginHint').textContent = isCadastro
       ? 'Escolha se você é o Mestre ou um Jogador, e crie seu e-mail e senha (mínimo 6 caracteres). Cadastrar como Mestre pede também a senha de mestre, combinada à parte com quem organiza a mesa.'
       : 'Entre com o e-mail e a senha que você já cadastrou nesta mesa.';
@@ -8043,7 +8192,7 @@ body{
         pendingSignupRole = selectedLoginRole;
         pendingSignupChave = generateAccountKey();
         const cred = await fbAuth.createUserWithEmailAndPassword(email, senha);
-        await fbDb.ref('users/' + cred.user.uid).set({ role: selectedLoginRole, chave: pendingSignupChave, criadoEm: firebase.database.ServerValue.TIMESTAMP });
+        await fbDb.ref('users/' + cred.user.uid).set({ role: selectedLoginRole, chave: pendingSignupChave, email, criadoEm: firebase.database.ServerValue.TIMESTAMP });
       }
       loginPasswordInput.value = '';
       loginMasterPassInput.value = '';
@@ -8058,32 +8207,26 @@ body{
   loginPasswordInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doSubmitLogin(); });
   loginEmailInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doSubmitLogin(); });
 
-  // ---------- esqueci minha senha ----------
-  // Clicar em "Esqueci minha senha" manda um e-mail de redefinição pro endereço digitado no campo
-  // de e-mail, via Firebase Auth. O link do e-mail aponta de volta pra esta mesma página (ver
-  // actionCodeSettings.url abaixo) com ?mode=resetPassword&oobCode=..., o que faz a própria página
-  // reconhecer a volta e trocar a caixa de login normal pela caixa de "Nova senha" (ver
-  // detectPasswordResetLink() logo abaixo) — o mais perto que dá de "abrir uma caixa pra nova
-  // senha" sem depender de um servidor próprio.
-  loginForgotBtn.addEventListener('click', async ()=>{
-    loginError.textContent = '';
-    if(!fbReady){ loginError.textContent = 'O Firebase ainda não foi configurado nesta página.'; return; }
-    const email = (loginEmailInput.value || '').trim();
-    if(!email){ loginError.textContent = 'Digite seu e-mail ali em cima pra poder redefinir a senha.'; return; }
-    loginForgotBtn.disabled = true;
-    const textoOriginal = loginForgotBtn.textContent;
-    loginForgotBtn.textContent = 'Enviando...';
+  // ---------- redefinir senha (pedida pelo mestre, dentro de Configurações) ----------
+  // Não existe mais um botão de "esqueci minha senha" self-service na tela de login — quem
+  // esquece a senha pede pro mestre redefinir pela lista de contas dentro de "⚙️ Configurações"
+  // (ver essa seção mais abaixo, perto do masterModal). Essa função é o que o botão "Redefinir
+  // senha" de lá chama: manda o e-mail de redefinição do Firebase Auth pro endereço da conta
+  // escolhida. O link do e-mail aponta de volta pra esta mesma página (ver actionCodeSettings.url
+  // abaixo) com ?mode=resetPassword&oobCode=..., o que faz a própria página reconhecer a volta e
+  // trocar a caixa de login normal pela caixa de "Nova senha" (ver detectPasswordResetLink() logo
+  // abaixo) — o mais perto que dá de "abrir uma caixa pra nova senha" sem depender de um servidor
+  // próprio. Devolve {ok:true} ou {ok:false, msg} pra quem chamou mostrar o resultado.
+  async function triggerPasswordReset(email){
+    if(!fbReady) return { ok:false, msg:'O Firebase ainda não foi configurado nesta página.' };
     try{
       await fbAuth.sendPasswordResetEmail(email, { url: location.origin + location.pathname });
-      loginError.textContent = '';
-      $('loginHint').textContent = `Enviamos um e-mail pra ${email} com um link pra você escolher uma senha nova. Não achou? Confira a caixa de spam.`;
+      return { ok:true, msg:`Enviamos um e-mail pra ${email} com um link pra escolher uma senha nova.` };
     }catch(err){
       console.error(err);
-      loginError.textContent = friendlyAuthError(err);
+      return { ok:false, msg: friendlyAuthError(err) };
     }
-    loginForgotBtn.disabled = false;
-    loginForgotBtn.textContent = textoOriginal;
-  });
+  }
 
   // Reconhece a volta do link de redefinição (?mode=resetPassword&oobCode=...) e troca a caixa de
   // login normal pela caixa de "Nova senha" — roda uma vez, no carregamento da página.
@@ -8099,7 +8242,7 @@ body{
       loginResetEmailLabel.textContent = `Escolha a nova senha pra ${email}:`;
     }catch(err){
       console.error(err);
-      loginResetError.textContent = 'Esse link de redefinição não é mais válido — peça um novo em "Esqueci minha senha".';
+      loginResetError.textContent = 'Esse link de redefinição não é mais válido — peça pro mestre gerar um novo em Configurações.';
       $('loginResetSubmitBtn').disabled = true;
       return;
     }
@@ -8121,7 +8264,7 @@ body{
         $('loginHint').textContent = 'Senha alterada! Entre com seu e-mail e a senha nova.';
       }catch(err){
         console.error(err);
-        loginResetError.textContent = 'Não foi possível salvar a senha nova — o link pode ter expirado. Peça um novo em "Esqueci minha senha".';
+        loginResetError.textContent = 'Não foi possível salvar a senha nova — o link pode ter expirado. Peça pro mestre gerar um novo em Configurações.';
       }
       btn.disabled = false;
     });
@@ -8742,16 +8885,18 @@ body{
       // cadastradas antes desse recurso existir (inclusive as 2 do ROLE_ACCOUNTS) ainda não têm
       // uma; nesse caso é gerada e gravada agora mesmo, sem exigir recadastro (ver o backfill logo
       // abaixo, depois que o papel já está resolvido).
-      let role = null, chave = null;
+      let role = null, chave = null, temEmailGravado = false;
       try{
         const rec = await fbDb.ref('users/' + user.uid).once('value').then(s=> s.val());
         if(rec && rec.role) role = rec.role;
         if(rec && rec.chave) chave = rec.chave;
+        if(rec && rec.email) temEmailGravado = true;
       }catch(err){ console.error('Não foi possível ler o papel do usuário:', err); }
       if(!role && pendingSignupRole){
         role = pendingSignupRole;
         chave = pendingSignupChave || generateAccountKey();
-        fbDb.ref('users/' + user.uid).set({ role, chave, criadoEm: firebase.database.ServerValue.TIMESTAMP });
+        fbDb.ref('users/' + user.uid).set({ role, chave, email: user.email, criadoEm: firebase.database.ServerValue.TIMESTAMP });
+        temEmailGravado = true;
       }
       if(!role){
         role = Object.keys(ROLE_ACCOUNTS).find(r=> ROLE_ACCOUNTS[r] === user.email);
@@ -8767,8 +8912,18 @@ body{
       // ainda não tem chave própria — gera uma agora e grava, sem precisar recadastrar.
       if(!chave){
         chave = generateAccountKey();
-        fbDb.ref('users/' + user.uid).set({ role, chave, criadoEm: firebase.database.ServerValue.TIMESTAMP })
+        fbDb.ref('users/' + user.uid).set({ role, chave, email: user.email, criadoEm: firebase.database.ServerValue.TIMESTAMP })
           .catch(err=> console.error('Não foi possível gravar a chave nova da conta:', err));
+        temEmailGravado = true;
+      }
+      // backfill: conta cadastrada antes do recurso de "Configurações → Contas" existir, sem o
+      // e-mail gravado em users/{uid} ainda (só existia no Firebase Auth, que o mestre não
+      // consegue listar direto) — grava agora, só esse campo (update, não set, pra não apagar
+      // nada que já esteja lá), assim ela passa a aparecer na lista de contas do mestre a partir
+      // deste login em diante.
+      if(!temEmailGravado){
+        fbDb.ref('users/' + user.uid).update({ email: user.email })
+          .catch(err=> console.error('Não foi possível gravar o e-mail da conta:', err));
       }
       currentUserKey = chave;
       currentRole = role;
