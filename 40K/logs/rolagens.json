@@ -6,5 +6,13 @@
     "resultado": "cara",
     "verdict": "erro",
     "ts": 1787521117457
+  },
+  {
+    "nome": "M4NT1X",
+    "tipo": "sorte",
+    "escolha": "coroa",
+    "resultado": "coroa",
+    "verdict": "acerto",
+    "ts": 1787521124015
   }
 ]
