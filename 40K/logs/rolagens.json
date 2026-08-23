@@ -14,5 +14,17 @@
     "resultado": "coroa",
     "verdict": "acerto",
     "ts": 1787521124015
+  },
+  {
+    "nome": "M4NT1X",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      5
+    ],
+    "resultado": 5,
+    "habilidade": "",
+    "ts": 1787521199695
   }
 ]
