@@ -3419,7 +3419,7 @@ body{
         <label class="board-mode-toggle" id="boardFogModeLabel">
           <input type="checkbox" id="boardFogModeToggle">
           <span class="board-mode-toggle-name">🌫️ Fog</span>
-          <span class="board-mode-toggle-hint">jogadores só veem marcações dentro do alcance deles</span>
+          <span class="board-mode-toggle-hint">jogadores só veem marcações e peças dentro do alcance deles</span>
         </label>
       </div>
 
@@ -6659,8 +6659,8 @@ body{
   // simplesmente para de atualizar, congelado no último estado que já tinham recebido (ver os
   // "return" no topo de scheduleBoardMetaPush/MarksPush/TokensPush, mais abaixo). Fog: o
   // tabuleiro continua sendo publicado normalmente, mas cada jogador só vê as MARCAÇÕES (pintura
-  // verde/amarela/vermelha das casas, não as peças) que estão dentro do alcance de movimento da
-  // própria ficha — ver o filtro em renderLiveBoardMini(). Só um dos dois pode estar ativo por
+  // verde/amarela/vermelha das casas) E as PEÇAS/ÍCONES (fichas, inimigos, obstáculos) que estão
+  // dentro do alcance de movimento da própria ficha — ver o filtro em renderLiveBoardMini(). Só um dos dois pode estar ativo por
   // vez (ver wireBoardViewModeToggle() mais abaixo); com os dois desmarcados, o tabuleiro volta a
   // atualizar ao vivo, normalmente, pra todo mundo.
   let boardDarkMode = false;
@@ -8169,6 +8169,15 @@ body{
   }
 
   const loginGate = $('loginGate');
+  // seletor de mesas/campanhas (ver #campaignSwitcher no HTML): deve aparecer SÓ na tela de
+  // login, nunca depois de logado — por isso toda vez que loginGate.hidden muda, esta função
+  // espelha o MESMO valor nele (escondido junto com a tela de login, visível junto com ela). Ver
+  // as 3 chamadas logo abaixo, no lugar de mexer em loginGate.hidden direto.
+  const campaignSwitcherEl = $('campaignSwitcher');
+  function setLoginGateHidden(hidden){
+    loginGate.hidden = hidden;
+    if(campaignSwitcherEl) campaignSwitcherEl.hidden = hidden;
+  }
   const loginError = $('loginError');
   const loginEmailInput = $('loginEmailInput');
   const loginPasswordInput = $('loginPasswordInput');
@@ -8241,7 +8250,7 @@ body{
   if(!fbReady){
     // Sem Firebase configurado ainda: libera a ficha normalmente, sem exigir login
     // (login e ficha ao vivo ficam inativos até o firebaseConfig ser preenchido).
-    loginGate.hidden = true;
+    setLoginGateHidden(true);
   }
 
   function selectLoginRole(role){
@@ -8458,9 +8467,10 @@ body{
   // Fog (ver boardFogMode/liveBoardState.fog): monta o conjunto de casas "r_c" que a(s) própria(s)
   // ficha(s) do jogador alcançariam nesse tabuleiro agora — mesma regra de alcance usada pro
   // arrasto normal (highlightLiveBoardReachable/handleLiveBoardDrop: Manhattan até 1 + bônus de
-  // DES). Só as MARCAÇÕES (pintura verde/amarela/vermelha) dentro desse conjunto ficam visíveis;
-  // as peças continuam todas visíveis normalmente, Fog não esconde ficha nenhuma. Sem ficha própria
-  // no tabuleiro ainda, o conjunto fica vazio e nenhuma marcação aparece.
+  // DES). TANTO as marcações (pintura verde/amarela/vermelha) QUANTO as peças/ícones (fichas,
+  // inimigos, obstáculos) fora desse conjunto ficam escondidos — a própria ficha do jogador nunca
+  // some porque a casa-âncora dela sempre está a distância 0 do próprio alcance. Sem ficha própria
+  // no tabuleiro ainda, o conjunto fica vazio e nada aparece (nem marcação nem peça).
   function computeFogReachableKeys(){
     const reachable = new Set();
     const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
@@ -8504,7 +8514,7 @@ body{
         cell.addEventListener('dragover', (e)=> e.preventDefault());
         cell.addEventListener('drop', (e)=>{ e.preventDefault(); handleLiveBoardDrop(r, c, e); });
         const token = liveBoardState.tokens[liveBoardKey(r,c)];
-        if(token && token.anchorR === r && token.anchorC === c){
+        if(token && token.anchorR === r && token.anchorC === c && (!fogActive || fogReachable.has(cellKey))){
           const t = document.createElement('div');
           const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
           const mine = isMyLiveToken(token);
@@ -9051,7 +9061,7 @@ body{
       if(!user){
         currentRole = null;
         currentUserKey = null;
-        loginGate.hidden = false;
+        setLoginGateHidden(false);
         // toda vez que a tela de login reaparece (login inicial, ou depois de um "Sair"), o
         // formulário volta pro modo Entrar em branco — sem isso, sair de uma conta durante um
         // cadastro (modo Cadastrar, com um papel já selecionado) deixava o formulário preso nesse
@@ -9117,7 +9127,7 @@ body{
       }
       currentUserKey = chave;
       currentRole = role;
-      loginGate.hidden = true;
+      setLoginGateHidden(true);
       applyRoleVisibility();
       // sempre que alguém acessa (login novo ou sessão já logada retomando ao abrir a página), a
       // tela começa em branco (startNewFicha()) — e, se for jogador, autoLoadOwnFicha() tenta logo
