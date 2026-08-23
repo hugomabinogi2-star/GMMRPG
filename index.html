@@ -290,6 +290,24 @@ body{
   border:1px solid #7a5c1e;border-radius:5px;cursor:pointer;
 }
 #loginSubmitBtn:hover{filter:brightness(1.08);}
+.login-forgot-btn:not([hidden]){
+  display:block;width:100%;margin-top:10px;padding:0;
+  background:none;border:none;
+  font-family:'Inter',sans-serif;font-size:12px;color:#c9b896;
+  text-decoration:underline;cursor:pointer;
+}
+.login-forgot-btn:hover{color:var(--gold-bright);}
+.login-forgot-btn:disabled{cursor:default;opacity:.7;text-decoration:none;}
+#loginResetNewPass{
+  width:100%;box-sizing:border-box;padding:10px 12px;font-family:'Inter',sans-serif;font-size:14px;
+  border:1px solid var(--ink-faint);border-radius:5px;margin:14px 0 12px;background:rgba(255,255,255,.92);
+}
+#loginResetSubmitBtn{
+  width:100%;padding:11px;font-family:'Cinzel',serif;font-weight:700;font-size:14px;
+  background:linear-gradient(180deg,var(--gold-bright),#a9822a);color:#2a1c08;
+  border:1px solid #7a5c1e;border-radius:5px;cursor:pointer;
+}
+#loginResetSubmitBtn:hover{filter:brightness(1.08);}
 .login-error{min-height:18px;color:#e07a6b;font-family:'Inter',sans-serif;font-size:12.5px;margin-top:10px;}
 .login-hint{font-family:'Inter',sans-serif;font-size:11.5px;color:#8a7a5e;margin-top:16px;line-height:1.4;}
 
@@ -439,23 +457,25 @@ body{
 .board-token.live-board-token-mine{cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 2px var(--gold-bright);}
 
 /* ---------- ficha travada (ver de outro jogador) ---------- */
-/* trava tudo dentro do miolo da ficha (input, select, botão, o interruptor Ativo/Inativo etc, sem
-   precisar listar cada um) deixando só o próprio container .face-inner com pointer-events normal,
+/* trava tudo dentro do miolo da ficha (input, select, botão etc, sem precisar listar cada um)
+   deixando só o próprio container .face-inner com pointer-events normal,
    pra continuar dando pra rolar a ficha com a roda do mouse/toque mesmo travada — ver
    applyFichaLockUI()/isFichaEditable() no <script>. A trava de verdade acontece em saveFicha(); isto
    aqui é só pra deixar claro na hora, antes mesmo de tentar salvar. */
 .card.ficha-locked .face-inner > *{pointer-events:none;}
 /* cadeado 🔒 sobreposto em cima de CADA botão travado — tanto os de dentro da ficha/chat quanto os
-   da barra de topo (menos Ver Verso/Fichas de Jogador, ver applyFichaLockUI() no <script>). Um
-   seletor só (".face-inner button"/"button" dentro da toolbar) pega TODOS os botões não importa a
-   profundidade dentro do HTML, sem precisar listar um por um — dos minúsculos ‹›/±/step-btn até os
-   grandes (ROLAR, Enviar do chat etc.), o cadeado sempre cobre a caixa inteira do próprio botão. */
+   da barra de topo (menos Ver Verso/Fichas de Jogador/Nova ficha, ver applyFichaLockUI() no
+   <script> — Nova ficha precisa continuar funcionando mesmo olhando a ficha de outro jogador, pra
+   dar pra sair de lá sem precisar ir em Fichas de Jogador primeiro). Um seletor só (".face-inner
+   button"/"button" dentro da toolbar) pega TODOS os botões não importa a profundidade dentro do
+   HTML, sem precisar listar um por um — dos minúsculos ‹›/±/step-btn até os grandes (ROLAR, Enviar
+   do chat etc.), o cadeado sempre cobre a caixa inteira do próprio botão. */
 .card.ficha-locked .face-inner button,
 .toolbar.ficha-locked button{
   position:relative;
 }
 .card.ficha-locked .face-inner button::after,
-.toolbar.ficha-locked button:not(#flipBtn):not(#masterBtn)::after{
+.toolbar.ficha-locked button:not(#flipBtn):not(#masterBtn):not(#newBtn)::after{
   content:'🔒';
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
@@ -465,7 +485,7 @@ body{
   line-height:1;
   border-radius:inherit;
 }
-.toolbar.ficha-locked button:not(#flipBtn):not(#masterBtn){
+.toolbar.ficha-locked button:not(#flipBtn):not(#masterBtn):not(#newBtn){
   pointer-events:none;
   opacity:.85;
 }
@@ -774,14 +794,18 @@ body{
 .tray-empty{font-size:11.5px;color:var(--ink-faint);font-style:italic;}
 .board-tray-footer{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:6px;}
 .board-enemy-coins{display:flex;gap:14px;}
+/* Tamanho do tabuleiro + Cor das linhas do grid ficam juntos na mesma caixa (mesmo menu), acima do
+   tabuleiro — só um separa do controle de Salvar/carregar acima dele. */
 .board-size-control{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border-brown);}
-.board-size-control label{display:block;font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:8px;}
-.board-size-fields{display:flex;align-items:center;gap:8px;}
+.board-size-fields{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.board-size-fields label{font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);}
 .board-size-fields input[type=number]{
   width:60px;font-family:'Inter',sans-serif;font-size:13px;padding:6px 8px;
   border:1px solid var(--ink-faint);border-radius:4px;background:rgba(255,255,255,.5);color:var(--ink);
 }
 .board-size-fields span{color:var(--ink-soft);font-family:'Cinzel',serif;}
+.board-grid-color-fields{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;}
+.board-grid-color-fields label{font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);}
 
 .board-save-control{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border-brown);}
 .board-save-control label{display:block;font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:8px;}
@@ -802,15 +826,12 @@ body{
 .board-load-list-cards{display:flex;flex-direction:column;gap:10px;}
 .board-load-list-cards.collapsed{display:none;}
 
-.board-bg-control{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border-brown);}
-.board-bg-control label{display:block;font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:8px;}
-.board-bg-fields{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.board-bg-fields .mini-btn{white-space:nowrap;}
-.board-bg-hint{margin-top:6px;font-size:11px;color:var(--ink-faint);}
+/* menu abaixo do tabuleiro (Iniciativa/Enviar/Limpar/Escolher imagem/Tabuleiro padrão) — mesma
+   caixa (.board-menu) do menu de cima, só que todos os botões saem com o mesmo visual (.mini-btn),
+   numa fileira que quebra linha sozinha em telas estreitas. */
+.board-menu-bottom-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+.board-menu-bottom-actions .mini-btn{white-space:nowrap;}
 
-.board-grid-color-control{margin-top:16px;padding-top:14px;border-top:1px dashed var(--border-brown);}
-.board-grid-color-control label{display:block;font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:8px;}
-.board-grid-color-fields{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 /* fila de bolinhas de cor fixa (preto/branco/vermelho/laranja/amarelo/verde/azul/anil/violeta) —
    substitui o antigo seletor de cor livre; a cor aplicada nas linhas do grid é sempre a mesma
    semitransparente de sempre (ver hexToRgba/applyBoardGridColor no <script>), só o matiz muda. */
@@ -1363,69 +1384,8 @@ body{
   outline:2px solid var(--gold-bright);
 }
 
-/* esse campo fica logo abaixo do retrato (que é centralizado na coluna) — sem isso ele herdaria
-   o alinhamento padrão à esquerda dos outros campos e o interruptor ficaria "torto" em relação
-   à imagem acima dele. */
-.field-status-toggle{display:flex;flex-direction:column;align-items:center;}
-.field-status-toggle label{text-align:center;}
-
-/* interruptor Ativo/Inativo — Inativo fica à esquerda, Ativo à direita; o lado selecionado
-   acende (texto claro) e o lado não selecionado fica apagado/sombreado */
-.status-toggle{
-  position:relative;
-  display:flex;
-  width:100%;
-  max-width:230px;
-  height:34px;
-  border-radius:17px;
-  background:linear-gradient(180deg,#241b10,#140e08);
-  border:1px solid var(--border-brown);
-  box-shadow:inset 0 2px 5px rgba(0,0,0,.55);
-  cursor:pointer;
-  user-select:none;
-  overflow:hidden;
-}
-.status-toggle:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px;}
-.status-toggle-label{
-  position:relative;
-  z-index:1;
-  flex:1;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Cinzel',serif;
-  font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
-  color:rgba(238,226,200,.32);
-  transition:color .2s ease, text-shadow .2s ease;
-}
-.status-toggle-knob{
-  position:absolute;
-  top:2px;left:2px;
-  width:calc(50% - 3px);
-  height:calc(100% - 4px);
-  border-radius:15px;
-  background:linear-gradient(180deg,#f2d24b,#c9a227);
-  box-shadow:0 1px 3px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.4);
-  transition:transform .22s ease;
-}
-/* estado Ativo (padrão marcado via classe JS): o interruptor desliza pra direita e o texto
-   "Ativo" acende; "Inativo" fica apagado com sombreamento */
-.status-toggle.is-ativo .status-toggle-knob{ transform:translateX(100%); }
-.status-toggle.is-ativo .status-toggle-ativo{
-  color:#3a2a08;
-  text-shadow:0 1px 0 rgba(255,255,255,.35);
-}
-.status-toggle.is-ativo .status-toggle-inativo{
-  color:rgba(238,226,200,.28);
-  text-shadow:none;
-}
-/* estado Inativo (padrão, sem a classe): "Inativo" acende à esquerda */
-.status-toggle:not(.is-ativo) .status-toggle-inativo{
-  color:#3a2a08;
-  text-shadow:0 1px 0 rgba(255,255,255,.35);
-}
-.status-toggle:not(.is-ativo) .status-toggle-ativo{
-  color:rgba(238,226,200,.28);
-  text-shadow:none;
-}
+/* interruptor Ativo/Inativo removido (a pedido: "todas as fichas serão consideradas ativas") — as
+   classes .field-status-toggle/.status-toggle* que existiam aqui foram removidas junto. */
 
 /* stepper de XP (só +/-, sem digitação) */
 .xp-stepper{display:flex;align-items:stretch;gap:6px;}
@@ -2098,36 +2058,6 @@ body{
 }
 .dice-roll-btn:hover{border-color:#e0b656;background:linear-gradient(180deg,#8a6a2e,#54401a);}
 .dice-roll-btn:active{transform:translateY(1px);}
-.init-panel{border-color:var(--wax);box-shadow:1px 2px 4px rgba(90,60,20,.15), 0 0 0 1px rgba(176,74,54,.25);}
-.init-panel h2{border-bottom-color:var(--wax);}
-.init-panel .init-btn{margin-top:8px;}
-.init-status-select{
-  width:100%;
-  background:var(--paper-l);color:var(--ink);border:1px solid var(--border-brown);
-  border-radius:4px;padding:6px 8px;font-family:'Cinzel',serif;font-size:12px;text-align:center;
-}
-.init-hint-sub{
-  font-family:'Inter',sans-serif;font-size:11px;color:var(--ink-faint);
-  margin:2px 0 10px;line-height:1.4;
-}
-.init-counts-grid{
-  display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:8px;
-  margin-bottom:4px;
-}
-.init-count-field{
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-  padding:6px 4px;border:1px solid var(--border-brown);border-radius:4px;
-  background:rgba(120,85,40,.08);
-}
-.init-count-field label{
-  font-family:'Cinzel',serif;font-size:10px;text-transform:uppercase;letter-spacing:.04em;
-  color:var(--ink-soft);white-space:nowrap;
-}
-.init-count-field input{
-  width:100%;max-width:72px;
-  background:var(--paper-l);color:var(--ink);border:1px solid var(--border-brown);
-  border-radius:4px;padding:6px 8px;font-family:'Inter',sans-serif;font-size:13px;text-align:center;
-}
 .dano-die{width:38px;height:38px;font-size:16px;border-radius:6px;}
 .dano-eq{font-family:'Cinzel',serif;font-size:16px;color:var(--ink-faint);}
 .dano-total-box{
@@ -2562,7 +2492,7 @@ body{
     <div class="lightning-bolt bolt-2"></div>
     <div class="lightning-bolt bolt-3"></div>
   </div>
-  <div class="login-box">
+  <div class="login-box" id="loginNormalBox">
     <h1>⚔️ Entrar na Mesa</h1>
     <p id="loginSubtitle">Entre com sua conta pra continuar.</p>
     <div class="login-mode-tabs">
@@ -2577,8 +2507,21 @@ body{
     <input type="password" id="loginPasswordInput" placeholder="Senha" autocomplete="current-password">
     <input type="password" id="loginMasterPassInput" placeholder="Senha de mestre" autocomplete="off" hidden>
     <button id="loginSubmitBtn" type="button">Entrar</button>
+    <button id="loginForgotBtn" type="button" class="login-forgot-btn">Esqueci minha senha</button>
     <div id="loginError" class="login-error"></div>
     <p class="login-hint" id="loginHint">Já tem conta? Entre com seu e-mail e senha. Ainda não tem conta nesta mesa? Clique em "Cadastrar", escolha se você é o Mestre ou um Jogador, e crie seu e-mail e senha.</p>
+  </div>
+
+  <!-- Caixa de "digitar a nova senha" — só aparece quando a página é aberta a partir do link que o
+       Firebase manda por e-mail depois de clicar em "Esqueci minha senha" (ver loginForgotBtn no
+       <script>, que registra esta mesma URL como endereço de retorno do e-mail). Fica escondida o
+       tempo todo, exceto nesse caso específico. -->
+  <div class="login-box" id="loginResetBox" hidden>
+    <h1>🔑 Nova senha</h1>
+    <p id="loginResetEmailLabel">Escolha a nova senha:</p>
+    <input type="password" id="loginResetNewPass" placeholder="Nova senha (mínimo 6 caracteres)" autocomplete="new-password">
+    <button id="loginResetSubmitBtn" type="button">Salvar nova senha</button>
+    <div id="loginResetError" class="login-error"></div>
   </div>
 </div>
 
@@ -2599,7 +2542,6 @@ body{
   <button id="silenceBtn" class="mestre-only silence-btn" aria-pressed="false" title="Quando marcado, nada do que acontecer na ficha é enviado ao Discord nem entra no histórico compartilhado">🔊 Silenciar</button>
   <button id="masterBtn">📜 Fichas de Jogador</button>
   <button id="masterMestreBtn" class="mestre-only">🔒 Fichas do Mestre</button>
-  <button id="rollLogBtn" class="mestre-only">🎲 Histórico de Rolagens</button>
   <button id="mesaBtn" class="mestre-only">🖥️ Mesa</button>
   <button class="github-btn mestre-only" id="githubConfigBtn">🔑 Meu token do GitHub</button>
   <button class="github-btn mestre-only" id="webhookConfigBtn">🔗 Webhook do Discord</button>
@@ -2868,9 +2810,8 @@ body{
                  com min-width) e a caixinha da Deidade ficou do lado, com largura FIXA (não muda
                  mais de tamanho conforme o nome da divindade selecionada é maior/menor — ver
                  .nome-deidade-row .deidade-arrow-select .arrow-select-display no <style>). margin-top
-                 extra só pra não ficar colado direto na borda do retrato, já que o XP e o interruptor
-                 Ativo/Inativo que ficavam aqui no meio se mudaram pra Coluna 3 e pro topo da Coluna 2
-                 (ver os comentários "Coluna 2"/"Coluna 3" mais abaixo). -->
+                 extra só pra não ficar colado direto na borda do retrato, já que o XP que ficava
+                 aqui no meio se mudou pra Coluna 3 (ver o comentário "Coluna 3" mais abaixo). -->
             <div class="field" style="margin-top:16px;">
               <label>Nome</label>
               <div class="nome-deidade-row">
@@ -2914,16 +2855,6 @@ body{
 
           <!-- Coluna 2: atributos + vitais -->
           <div>
-            <!-- interruptor Ativo/Inativo: primeiro elemento da Coluna 2, bem acima do painel de
-                 Atributos — antes ficava na Coluna 1, entre o XP e o campo Nome. -->
-            <div class="field field-status-toggle">
-              <input type="hidden" id="fichaAtivo" value="Inativo">
-              <div class="status-toggle" id="fichaAtivoToggle" role="switch" tabindex="0" aria-checked="false" aria-label="Status na Iniciativa" title="Status na Iniciativa — esta ficha participa da iniciativa? Clique para alternar — depois clique em SALVAR pra gravar.">
-                <span class="status-toggle-label status-toggle-inativo">Inativo</span>
-                <span class="status-toggle-label status-toggle-ativo">Ativo</span>
-                <span class="status-toggle-knob"></span>
-              </div>
-            </div>
             <div class="panel">
               <h2>Atributos <span class="attr-points-badge" id="attrPointsBadge" title="Pontos acumulados ainda não distribuídos">24</span></h2>
               <div class="attr-grid">
@@ -3295,21 +3226,6 @@ body{
   </div>
 </div>
 
-<div class="modal-overlay" id="rollLogModal" hidden>
-  <div class="modal-box">
-    <div class="modal-head">
-      <h2>🎲 Histórico de Rolagens</h2>
-      <button id="closeRollLog" class="modal-close">✕</button>
-    </div>
-    <p class="modal-sub">Toda rolagem de dado ou de dano feita por qualquer jogador com token configurado aparece aqui, para todos verem.</p>
-    <div class="roll-log-actions">
-      <button id="refreshRollLog" class="add-row-btn">↻ Atualizar histórico</button>
-      <button id="clearRollLog" class="add-row-btn danger-row-btn">🗑️ Limpar histórico</button>
-    </div>
-    <div id="rollLogList" class="roll-log-list"></div>
-  </div>
-</div>
-
 <div class="modal-overlay" id="mesaModal" hidden>
   <div class="modal-box">
     <div class="modal-head">
@@ -3319,34 +3235,16 @@ body{
         <button id="closeMesa" class="modal-close">✕</button>
       </div>
     </div>
-    <p class="modal-sub">Envie uma mensagem e/ou um print direto para o log da mesa no Discord. Nada aqui fica salvo no GitHub.</p>
 
-    <div class="panel dice-panel init-panel">
-      <h2>⚔️ Iniciativa</h2>
-      <p class="init-hint-sub">O sorteio já inclui todas as fichas ativas (jogadores e mestre). Informe abaixo quantos oponentes/aliados extras entram também.</p>
-      <div class="init-counts-grid">
-        <div class="init-count-field">
-          <label for="iniAliadosCount">Aliados</label>
-          <input type="number" id="iniAliadosCount" value="0" min="0" step="1" title="Quantidade de aliados extras (NPCs) a incluir na iniciativa">
+    <div class="panel dice-panel" id="rollLogPanel">
+      <h2>🎲 Histórico de Rolagens <button type="button" class="panel-toggle-btn" id="rollLogToggleBtn" aria-label="Minimizar Histórico de Rolagens" title="Minimizar/expandir Histórico de Rolagens">▾</button></h2>
+      <div id="rollLogBody">
+        <div class="roll-log-actions">
+          <button id="refreshRollLog" class="add-row-btn">↻ Atualizar histórico</button>
+          <button id="clearRollLog" class="add-row-btn danger-row-btn">🗑️ Limpar histórico</button>
         </div>
-        <div class="init-count-field">
-          <label for="iniInimigosCount">Inimigos</label>
-          <input type="number" id="iniInimigosCount" value="0" min="0" step="1" title="Quantidade de inimigos a incluir na iniciativa">
-        </div>
-        <div class="init-count-field">
-          <label for="iniMonstrosCount">Monstros</label>
-          <input type="number" id="iniMonstrosCount" value="0" min="0" step="1" title="Quantidade de monstros a incluir na iniciativa">
-        </div>
-        <div class="init-count-field">
-          <label for="iniBossCount">Boss</label>
-          <input type="number" id="iniBossCount" value="0" min="0" step="1" title="Quantidade de boss a incluir na iniciativa">
-        </div>
+        <div id="rollLogList" class="roll-log-list"></div>
       </div>
-      <button id="iniciativaBtn" type="button" class="dice-roll-btn init-btn">⚔️ INICIATIVA!</button>
-      <div class="dice-hint" id="iniciativaHint"></div>
-      <p class="init-hint-sub">Ou sorteie com base em quem já está posicionado no tabuleiro logo abaixo (heróis e aliados/inimigos/monstros/boss — blocos não contam).</p>
-      <button id="iniciativaTabuleiroBtn" type="button" class="dice-roll-btn init-btn">🗺️ INICIATIVA PELO TABULEIRO</button>
-      <div class="dice-hint" id="iniciativaTabuleiroHint"></div>
     </div>
 
     <div class="mesa-preview-wrap" id="mesaPreviewWrap" hidden>
@@ -3371,7 +3269,6 @@ body{
 
     <div class="board-section">
       <h2 class="board-title">🗺️ Tabuleiro da Mesa</h2>
-      <p class="modal-sub">Arraste as moedas do menu abaixo do tabuleiro para posicionar personagens e inimigos. Clique numa casa para marcá-la (verde → amarelo → vermelho → limpar). Clique com o botão direito numa moeda no tabuleiro para removê-la.</p>
 
       <div class="board-menu">
         <div class="board-save-control">
@@ -3386,28 +3283,15 @@ body{
         </div>
 
         <div class="board-size-control">
-          <label>Tamanho do tabuleiro (linhas x colunas)</label>
           <div class="board-size-fields">
+            <label for="boardRowsInput">Tamanho do tabuleiro</label>
             <input type="number" id="boardRowsInput" min="2" max="40" value="24" title="Número de linhas">
             <span>x</span>
             <input type="number" id="boardColsInput" min="2" max="40" value="24" title="Número de colunas">
             <button id="boardResizeBtn" class="mini-btn" type="button">Aplicar</button>
           </div>
-        </div>
-
-        <div class="board-bg-control">
-          <label>Fundo do tabuleiro</label>
-          <div class="board-bg-fields">
-            <input type="file" id="boardBgInput" accept="image/*" style="display:none;">
-            <button id="boardBgChooseBtn" class="mini-btn" type="button">🖼️ Escolher imagem</button>
-            <button id="boardBgResetBtn" class="mini-btn" type="button">↺ Tabuleiro padrão</button>
-          </div>
-          <div class="board-bg-hint">Ao escolher uma imagem, as casas ficam semitransparentes e só a grade de linhas x colunas aparece por cima — ótimo pra usar um mapa como fundo.</div>
-        </div>
-
-        <div class="board-grid-color-control">
-          <label>Cor das linhas do grid</label>
           <div class="board-grid-color-fields">
+            <label>Cor das linhas do grid</label>
             <div class="board-grid-color-swatches" id="boardGridColorSwatches">
               <button type="button" class="board-grid-color-swatch" data-hex="#000000" style="background:#000000" title="Preto" aria-label="Preto"></button>
               <button type="button" class="board-grid-color-swatch" data-hex="#ffffff" style="background:#ffffff" title="Branco" aria-label="Branco"></button>
@@ -3419,7 +3303,6 @@ body{
               <button type="button" class="board-grid-color-swatch" data-hex="#2e3192" style="background:#2e3192" title="Anil" aria-label="Anil"></button>
               <button type="button" class="board-grid-color-swatch" data-hex="#92278f" style="background:#92278f" title="Violeta" aria-label="Violeta"></button>
             </div>
-            <span class="board-grid-color-hint">As linhas ficam sempre semitransparentes por cima do fundo do tabuleiro, só a cor muda.</span>
           </div>
         </div>
       </div>
@@ -3464,14 +3347,17 @@ body{
           </div>
           <div class="board-enemy-coins" id="boardObstacleCoins"></div>
         </div>
-
-        <button id="boardRefreshBtn" class="mini-btn" type="button" style="margin-top:4px;">🔄 Atualizar fichas ativas</button>
       </div>
 
-      <div class="modal-actions">
-        <button id="boardSendBtn" type="button">🗺️ Enviar para a mesa</button>
+      <div class="board-menu board-menu-bottom-actions">
+        <input type="file" id="boardBgInput" accept="image/*" style="display:none;">
+        <button id="iniciativaTabuleiroBtn" class="mini-btn" type="button">🗺️ Iniciativa</button>
+        <button id="boardSendBtn" class="mini-btn" type="button">🗺️ Enviar para a mesa</button>
         <button id="boardClearBtn" class="mini-btn" type="button">🧹 Limpar tabuleiro</button>
+        <button id="boardBgChooseBtn" class="mini-btn" type="button">🖼️ Escolher imagem</button>
+        <button id="boardBgResetBtn" class="mini-btn" type="button">↺ Tabuleiro padrão</button>
       </div>
+      <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
       <div id="boardSendHint" class="mesa-hint"></div>
     </div>
   </div>
@@ -4250,22 +4136,16 @@ body{
       escudo: num(els.barreiraCur), escudoMax: num(els.barreiraMax),
       ts: firebase.database.ServerValue.TIMESTAMP
     };
-    // status Ativo/Inativo (ver setFichaAtivo()) também vai junto aqui — é o que deixa o
-    // interruptor valer na hora pro tabuleiro/bandeja de fichas (ver isHeroLiveActive()/
-    // onLiveVitalsChanged() mais abaixo), sem precisar que ninguém clique em SALVAR. Só publica
-    // esse campo quando a ficha aberta tem nome (mesmo critério que o roster usa pra listar
-    // alguém) — toda conta de jogador recém-logada abre com uma ficha em branco (ver
+    // Só publica bônus de DES/XP quando a ficha aberta tem nome (mesmo critério que o roster usa
+    // pra listar alguém) — toda conta de jogador recém-logada abre com uma ficha em branco (ver
     // startNewFicha()) e essa ficha em branco NÃO é o personagem de ninguém no roster; publicar
-    // "Inativo" a partir dela sobrescreveria por engano o status real do personagem verdadeiro
-    // dessa conta (que pode estar Ativo e colocado no tabuleiro) só por ter feito login de novo,
-    // sem essa pessoa ter mexido em nada. Sem esse campo, quem está ouvindo cai de volta no
-    // status salvo no GitHub (ver isHeroLiveActive()), que é o comportamento certo aqui.
+    // a partir dela sobrescreveria por engano os dados do personagem verdadeiro dessa conta só
+    // por ter feito login de novo, sem essa pessoa ter mexido em nada.
     if(nome){
-      payload.ativo = ($('fichaAtivo') || {}).value || 'Inativo';
       // bônus de DES junto (mesma fórmula de recalc(): floor(total/2)) — só faz sentido junto do
-      // nome/ativo, pelo mesmo motivo: sem isso, uma ficha nunca salva mas já Ativa (ver
-      // liveOnlyRosterEntries() mais abaixo) não teria como o mini-tabuleiro ao vivo saber o
-      // limite de movimento dela até a primeira vez que for salva de verdade.
+      // nome, pelo mesmo motivo: sem isso, uma ficha nunca salva (ver liveOnlyRosterEntries() mais
+      // abaixo) não teria como o mini-tabuleiro ao vivo saber o limite de movimento dela até a
+      // primeira vez que for salva de verdade.
       payload.bonusDes = Math.floor((totals.des || 0) / 2);
       // XP total acumulado (mesmo valor salvo em collectState()/xp — não o que aparece no campo
       // da ficha, que só mostra o XP dentro do nível atual, ver recalc()) — é o que deixa o XP
@@ -4385,6 +4265,7 @@ body{
   wirePanelToggle('diceToggleBtn', 'diceBody', 'Rolagem de Atributo');
   wirePanelToggle('danoToggleBtn', 'danoBody', 'Rolagem de Dano');
   wirePanelToggle('sorteToggleBtn', 'sorteBody', 'Rolagem de Sorte');
+  wirePanelToggle('rollLogToggleBtn', 'rollLogBody', 'Histórico de Rolagens');
 
   // joia de Nível: sem tooltip nativo (não tem mais "title") — em vez disso, passar o mouse
   // por cima troca o numeral romano por número normal (ex: "XIV" vira "14"), e volta pro
@@ -5141,76 +5022,14 @@ body{
     pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'sorte', escolha, resultado, verdict, ts: Date.now() });
   }
 
-  // ---------- iniciativa ----------
-  const iniciativaBtn = $('iniciativaBtn');
-  const iniciativaHint = $('iniciativaHint');
-  iniciativaBtn.addEventListener('click', async ()=>{
-    const original = iniciativaBtn.textContent;
-    iniciativaBtn.disabled = true;
-    iniciativaBtn.textContent = 'Sorteando...';
-    iniciativaHint.textContent = '';
-    try{
-      // fichas do mestre ativas entram na iniciativa com as mesmas regras das fichas de jogador —
-      // por isso busca as duas pastas (fichas/ e fichas_mestre/) e junta os nomes ativos das duas.
-      // As duas pastas são buscadas em paralelo, e os arquivos dentro delas em lotes de 3 por vez
-      // (mapWithConcurrency) em vez de um de cada vez — reduz bastante o tempo de espera aqui sem
-      // travar a aba de uma vez só (algumas fichas têm retrato de foto, que pode ser grande).
-      const folderFileLists = await Promise.all(
-        [FICHAS_PATH, FICHAS_MESTRE_PATH].map(path =>
-          githubListFolder(path).then(list => list.filter(f => f.type === 'file' && f.name.endsWith('.json')))
-        )
-      );
-      const allFiles = folderFileLists.flat();
-      const fetchedData = await mapWithConcurrency(allFiles, 3, file =>
-        fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
-      );
-      const activeNames = fetchedData
-        .filter(data => data && data.nome && (data.ativo === undefined ? 'Ativo' : data.ativo) === 'Ativo')
-        .map(data => data.nome);
-      // além das fichas ativas, o mestre pode informar quantos aliados/inimigos/monstros/boss extras
-      // (sem ficha própria, só tokens genéricos do tabuleiro) também entram no sorteio.
-      const extraGroups = [
-        { id: 'iniAliadosCount',  label: 'Aliado' },
-        { id: 'iniInimigosCount', label: 'Inimigo' },
-        { id: 'iniMonstrosCount', label: 'Monstro' },
-        { id: 'iniBossCount',     label: 'Boss' },
-      ];
-      const extraNames = [];
-      extraGroups.forEach(({id, label})=>{
-        const count = Math.max(0, parseInt($(id).value, 10) || 0);
-        for(let i = 1; i <= count; i++) extraNames.push(count === 1 ? label : `${label} ${i}`);
-      });
-      const itens = [...activeNames, ...extraNames];
-      for(let i = itens.length - 1; i > 0; i--){
-        const j = Math.floor(Math.random() * (i + 1));
-        [itens[i], itens[j]] = [itens[j], itens[i]];
-      }
-      const linhas = itens.map((nome, idx) => `${idx+1}. **${nome}**`).join('\n');
-      // também é a guia MESA quem sorteia a iniciativa — mesma atribuição fixa ao mestre.
-      await postToDiscord(`⚔️ **O MESTRE** sorteou a **ORDEM DE INICIATIVA!**\n${linhas}`);
-      iniciativaBtn.textContent = '✓ Enviado!';
-      iniciativaHint.textContent = `Ordem sorteada: ${itens.join(' → ')}`;
-    }catch(err){
-      console.error(err);
-      iniciativaBtn.textContent = 'Erro, tente de novo';
-      // mostra o motivo específico (ex: limite de leituras do GitHub atingido) quando disponível.
-      iniciativaHint.textContent = (err && err.message && err.message.indexOf('Limite de leituras') === 0)
-        ? err.message
-        : 'Não foi possível buscar as fichas salvas na mesa agora.';
-    }
-    // botão volta ao normal rápido — só o tempo de ler a confirmação, sem travar o próximo clique por muito tempo.
-    setTimeout(()=>{ iniciativaBtn.textContent = original; iniciativaBtn.disabled = false; }, 900);
-  });
-
-  // ---------- iniciativa pelo tabuleiro ----------
-  // mesmo sorteio (embaralha e manda pro Discord) da INICIATIVA! de cima, mas em vez de buscar
-  // fichas salvas no GitHub + contadores manuais, usa direto quem já está posicionado no
-  // tabuleiro AGORA — cada token de herói (kind:'hero') e de aliado/inimigo/monstro/boss
-  // (ENEMY_KINDS) vira um item; blocos/obstáculos (isBlockKind) ficam de fora, não são
-  // combatentes. tokenTooltipText() já monta o nome certo pra cada um (nome da ficha pro herói,
-  // "Rótulo N" pro resto — mesmo texto que já aparece na dica ao passar o mouse em cada peça).
-  // Como o tabuleiro já está todo na memória (boardTokens), não precisa buscar nada — o sorteio é
-  // instantâneo, sem espera de rede antes de mandar pro Discord.
+  // ---------- iniciativa (pelo tabuleiro) ----------
+  // Embaralha e manda pro Discord quem já está posicionado no tabuleiro AGORA — cada token de
+  // herói (kind:'hero') e de aliado/inimigo/monstro/boss (ENEMY_KINDS) vira um item; blocos/
+  // obstáculos (isBlockKind) ficam de fora, não são combatentes. tokenTooltipText() já monta o
+  // nome certo pra cada um (nome da ficha pro herói, "Rótulo N" pro resto — mesmo texto que já
+  // aparece na dica ao passar o mouse em cada peça). Como o tabuleiro já está todo na memória
+  // (boardTokens), não precisa buscar nada no GitHub — o sorteio é instantâneo, sem espera de rede
+  // antes de mandar pro Discord.
   const iniciativaTabuleiroBtn = $('iniciativaTabuleiroBtn');
   const iniciativaTabuleiroHint = $('iniciativaTabuleiroHint');
   iniciativaTabuleiroBtn.addEventListener('click', async ()=>{
@@ -5598,7 +5417,6 @@ body{
         const descEl = r.querySelector('.item-desc');
         return { nome: inputs[0].value, qtd: inputs[1].value, desc: descEl ? descEl.value : '' };
       }),
-      ativo: $('fichaAtivo').value,
       habilidadesExtras: [...extraSkillRows.children].map(r=>{
         const nomeInput = r.querySelector('.extra-skill-name');
         const attrDisplay = r.querySelector('.extra-skill-attr-display');
@@ -5640,9 +5458,6 @@ body{
       if(idx === 0) addItemRow('OURO', it.qtd || 0, true, it.desc || '');
       else addItemRow(it.nome||'', it.qtd||0, false, it.desc || '');
     });
-    // fichas novas (sem ativo salvo ainda) começam Inativas — só viram Ativas quando o
-    // jogador ou o mestre clicar no interruptor (o que já salva a ficha na hora).
-    setFichaAtivo(s.ativo || 'Inativo');
     extraSkillRows.innerHTML='';
     (s.habilidadesExtras && s.habilidadesExtras.length ? s.habilidadesExtras : [{},{}]).forEach(h=> addExtraSkillRow(h.nome||'', h.attr||'FOR', h.desc||'', h.imagem||'', h.custo||'1'));
 
@@ -5690,11 +5505,12 @@ body{
     return !!currentUser && loadedFichaOwnerUid === currentUser.uid;
   }
   // botões da barra de topo que continuam funcionando mesmo com a ficha travada — Ver Verso (só
-  // vira a ficha, não altera nada) e Fichas de Jogador (pra dar pra escolher outra ficha/voltar);
-  // todo o resto da barra (Salvar, Nova ficha, Sair, e os exclusivos de mestre, que de qualquer
-  // jeito nunca ficam travados já que mestre sempre edita tudo) ganha o mesmo cadeado sobreposto
-  // que o resto da ficha — ver #flipBtn/#masterBtn excluídos explicitamente em .toolbar.ficha-locked
-  // no CSS.
+  // vira a ficha, não altera nada), Fichas de Jogador (pra dar pra escolher outra ficha/voltar) e
+  // Nova ficha (senão não tinha como sair de olhar a ficha travada de outro jogador sem passar por
+  // Fichas de Jogador primeiro); todo o resto da barra (Salvar, Sair, e os exclusivos de mestre,
+  // que de qualquer jeito nunca ficam travados já que mestre sempre edita tudo) ganha o mesmo
+  // cadeado sobreposto que o resto da ficha — ver #flipBtn/#masterBtn/#newBtn excluídos
+  // explicitamente em .toolbar.ficha-locked no CSS.
   function applyFichaLockUI(){
     const locked = !isFichaEditable();
     const cardEl = $('card');
@@ -6373,15 +6189,10 @@ body{
     }
   }
 
-  const rollLogModal = $('rollLogModal');
+  // Histórico de Rolagens agora mora dentro do modal da Mesa (primeiro painel lá, minimizável —
+  // ver wirePanelToggle('rollLogToggleBtn', ...) mais abaixo e openMesaModal(), que chama
+  // loadRollLog() toda vez que a Mesa abre).
   const rollLogList = $('rollLogList');
-
-  $('rollLogBtn').addEventListener('click', ()=>{
-    rollLogModal.hidden = false;
-    loadRollLog();
-  });
-  $('closeRollLog').addEventListener('click', ()=> rollLogModal.hidden = true);
-  rollLogModal.addEventListener('click', (e)=>{ if(e.target === rollLogModal) rollLogModal.hidden = true; });
   $('refreshRollLog').addEventListener('click', loadRollLog);
 
   $('clearRollLog').addEventListener('click', async ()=>{
@@ -6507,6 +6318,7 @@ body{
     mesaSendHint.textContent = '';
     loadHeroRoster();
     loadMestreRoster();
+    loadRollLog();
   }
   $('mesaBtn').addEventListener('click', openMesaModal);
   $('closeMesa').addEventListener('click', ()=> mesaModal.hidden = true);
@@ -6670,7 +6482,6 @@ body{
   const boardSendBtn     = $('boardSendBtn');
   const boardSendHint    = $('boardSendHint');
   const boardClearBtn    = $('boardClearBtn');
-  const boardRefreshBtn  = $('boardRefreshBtn');
   const boardRowsInput   = $('boardRowsInput');
   const boardColsInput   = $('boardColsInput');
   const boardNameInput   = $('boardNameInput');
@@ -7073,7 +6884,7 @@ body{
     if(payload.source === 'tray'){
       if(payload.kind === 'hero'){
         const hero = findRosterHero(payload.heroId);
-        if(!hero || !isHeroLiveActive(hero)) return; // ficha virou Inativa ao vivo entre o arrasto começar e soltar
+        if(!hero) return;
         const prevKey = findHeroCell(hero.id);
         const prevToken = prevKey ? boardTokens[prevKey] : null;
         if(!canPlace(r, c, 1, prevToken ? prevToken.id : null)) return;
@@ -7117,80 +6928,51 @@ body{
     scheduleBoardTokensPush();
   }
 
-  // ---------- status Ativo/Inativo ao vivo (Firebase) ----------
-  // O interruptor Ativo/Inativo da própria ficha (ver setFichaAtivo() mais abaixo) decide quem
-  // aparece na bandeja pra colocar no tabuleiro — antes, isso só valia depois de clicar em SALVAR
-  // (o GitHub é quem alimenta heroRoster/mestreRoster). Pra funcionar na hora, sem depender de
-  // salvar — inclusive numa ficha que NUNCA foi salva antes, que ainda nem existe no GitHub — o
-  // próprio interruptor também publica o status em mesa/live/{uid} (mesmo caminho e formato da
-  // rodada anterior, "vitais ao vivo" — ver pushLiveVitals()). Em vez de um listener por conta já
-  // conhecida do roster, a gente escuta o nó INTEIRO mesa/live de uma vez (ligado/desligado junto
-  // do resto do tabuleiro ao vivo — ver connectLiveBoard()/disconnectLiveBoard() mais abaixo) —
-  // isso permite não só sobrepor o status de quem já está no roster, como também ACRESCENTAR à
-  // bandeja quem está Ativo agora mas nunca clicou em SALVAR (ver liveOnlyRosterEntries()).
+  // ---------- fichas "ao vivo" (Firebase) ----------
+  // Não existe mais interruptor Ativo/Inativo — toda ficha de jogador (salva ou não) conta como
+  // disponível pra bandeja assim que tem um nome (removido a pedido: "todas as fichas serão
+  // consideradas ativas"). mesa/live/{uid} (ver pushLiveVitals()) continua existindo só pra
+  // Vida/Mana/Escudo/XP "ao vivo" nas listas de fichas, e pra fazer uma ficha nunca salva aparecer
+  // na bandeja assim que ganha um nome, sem precisar clicar em SALVAR — ver liveOnlyRosterEntries().
   let liveVitalsAll = {}; // uid -> último payload publicado em mesa/live/{uid} (ver pushLiveVitals())
 
-  // undefined (ninguém dessa conta com a ficha aberta agora, ou ficha sem ownerUid nenhum — ex:
-  // ficha do mestre, que não tem ownerUid próprio) sempre conta como "ativo" — é exatamente o que
-  // o roster já filtrado pelo GitHub já diz (só chegou até aqui porque data.ativo era 'Ativo' na
-  // última vez salva). Um payload publicado SEM o campo "ativo" (ficha em branco recém-aberta, ver
-  // pushLiveVitals()) também não conta como override — não fala nada sobre ESTE personagem.
-  function isHeroLiveActive(hero){
-    if(!hero || !hero.ownerUid) return true;
-    const live = liveVitalsAll[hero.ownerUid];
-    if(!live || live.ativo === undefined) return true;
-    return live.ativo === 'Ativo';
-  }
-
-  // Alguém pode estar Ativo AGORA sem que a ficha dela exista no GitHub ainda (nunca clicou em
-  // SALVAR) — pra essas aparecerem na bandeja também, procura em liveVitalsAll por qualquer conta
-  // que ainda não está representada no roster já carregado (por ownerUid) e que esteja publicando
-  // um nome + "Ativo" agora mesmo. Usa o MESMO formato de id que o roster carregado do GitHub usa
-  // pra esse nome (idPrefix + slugify(nome)) — assim, se essa ficha for salva depois enquanto já
-  // está no tabuleiro, o próximo recarregamento do roster reconhece o mesmo id (mesma peça), em
-  // vez de duplicar.
+  // Alguém pode estar com a ficha aberta AGORA (com nome preenchido) sem que ela exista no GitHub
+  // ainda (nunca clicou em SALVAR) — pra essas aparecerem na bandeja também, procura em
+  // liveVitalsAll por qualquer conta que ainda não está representada no roster já carregado (por
+  // ownerUid) e que esteja publicando um nome agora mesmo. Usa o MESMO formato de id que o roster
+  // carregado do GitHub usa pra esse nome (idPrefix + slugify(nome)) — assim, se essa ficha for
+  // salva depois enquanto já está no tabuleiro, o próximo recarregamento do roster reconhece o
+  // mesmo id (mesma peça), em vez de duplicar.
   function liveOnlyRosterEntries(idPrefix, existingRoster){
     const known = new Set(existingRoster.map(h=> h.ownerUid).filter(Boolean));
     return Object.keys(liveVitalsAll)
       .filter(uid=> !known.has(uid))
       .map(uid=> ({ uid, live: liveVitalsAll[uid] }))
-      .filter(({live})=> live && live.nome && live.ativo === 'Ativo')
+      .filter(({live})=> live && live.nome)
       .map(({uid, live})=> ({
         id: idPrefix + slugify(live.nome), name: live.nome, portrait: null,
         donoChave: null, ownerUid: uid, bonusDes: live.bonusDes || 0, liveOnly: true,
       }));
   }
 
-  // roster de jogador (heroRoster, carregado do GitHub) + qualquer conta Ativa agora que ainda não
+  // roster de jogador (heroRoster, carregado do GitHub) + qualquer ficha aberta agora que ainda não
   // foi salva nenhuma vez — é essa junção que a bandeja da aba Mesa usa pra desenhar as moedas (ver
-  // makeRosterTrayRenderer()/handleBoardDrop() mais abaixo). Fichas do mestre não publicam status
-  // ao vivo (pushLiveVitals() só grava ownerUid pra ficha de jogador — ver mais acima), então o
+  // makeRosterTrayRenderer()/handleBoardDrop() mais abaixo). Fichas do mestre não publicam nada em
+  // mesa/live (pushLiveVitals() só grava ownerUid pra ficha de jogador — ver mais acima), então o
   // roster do mestre nunca ganha entrada "só ao vivo".
   function liveHeroRoster(){ return heroRoster.concat(liveOnlyRosterEntries('', heroRoster)); }
   function findRosterHero(heroId){
     return liveHeroRoster().find(h => h.id === heroId) || mestreRoster.find(h => h.id === heroId);
   }
 
-  // quando o retrato de mesa/live muda (alguém virou Ativo/Inativo, ou uma ficha nunca salva
-  // apareceu/sumiu), redesenha as duas bandejas e, se for o mestre olhando, tira do tabuleiro de
-  // verdade qualquer peça cujo dono não conte mais como ativo. Varre boardTokens diretamente (em
-  // vez de heroRoster/mestreRoster) porque uma peça de ficha NUNCA salva também precisa sumir
-  // sozinha — ela não existe em nenhum roster carregado do GitHub, só no próprio token (que já
-  // carrega o ownerUid dela, gravado na hora de colocar — ver handleBoardDrop()). Peça do mestre
-  // (id "mestre:...") nunca tem ownerUid, então nunca é removida por aqui. Reaproveita
-  // removeTokenAt(), que já cuida de rerender a casa e publicar a remoção em mesa/liveBoard/tokens
-  // (scheduleBoardTokensPush()) sozinho.
+  // quando mesa/live muda (Vida/Mana/Escudo/XP ao vivo, ou uma ficha nunca salva aparece/muda de
+  // nome), redesenha as duas bandejas e, se for o mestre olhando, atualiza as barrinhas de Vida do
+  // tabuleiro de verdade.
   function onLiveVitalsChanged(){
     renderHeroTray();
     renderMestreTray();
-    if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens) pra tirar peça
+    if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens)
     refreshBoardHpBars(); // barrinha de Vida embaixo dos ícones — ver applyBoardHpBar()/renderBoardCell()
-    Object.keys(boardTokens).forEach(key=>{
-      const tok = boardTokens[key];
-      if(!tok || tok.kind !== 'hero' || !tok.ownerUid) return;
-      if(isHeroLiveActive({ ownerUid: tok.ownerUid })) return;
-      removeTokenAt(tok.anchorR, tok.anchorC);
-    });
   }
 
   // Gera a função que desenha uma bandeja de moedas de personagem (jogador ou mestre) —
@@ -7199,7 +6981,7 @@ body{
     return function renderTray(){
       if(!trayEl) return;
       trayEl.innerHTML = '';
-      const roster = getRoster().filter(isHeroLiveActive);
+      const roster = getRoster();
       if(roster.length === 0){
         const empty = document.createElement('div');
         empty.className = 'tray-empty';
@@ -7235,11 +7017,11 @@ body{
 
   const renderHeroTray = makeRosterTrayRenderer(
     ()=> liveHeroRoster(), boardTrayCoins,
-    'Nenhuma ficha ativa encontrada. Peça para os jogadores usarem "SALVAR".'
+    'Nenhuma ficha encontrada. Peça para os jogadores usarem "SALVAR".'
   );
   const renderMestreTray = makeRosterTrayRenderer(
     ()=> mestreRoster, boardTrayMestreCoins,
-    'Nenhuma ficha do mestre ativa encontrada. Ative uma ficha do mestre e salve com "SALVAR".'
+    'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".'
   );
 
   function renderEnemyCoins(){
@@ -7304,13 +7086,13 @@ body{
         const files = (await githubListFolder(githubPath))
           .filter(f => f.type === 'file' && f.name.endsWith('.json'));
         // busca o conteúdo dos arquivos em lotes de 3 por vez em vez de um de cada vez — bem mais
-        // rápido pra reconhecer fichas recém-marcadas como ativas quando tem várias salvas, sem
-        // tentar decodificar todas de uma vez só (algumas podem ter retrato de foto grande).
+        // rápido quando tem várias fichas salvas, sem tentar decodificar todas de uma vez só
+        // (algumas podem ter retrato de foto grande).
         const fetchedData = await mapWithConcurrency(files, 3, file =>
           fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
         );
         const roster = fetchedData
-          .filter(data => data && data.nome && (data.ativo === undefined ? 'Ativo' : data.ativo) === 'Ativo')
+          .filter(data => data && data.nome)
           .map(data => ({
             id: idPrefix + slugify(data.nome), name: data.nome, portrait: data.portrait || null,
             // dono da ficha (mesmo par donoChave/ownerUid gravado por collectState() — ver isFichaEditable())
@@ -7325,12 +7107,12 @@ body{
           }));
         roster.sort((a,b)=> a.name.localeCompare(b.name));
         setRoster(roster);
-        // pra decidir quem sai do tabuleiro, soma a este roster (recém-buscado do GitHub) quem
-        // está Ativo ao vivo agora mas nunca salvou (só existe pro roster de jogador, idPrefix ''
-        // — ver liveOnlyRosterEntries()) — senão, todo recarregamento deste roster (ex: o botão de
-        // atualizar da bandeja) apagaria do tabuleiro qualquer peça colocada antes de ser salva.
+        // pra decidir quem sai do tabuleiro, soma a este roster (recém-buscado do GitHub) quem já
+        // está com a ficha aberta agora mas nunca salvou (só existe pro roster de jogador, idPrefix
+        // '' — ver liveOnlyRosterEntries()) — senão, todo recarregamento deste roster apagaria do
+        // tabuleiro qualquer peça colocada antes de ser salva.
         const rosterWithLiveOnly = idPrefix === '' ? roster.concat(liveOnlyRosterEntries(idPrefix, roster)) : roster;
-        // remove do tabuleiro moedas desta lista que não estão mais ativas
+        // remove do tabuleiro moedas desta lista que não existem mais nesse roster
         Object.keys(boardTokens).forEach(key=>{
           const tok = boardTokens[key];
           if(tok.kind === 'hero' && ownerMatches(tok.id) && !rosterWithLiveOnly.find(h => h.id === tok.id)){
@@ -7358,8 +7140,6 @@ body{
     FICHAS_MESTRE_PATH, 'mestre:', id => id.indexOf('mestre:') === 0,
     roster => { mestreRoster = roster; }, boardTrayMestreCoins, renderMestreTray
   );
-
-  boardRefreshBtn.addEventListener('click', ()=>{ loadHeroRoster(); loadMestreRoster(); });
 
   boardClearBtn.addEventListener('click', ()=>{
     if(!confirm('Limpar todas as marcações e moedas do tabuleiro?')) return;
@@ -7811,9 +7591,6 @@ body{
 
   // ---------- salvar na mesa ----------
   const cloudSaveBtn = $('cloudSaveBtn');
-  // lógica de salvar extraída numa função à parte (em vez de ficar só dentro do listener do botão)
-  // pra poder ser reaproveitada pelo interruptor Ativo/Inativo, que também precisa salvar sozinho
-  // assim que for alternado (ver fichaAtivoToggle mais abaixo).
   async function saveFicha(){
     // trava de verdade do "dono da ficha": mesmo que os controles estejam visualmente travados
     // (ver applyFichaLockUI()), essa checagem aqui é quem realmente impede o salvamento.
@@ -7877,32 +7654,6 @@ body{
     setTimeout(()=>{ cloudSaveBtn.textContent = original; cloudSaveBtn.disabled = false; }, 900);
   }
   cloudSaveBtn.addEventListener('click', saveFicha);
-
-  // ---------- interruptor Ativo/Inativo ----------
-  // Inativo fica à esquerda, Ativo à direita; clicar alterna de um lado pro outro. Continua NÃO
-  // salvando a ficha inteira sozinho (o auto-save aqui não funcionava direito) — pra isso, como
-  // qualquer outro campo, ainda depende de clicar em "SALVAR". Mas o status em si (só ele, não a
-  // ficha toda) publica na hora em mesa/live/{uid} (ver pushLiveVitals()/scheduleLiveVitalsPush()
-  // lá em cima e isHeroLiveActive()/onLiveVitalsChanged() mais abaixo) — é assim que sumir/
-  // aparecer na bandeja do tabuleiro passa a valer imediatamente, sem depender de salvar (mesmo
-  // numa ficha nunca salva antes — ver liveOnlyRosterEntries()).
-  function setFichaAtivo(val){
-    const hidden = $('fichaAtivo');
-    const toggle = $('fichaAtivoToggle');
-    hidden.value = val;
-    const isAtivo = val === 'Ativo';
-    toggle.classList.toggle('is-ativo', isAtivo);
-    toggle.setAttribute('aria-checked', String(isAtivo));
-    scheduleLiveVitalsPush();
-  }
-  function toggleFichaAtivo(){
-    const novoValor = $('fichaAtivo').value === 'Ativo' ? 'Inativo' : 'Ativo';
-    setFichaAtivo(novoValor);
-  }
-  $('fichaAtivoToggle').addEventListener('click', toggleFichaAtivo);
-  $('fichaAtivoToggle').addEventListener('keydown', (e)=>{
-    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); toggleFichaAtivo(); }
-  });
 
   // ---------- painel do mestre ----------
   const masterModal = $('masterModal');
@@ -8166,6 +7917,12 @@ body{
   const loginPasswordInput = $('loginPasswordInput');
   const loginMasterPassInput = $('loginMasterPassInput');
   const loginRoleButtons = $('loginRoleButtons');
+  const loginForgotBtn = $('loginForgotBtn');
+  const loginNormalBox = $('loginNormalBox');
+  const loginResetBox = $('loginResetBox');
+  const loginResetEmailLabel = $('loginResetEmailLabel');
+  const loginResetNewPass = $('loginResetNewPass');
+  const loginResetError = $('loginResetError');
 
   // ---------- trovoadas de fundo (tela de login) ----------
   // pisca relâmpagos no fundo preto da tela de login, ciclando pelas cores das divindades
@@ -8238,6 +7995,8 @@ body{
     loginRoleButtons.hidden = !isCadastro;
     loginMasterPassInput.hidden = !(isCadastro && selectedLoginRole === 'mestre');
     if(loginMasterPassInput.hidden) loginMasterPassInput.value = '';
+    // "Esqueci minha senha" só faz sentido pra quem já tem conta — some durante o Cadastro.
+    loginForgotBtn.hidden = isCadastro;
     $('loginHint').textContent = isCadastro
       ? 'Escolha se você é o Mestre ou um Jogador, e crie seu e-mail e senha (mínimo 6 caracteres). Cadastrar como Mestre pede também a senha de mestre, combinada à parte com quem organiza a mesa.'
       : 'Entre com o e-mail e a senha que você já cadastrou nesta mesa.';
@@ -8298,6 +8057,75 @@ body{
   $('loginSubmitBtn').addEventListener('click', doSubmitLogin);
   loginPasswordInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doSubmitLogin(); });
   loginEmailInput.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') doSubmitLogin(); });
+
+  // ---------- esqueci minha senha ----------
+  // Clicar em "Esqueci minha senha" manda um e-mail de redefinição pro endereço digitado no campo
+  // de e-mail, via Firebase Auth. O link do e-mail aponta de volta pra esta mesma página (ver
+  // actionCodeSettings.url abaixo) com ?mode=resetPassword&oobCode=..., o que faz a própria página
+  // reconhecer a volta e trocar a caixa de login normal pela caixa de "Nova senha" (ver
+  // detectPasswordResetLink() logo abaixo) — o mais perto que dá de "abrir uma caixa pra nova
+  // senha" sem depender de um servidor próprio.
+  loginForgotBtn.addEventListener('click', async ()=>{
+    loginError.textContent = '';
+    if(!fbReady){ loginError.textContent = 'O Firebase ainda não foi configurado nesta página.'; return; }
+    const email = (loginEmailInput.value || '').trim();
+    if(!email){ loginError.textContent = 'Digite seu e-mail ali em cima pra poder redefinir a senha.'; return; }
+    loginForgotBtn.disabled = true;
+    const textoOriginal = loginForgotBtn.textContent;
+    loginForgotBtn.textContent = 'Enviando...';
+    try{
+      await fbAuth.sendPasswordResetEmail(email, { url: location.origin + location.pathname });
+      loginError.textContent = '';
+      $('loginHint').textContent = `Enviamos um e-mail pra ${email} com um link pra você escolher uma senha nova. Não achou? Confira a caixa de spam.`;
+    }catch(err){
+      console.error(err);
+      loginError.textContent = friendlyAuthError(err);
+    }
+    loginForgotBtn.disabled = false;
+    loginForgotBtn.textContent = textoOriginal;
+  });
+
+  // Reconhece a volta do link de redefinição (?mode=resetPassword&oobCode=...) e troca a caixa de
+  // login normal pela caixa de "Nova senha" — roda uma vez, no carregamento da página.
+  (async function detectPasswordResetLink(){
+    const params = new URLSearchParams(location.search);
+    if(params.get('mode') !== 'resetPassword' || !params.get('oobCode')) return;
+    if(!fbReady) return;
+    const oobCode = params.get('oobCode');
+    loginNormalBox.hidden = true;
+    loginResetBox.hidden = false;
+    try{
+      const email = await fbAuth.verifyPasswordResetCode(oobCode);
+      loginResetEmailLabel.textContent = `Escolha a nova senha pra ${email}:`;
+    }catch(err){
+      console.error(err);
+      loginResetError.textContent = 'Esse link de redefinição não é mais válido — peça um novo em "Esqueci minha senha".';
+      $('loginResetSubmitBtn').disabled = true;
+      return;
+    }
+    $('loginResetSubmitBtn').addEventListener('click', async ()=>{
+      loginResetError.textContent = '';
+      const novaSenha = loginResetNewPass.value;
+      if(!novaSenha || novaSenha.length < 6){ loginResetError.textContent = 'A senha precisa ter pelo menos 6 caracteres.'; return; }
+      const btn = $('loginResetSubmitBtn');
+      btn.disabled = true;
+      try{
+        await fbAuth.confirmPasswordReset(oobCode, novaSenha);
+        history.replaceState(null, '', location.origin + location.pathname);
+        loginResetBox.hidden = true;
+        loginNormalBox.hidden = false;
+        loginResetNewPass.value = '';
+        setLoginMode('entrar');
+        loginEmailInput.value = '';
+        loginError.textContent = '';
+        $('loginHint').textContent = 'Senha alterada! Entre com seu e-mail e a senha nova.';
+      }catch(err){
+        console.error(err);
+        loginResetError.textContent = 'Não foi possível salvar a senha nova — o link pode ter expirado. Peça um novo em "Esqueci minha senha".';
+      }
+      btn.disabled = false;
+    });
+  })();
 
   $('logoutBtn').addEventListener('click', ()=>{
     if(fbReady) fbAuth.signOut();
@@ -8536,7 +8364,7 @@ body{
     if(liveBoardMetaRef){ liveBoardMetaRef.off('value', liveBoardMetaCb); liveBoardMetaRef = null; liveBoardMetaCb = null; }
     if(liveBoardMarksRef){ liveBoardMarksRef.off('value', liveBoardMarksCb); liveBoardMarksRef = null; liveBoardMarksCb = null; }
     if(liveBoardTokensRef){ liveBoardTokensRef.off('value', liveBoardTokensCb); liveBoardTokensRef = null; liveBoardTokensCb = null; }
-    // desliga o listener único de mesa/live (status Ativo/Inativo ao vivo — ver isHeroLiveActive()
+    // desliga o listener único de mesa/live (Vida/Mana/Escudo/XP ao vivo — ver onLiveVitalsChanged()
     // mais acima) — senão ele fica pendurado pra sempre no mesmo navegador: como o Firebase Auth
     // signOut() não desliga listener nenhum sozinho, uma conta trocada nesse mesmo navegador
     // continuaria recebendo (e reagindo a) atualizações de mesa/live mesmo depois de deslogar.
@@ -8569,9 +8397,8 @@ body{
       renderLiveBoardMini();
       mergeRemoteHeroTokensIntoLocalBoard(val);
     });
-    // um único listener pro nó inteiro de mesa/live — é o que faz o interruptor Ativo/Inativo (e a
-    // bandeja de fichas nunca salvas) valerem na hora (ver isHeroLiveActive()/onLiveVitalsChanged()
-    // mais acima).
+    // um único listener pro nó inteiro de mesa/live — é o que faz Vida/Mana/Escudo/XP ao vivo (e a
+    // bandeja de fichas nunca salvas) valerem na hora (ver onLiveVitalsChanged() mais acima).
     liveVitalsRef = fbDb.ref('mesa/live');
     liveVitalsCb = liveVitalsRef.on('value', (snap)=>{
       liveVitalsAll = snap.val() || {};
