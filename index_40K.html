@@ -2975,6 +2975,7 @@ body{
   <button id="masterBtn">📜 Fichas de Jogador</button>
   <button id="masterMestreBtn" class="mestre-only">🔒 Fichas do Mestre</button>
   <button id="newBtn">Nova ficha</button>
+  <button id="tokenBtn" title="Salvar, atualizar ou remover seu token do GitHub neste navegador">🔑 Meu token do GitHub</button>
   <button id="configBtn" class="mestre-only">⚙️ Configurações</button>
   <button class="logout-btn" id="logoutBtn">🚪 Sair</button>
 </div>
@@ -7018,6 +7019,14 @@ body{
   }
 
   $('githubConfigBtn').addEventListener('click', ()=>{
+    tokenInput.value = '';
+    refreshTokenStatus();
+    tokenModal.hidden = false;
+  });
+  // botão no topo, visível pra jogadores também (o de dentro de Configurações, acima, é
+  // "mestre-only") -- salvar/atualizar/remover o token é algo que cada jogador precisa poder
+  // fazer sozinho no próprio navegador, sem depender do mestre.
+  $('tokenBtn').addEventListener('click', ()=>{
     tokenInput.value = '';
     refreshTokenStatus();
     tokenModal.hidden = false;
