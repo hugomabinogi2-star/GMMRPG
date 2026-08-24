@@ -103,5 +103,12 @@
     "de": "G9",
     "para": "J8",
     "ts": 1787614807364
+  },
+  {
+    "nome": "Bulleta",
+    "tipo": "movimento",
+    "de": "J8",
+    "para": "N8",
+    "ts": 1787614808979
   }
 ]
