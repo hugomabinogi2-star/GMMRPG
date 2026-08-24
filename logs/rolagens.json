@@ -68,5 +68,14 @@
     "de": "F8",
     "para": "E8",
     "ts": 1787594051105
+  },
+  {
+    "nome": "cat",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1787594079975
   }
 ]
