@@ -447,7 +447,6 @@ body{
 .live-board-wrap{
   overflow:auto;max-height:380px;
   margin:4px 0 0;padding:2px;
-  display:flex;justify-content:center;
   position:relative;z-index:1;
 }
 .live-board-wrap .board-outer{min-width:340px;max-width:640px;}
@@ -631,8 +630,9 @@ body{
 #mesaModal .modal-box{max-width:760px;}
 .board-section{margin-top:20px;padding-top:16px;border-top:1px dashed var(--border-brown);}
 .board-title{font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--ink);margin:0 0 4px;}
-/* modos de visão do tabuleiro ao vivo (Dark/Fog) — ficam logo acima da grade, "em cima" do
-   tabuleiro (ver .board-view-modes no HTML, entre .board-menu e .board-wrap). */
+/* modos de visão do tabuleiro ao vivo (Dark/Fog) — ficam no menu abaixo do tabuleiro, junto do
+   botão de Iniciativa (ver #boardDarkModeLabel/#boardFogModeLabel dentro de .board-menu-bottom-actions
+   no HTML). .board-view-modes não é mais usado no HTML, mas a regra fica aqui sem risco. */
 .board-view-modes{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 4px;}
 .board-mode-toggle{
   display:flex;align-items:center;gap:7px;flex-wrap:wrap;
@@ -647,12 +647,18 @@ body{
 .board-mode-toggle.mode-active{border-color:var(--gold-bright);background:rgba(224,182,86,.14);}
 #boardDarkModeLabel:has(input:checked), #boardDarkModeLabel.mode-active{border-color:#5c5c5c;background:rgba(0,0,0,.18);}
 #boardDarkModeLabel:has(input:checked) .board-mode-toggle-name, #boardDarkModeLabel.mode-active .board-mode-toggle-name{color:#c9c9c9;}
-/* zoom do tabuleiro (mestre e "Tabuleiro ao Vivo") — ver setupBoardZoom() no <script>. Usa a
-   propriedade CSS "zoom" (não transform:scale) de propósito: "zoom" recalcula o tamanho de layout
-   de verdade, então o resto da página flui certinho ao redor do tabuleiro em qualquer nível; já
-   transform:scale só muda o visual, mantendo a caixa original no lugar (sobrepondo o que vem
-   depois quando aumenta, ou deixando um vão vazio quando diminui). Suportado por todo navegador
-   atual (Chrome/Edge/Safari sempre, Firefox 126+). */
+/* zoom do tabuleiro (mestre e "Tabuleiro ao Vivo") — ver setupBoardZoom() no <script>. Zoom em um
+   MAPA de verdade: a "janela" (.board-wrap/.live-board-wrap) NÃO muda de tamanho na tela — só o
+   tabuleiro por dentro dela cresce, e o resto vira scroll/pan, exatamente como um mapa. Tentamos
+   primeiro a propriedade CSS "zoom" direto no .board-outer, mas ela não funciona aqui: .board-outer
+   tem "width:100%" (responsivo, cabe na coluna disponível), e "zoom" recalcula porcentagens em
+   cima do container JÁ NÃO-ampliado — resultado, a largura ficava sempre "100% do espaço de sempre"
+   (sem crescer nadinha), só texto/borda/etc (valores fixos em px) aumentavam mesmo. Por isso agora
+   é transform:scale(), com origem no canto superior-esquerdo (transform-origin:0 0) e um
+   ".board-zoom-spacer" ao redor que a gente redimensiona via JS (largura/altura NATURAL do tabuleiro
+   × o nível de zoom) só pra avisar o container com scroll do tamanho real ocupado — já que
+   transform, ao contrário de "zoom", não mexe no tamanho de LAYOUT (offsetWidth/offsetHeight
+   continuam os originais, só o desenho na tela fica maior). */
 .board-zoom-controls{display:flex;align-items:center;justify-content:center;gap:8px;margin:4px 0 10px;}
 .board-zoom-btn{
   flex:none;background:none;border:1px solid var(--ink-faint);border-radius:4px;
@@ -665,8 +671,17 @@ body{
 /* variante compacta, dentro do cabeçalho do painel "Tabuleiro ao Vivo" (mesma fileira do botão de
    minimizar — ver .chat-panel-head-actions/.chat-min-btn) */
 .chat-panel-head-actions .board-zoom-readout{font-size:10.5px;min-width:30px;}
-.board-wrap{overflow-x:auto;margin:12px 0;display:flex;justify-content:center;}
+/* "janela" do mapa: a LARGURA continua limitada pela coluna (como sempre foi, com scroll horizontal
+   pra revelar o resto quando o tabuleiro ampliado não cabe) — a altura continua livre (o resto da
+   página flui pra baixo ao dar zoom, igual sempre funcionou; o mini-tabuleiro ao vivo é que já tinha
+   um teto de altura próprio, ver .live-board-wrap). Nada de "justify-content:center" aqui (flex
+   centralizado corta o início do conteúdo que passa da borda ao dar scroll, um bug clássico de
+   overflow+center); quem centraliza é o .board-zoom-spacer, com margin:auto (some sozinho quando o
+   conteúdo já não cabe mais). */
+.board-wrap{overflow:auto;margin:12px 0;}
+.board-zoom-spacer{margin:0 auto;}
 .board-outer{
+  transform-origin:0 0;
   display:grid;
   grid-template-columns:22px 1fr;
   grid-template-rows:22px 1fr;
@@ -862,6 +877,9 @@ body{
   padding:5px 8px;border-radius:4px;border:1px solid var(--border-brown);
   background:var(--paper-l);color:var(--ink);cursor:pointer;
 }
+/* seletor "linhas x colunas" do tamanho do bloco — reaproveita .board-size-fields (mesmo visual do
+   seletor de tamanho do tabuleiro), só com a margem de baixo do resto dos controles desta aba. */
+.board-block-size-control{margin-bottom:12px;}
 .board-tray-title{font-family:'Cinzel',serif;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);margin-bottom:8px;}
 .board-tray-coins{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:10px;}
 .tray-coin-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;width:56px;user-select:none;}
@@ -942,8 +960,10 @@ body{
   border-radius:4px;
   box-shadow:0 1px 3px rgba(0,0,0,.5), inset 0 0 0 1.5px rgba(120,105,70,.45);
 }
-/* mármore branco — padrão original */
-.token-marmore1, .token-marmore2, .token-marmore3{
+/* mármore branco — padrão original. ".token-marmore" (sem sufixo) é o "kind" novo (ver
+   OBSTACLE_KINDS no <script>); "1/2/3" são o formato antigo, mantidos só pra tabuleiros já
+   salvos com esse kind continuarem com a mesma cara (ver LEGACY_BLOCK_KINDS). */
+.token-marmore1, .token-marmore2, .token-marmore3, .token-marmore{
   background-color:#f2ede0;
   background-image:
     radial-gradient(circle at 25% 22%, rgba(255,255,255,.95), transparent 55%),
@@ -952,7 +972,7 @@ body{
     linear-gradient(35deg, transparent 55%, rgba(150,138,110,.16) 56%, transparent 58%);
 }
 /* tijolo — fileiras de tijolo com juntas de argamassa */
-.token-tijolo1, .token-tijolo2, .token-tijolo3{
+.token-tijolo1, .token-tijolo2, .token-tijolo3, .token-tijolo{
   background-color:#a15a3a;
   background-image:
     linear-gradient(160deg, rgba(255,255,255,.2), transparent 55%),
@@ -960,7 +980,7 @@ body{
     repeating-linear-gradient(90deg, rgba(222,204,178,.4) 0 2px, transparent 2px 24px);
 }
 /* marrom, vermelho, turquesa e jade — mesmo acabamento "pedra polida" do mármore, em outra cor */
-.token-marrom1, .token-marrom2, .token-marrom3{
+.token-marrom1, .token-marrom2, .token-marrom3, .token-marrom{
   background-color:#8a6a45;
   background-image:
     radial-gradient(circle at 25% 22%, rgba(255,235,200,.55), transparent 55%),
@@ -968,7 +988,7 @@ body{
     linear-gradient(125deg, transparent 46%, rgba(40,25,10,.22) 47%, transparent 49%),
     linear-gradient(35deg, transparent 55%, rgba(40,25,10,.18) 56%, transparent 58%);
 }
-.token-vermelho1, .token-vermelho2, .token-vermelho3{
+.token-vermelho1, .token-vermelho2, .token-vermelho3, .token-vermelho{
   background-color:#963631;
   background-image:
     radial-gradient(circle at 25% 22%, rgba(255,210,200,.5), transparent 55%),
@@ -976,7 +996,7 @@ body{
     linear-gradient(125deg, transparent 46%, rgba(40,10,8,.25) 47%, transparent 49%),
     linear-gradient(35deg, transparent 55%, rgba(40,10,8,.2) 56%, transparent 58%);
 }
-.token-turquesa1, .token-turquesa2, .token-turquesa3{
+.token-turquesa1, .token-turquesa2, .token-turquesa3, .token-turquesa{
   background-color:#2f8f8a;
   background-image:
     radial-gradient(circle at 25% 22%, rgba(220,255,250,.55), transparent 55%),
@@ -984,7 +1004,7 @@ body{
     linear-gradient(125deg, transparent 46%, rgba(10,35,32,.22) 47%, transparent 49%),
     linear-gradient(35deg, transparent 55%, rgba(10,35,32,.18) 56%, transparent 58%);
 }
-.token-jade1, .token-jade2, .token-jade3{
+.token-jade1, .token-jade2, .token-jade3, .token-jade{
   background-color:#3f8f5e;
   background-image:
     radial-gradient(circle at 25% 22%, rgba(220,255,225,.55), transparent 55%),
@@ -2871,11 +2891,13 @@ body{
           <div class="live-board-panel-body" id="liveBoardPanelBody">
             <div class="chat-bg-fx" id="liveBoardBgFx" aria-hidden="true"></div>
             <div class="live-board-wrap" id="liveBoardWrap">
-              <div class="board-outer" id="liveBoardOuter">
-                <div class="board-corner"></div>
-                <div class="board-colheader" id="liveBoardColHeader"></div>
-                <div class="board-rowheader" id="liveBoardRowHeader"></div>
-                <div class="board-grid" id="liveBoardGrid"></div>
+              <div class="board-zoom-spacer" id="liveBoardZoomSpacer">
+                <div class="board-outer" id="liveBoardOuter">
+                  <div class="board-corner"></div>
+                  <div class="board-colheader" id="liveBoardColHeader"></div>
+                  <div class="board-rowheader" id="liveBoardRowHeader"></div>
+                  <div class="board-grid" id="liveBoardGrid"></div>
+                </div>
               </div>
             </div>
             <div class="live-board-hint" id="liveBoardHint"></div>
@@ -3430,47 +3452,58 @@ body{
               <option value="jade">Jade</option>
             </select>
           </div>
+          <!-- tamanho do bloco: em vez dos 3 tamanhos fixos de antes (1x1/2x2/3x3), um seletor livre
+               "linhas x colunas" (mesmo estilo do seletor de tamanho do tabuleiro, ver
+               .board-size-fields no <style>) — lido ao vivo na hora de arrastar a moeda pro
+               tabuleiro (ver renderObstacleCoins() no <script>). -->
+          <div class="board-block-size-control board-size-fields">
+            <label for="boardBlockRowsInput">Tamanho do bloco</label>
+            <input type="number" id="boardBlockRowsInput" min="1" max="12" value="1" title="Número de linhas">
+            <span>x</span>
+            <input type="number" id="boardBlockColsInput" min="1" max="12" value="1" title="Número de colunas">
+          </div>
           <div class="board-enemy-coins" id="boardObstacleCoins"></div>
         </div>
       </div>
 
-      <!-- modos de visão do tabuleiro ao vivo (jogadores) — ver boardDarkMode/boardFogMode e
-           wireBoardViewModeToggle() no <script>. Só um dos dois fica marcado por vez. -->
-      <div class="board-view-modes">
-        <label class="board-mode-toggle" id="boardDarkModeLabel">
-          <input type="checkbox" id="boardDarkModeToggle">
-          <span class="board-mode-toggle-name">🌑 Dark</span>
-          <span class="board-mode-toggle-hint">tabuleiro para de atualizar pros jogadores</span>
-        </label>
-        <label class="board-mode-toggle" id="boardFogModeLabel">
-          <input type="checkbox" id="boardFogModeToggle">
-          <span class="board-mode-toggle-name">🌫️ Fog</span>
-          <span class="board-mode-toggle-hint">jogadores só veem marcações e peças dentro do alcance deles</span>
-        </label>
+      <div class="board-wrap">
+        <div class="board-zoom-spacer" id="boardZoomSpacer">
+          <div class="board-outer" id="boardOuter">
+            <div class="board-corner"></div>
+            <div class="board-colheader" id="boardColHeader"></div>
+            <div class="board-rowheader" id="boardRowHeader"></div>
+            <div class="board-grid" id="boardGrid"></div>
+          </div>
+        </div>
       </div>
 
+      <!-- zoom logo abaixo do tabuleiro (dentro de MESA) — ver setupBoardZoom() no <script>. -->
       <div class="board-zoom-controls">
         <button type="button" class="board-zoom-btn" id="boardZoomOutBtn" title="Diminuir zoom" aria-label="Diminuir zoom">−</button>
         <span class="board-zoom-readout" id="boardZoomReadout">100%</span>
         <button type="button" class="board-zoom-btn" id="boardZoomInBtn" title="Aumentar zoom" aria-label="Aumentar zoom">+</button>
       </div>
 
-      <div class="board-wrap">
-        <div class="board-outer" id="boardOuter">
-          <div class="board-corner"></div>
-          <div class="board-colheader" id="boardColHeader"></div>
-          <div class="board-rowheader" id="boardRowHeader"></div>
-          <div class="board-grid" id="boardGrid"></div>
-        </div>
-      </div>
-
       <div class="board-menu board-menu-bottom-actions">
         <input type="file" id="boardBgInput" accept="image/*" style="display:none;">
         <button id="iniciativaTabuleiroBtn" class="mini-btn" type="button">🗺️ Iniciativa</button>
         <button id="boardSendBtn" class="mini-btn" type="button">🗺️ Enviar para a mesa</button>
-        <button id="boardClearBtn" class="mini-btn" type="button">🧹 Limpar tabuleiro</button>
         <button id="boardBgChooseBtn" class="mini-btn" type="button">🖼️ Escolher imagem</button>
+        <button id="boardClearBtn" class="mini-btn" type="button">🧹 Limpar tabuleiro</button>
         <button id="boardBgResetBtn" class="mini-btn" type="button">↺ Tabuleiro padrão</button>
+        <!-- modos de visão do tabuleiro ao vivo (jogadores) — ver boardFogMode/boardDarkMode e os
+             listeners de #boardFogModeToggle/#boardDarkModeToggle no <script>. Fog agora vem
+             ATIVO por padrão (protege info dos jogadores sem o mestre precisar lembrar de ligar) —
+             este checkbox é "Remover Fog": marcado = fog desligado. Dark é independente (congela a
+             publicação inteira pro tabuleiro ao vivo) — os dois não são mais mutuamente exclusivos. -->
+        <label class="board-mode-toggle" id="boardFogModeLabel">
+          <input type="checkbox" id="boardFogModeToggle">
+          <span class="board-mode-toggle-name">🌫️ Remover Fog</span>
+        </label>
+        <label class="board-mode-toggle" id="boardDarkModeLabel">
+          <input type="checkbox" id="boardDarkModeToggle">
+          <span class="board-mode-toggle-name">🌑 Dark</span>
+        </label>
       </div>
       <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
       <div id="boardSendHint" class="mesa-hint"></div>
@@ -6487,6 +6520,10 @@ body{
 
   function openMesaModal(){
     mesaModal.hidden = false;
+    // o tabuleiro do mestre só existe de verdade (offsetWidth > 0) com o modal aberto — reaplica o
+    // zoom agora que dá pra medir o tamanho natural certinho (ver comentário grande dentro de
+    // setupBoardZoom() sobre esse "modal fechado = 0px" no <script>).
+    applyBoardZoom();
     mesaSendHint.textContent = '';
     loadHeroRoster();
     loadMestreRoster();
@@ -6646,6 +6683,7 @@ body{
   let BOARD_COLS = 24;
   const boardGrid        = $('boardGrid');
   const boardOuterEl     = $('boardOuter');
+  const boardZoomSpacerEl = $('boardZoomSpacer');
   const boardColHeader   = $('boardColHeader');
   const boardRowHeader   = $('boardRowHeader');
   const boardTrayCoins   = $('boardTrayCoins');
@@ -6653,6 +6691,8 @@ body{
   const boardEnemyCoins  = $('boardEnemyCoins');
   const boardObstacleCoins = $('boardObstacleCoins');
   const boardBlockMaterialSelect = $('boardBlockMaterialSelect');
+  const boardBlockRowsInput = $('boardBlockRowsInput');
+  const boardBlockColsInput = $('boardBlockColsInput');
   const boardSendBtn     = $('boardSendBtn');
   const boardSendHint    = $('boardSendHint');
   const boardDarkModeToggle = $('boardDarkModeToggle');
@@ -6676,12 +6716,16 @@ body{
   // Mesma função serve os dois tabuleiros (chamada uma vez pra cada, mais abaixo e lá na seção do
   // mini-tabuleiro ao vivo) — cada um guarda o próprio nível de zoom separado no localStorage (a
   // aba Mesa do mestre normalmente quer um zoom bem menor, já que mostra o tabuleiro inteiro, do
-  // que o mini "Tabuleiro ao Vivo" acima do chat). Usa a propriedade CSS "zoom" (ver comentário
-  // junto de .board-zoom-controls no <style>) direto no elemento .board-outer — afeta cabeçalhos de
-  // linha/coluna e a grade junto, sem precisar recalcular nada manualmente.
+  // que o mini "Tabuleiro ao Vivo" acima do chat). Zoom de mapa de verdade: a "janela" (spacerEl.
+  // parentElement, .board-wrap/.live-board-wrap) fica do MESMO tamanho na tela sempre, só o
+  // tabuleiro por dentro cresce/encolhe (transform:scale no .board-outer, ver comentário grande
+  // junto de .board-zoom-controls no <style> pra entender por que não é a propriedade CSS "zoom"),
+  // e o excesso vira scroll — spacerEl é redimensionado (largura/altura NATURAL do tabuleiro, lida
+  // via offsetWidth/offsetHeight, que o transform não altera) só pra avisar o container com scroll
+  // do tamanho real ocupado pelo desenho ampliado.
   const BOARD_ZOOM_LEVELS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
-  function setupBoardZoom(outerEl, readoutEl, outBtn, inBtn, storageKey){
-    if(!outerEl || !outBtn || !inBtn) return;
+  function setupBoardZoom(spacerEl, outerEl, readoutEl, outBtn, inBtn, storageKey){
+    if(!spacerEl || !outerEl || !outBtn || !inBtn) return function(){};
     let idx = BOARD_ZOOM_LEVELS.indexOf(1);
     try{
       const saved = parseFloat(localStorage.getItem(storageKey));
@@ -6690,7 +6734,24 @@ body{
     }catch(err){}
     function apply(){
       const level = BOARD_ZOOM_LEVELS[idx];
-      outerEl.style.zoom = level;
+      // zera o tamanho do spacer ANTES de medir — senão, numa reaplicação, ele mesmo (já com
+      // largura fixa em px de uma vez anterior) vira o container de referência do "width:100%" do
+      // .board-outer, e o "natural" ficaria preso no valor já ampliado, inflando/desinflando a
+      // cada clique em vez de sempre voltar pra mesma base responsiva (100% da coluna disponível).
+      spacerEl.style.width = '';
+      spacerEl.style.height = '';
+      const naturalW = outerEl.offsetWidth;
+      const naturalH = outerEl.offsetHeight;
+      outerEl.style.transform = 'scale(' + level + ')';
+      // se o tabuleiro ainda não está visível agora (painel minimizado, modal da Mesa fechado —
+      // offsetWidth vem 0 nesses casos), não trava o spacer em 0: deixa "auto" (mesmo efeito de
+      // sempre, sem zoom nenhum aplicado ainda) até a próxima vez que apply() rodar com o tabuleiro
+      // já visível de verdade — ver applyBoardZoom()/applyLiveBoardZoom() chamados na abertura do
+      // modal da Mesa e ao desminimizar o Tabuleiro ao Vivo, mais abaixo no <script>.
+      if(naturalW > 0 && naturalH > 0){
+        spacerEl.style.width = (naturalW * level) + 'px';
+        spacerEl.style.height = (naturalH * level) + 'px';
+      }
       if(readoutEl) readoutEl.textContent = Math.round(level * 100) + '%';
       outBtn.disabled = idx === 0;
       inBtn.disabled = idx === BOARD_ZOOM_LEVELS.length - 1;
@@ -6698,9 +6759,17 @@ body{
     }
     outBtn.addEventListener('click', ()=>{ if(idx > 0){ idx--; apply(); } });
     inBtn.addEventListener('click', ()=>{ if(idx < BOARD_ZOOM_LEVELS.length - 1){ idx++; apply(); } });
+    // a largura NATURAL do tabuleiro é responsiva (width:100% até um teto) — se a janela mudar de
+    // tamanho (ex.: virar celular na horizontal), reaplica pra recalcular o spacer certinho.
+    let resizeTimer = null;
+    window.addEventListener('resize', ()=>{
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(apply, 150);
+    });
     apply();
+    return apply;
   }
-  setupBoardZoom(boardOuterEl, $('boardZoomReadout'), $('boardZoomOutBtn'), $('boardZoomInBtn'), 'rpg_ficha_board_zoom');
+  const applyBoardZoom = setupBoardZoom(boardZoomSpacerEl, boardOuterEl, $('boardZoomReadout'), $('boardZoomOutBtn'), $('boardZoomInBtn'), 'rpg_ficha_board_zoom');
 
   // ---- menu do tabuleiro: abas Fichas dos Jogadores / Fichas do Mestre / Geral / Blocos ----
   document.querySelectorAll('.board-menu-tab').forEach(tabBtn=>{
@@ -6723,11 +6792,13 @@ body{
   // "return" no topo de scheduleBoardMetaPush/MarksPush/TokensPush, mais abaixo). Fog: o
   // tabuleiro continua sendo publicado normalmente, mas cada jogador só vê as MARCAÇÕES (pintura
   // verde/amarela/vermelha das casas) E as PEÇAS/ÍCONES (fichas, inimigos, obstáculos) que estão
-  // dentro do alcance de movimento da própria ficha — ver o filtro em renderLiveBoardMini(). Só um dos dois pode estar ativo por
-  // vez (ver wireBoardViewModeToggle() mais abaixo); com os dois desmarcados, o tabuleiro volta a
-  // atualizar ao vivo, normalmente, pra todo mundo.
+  // dentro do alcance de movimento da própria ficha — ver o filtro em renderLiveBoardMini(). Fog
+  // agora vem LIGADO por padrão (boardFogMode = true) — o checkbox no HTML é "Remover Fog": marcado
+  // desliga o filtro (boardFogMode vira false), desmarcado deixa o filtro ativo, que é o padrão.
+  // Dark e "Remover Fog" são independentes agora (não são mais mutuamente exclusivos — ver os
+  // listeners de #boardDarkModeToggle/#boardFogModeToggle mais abaixo).
   let boardDarkMode = false;
-  let boardFogMode  = false;
+  let boardFogMode  = true;
   let heroRoster   = [];   // [{id, name, portrait}] — fichas de jogador ativas
   let mestreRoster = [];   // [{id, name, portrait}] — fichas do mestre ativas (id sempre prefixado "mestre:" pra nunca colidir com o de um jogador)
   let spawnCounter = 1;
@@ -6759,41 +6830,66 @@ body{
   ];
 
   // blocos de obstáculo/parede/terreno do tabuleiro — sem imagem própria, o visual de cada material
-  // vem só do CSS (.token-block + .token-<kind>); mármore branco, tijolo e mais 4 cores de bloco liso,
-  // cada um nos mesmos 3 tamanhos.
+  // vem só do CSS (.token-block + .token-<kind>); mármore branco, tijolo e mais 4 cores de bloco liso.
+  // Um bloco por material (o tamanho não é mais fixo em 1x1/2x2/3x3 — agora é um seletor "linhas x
+  // colunas" ao lado do material, ver #boardBlockRowsInput/#boardBlockColsInput e o dragstart do
+  // .tray-coin logo abaixo em renderObstacleCoins()). kind = o próprio material, sem sufixo de
+  // tamanho — o tamanho de verdade fica em token.size (linhas) + token.sizeC (colunas), lidos na
+  // hora de colocar (handleBoardDrop) e guardados no token, não no "kind".
+  const BOARD_BLOCK_MAX_SIZE = 12; // teto de linhas/colunas do seletor de tamanho do bloco
   const OBSTACLE_KINDS = [
-    {kind:'marmore1', material:'marmore', label:'1x1', size:1},
-    {kind:'marmore2', material:'marmore', label:'2x2', size:2},
-    {kind:'marmore3', material:'marmore', label:'3x3', size:3},
-    {kind:'tijolo1', material:'tijolo', label:'1x1', size:1},
-    {kind:'tijolo2', material:'tijolo', label:'2x2', size:2},
-    {kind:'tijolo3', material:'tijolo', label:'3x3', size:3},
-    {kind:'marrom1', material:'marrom', label:'1x1', size:1},
-    {kind:'marrom2', material:'marrom', label:'2x2', size:2},
-    {kind:'marrom3', material:'marrom', label:'3x3', size:3},
-    {kind:'vermelho1', material:'vermelho', label:'1x1', size:1},
-    {kind:'vermelho2', material:'vermelho', label:'2x2', size:2},
-    {kind:'vermelho3', material:'vermelho', label:'3x3', size:3},
-    {kind:'turquesa1', material:'turquesa', label:'1x1', size:1},
-    {kind:'turquesa2', material:'turquesa', label:'2x2', size:2},
-    {kind:'turquesa3', material:'turquesa', label:'3x3', size:3},
-    {kind:'jade1', material:'jade', label:'1x1', size:1},
-    {kind:'jade2', material:'jade', label:'2x2', size:2},
-    {kind:'jade3', material:'jade', label:'3x3', size:3},
+    {kind:'marmore', material:'marmore', label:'Mármore'},
+    {kind:'tijolo', material:'tijolo', label:'Tijolo'},
+    {kind:'marrom', material:'marrom', label:'Marrom'},
+    {kind:'vermelho', material:'vermelho', label:'Vermelho'},
+    {kind:'turquesa', material:'turquesa', label:'Turquesa'},
+    {kind:'jade', material:'jade', label:'Jade'},
   ];
-  const BLOCK_KIND_SET = new Set(OBSTACLE_KINDS.map(k=> k.kind));
+  // tabuleiros salvos ANTES dessa mudança podem ter blocos com o "kind" antigo (sufixo 1/2/3, ex:
+  // "marmore2") — continuam reconhecidos como bloco (isBlockKind) e com o mesmo visual (CSS, ver
+  // .token-marmore1 etc no <style>), só não aparecem mais como opção nova na bandeja.
+  const LEGACY_BLOCK_KINDS = ['marmore1','marmore2','marmore3','tijolo1','tijolo2','tijolo3','marrom1','marrom2','marrom3','vermelho1','vermelho2','vermelho3','turquesa1','turquesa2','turquesa3','jade1','jade2','jade3'];
+  const BLOCK_KIND_SET = new Set(OBSTACLE_KINDS.map(k=> k.kind).concat(LEGACY_BLOCK_KINDS));
   function isBlockKind(kind){ return BLOCK_KIND_SET.has(kind); }
   function tokenSizeClass(size){ return size === 3 ? ' token-size3' : size === 2 ? ' token-size2' : ''; }
 
-  function footprintCells(anchorR, anchorC, size){
+  // bloco pode ser retangular (linhas != colunas, ver tokenFootprintSize()) — as classes
+  // .token-size2/.token-size3 (CSS) só cobrem quadrado 2x2/3x3, então bloco usa estilo inline
+  // direto (mesma fórmula: 6% de margem fixa nos 4 lados, largura/altura = N*100-12%), cobrindo
+  // qualquer combinação de linhas x colunas. Caso comum (1x1) não precisa de nada — fica no padrão
+  // de sempre (.board-token{inset:6%}).
+  function applyBlockFootprintStyle(el, sizeR, sizeC){
+    if(sizeR === 1 && sizeC === 1) return;
+    el.style.inset = 'auto';
+    el.style.top = '6%';
+    el.style.left = '6%';
+    el.style.width = (sizeC*100-12) + '%';
+    el.style.height = (sizeR*100-12) + '%';
+    el.style.zIndex = '3';
+  }
+
+  // sizeC (colunas) é opcional — sem ele, assume quadrado (sizeC = sizeR), cobrindo o uso de sempre
+  // (herói/aliado/inimigo/monstro/boss, todos quadrados). Só bloco usa as duas dimensões de verdade
+  // (ver token.sizeC, lido em tokenFootprintSize() logo abaixo).
+  function footprintCells(anchorR, anchorC, sizeR, sizeC){
+    if(sizeC === undefined) sizeC = sizeR;
     const cells = [];
-    for(let dr=0; dr<size; dr++) for(let dc=0; dc<size; dc++) cells.push([anchorR+dr, anchorC+dc]);
+    for(let dr=0; dr<sizeR; dr++) for(let dc=0; dc<sizeC; dc++) cells.push([anchorR+dr, anchorC+dc]);
     return cells;
   }
 
-  function canPlace(anchorR, anchorC, size, ignoreTokenId){
-    if(anchorR < 0 || anchorC < 0 || anchorR + size > BOARD_ROWS || anchorC + size > BOARD_COLS) return false;
-    for(const [r,c] of footprintCells(anchorR, anchorC, size)){
+  // linhas/colunas ocupadas por um token já existente no tabuleiro — heróis/aliados/inimigos/
+  // monstros/boss continuam quadrados (token.size dos dois lados); bloco pode ser retangular
+  // (token.size = linhas, token.sizeC = colunas, ver handleBoardDrop()/renderObstacleCoins()).
+  function tokenFootprintSize(token){
+    const sizeR = token.size || 1;
+    const sizeC = isBlockKind(token.kind) ? (token.sizeC || sizeR) : sizeR;
+    return [sizeR, sizeC];
+  }
+
+  function canPlace(anchorR, anchorC, sizeR, sizeC, ignoreTokenId){
+    if(anchorR < 0 || anchorC < 0 || anchorR + sizeR > BOARD_ROWS || anchorC + sizeC > BOARD_COLS) return false;
+    for(const [r,c] of footprintCells(anchorR, anchorC, sizeR, sizeC)){
       const existing = boardTokens[boardKey(r,c)];
       if(existing && existing.id !== ignoreTokenId) return false;
     }
@@ -6803,13 +6899,15 @@ body{
   function placeToken(anchorR, anchorC, token){
     token.anchorR = anchorR;
     token.anchorC = anchorC;
-    footprintCells(anchorR, anchorC, token.size || 1).forEach(([r,c])=>{
+    const [sizeR, sizeC] = tokenFootprintSize(token);
+    footprintCells(anchorR, anchorC, sizeR, sizeC).forEach(([r,c])=>{
       boardTokens[boardKey(r,c)] = token;
     });
   }
 
   function clearTokenFootprint(token){
-    footprintCells(token.anchorR, token.anchorC, token.size || 1).forEach(([r,c])=>{
+    const [sizeR, sizeC] = tokenFootprintSize(token);
+    footprintCells(token.anchorR, token.anchorC, sizeR, sizeC).forEach(([r,c])=>{
       delete boardTokens[boardKey(r,c)];
     });
   }
@@ -6826,7 +6924,7 @@ body{
     Object.keys(boardTokens).forEach(key=>{
       const t = boardTokens[key];
       tokensOut[key] = {
-        id:t.id, kind:t.kind, name:t.name, size:t.size||1, anchorR:t.anchorR, anchorC:t.anchorC, seq:t.seq || null,
+        id:t.id, kind:t.kind, name:t.name, size:t.size||1, sizeC:t.sizeC||t.size||1, anchorR:t.anchorR, anchorC:t.anchorC, seq:t.seq || null,
         donoChave: t.donoChave || null, ownerUid: t.ownerUid || null, bonusDes: t.bonusDes || 0,
       };
     });
@@ -6872,27 +6970,36 @@ body{
   const scheduleBoardMarksPush = makeDebouncedBoardPush('mesa/liveBoard/marks', ()=> Object.assign({}, boardMarks));
   const scheduleBoardTokensPush = makeDebouncedBoardPush('mesa/liveBoard/tokens', collectBoardTokensOut);
 
-  // ---------- toggle Dark/Fog (ver .board-view-modes no HTML) ----------
-  // Só um dos dois fica ativo por vez — marcar um desmarca o outro automaticamente. Com os dois
-  // desmarcados, republica tudo de uma vez (meta+marks+tokens) pra sincronizar os jogadores com o
-  // que está na tela agora, e o tabuleiro volta a atualizar ao vivo normalmente a partir daí.
-  function setBoardViewMode(mode){ // mode: 'dark' | 'fog' | null
-    boardDarkMode = mode === 'dark';
-    boardFogMode  = mode === 'fog';
+  // ---------- toggle Dark / "Remover Fog" (ver .board-menu-bottom-actions no HTML) ----------
+  // Independentes um do outro agora (não é mais só um dos dois por vez): Dark congela a publicação
+  // inteira; "Remover Fog" só decide se o filtro de alcance (ver renderLiveBoardMini()) é aplicado
+  // ou não pros jogadores — o tabuleiro continua atualizando ao vivo normalmente nos dois estados
+  // dele. Fog vem ATIVO por padrão (boardFogMode=true), então o checkbox de Fog desmarcado É o
+  // padrão; marcá-lo ("Remover Fog") desliga o filtro.
+  function setBoardDarkMode(on){
+    boardDarkMode = !!on;
     if(boardDarkModeToggle) boardDarkModeToggle.checked = boardDarkMode;
-    if(boardFogModeToggle)  boardFogModeToggle.checked  = boardFogMode;
-    const darkLabel = $('boardDarkModeLabel'), fogLabel = $('boardFogModeLabel');
+    const darkLabel = $('boardDarkModeLabel');
     if(darkLabel) darkLabel.classList.toggle('mode-active', boardDarkMode);
-    if(fogLabel)  fogLabel.classList.toggle('mode-active', boardFogMode);
+    // ligar Dark não precisa publicar nada (o guard no topo de scheduleBoard*Push já barra
+    // sozinho); desligar precisa republicar tudo de uma vez pra sincronizar os jogadores com o
+    // que está na tela agora — chamar as 3 funções sempre, sem risco, cobre os dois casos.
     scheduleBoardMetaPush();
     scheduleBoardMarksPush();
     scheduleBoardTokensPush();
   }
+  function setBoardFogRemoved(removed){
+    boardFogMode = !removed; // "Remover Fog" marcado = filtro desligado (boardFogMode = false)
+    if(boardFogModeToggle) boardFogModeToggle.checked = !!removed;
+    const fogLabel = $('boardFogModeLabel');
+    if(fogLabel) fogLabel.classList.toggle('mode-active', !!removed);
+    scheduleBoardMetaPush(); // só o campo "fog" de mesa/liveBoard/meta depende disso
+  }
   if(boardDarkModeToggle) boardDarkModeToggle.addEventListener('change', ()=>{
-    setBoardViewMode(boardDarkModeToggle.checked ? 'dark' : null);
+    setBoardDarkMode(boardDarkModeToggle.checked);
   });
   if(boardFogModeToggle) boardFogModeToggle.addEventListener('change', ()=>{
-    setBoardViewMode(boardFogModeToggle.checked ? 'fog' : null);
+    setBoardFogRemoved(boardFogModeToggle.checked);
   });
 
   function buildBoardGrid(){
@@ -7011,11 +7118,16 @@ body{
       // preto por fora do dourado — ajuda a diferenciar de relance de personagens de jogador.
       const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
       const dead = isHeroDead(token);
-      t.className = 'board-token token-' + token.kind + tokenSizeClass(token.size) + (isBlockKind(token.kind) ? ' token-block' : '') + (isMestreHero ? ' token-hero-mestre' : '') + (dead ? ' token-dead' : '');
+      const isBlock = isBlockKind(token.kind);
+      t.className = 'board-token token-' + token.kind + (isBlock ? '' : tokenSizeClass(token.size)) + (isBlock ? ' token-block' : '') + (isMestreHero ? ' token-hero-mestre' : '') + (dead ? ' token-dead' : '');
       t.draggable = true;
-      if(isBlockKind(token.kind)){
+      if(isBlock){
         // sem imagem nem texto — o visual de mármore vem só do CSS (.token-block); mantém o
-        // title nativo simples aqui, blocos não precisam do menu suspenso com numeração.
+        // title nativo simples aqui, blocos não precisam do menu suspenso com numeração. Bloco pode
+        // ser retangular (ver applyBlockFootprintStyle()/tokenFootprintSize()) — a classe
+        // token-size2/3 (quadrada) não serve pra ele, o tamanho vai todo em estilo inline.
+        const [bSizeR, bSizeC] = tokenFootprintSize(token);
+        applyBlockFootprintStyle(t, bSizeR, bSizeC);
         t.title = token.name;
       } else if(dead){
         t.innerHTML = `<span class="token-skull-icon">💀</span>`;
@@ -7137,7 +7249,8 @@ body{
   function removeTokenAt(r,c){
     const token = boardTokens[boardKey(r,c)];
     if(!token) return;
-    const cells = footprintCells(token.anchorR, token.anchorC, token.size || 1);
+    const [rmSizeR, rmSizeC] = tokenFootprintSize(token);
+    const cells = footprintCells(token.anchorR, token.anchorC, rmSizeR, rmSizeC);
     clearTokenFootprint(token);
     cells.forEach(([cr,cc])=> renderBoardCell(cr,cc));
     if(token.kind === 'hero'){ renderHeroTray(); renderMestreTray(); }
@@ -7163,7 +7276,7 @@ body{
         if(!hero) return;
         const prevKey = findHeroCell(hero.id);
         const prevToken = prevKey ? boardTokens[prevKey] : null;
-        if(!canPlace(r, c, 1, prevToken ? prevToken.id : null)) return;
+        if(!canPlace(r, c, 1, 1, prevToken ? prevToken.id : null)) return;
         let prevCells = [];
         if(prevToken){ prevCells = footprintCells(prevToken.anchorR, prevToken.anchorC, 1); clearTokenFootprint(prevToken); }
         const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:1, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0};
@@ -7176,29 +7289,35 @@ body{
         const enemyCfg = ENEMY_KINDS.find(k => k.kind === payload.kind);
         const cfg = enemyCfg || OBSTACLE_KINDS.find(k => k.kind === payload.kind);
         if(!cfg) return;
-        const size = cfg.size || 1;
-        if(!canPlace(r, c, size, null)) return;
-        const token = {id: cfg.kind + '-' + (spawnCounter++), kind: cfg.kind, name: cfg.label, portrait: cfg.img, size};
+        const isObstacle = !enemyCfg && isBlockKind(cfg.kind);
+        // bloco: tamanho vem do seletor "linhas x colunas" (lido no dragstart da moeda, ver
+        // renderObstacleCoins()) — qualquer outro tipo (aliado/inimigo/monstro/boss) continua
+        // quadrado, do tamanho fixo do próprio ENEMY_KINDS.
+        const sizeR = isObstacle ? Math.max(1, Math.min(BOARD_BLOCK_MAX_SIZE, parseInt(payload.sizeR, 10) || 1)) : (cfg.size || 1);
+        const sizeC = isObstacle ? Math.max(1, Math.min(BOARD_BLOCK_MAX_SIZE, parseInt(payload.sizeC, 10) || 1)) : (cfg.size || 1);
+        if(!canPlace(r, c, sizeR, sizeC, null)) return;
+        const token = {id: cfg.kind + '-' + (spawnCounter++), kind: cfg.kind, name: isObstacle ? (cfg.label + ' ' + sizeR + 'x' + sizeC) : cfg.label, portrait: cfg.img, size: sizeR};
+        if(isObstacle) token.sizeC = sizeC;
         if(enemyCfg){
           // numera essa peça dentro da própria categoria (Aliado/Inimigo/Monstro/Boss), na ordem em
           // que forem sendo colocadas — só pra aliado/inimigo/monstro/boss, blocos não numeram.
           token.seq = nextSeqForLabel(cfg.label);
         }
         placeToken(r, c, token);
-        footprintCells(r, c, size).forEach(([fr,fc]) => renderBoardCell(fr,fc));
+        footprintCells(r, c, sizeR, sizeC).forEach(([fr,fc]) => renderBoardCell(fr,fc));
       }
     } else if(payload.source === 'board'){
       const anchorKey = boardKey(payload.r, payload.c);
       const tok = boardTokens[anchorKey];
       if(!tok || tok.id !== payload.id) return;
-      const size = tok.size || 1;
+      const [sizeR, sizeC] = tokenFootprintSize(tok);
       if(tok.anchorR === r && tok.anchorC === c) return; // soltou em cima de si mesmo
-      if(!canPlace(r, c, size, tok.id)) return;
-      const oldCells = footprintCells(tok.anchorR, tok.anchorC, size);
+      if(!canPlace(r, c, sizeR, sizeC, tok.id)) return;
+      const oldCells = footprintCells(tok.anchorR, tok.anchorC, sizeR, sizeC);
       clearTokenFootprint(tok);
       placeToken(r, c, tok);
       oldCells.forEach(([or,oc]) => renderBoardCell(or,oc));
-      footprintCells(r, c, size).forEach(([fr,fc]) => renderBoardCell(fr,fc));
+      footprintCells(r, c, sizeR, sizeC).forEach(([fr,fc]) => renderBoardCell(fr,fc));
       if(tok.kind === 'hero'){ renderHeroTray(); renderMestreTray(); }
     }
     scheduleBoardTokensPush();
@@ -7327,31 +7446,44 @@ body{
     });
   }
 
-  // o seletor "Tipo de bloco" filtra o mostruário pra só um material por vez (Mármore/Tijolo/
-  // Marrom/Vermelho/Turquesa/Jade, cada um nos 3 tamanhos) — facilita achar o bloco certo em vez
-  // de rolar uma lista comprida com os 18 juntos.
+  // o seletor "Tipo de bloco" escolhe o material (Mármore/Tijolo/Marrom/Vermelho/Turquesa/Jade); o
+  // tamanho não é mais fixo em 1x1/2x2/3x3 — vem dos campos "linhas x colunas" ao lado (mesmo
+  // estilo do seletor de tamanho do tabuleiro, ver #boardBlockRowsInput/#boardBlockColsInput no
+  // HTML), lidos ao vivo no instante em que o arrasto começa (dragstart), então só existe UMA
+  // moeda por material — o tamanho escolhido vai junto no payload do drag.
+  function currentBlockSize(){
+    const sizeR = Math.max(1, Math.min(BOARD_BLOCK_MAX_SIZE, parseInt(boardBlockRowsInput.value, 10) || 1));
+    const sizeC = Math.max(1, Math.min(BOARD_BLOCK_MAX_SIZE, parseInt(boardBlockColsInput.value, 10) || 1));
+    return [sizeR, sizeC];
+  }
   function renderObstacleCoins(){
     boardObstacleCoins.innerHTML = '';
     const material = boardBlockMaterialSelect.value || 'marmore';
-    OBSTACLE_KINDS.filter(cfg=> cfg.material === material).forEach(cfg=>{
-      const wrap = document.createElement('div');
-      wrap.className = 'tray-coin-wrap';
-      const coin = document.createElement('div');
-      coin.className = 'tray-coin token-' + cfg.kind + ' token-block';
-      coin.draggable = true;
-      coin.title = 'Arraste para o tabuleiro' + (cfg.size > 1 ? ` (ocupa ${cfg.size}x${cfg.size} casas)` : '') + ' — pode repetir quantas vezes quiser';
-      coin.addEventListener('dragstart', (e)=>{
-        e.dataTransfer.setData('text/plain', JSON.stringify({source:'tray', kind: cfg.kind}));
-      });
-      const lbl = document.createElement('div');
-      lbl.className = 'tray-coin-name';
-      lbl.textContent = cfg.label;
-      wrap.appendChild(coin);
-      wrap.appendChild(lbl);
-      boardObstacleCoins.appendChild(wrap);
+    const cfg = OBSTACLE_KINDS.find(k=> k.material === material);
+    if(!cfg) return;
+    const [sizeR, sizeC] = currentBlockSize();
+    const wrap = document.createElement('div');
+    wrap.className = 'tray-coin-wrap';
+    const coin = document.createElement('div');
+    coin.className = 'tray-coin token-' + cfg.kind + ' token-block';
+    coin.draggable = true;
+    coin.title = `Arraste para o tabuleiro (ocupa ${sizeR}x${sizeC} casas) — pode repetir quantas vezes quiser`;
+    coin.addEventListener('dragstart', (e)=>{
+      const [dragSizeR, dragSizeC] = currentBlockSize();
+      e.dataTransfer.setData('text/plain', JSON.stringify({source:'tray', kind: cfg.kind, sizeR: dragSizeR, sizeC: dragSizeC}));
     });
+    const lbl = document.createElement('div');
+    lbl.className = 'tray-coin-name';
+    lbl.textContent = cfg.label;
+    wrap.appendChild(coin);
+    wrap.appendChild(lbl);
+    boardObstacleCoins.appendChild(wrap);
   }
   boardBlockMaterialSelect.addEventListener('change', renderObstacleCoins);
+  // o "title" (dica ao passar o mouse) mostra o tamanho atual — reaplica sempre que os campos de
+  // linhas/colunas mudam, pra ficar sempre certo mesmo sem soltar o material de novo.
+  boardBlockRowsInput.addEventListener('input', renderObstacleCoins);
+  boardBlockColsInput.addEventListener('input', renderObstacleCoins);
 
   // Gera a função que busca no GitHub as fichas ativas de uma pasta (jogador ou mestre) e monta
   // o roster correspondente — reaproveitada pelas duas abas de personagem do menu do tabuleiro.
@@ -7535,6 +7667,9 @@ body{
       if(rt.anchorR == null || rt.anchorC == null) return;
       const token = {
         id: rt.id, kind: rt.kind, name: rt.name, size: rt.size || 1,
+        // sizeC só existe de verdade em blocos (rt.sizeC) — tabuleiro salvo ANTES desse campo
+        // existir cai no fallback rt.size (quadrado, igual sempre foi).
+        sizeC: rt.sizeC || rt.size || 1,
         portrait: isBlockKind(rt.kind) ? null : resolveTokenPortrait(rt),
         donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0,
       };
@@ -7778,27 +7913,32 @@ body{
       const tok = boardTokens[key];
       if(seenTokenIds.has(tok.id)) continue; // desenha cada token uma única vez, na sua âncora
       seenTokenIds.add(tok.id);
+      if(isBlockKind(tok.kind)){
+        // bloco de mármore: retângulo liso (linhas x colunas, pode não ser quadrado — ver
+        // tokenFootprintSize()), sem clip circular nem imagem/texto.
+        const [bSizeR, bSizeC] = tokenFootprintSize(tok);
+        const cx = headerPx + (tok.anchorC + bSizeC/2)*cellPx;
+        const cy = headerPx + (tok.anchorR + bSizeR/2)*cellPx;
+        const halfW = cellPx*bSizeC*0.42;
+        const halfH = cellPx*bSizeR*0.42;
+        ctx.save();
+        ctx.fillStyle = '#f2ede0';
+        ctx.fillRect(cx-halfW, cy-halfH, halfW*2, halfH*2);
+        const blockGrad = ctx.createRadialGradient(cx-halfW*0.5, cy-halfH*0.6, 1, cx-halfW*0.5, cy-halfH*0.6, Math.max(halfW,halfH)*1.6);
+        blockGrad.addColorStop(0, 'rgba(255,255,255,.75)');
+        blockGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = blockGrad;
+        ctx.fillRect(cx-halfW, cy-halfH, halfW*2, halfH*2);
+        ctx.restore();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(120,105,70,.6)';
+        ctx.strokeRect(cx-halfW, cy-halfH, halfW*2, halfH*2);
+        continue;
+      }
       const size = tok.size || 1;
       const cx = headerPx + (tok.anchorC + size/2)*cellPx;
       const cy = headerPx + (tok.anchorR + size/2)*cellPx;
       const radius = cellPx*size*0.42;
-      if(isBlockKind(tok.kind)){
-        // bloco de mármore: quadrado liso, sem clip circular nem imagem/texto
-        const half = radius;
-        ctx.save();
-        ctx.fillStyle = '#f2ede0';
-        ctx.fillRect(cx-half, cy-half, half*2, half*2);
-        const blockGrad = ctx.createRadialGradient(cx-half*0.5, cy-half*0.6, 1, cx-half*0.5, cy-half*0.6, half*1.6);
-        blockGrad.addColorStop(0, 'rgba(255,255,255,.75)');
-        blockGrad.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = blockGrad;
-        ctx.fillRect(cx-half, cy-half, half*2, half*2);
-        ctx.restore();
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = 'rgba(120,105,70,.6)';
-        ctx.strokeRect(cx-half, cy-half, half*2, half*2);
-        continue;
-      }
       ctx.save();
       ctx.beginPath();
       ctx.arc(cx,cy,radius,0,Math.PI*2);
@@ -8531,6 +8671,7 @@ body{
   // variáveis continuam sendo só o editor de verdade do mestre (aba Mesa); aqui é só um espelho.
   const liveBoardPanelEl  = $('liveBoardPanel');
   const liveBoardOuterEl  = $('liveBoardOuter');
+  const liveBoardZoomSpacerEl = $('liveBoardZoomSpacer');
   const liveBoardColHeaderEl = $('liveBoardColHeader');
   const liveBoardRowHeaderEl = $('liveBoardRowHeader');
   const liveBoardGridEl   = $('liveBoardGrid');
@@ -8538,9 +8679,9 @@ body{
   const LIVE_BOARD_MIN_KEY = 'rpg_ficha_liveboard_minimized';
   // zoom do mini-tabuleiro (ver setupBoardZoom(), lá em cima perto do zoom da aba Mesa) — chave de
   // localStorage separada da do tabuleiro do mestre, cada um lembra o próprio nível.
-  setupBoardZoom(liveBoardOuterEl, $('liveBoardZoomReadout'), $('liveBoardZoomOutBtn'), $('liveBoardZoomInBtn'), 'rpg_ficha_liveboard_zoom');
+  const applyLiveBoardZoom = setupBoardZoom(liveBoardZoomSpacerEl, liveBoardOuterEl, $('liveBoardZoomReadout'), $('liveBoardZoomOutBtn'), $('liveBoardZoomInBtn'), 'rpg_ficha_liveboard_zoom');
 
-  let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: false };
+  let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true };
   let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null;
   let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null;
 
@@ -8659,17 +8800,24 @@ body{
         cell.addEventListener('dragover', (e)=> e.preventDefault());
         cell.addEventListener('drop', (e)=>{ e.preventDefault(); handleLiveBoardDrop(r, c, e); });
         const token = liveBoardState.tokens[liveBoardKey(r,c)];
-        if(token && token.anchorR === r && token.anchorC === c && (!fogActive || fogReachable.has(cellKey))){
+        // bloco (obstáculo/cenário) NUNCA some com o Fog — só ícones de combatente (herói/aliado/
+        // inimigo/monstro/boss) ficam escondidos fora do alcance; parede/bloco é geografia do mapa,
+        // não "informação escondida", e o jogador precisa ver onde não pode passar mesmo longe dali.
+        if(token && token.anchorR === r && token.anchorC === c && (!fogActive || fogReachable.has(cellKey) || isBlockKind(token.kind))){
           const t = document.createElement('div');
           const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
           const mine = isMyLiveToken(token);
           const dead = isHeroDead(token);
-          t.className = 'board-token token-' + token.kind + tokenSizeClass(token.size)
-            + (isBlockKind(token.kind) ? ' token-block' : '')
+          const isBlock = isBlockKind(token.kind);
+          t.className = 'board-token token-' + token.kind + (isBlock ? '' : tokenSizeClass(token.size))
+            + (isBlock ? ' token-block' : '')
             + (isMestreHero ? ' token-hero-mestre' : '')
             + (mine ? ' live-board-token-mine' : '')
             + (dead ? ' token-dead' : '');
-          if(isBlockKind(token.kind)){
+          if(isBlock){
+            // bloco pode ser retangular — mesma ideia de renderBoardCell()/applyBlockFootprintStyle().
+            const [bSizeR, bSizeC] = tokenFootprintSize(token);
+            applyBlockFootprintStyle(t, bSizeR, bSizeC);
             t.title = token.name;
           } else if(dead){
             t.innerHTML = `<span class="token-skull-icon">💀</span>`;
@@ -8795,7 +8943,7 @@ body{
       const localKey = findHeroCell(rt.id);
       const localTok = localKey ? boardTokens[localKey] : null;
       if(localTok && localTok.anchorR === rt.anchorR && localTok.anchorC === rt.anchorC) return;
-      if(!canPlace(rt.anchorR, rt.anchorC, 1, localTok ? localTok.id : null)) return;
+      if(!canPlace(rt.anchorR, rt.anchorC, 1, 1, localTok ? localTok.id : null)) return;
       if(localTok){
         footprintCells(localTok.anchorR, localTok.anchorC, 1).forEach(([r,c])=> affected.add(boardKey(r,c)));
         clearTokenFootprint(localTok);
@@ -8825,7 +8973,7 @@ body{
     // continuaria recebendo (e reagindo a) atualizações de mesa/live mesmo depois de deslogar.
     if(liveVitalsRef){ liveVitalsRef.off('value', liveVitalsCb); liveVitalsRef = null; liveVitalsCb = null; }
     liveVitalsAll = {};
-    liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: false };
+    liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true };
     renderLiveBoardMini();
   }
 
@@ -8920,6 +9068,10 @@ body{
     $('liveBoardMinimizeBtn').title = min ? 'Expandir' : 'Minimizar';
     localStorage.setItem(LIVE_BOARD_MIN_KEY, min ? '1' : '0');
     if(min) stopLiveBoardBgFx(); else startLiveBoardBgFx();
+    // o mini-tabuleiro ao vivo só existe de verdade (offsetWidth > 0) desminimizado — reaplica o
+    // zoom agora que dá pra medir o tamanho natural certinho (mesma ideia de openMesaModal() lá
+    // em cima, ver o comentário grande dentro de setupBoardZoom() no <script>).
+    if(!min) applyLiveBoardZoom();
   }
   $('liveBoardMinimizeBtn').addEventListener('click', ()=> setLiveBoardMinimized(!liveBoardPanelEl.classList.contains('minimized')));
   setLiveBoardMinimized(localStorage.getItem(LIVE_BOARD_MIN_KEY) !== '0');
@@ -9304,7 +9456,25 @@ body{
       $('chatPanel').hidden = false;
       connectChat();
       $('liveBoardPanel').hidden = false;
+      // se o painel já estava desminimizado de uma sessão anterior (localStorage), ele acabou de
+      // se tornar visível só agora (o "hidden" do painel inteiro só cai aqui, pós-login) — reaplica
+      // o zoom pra medir o tamanho de verdade (mesma ideia de openMesaModal()/setLiveBoardMinimized()
+      // lá em cima, ver o comentário grande dentro de setupBoardZoom() no <script>).
+      applyLiveBoardZoom();
       connectLiveBoard();
+      // boardFogMode/boardDarkMode são só variáveis de sessão (sempre recomeçam com o padrão a
+      // cada carregamento de página — Fog LIGADO, "let boardFogMode = true" mais acima) — mas o
+      // Fog publicado em mesa/liveBoard/meta.fog fica gravado no Firebase e NÃO se corrige
+      // sozinho: se o mestre marcou "Remover Fog" numa sessão e fechou o navegador (ou caiu a
+      // conexão) sem desmarcar de novo, o campo continua "false" lá, e os jogadores ficam vendo o
+      // tabuleiro totalmente aberto mesmo com o checkbox do mestre aparecendo desmarcado ("Remover
+      // Fog" desativado = Fog deveria estar ativo) na tela nova. Corrige isso assim que o mestre
+      // loga, republicando fog:true (só esse campo, com update() — não mexe em rows/cols/fundo/cor,
+      // que continuam os que já estavam publicados) pra manter o Firebase sempre igual ao que a
+      // tela do mestre realmente mostra logo após entrar (Fog ativo até ele marcar "Remover Fog").
+      if(currentRole === 'mestre'){
+        try{ fbDb.ref('mesa/liveBoard/meta').update({ fog: true }); }catch(err){}
+      }
       // "?mesa=1" na URL (posto pelo botão "🗗" do modal da Mesa, ver popoutMesaBtn mais acima) —
       // essa é a janela separada, abre a aba Mesa sozinha assim que o login (mestre) termina, sem
       // esperar clique nenhum. Só uma vez por carregamento de página (autoOpenedMesaFromUrl), pra
