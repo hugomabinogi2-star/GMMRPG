@@ -1070,7 +1070,7 @@ body{
 .modal-sub{font-size:12px;color:var(--ink-faint);margin:4px 0 14px;}
 .master-list{display:flex;flex-direction:column;gap:10px;}
 .master-empty{font-size:13px;color:var(--ink-faint);text-align:center;padding:20px 0;font-style:italic;}
-.roll-log-list{display:flex;flex-direction:column-reverse;gap:6px;max-height:60vh;overflow-y:auto;}
+.roll-log-list{display:flex;flex-direction:column-reverse;gap:6px;max-height:400px;overflow-y:auto;}
 .roll-log-entry{
   display:flex;justify-content:space-between;align-items:baseline;gap:10px;
   border-bottom:1px solid var(--ink-faint);padding:6px 2px;font-size:13px;
@@ -3520,8 +3520,9 @@ body{
         <button id="iniciativaTabuleiroBtn" class="mini-btn" type="button">🗺️ Iniciativa</button>
         <button id="boardSendBtn" class="mini-btn" type="button">🗺️ Enviar para a mesa</button>
         <button id="boardBgChooseBtn" class="mini-btn" type="button">🖼️ Escolher imagem</button>
-        <button id="boardClearBtn" class="mini-btn" type="button">🧹 Limpar tabuleiro</button>
-        <button id="boardBgResetBtn" class="mini-btn" type="button">↺ Tabuleiro padrão</button>
+        <!-- Reset combina o que antes eram 2 botões separados (Limpar tabuleiro + Tabuleiro padrão)
+             — ver o listener único de boardResetBtn no <script>, que faz as duas coisas de uma vez. -->
+        <button id="boardResetBtn" class="mini-btn" type="button">↺ Reset</button>
         <!-- modos de visão do tabuleiro ao vivo (jogadores) — ver boardFogMode/boardDarkMode e os
              listeners de #boardFogModeToggle/#boardDarkModeToggle no <script>. Fog agora vem
              ATIVO por padrão (protege info dos jogadores sem o mestre precisar lembrar de ligar) —
@@ -3533,7 +3534,7 @@ body{
         </label>
         <label class="board-mode-toggle" id="boardDarkModeLabel">
           <input type="checkbox" id="boardDarkModeToggle">
-          <span class="board-mode-toggle-name">🌑 Dark</span>
+          <span class="board-mode-toggle-name">🌑 ESCURIDÃO TOTAL</span>
         </label>
       </div>
       <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
@@ -6349,7 +6350,7 @@ body{
 
   // ---------- histórico compartilhado de rolagens ----------
   const ROLL_LOG_PATH = 'logs/rolagens.json';
-  const ROLL_LOG_MAX = 20; // mantém só as rolagens mais recentes, pra não inchar o arquivo
+  const ROLL_LOG_MAX = 30; // mantém só as rolagens/movimentações mais recentes (pedido: "até as últimas 30")
   const statFullNames = { for:'Força', des:'Destreza', con:'Constituição', int:'Inteligência', von:'Vontade', car:'Carisma' };
 
   // Registra uma rolagem no histórico compartilhado. Falha silenciosamente (sem travar a rolagem)
@@ -6383,6 +6384,19 @@ body{
     const habilidadeAtributoTxt = entry.habilidade ? `**${entry.habilidade}** ` : '';
     const habilidadeDescTxt = entry.habilidadeDesc ? `\n> ${entry.habilidadeDesc}` : '';
     return `🎲 "**${nome}**" ROLOU ${habilidadeAtributoTxt}"${statNome}${statValorTxt}" — RESULTADO **${entry.resultado}**${label}${rollsDetalhe}${habilidadeDescTxt}`;
+  }
+
+  // Espelha a entrada no Firebase (mesa/rollLogFeed) só pra empurrar a ATUALIZAÇÃO EM TEMPO REAL do
+  // Histórico de Rolagens pra quem estiver com a Mesa aberta agora — pedido explícito ("o histórico
+  // de rolagem na mesa precisa atualizar em tempo real"). O GitHub (ROLL_LOG_PATH, acima) continua
+  // sendo o histórico "de verdade" (persistente, sobrevive a reload/relogin/troca de dispositivo);
+  // esse espelho no Firebase é só um aviso de "chegou uma entrada nova" pra quem já está com a
+  // lista carregada na tela (ver attachRollLogLiveListener()/loadRollLog() mais abaixo) — nunca é
+  // lido como fonte principal do histórico. Falha em silêncio (não trava a rolagem/movimento se o
+  // Firebase estiver fora do ar).
+  function pushRollLogFeed(entry){
+    if(!fbReady) return;
+    try{ fbDb.ref('mesa/rollLogFeed').push(entry); }catch(err){ console.warn('Não foi possível espelhar a entrada no feed em tempo real:', err); }
   }
 
   async function pushRollLog(entry){
@@ -6420,6 +6434,7 @@ body{
         headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
         body: JSON.stringify(body)
       });
+      pushRollLogFeed(entry);
     }catch(err){
       console.warn('Não foi possível registrar a rolagem no histórico compartilhado:', err);
     }
@@ -6452,6 +6467,7 @@ body{
         headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
         body: JSON.stringify(body)
       });
+      pushRollLogFeed(entry);
     }catch(err){
       console.warn('Não foi possível registrar a movimentação no histórico compartilhado:', err);
     }
@@ -6496,60 +6512,110 @@ body{
     }
   });
 
+  // Monta a linha (DOM) de uma entrada do histórico — usada tanto pela carga inicial (loadRollLog,
+  // que busca tudo do GitHub) quanto pelo listener em tempo real (attachRollLogLiveListener, que só
+  // recebe as entradas NOVAS vindas do espelho no Firebase — ver pushRollLogFeed()). Extraída pra
+  // função própria só pra não duplicar essa formatação nos dois lugares.
+  function buildRollLogRow(entry){
+    const nome = escapeHtml(entry.nome || '(sem nome)');
+    let texto;
+    if(entry.tipo === 'movimento'){
+      // ver pushMoveLog()/handleLiveBoardDrop() — só aqui no histórico é que a posição de
+      // onde/pra onde aparece; o aviso no chat/Discord é só "NOME se movimentou".
+      texto = `"${nome}" SE MOVIMENTOU de ${escapeHtml(entry.de || '?')} para ${escapeHtml(entry.para || '?')}`;
+    } else if(entry.tipo === 'dano'){
+      const qtd = entry.qtd || 1;
+      const detalhe = (Array.isArray(entry.rolls) && qtd > 1)
+        ? `${qtd}d${escapeHtml(String(entry.maxVal))}: [${entry.rolls.map(r=>escapeHtml(String(r))).join(', ')}] = ${escapeHtml(String(entry.resultado))}`
+        : `resultado ${escapeHtml(String(entry.resultado))}`;
+      const habilidadeTxtLog = entry.habilidade ? ` de "${escapeHtml(entry.habilidade)}"` : '';
+      texto = `"${nome}" ROLOU DANO${habilidadeTxtLog} — ${detalhe}`;
+    } else if(entry.tipo === 'sorte'){
+      const escolhaLabel = entry.escolha === 'coroa' ? 'Coroa' : 'Cara';
+      const resultadoLabel = entry.resultado === 'coroa' ? 'Coroa' : 'Cara';
+      const verdictLabel = entry.verdict === 'acerto' ? 'Acerto' : 'Erro';
+      texto = `"${nome}" JOGOU A MOEDA (escolheu ${escapeHtml(escolhaLabel)}) — CAIU EM ${escapeHtml(resultadoLabel)} (${escapeHtml(verdictLabel)})`;
+    } else {
+      const statNomeRaw = (statFullNames[entry.statKey] || entry.statKey || '').toUpperCase();
+      const statValorTxt = (entry.statValor !== undefined && entry.statValor !== null) ? `(${escapeHtml(String(entry.statValor))})` : '';
+      const label = entry.resultLabel ? ` (${escapeHtml(entry.resultLabel)})` : '';
+      const rollsDetalhe = (Array.isArray(entry.rolls) && entry.rolls.length === 2)
+        ? ` (dados: ${entry.rolls.map(r=>escapeHtml(String(r))).join(' / ')})`
+        : '';
+      const habilidadeAtributoTxtLog = entry.habilidade ? `${escapeHtml(entry.habilidade)} ` : '';
+      const habilidadeDescTxtLog = entry.habilidadeDesc ? `<br><em>${escapeHtml(entry.habilidadeDesc)}</em>` : '';
+      texto = `"${nome}" ROLOU ${habilidadeAtributoTxtLog}"${escapeHtml(statNomeRaw)}${statValorTxt}" — RESULTADO ${escapeHtml(String(entry.resultado))}${label}${rollsDetalhe}${habilidadeDescTxtLog}`;
+    }
+    const hora = entry.ts ? new Date(entry.ts).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
+    const row = document.createElement('div');
+    row.className = 'roll-log-entry';
+    row.innerHTML = `<span class="rl-text">${texto}</span><span class="rl-time">${hora}</span>`;
+    return row;
+  }
+
+  // Marca até onde (timestamp) a carga inicial (via GitHub, loadRollLog) já desenhou na tela —
+  // qualquer entrada que chegar depois disso pelo espelho em tempo real do Firebase
+  // (rollLogFeed/attachRollLogLiveListener) com ts MAIOR que esse corte é claramente nova e entra
+  // na lista; entradas com ts menor ou igual já foram (ou já deveriam ter sido) mostradas na carga
+  // inicial, então são ignoradas — evita duplicar linha quando o listener recebe de novo as
+  // últimas entradas já existentes no momento em que se conecta (limitToLast dispara child_added
+  // pra elas também, não só pras futuras).
+  let rollLogLiveCutoffTs = 0;
+  let rollLogFeedRef = null;
+  let rollLogFeedCb = null;
+
+  function attachRollLogLiveListener(){
+    detachRollLogLiveListener();
+    if(!fbReady) return;
+    rollLogFeedRef = fbDb.ref('mesa/rollLogFeed').limitToLast(ROLL_LOG_MAX);
+    rollLogFeedCb = rollLogFeedRef.on('child_added', (snap)=>{
+      const entry = snap.val();
+      if(!entry || !entry.ts || entry.ts <= rollLogLiveCutoffTs) return; // já mostrado na carga inicial
+      rollLogLiveCutoffTs = entry.ts;
+      const emptyMsg = rollLogList.querySelector('.master-empty');
+      if(emptyMsg) emptyMsg.remove();
+      rollLogList.appendChild(buildRollLogRow(entry));
+      // mantém só as últimas ROLL_LOG_MAX linhas na tela também (o container é column-reverse, o
+      // PRIMEIRO filho no DOM é sempre o mais antigo visível).
+      while(rollLogList.children.length > ROLL_LOG_MAX){
+        rollLogList.removeChild(rollLogList.firstChild);
+      }
+    });
+  }
+
+  function detachRollLogLiveListener(){
+    if(rollLogFeedRef && rollLogFeedCb) rollLogFeedRef.off('child_added', rollLogFeedCb);
+    rollLogFeedRef = null;
+    rollLogFeedCb = null;
+  }
+
   async function loadRollLog(){
     rollLogList.innerHTML = '<div class="master-empty">Buscando histórico...</div>';
+    rollLogLiveCutoffTs = 0;
     try{
       const existing = await githubGetFileContent(ROLL_LOG_PATH);
       if(!existing){
         rollLogList.innerHTML = '<div class="master-empty">Nenhuma rolagem registrada ainda.</div>';
+        attachRollLogLiveListener();
         return;
       }
       let arr = [];
       try{ arr = JSON.parse(existing.content); if(!Array.isArray(arr)) arr = []; }catch(e){ arr = []; }
       if(arr.length === 0){
         rollLogList.innerHTML = '<div class="master-empty">Nenhuma rolagem registrada ainda.</div>';
+        attachRollLogLiveListener();
         return;
       }
       rollLogList.innerHTML = '';
       arr.forEach(entry=>{
-        const nome = escapeHtml(entry.nome || '(sem nome)');
-        let texto;
-        if(entry.tipo === 'movimento'){
-          // ver pushMoveLog()/handleLiveBoardDrop() — só aqui no histórico é que a posição de
-          // onde/pra onde aparece; o aviso no chat/Discord é só "NOME se movimentou".
-          texto = `"${nome}" SE MOVIMENTOU de ${escapeHtml(entry.de || '?')} para ${escapeHtml(entry.para || '?')}`;
-        } else if(entry.tipo === 'dano'){
-          const qtd = entry.qtd || 1;
-          const detalhe = (Array.isArray(entry.rolls) && qtd > 1)
-            ? `${qtd}d${escapeHtml(String(entry.maxVal))}: [${entry.rolls.map(r=>escapeHtml(String(r))).join(', ')}] = ${escapeHtml(String(entry.resultado))}`
-            : `resultado ${escapeHtml(String(entry.resultado))}`;
-          const habilidadeTxtLog = entry.habilidade ? ` de "${escapeHtml(entry.habilidade)}"` : '';
-          texto = `"${nome}" ROLOU DANO${habilidadeTxtLog} — ${detalhe}`;
-        } else if(entry.tipo === 'sorte'){
-          const escolhaLabel = entry.escolha === 'coroa' ? 'Coroa' : 'Cara';
-          const resultadoLabel = entry.resultado === 'coroa' ? 'Coroa' : 'Cara';
-          const verdictLabel = entry.verdict === 'acerto' ? 'Acerto' : 'Erro';
-          texto = `"${nome}" JOGOU A MOEDA (escolheu ${escapeHtml(escolhaLabel)}) — CAIU EM ${escapeHtml(resultadoLabel)} (${escapeHtml(verdictLabel)})`;
-        } else {
-          const statNomeRaw = (statFullNames[entry.statKey] || entry.statKey || '').toUpperCase();
-          const statValorTxt = (entry.statValor !== undefined && entry.statValor !== null) ? `(${escapeHtml(String(entry.statValor))})` : '';
-          const label = entry.resultLabel ? ` (${escapeHtml(entry.resultLabel)})` : '';
-          const rollsDetalhe = (Array.isArray(entry.rolls) && entry.rolls.length === 2)
-            ? ` (dados: ${entry.rolls.map(r=>escapeHtml(String(r))).join(' / ')})`
-            : '';
-          const habilidadeAtributoTxtLog = entry.habilidade ? `${escapeHtml(entry.habilidade)} ` : '';
-          const habilidadeDescTxtLog = entry.habilidadeDesc ? `<br><em>${escapeHtml(entry.habilidadeDesc)}</em>` : '';
-          texto = `"${nome}" ROLOU ${habilidadeAtributoTxtLog}"${escapeHtml(statNomeRaw)}${statValorTxt}" — RESULTADO ${escapeHtml(String(entry.resultado))}${label}${rollsDetalhe}${habilidadeDescTxtLog}`;
-        }
-        const hora = entry.ts ? new Date(entry.ts).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
-        const row = document.createElement('div');
-        row.className = 'roll-log-entry';
-        row.innerHTML = `<span class="rl-text">${texto}</span><span class="rl-time">${hora}</span>`;
-        rollLogList.appendChild(row);
+        rollLogList.appendChild(buildRollLogRow(entry));
+        if(entry.ts && entry.ts > rollLogLiveCutoffTs) rollLogLiveCutoffTs = entry.ts;
       });
+      attachRollLogLiveListener();
     }catch(err){
       console.error(err);
       rollLogList.innerHTML = '<div class="master-empty">Não foi possível carregar o histórico agora. Tente atualizar de novo.</div>';
+      attachRollLogLiveListener();
     }
   }
 
@@ -6598,7 +6664,7 @@ body{
     loadMesaHeroSummary();
   }
   $('mesaBtn').addEventListener('click', openMesaModal);
-  $('closeMesa').addEventListener('click', ()=>{ mesaModal.hidden = true; loadMesaHeroSummary.detachLiveListeners(); });
+  $('closeMesa').addEventListener('click', ()=>{ mesaModal.hidden = true; loadMesaHeroSummary.detachLiveListeners(); detachRollLogLiveListener(); });
   mesaModal.addEventListener('click', (e)=>{ if(e.target === mesaModal) mesaModal.hidden = true; });
 
   // botão "🗗" no cabeçalho do modal — abre a Mesa numa janela separada do navegador (útil pra
@@ -6765,7 +6831,7 @@ body{
   const boardSendHint    = $('boardSendHint');
   const boardDarkModeToggle = $('boardDarkModeToggle');
   const boardFogModeToggle  = $('boardFogModeToggle');
-  const boardClearBtn    = $('boardClearBtn');
+  const boardResetBtn    = $('boardResetBtn');
   const boardRowsInput   = $('boardRowsInput');
   const boardColsInput   = $('boardColsInput');
   const boardNameInput   = $('boardNameInput');
@@ -6777,7 +6843,6 @@ body{
   const boardResizeBtn   = $('boardResizeBtn');
   const boardBgInput      = $('boardBgInput');
   const boardBgChooseBtn  = $('boardBgChooseBtn');
-  const boardBgResetBtn   = $('boardBgResetBtn');
   const boardGridColorSwatches = document.querySelectorAll('.board-grid-color-swatch');
 
   // ---------- zoom do tabuleiro (mestre e "Tabuleiro ao Vivo") ----------
@@ -7710,8 +7775,14 @@ body{
     roster => { mestreRoster = roster; }, boardTrayMestreCoins, renderMestreTray
   );
 
-  boardClearBtn.addEventListener('click', ()=>{
-    if(!confirm('Limpar todas as marcações e moedas do tabuleiro?')) return;
+  // Reset combina o que antes eram os 2 botões "🧹 Limpar tabuleiro" (limpava marcações/moedas) e
+  // "↺ Tabuleiro padrão" (voltava a imagem de fundo pro padrão) num só — pedido explícito ("combine
+  // os botões... em um único botão chamado reset"). applyBoardBackground(null) é definida logo
+  // abaixo (fundo customizado), então essa chamada só passa a existir depois que ela for declarada,
+  // mas isso não importa aqui porque o listener só RODA num clique, bem depois do <script> inteiro
+  // já ter carregado.
+  boardResetBtn.addEventListener('click', ()=>{
+    if(!confirm('Resetar o tabuleiro? Isso limpa todas as marcações/moedas e volta a imagem de fundo pra padrão.')) return;
     boardMarks = {};
     boardTokens = {};
     for(let r=0;r<BOARD_ROWS;r++) for(let c=0;c<BOARD_COLS;c++) renderBoardCell(r,c);
@@ -7720,6 +7791,7 @@ body{
     boardSendHint.textContent = '';
     scheduleBoardMarksPush();
     scheduleBoardTokensPush();
+    applyBoardBackground(null);
   });
 
   boardResizeBtn.addEventListener('click', ()=>{
@@ -7764,6 +7836,8 @@ body{
     scheduleBoardMetaPush();
   }
   boardBgChooseBtn.addEventListener('click', ()=> boardBgInput.click());
+  // (o antigo botão "↺ Tabuleiro padrão" chamava applyBoardBackground(null) sozinho — agora essa
+  // chamada mora dentro do listener único de boardResetBtn, lá em cima.)
   boardBgInput.addEventListener('change', (e)=>{
     const file = e.target.files && e.target.files[0];
     if(!file) return;
@@ -7777,7 +7851,6 @@ body{
     });
     boardBgInput.value = '';
   });
-  boardBgResetBtn.addEventListener('click', ()=> applyBoardBackground(null));
 
   // ---- cor das linhas do grid (só aparecem por cima de um fundo customizado) — sempre semitransparente,
   // só a cor (matiz) escolhida acima do tabuleiro é que muda. Agora é uma fila fixa de bolinhas
@@ -8918,11 +8991,53 @@ body{
   // limite (número de passos) é maior — não é mais possível MOVER até o fim do próprio campo de
   // visão, só ver até lá.
   const FOG_VISION_BONUS_TILES = 3;
+
+  // Traça a linha reta (Bresenham) entre duas casas do grid — devolve a lista de casas cruzadas,
+  // do começo (EXCLUSIVE) até o fim (inclusive). Usada só pra checagem de linha de visão logo
+  // abaixo (hasLineOfSight) — não tem nada a ver com o BFS de alcance (computeLiveBoardReachable),
+  // que continua sendo quem decide "dá pra chegar até lá andando".
+  function computeLineCells(r0, c0, r1, c1){
+    const cells = [];
+    const dr = Math.abs(r1 - r0), dc = Math.abs(c1 - c0);
+    const sr = r0 < r1 ? 1 : -1, sc = c0 < c1 ? 1 : -1;
+    let err = dr - dc;
+    let r = r0, c = c0;
+    while(!(r === r1 && c === c1)){
+      const e2 = err * 2;
+      if(e2 > -dc){ err -= dc; r += sr; }
+      if(e2 < dr){ err += dr; c += sc; }
+      cells.push([r, c]);
+    }
+    return cells;
+  }
+
+  // Linha de visão de verdade — pedido explícito ("assim como nos pontos de movimento, caso exista
+  // uma barreira entre o personagem e o inimigo o inimigo não pode aparecer"). Diferente do
+  // alcance por BFS (computeLiveBoardReachable), que permite enxergar um alvo "dando a volta" por
+  // um caminho livre em torno de uma barreira — aqui a checagem é geométrica: se qualquer casa
+  // NO MEIO do caminho reto entre quem vê e a casa-alvo tiver uma barreira/bloco (isBlockKind,
+  // barreira nova OU bloco legado — os dois já bloqueiam movimento igual, então bloqueiam visão
+  // igual), a visão é cortada, mesmo que exista outro caminho livre (com mais passos) contornando.
+  // A própria casa de destino nunca conta como bloqueio (senão nenhum bloco/barreira apareceria
+  // pra ninguém, nem pro mestre).
+  function hasLineOfSight(r0, c0, r1, c1){
+    const cells = computeLineCells(r0, c0, r1, c1);
+    for(let i = 0; i < cells.length - 1; i++){
+      const [r, c] = cells[i];
+      const occupant = liveBoardState.tokens[liveBoardKey(r, c)];
+      if(occupant && isBlockKind(occupant.kind)) return false;
+    }
+    return true;
+  }
+
   // Fog (ver boardFogMode/liveBoardState.fog): monta o conjunto de casas "r_c" que a(s) própria(s)
   // ficha(s) do jogador ENXERGAM nesse tabuleiro agora — mesma regra de alcance usada pro arrasto
   // normal (highlightLiveBoardReachable/handleLiveBoardDrop: Manhattan até 1 + bônus de DES), só
   // que com +FOG_VISION_BONUS_TILES casas de alcance (ver acima) — o campo de visão sempre foi
-  // maior que o de movimento. TANTO as marcações (pintura verde/amarela/vermelha) QUANTO as
+  // maior que o de movimento. Além de precisar estar dentro desse alcance (BFS, respeita barreira
+  // como parede pra ATRAVESSAR), agora também precisa ter LINHA DE VISÃO reta livre até lá (ver
+  // hasLineOfSight acima) — uma barreira entre a ficha e a casa esconde essa casa mesmo que exista
+  // um caminho livre contornando. TANTO as marcações (pintura verde/amarela/vermelha) QUANTO as
   // peças/ícones (fichas, inimigos, obstáculos) fora desse conjunto ficam escondidos — a própria
   // ficha do jogador nunca some porque a casa-âncora dela sempre está a distância 0 do próprio
   // alcance. Sem ficha própria no tabuleiro ainda, o conjunto fica vazio e nada aparece (nem
@@ -8935,7 +9050,11 @@ body{
       if(!isMyLiveToken(tok)) return;
       const visionLimit = 1 + (tok.bonusDes || 0) + FOG_VISION_BONUS_TILES;
       reachable.add(key); // a própria casa da ficha sempre entra
-      computeLiveBoardReachable(tok.anchorR, tok.anchorC, visionLimit).forEach((dist, reachKey)=> reachable.add(reachKey));
+      computeLiveBoardReachable(tok.anchorR, tok.anchorC, visionLimit).forEach((dist, reachKey)=>{
+        if(reachable.has(reachKey)) return; // já visível por outra ficha própria (ou é a própria casa)
+        const [rr, rc] = reachKey.split('_').map(Number);
+        if(hasLineOfSight(tok.anchorR, tok.anchorC, rr, rc)) reachable.add(reachKey);
+      });
     });
     return reachable;
   }
