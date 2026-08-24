@@ -1129,7 +1129,6 @@ body{
 .master-card .mc-delete:hover{border-color:var(--wax-bright);background:rgba(138,45,33,.1);}
 
 /* ---------- modal de Configurações (só mestre) ---------- */
-.config-quick-actions{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:6px;}
 
 /* ---------- stage / flip card ---------- */
 .stage{
@@ -2715,7 +2714,7 @@ body{
   <button id="masterMestreBtn" class="mestre-only">🔒 Fichas do Mestre</button>
   <button id="newBtn">Nova ficha</button>
   <button id="tokenBtn" title="Salvar, atualizar ou remover seu token do GitHub neste navegador">🔑 Meu token do GitHub</button>
-  <button id="configBtn" class="mestre-only">⚙️ Configurações</button>
+  <button id="webhookConfigBtn" class="mestre-only" title="Configurar o webhook do Discord (rolagens e mensagens espelhadas pra lá)">🔗 Webhook do Discord</button>
   <button class="logout-btn" id="logoutBtn">🚪 Sair</button>
 </div>
 
@@ -3399,19 +3398,6 @@ body{
     <p class="modal-sub">Fichas que o mestre salvou com "SALVAR" nesta mesma página aparecem aqui — só o mestre tem acesso a essa lista.</p>
     <button id="refreshMasterMestre" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
     <div id="masterMestreList" class="master-list"></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="configModal" hidden>
-  <div class="modal-box">
-    <div class="modal-head">
-      <h2>⚙️ Configurações</h2>
-      <button id="closeConfig" class="modal-close">✕</button>
-    </div>
-    <div class="config-quick-actions">
-      <button class="mini-btn" id="githubConfigBtn">🔑 Meu token do GitHub</button>
-      <button class="mini-btn" id="webhookConfigBtn">🔗 Webhook do Discord</button>
-    </div>
   </div>
 </div>
 
@@ -6777,14 +6763,9 @@ body{
     }
   }
 
-  $('githubConfigBtn').addEventListener('click', ()=>{
-    tokenInput.value = '';
-    refreshTokenStatus();
-    tokenModal.hidden = false;
-  });
-  // botão no topo, visível pra jogadores também (o de dentro de Configurações, acima, é
-  // "mestre-only") -- salvar/atualizar/remover o token é algo que cada jogador precisa poder
-  // fazer sozinho no próprio navegador, sem depender do mestre.
+  // botão do token fica direto na barra de topo, visível pra jogadores também -- salvar/atualizar/
+  // remover o token é algo que cada jogador precisa poder fazer sozinho no próprio navegador, sem
+  // depender do mestre (o webhook, ao lado, continua "mestre-only" -- ver .mestre-only).
   $('tokenBtn').addEventListener('click', ()=>{
     tokenInput.value = '';
     refreshTokenStatus();
@@ -7831,6 +7812,38 @@ body{
     roster => { mestreRoster = roster; }, boardTrayMestreCoins, renderMestreTray
   );
 
+  // connectLiveBoard() só busca heroRoster/mestreRoster UMA VEZ, no momento em que o jogador conecta
+  // no tabuleiro ao vivo. Se o mestre cria e coloca uma ficha NOVA (de jogador ou dele mesmo) depois
+  // disso, o id dela não existe em nenhum dos dois rosters já carregados nesse navegador -- sem isto,
+  // o ícone dela ficava preso nas iniciais de reserva pelo resto da sessão do jogador, mesmo a ficha
+  // tendo retrato salvo de verdade no GitHub. rosterRefreshAttempted evita ficar buscando pra sempre
+  // um id que genuinamente não tem ficha/retrato (só tenta recarregar uma vez por id); o debounce
+  // (400ms) evita disparar um fetch por peça quando várias aparecem juntas na mesma atualização.
+  const rosterRefreshAttempted = new Set();
+  let rosterRefreshTimer = null;
+  function scheduleRosterRefresh(){
+    if(rosterRefreshTimer) return;
+    rosterRefreshTimer = setTimeout(()=>{
+      rosterRefreshTimer = null;
+      loadHeroRoster();
+      loadMestreRoster();
+    }, 400);
+  }
+  // varre as peças tipo "hero" recém-chegadas do tabuleiro ao vivo procurando alguma cujo id ainda
+  // não está em heroRoster/mestreRoster -- chamado pelo listener de mesa/liveBoard/tokens.
+  function checkForUnknownHeroTokens(tokens){
+    Object.keys(tokens || {}).forEach(key=>{
+      const tok = tokens[key];
+      if(!tok || tok.kind !== 'hero') return;
+      if(rosterRefreshAttempted.has(tok.id)) return;
+      const known = heroRoster.find(h => h.id === tok.id) || mestreRoster.find(h => h.id === tok.id);
+      if(known) return;
+      if(isMyLiveToken(tok)) return; // própria ficha ainda não salva -- já resolve local via portraitData
+      rosterRefreshAttempted.add(tok.id);
+      scheduleRosterRefresh();
+    });
+  }
+
   // Reset combina o que antes eram os 2 botões "🧹 Limpar tabuleiro" (limpava marcações/moedas) e
   // "↺ Tabuleiro padrão" (voltava a imagem de fundo pro padrão) num só — pedido explícito ("combine
   // os botões... em um único botão chamado reset"). applyBoardBackground(null) é definida logo
@@ -8613,18 +8626,12 @@ body{
   masterMestreModal.addEventListener('click', (e)=>{ if(e.target === masterMestreModal){ masterMestreModal.hidden = true; loadMasterMestreList.detachLiveListeners(); } });
   $('refreshMasterMestre').addEventListener('click', loadMasterMestreList);
 
-  // ---------- modal de Configurações (só mestre): token/webhook ----------
-  // Os botões de token do GitHub e webhook do Discord continuam com os mesmos ids de sempre
-  // (githubConfigBtn/webhookConfigBtn) — só mudaram de lugar no HTML (de dentro da barra de topo
-  // pra dentro deste modal); a wiring deles (mais abaixo, perto de tokenModal/webhookModal) não
-  // precisa mudar nada, já que $() acha o botão pelo id não importa onde ele esteja no HTML.
-  // (O painel de "Contas cadastradas" — redefinir senha/remover acesso — foi removido por não
-  // funcionar de forma confiável; se quiser recuperar essa função no futuro, ver o histórico no
-  // CONFIGURAR_FIREBASE.md de como ela funcionava.)
-  const configModal = $('configModal');
-  $('configBtn').addEventListener('click', ()=>{ configModal.hidden = false; });
-  $('closeConfig').addEventListener('click', ()=> configModal.hidden = true);
-  configModal.addEventListener('click', (e)=>{ if(e.target === configModal) configModal.hidden = true; });
+  // O botão "⚙️ Configurações" (e o modal que só reunia os atalhos de token/webhook) foi removido —
+  // os dois agora são botões próprios direto na barra de topo (🔑 Meu token do GitHub, visível a
+  // todos, e 🔗 Webhook do Discord, mestre-only — ver a wiring deles perto de tokenModal/webhookModal
+  // mais acima). (O painel de "Contas cadastradas" — redefinir senha/remover acesso — foi removido
+  // antes disso por não funcionar de forma confiável; se quiser recuperar essa função no futuro, ver
+  // o histórico no CONFIGURAR_FIREBASE.md de como ela funcionava.)
 
   // ---------- firebase: login (mestre/jogador), ficha ao vivo ----------
 
@@ -9396,6 +9403,7 @@ body{
     liveBoardTokensCb = liveBoardTokensRef.on('value', (snap)=>{
       const val = snap.val() || {};
       liveBoardState.tokens = val;
+      checkForUnknownHeroTokens(val);
       renderLiveBoardMini();
       mergeRemoteHeroTokensIntoLocalBoard(val);
     });
