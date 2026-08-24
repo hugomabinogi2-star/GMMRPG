@@ -796,9 +796,25 @@ body{
   0%,100%{ box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 1.5px rgba(255,244,214,.85), 0 0 0 2.5px var(--enemy-ring-color), 0 0 5px 1px rgba(176,74,54,.6); }
   50%{ box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 1.5px rgba(255,244,214,.85), 0 0 0 2.5px var(--enemy-ring-color), 0 0 12px 3px rgba(176,74,54,.95); }
 }
+/* ficha em modo PVP (ver token.pvp no <script>) — mesmo ícone dourado de personagem, com o MESMO
+   contorno vermelho pulsante de inimigo/monstro/boss (reaproveita boardTokenGlowRed acima), pra
+   sinalizar de relance que virou alvo hostil pros outros jogadores. */
+.board-token.token-hero.token-hero-pvp:not(.token-hero-mestre){
+  animation:boardTokenGlowRed 2.2s ease-in-out infinite;
+}
+/* ficha do MESTRE em modo PVP mantém o contorno preto extra por fora do vermelho (em vez do
+   dourado normal) — keyframes própria porque boardTokenGlowRed não inclui esse anel preto. */
+.board-token.token-hero.token-hero-pvp.token-hero-mestre{
+  animation:boardTokenGlowPvpMestre 2.2s ease-in-out infinite;
+}
+@keyframes boardTokenGlowPvpMestre{
+  0%,100%{ box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 1.5px rgba(255,244,214,.85), 0 0 0 2.5px var(--enemy-ring-color), 0 0 0 4.5px #000, 0 0 5px 1px rgba(176,74,54,.6); }
+  50%{ box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 1.5px rgba(255,244,214,.85), 0 0 0 2.5px var(--enemy-ring-color), 0 0 0 4.5px #000, 0 0 12px 3px rgba(176,74,54,.95); }
+}
 @media (prefers-reduced-motion: reduce){
   .board-token.token-aliado, .board-token.token-aliado_fera,
-  .board-token.token-inimigo, .board-token.token-monstro, .board-token.token-boss{
+  .board-token.token-inimigo, .board-token.token-monstro, .board-token.token-boss,
+  .board-token.token-hero.token-hero-pvp, .board-token.token-hero.token-hero-pvp.token-hero-mestre{
     animation:none !important;
   }
 }
@@ -896,6 +912,11 @@ body{
 .tray-coin.token-monstro{width:56px;height:56px;}
 .tray-coin.placed{opacity:.35;filter:grayscale(.5);cursor:not-allowed;}
 .tray-coin-name{font-size:9px;text-align:center;color:var(--ink-soft);line-height:1.2;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* moedas da aba PVP (ver .board-menu-panel#boardPanelPvp e makeRosterTrayRenderer(..., pvp) no
+   <script>) — mesmo miolo dourado de sempre, só com o contorno e o nome em vermelho, pra já dar
+   pra distinguir de longe da versão normal da mesma ficha antes mesmo de arrastar. */
+.tray-coin.token-hero-pvp{box-shadow:0 2px 4px rgba(0,0,0,.4), inset 0 0 0 2px rgba(255,244,214,.7), 0 0 0 2.5px var(--enemy-ring-color);}
+.tray-coin-name.tray-coin-name-pvp{color:var(--enemy-ring-color);font-weight:600;}
 .tray-empty{font-size:11.5px;color:var(--ink-faint);font-style:italic;}
 .board-tray-footer{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:6px;}
 .board-enemy-coins{display:flex;gap:14px;}
@@ -3429,6 +3450,7 @@ body{
           <button type="button" class="board-menu-tab" data-panel="boardPanelMestre">Fichas do Mestre</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelGeral">Geral</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelBlocos">Blocos</button>
+          <button type="button" class="board-menu-tab" data-panel="boardPanelPvp">⚔️ PVP</button>
         </div>
 
         <div class="board-menu-panel active" id="boardPanelJogadores">
@@ -3439,6 +3461,19 @@ body{
         </div>
         <div class="board-menu-panel" id="boardPanelGeral">
           <div class="board-enemy-coins" id="boardEnemyCoins"></div>
+        </div>
+        <!-- mesmas fichas de jogador/mestre das abas acima, só que colocadas aqui no tabuleiro
+             entram em modo PVP: ícone com contorno vermelho pulsante e nome em vermelho (ver
+             .token-hero-pvp/.tray-coin-name-pvp no <style>), tratada pelo Fog igual a um inimigo
+             (só visível dentro do alcance de outra ficha, e só enxerga o resto dentro do próprio
+             alcance) — ver isSpottableToken()/computeFogReachableKeys() no <script>. Continua
+             sendo a MESMA ficha: só existe um ícone dela no tabuleiro por vez, normal OU PVP, nunca
+             os dois (ver handleBoardDrop()). -->
+        <div class="board-menu-panel" id="boardPanelPvp">
+          <div class="board-tray-title">Fichas dos jogadores</div>
+          <div class="board-tray-coins" id="boardTrayCoinsPvp"></div>
+          <div class="board-tray-title" style="margin-top:12px;">Fichas do mestre</div>
+          <div class="board-tray-coins" id="boardTrayMestreCoinsPvp"></div>
         </div>
         <div class="board-menu-panel" id="boardPanelBlocos">
           <div class="board-block-material-control">
@@ -6688,6 +6723,8 @@ body{
   const boardRowHeader   = $('boardRowHeader');
   const boardTrayCoins   = $('boardTrayCoins');
   const boardTrayMestreCoins = $('boardTrayMestreCoins');
+  const boardTrayCoinsPvp = $('boardTrayCoinsPvp');
+  const boardTrayMestreCoinsPvp = $('boardTrayMestreCoinsPvp');
   const boardEnemyCoins  = $('boardEnemyCoins');
   const boardObstacleCoins = $('boardObstacleCoins');
   const boardBlockMaterialSelect = $('boardBlockMaterialSelect');
@@ -6925,7 +6962,7 @@ body{
       const t = boardTokens[key];
       tokensOut[key] = {
         id:t.id, kind:t.kind, name:t.name, size:t.size||1, sizeC:t.sizeC||t.size||1, anchorR:t.anchorR, anchorC:t.anchorC, seq:t.seq || null,
-        donoChave: t.donoChave || null, ownerUid: t.ownerUid || null, bonusDes: t.bonusDes || 0,
+        donoChave: t.donoChave || null, ownerUid: t.ownerUid || null, bonusDes: t.bonusDes || 0, pvp: !!t.pvp,
       };
     });
     return tokensOut;
@@ -7119,7 +7156,7 @@ body{
       const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
       const dead = isHeroDead(token);
       const isBlock = isBlockKind(token.kind);
-      t.className = 'board-token token-' + token.kind + (isBlock ? '' : tokenSizeClass(token.size)) + (isBlock ? ' token-block' : '') + (isMestreHero ? ' token-hero-mestre' : '') + (dead ? ' token-dead' : '');
+      t.className = 'board-token token-' + token.kind + (isBlock ? '' : tokenSizeClass(token.size)) + (isBlock ? ' token-block' : '') + (isMestreHero ? ' token-hero-mestre' : '') + (token.pvp ? ' token-hero-pvp' : '') + (dead ? ' token-dead' : '');
       t.draggable = true;
       if(isBlock){
         // sem imagem nem texto — o visual de mármore vem só do CSS (.token-block); mantém o
@@ -7150,9 +7187,16 @@ body{
         if(token.kind === 'hero'){
           // fichas de personagem: o texto do menu suspenso é sempre preto — quem muda de cor é o
           // FUNDO, seguindo a cor do contorno (dourado) pras fichas de jogador. Fichas do mestre são
-          // a exceção: fundo sempre branco (e texto preto), mesmo tendo o contorno preto extra no ícone.
-          tip.style.color = '#000';
-          tip.style.background = isMestreHero ? '#fff' : tokenRingColorHex(token.kind);
+          // a exceção: fundo sempre branco. Modo PVP (ver token.pvp) troca o dourado pelo vermelho
+          // de inimigo no fundo; pra ficha de mestre em PVP (fundo já é branco) o vermelho vai no
+          // texto em vez do fundo, já que não dá pra trocar as duas coisas ao mesmo tempo.
+          if(isMestreHero){
+            tip.style.background = '#fff';
+            tip.style.color = token.pvp ? 'var(--enemy-ring-color)' : '#000';
+          } else {
+            tip.style.background = token.pvp ? 'var(--enemy-ring-color)' : tokenRingColorHex(token.kind);
+            tip.style.color = '#000';
+          }
         } else {
           // aliado/inimigo/monstro/boss continuam com o texto colorido igual ao contorno, sobre o
           // fundo padrão de pergaminho.
@@ -7246,6 +7290,38 @@ body{
     return null;
   }
 
+  // "Avistamento": quais peças do tabuleiro contam pra o aviso automático (ver announceTokenSpotted()
+  // e a chamada dentro de renderLiveBoardMini()) — aliado/inimigo/monstro/boss sempre, ficha de
+  // MESTRE (NPC, id sempre prefixado "mestre:" — ver mestreRoster) recebe o mesmo tratamento, por
+  // pedido explícito ("os ícones de ficha de mestre recebem o mesmo tratamento que os de aliados e
+  // inimigos"), e ficha em modo PVP (token.pvp — ver aba PVP no HTML) também, pelo mesmo motivo:
+  // "entra na regra dos inimigos da fog". Ficha de JOGADOR normal (kind 'hero', sem "mestre:" e
+  // sem pvp) NUNCA conta — ninguém "avista" a própria ficha ou a de outro jogador em modo normal,
+  // essas já aparecem identificadas na lista de jogadores.
+  function isSpottableToken(token){
+    if(!token) return false;
+    if(token.kind === 'aliado' || token.kind === 'aliado_fera'
+      || token.kind === 'inimigo' || token.kind === 'monstro' || token.kind === 'boss') return true;
+    if(token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0) return true;
+    if(token.kind === 'hero' && token.pvp) return true;
+    return false;
+  }
+
+  // Avisa no chat da mesa e no Discord (mesmo canal usado pra rolagem/nível/morte — ver
+  // postToDiscord(), que já espelha pro chat sozinho) quando o Fog do PRÓPRIO jogador passa a
+  // alcançar uma peça avistável (ver isSpottableToken()/spottedTokenIds, controlados em
+  // renderLiveBoardMini()). Nome de quem avistou é o mesmo já usado pro chat/rolagens (campo Nome
+  // da própria ficha, com fallback pro início do e-mail da conta) — usa tokenTooltipText() pro nome
+  // do ícone avistado, que já sai como "Inimigo 2"/"Aliado 1"/"Boss 1" (ou o nome do NPC, pra ficha
+  // de mestre), sem precisar repetir a categoria separadamente.
+  function announceTokenSpotted(token){
+    if(!currentUser) return;
+    const nome = (els.nome && els.nome.value ? els.nome.value.trim() : '')
+      || (currentUser.email ? currentUser.email.split('@')[0] : '')
+      || 'Jogador';
+    postToDiscord(`👁️ **${nome}** avista **${tokenTooltipText(token)}**`);
+  }
+
   function removeTokenAt(r,c){
     const token = boardTokens[boardKey(r,c)];
     if(!token) return;
@@ -7276,15 +7352,30 @@ body{
         if(!hero) return;
         const prevKey = findHeroCell(hero.id);
         const prevToken = prevKey ? boardTokens[prevKey] : null;
-        if(!canPlace(r, c, 1, 1, prevToken ? prevToken.id : null)) return;
-        let prevCells = [];
-        if(prevToken){ prevCells = footprintCells(prevToken.anchorR, prevToken.anchorC, 1); clearTokenFootprint(prevToken); }
-        const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:1, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0};
-        placeToken(r, c, token);
-        prevCells.forEach(([pr,pc]) => renderBoardCell(pr,pc));
-        renderBoardCell(r,c);
-        renderHeroTray();
-        renderMestreTray();
+        if(payload.pvp){
+          // aba PVP (ver .board-menu-panel#boardPanelPvp/makeRosterTrayRenderer(..., pvp) e o
+          // aviso no HTML): nunca "move" um ícone já existente pra virar PVP — só coloca se essa
+          // ficha ainda não tiver NENHUM ícone no tabuleiro (nem normal, nem PVP); a moeda já vem
+          // travada (não-arrastável) nesse caso (ver "placed" em makeRosterTrayRenderer()), isto
+          // aqui é só a segunda trava, direto no drop.
+          if(prevToken) return;
+          if(!canPlace(r, c, 1, 1, null)) return;
+          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:1, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, pvp: true};
+          placeToken(r, c, token);
+          renderBoardCell(r,c);
+          renderHeroTray();
+          renderMestreTray();
+        } else {
+          if(!canPlace(r, c, 1, 1, prevToken ? prevToken.id : null)) return;
+          let prevCells = [];
+          if(prevToken){ prevCells = footprintCells(prevToken.anchorR, prevToken.anchorC, 1); clearTokenFootprint(prevToken); }
+          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:1, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0};
+          placeToken(r, c, token);
+          prevCells.forEach(([pr,pc]) => renderBoardCell(pr,pc));
+          renderBoardCell(r,c);
+          renderHeroTray();
+          renderMestreTray();
+        }
       } else {
         const enemyCfg = ENEMY_KINDS.find(k => k.kind === payload.kind);
         const cfg = enemyCfg || OBSTACLE_KINDS.find(k => k.kind === payload.kind);
@@ -7374,7 +7465,14 @@ body{
 
   // Gera a função que desenha uma bandeja de moedas de personagem (jogador ou mestre) —
   // reaproveitada pelas duas abas do menu do tabuleiro, cada uma com sua própria lista/roster.
-  function makeRosterTrayRenderer(getRoster, trayEl, emptyMsg){
+  // pvp (opcional, padrão false): desenha a MESMA lista de fichas só que com contorno/nome
+  // vermelho (ver .tray-coin.token-hero-pvp/.tray-coin-name-pvp no <style>) e marca o payload do
+  // arrasto com pvp:true — é isso que handleBoardDrop() lê pra colocar a peça em modo PVP no
+  // tabuleiro (ver ali). "placed" (ficha já no tabuleiro) continua calculado só por findHeroCell(
+  // hero.id), sem olhar pra pvp — então a moeda fica travada (não dá pra arrastar) em AMBAS as
+  // abas assim que existir um ícone dela no tabuleiro, seja ele normal ou PVP, evitando os dois
+  // ao mesmo tempo (ver comentário de handleBoardDrop()).
+  function makeRosterTrayRenderer(getRoster, trayEl, emptyMsg, pvp){
     return function renderTray(){
       if(!trayEl) return;
       trayEl.innerHTML = '';
@@ -7390,20 +7488,21 @@ body{
         wrap.className = 'tray-coin-wrap';
         const placed = !!findHeroCell(hero.id);
         const coin = document.createElement('div');
-        coin.className = 'tray-coin token-hero' + (placed ? ' placed' : '');
+        coin.className = 'tray-coin token-hero' + (pvp ? ' token-hero-pvp' : '') + (placed ? ' placed' : '');
         coin.draggable = !placed;
         if(hero.portrait){
           coin.style.backgroundImage = `url("${hero.portrait}")`;
         } else {
           coin.innerHTML = `<span class="token-fallback">${escapeHtml((hero.name||'?').slice(0,2).toUpperCase())}</span>`;
         }
-        coin.title = placed ? `${hero.name} (já está no tabuleiro)` : hero.name;
+        const displayName = pvp ? `${hero.name} (PVP)` : hero.name;
+        coin.title = placed ? `${displayName} (já está no tabuleiro)` : displayName;
         coin.addEventListener('dragstart', (e)=>{
           if(placed){ e.preventDefault(); return; }
-          e.dataTransfer.setData('text/plain', JSON.stringify({source:'tray', kind:'hero', heroId: hero.id}));
+          e.dataTransfer.setData('text/plain', JSON.stringify({source:'tray', kind:'hero', heroId: hero.id, pvp: !!pvp}));
         });
         const label = document.createElement('div');
-        label.className = 'tray-coin-name';
+        label.className = 'tray-coin-name' + (pvp ? ' tray-coin-name-pvp' : '');
         label.textContent = hero.name;
         wrap.appendChild(coin);
         wrap.appendChild(label);
@@ -7412,14 +7511,28 @@ body{
     };
   }
 
-  const renderHeroTray = makeRosterTrayRenderer(
+  const renderHeroTrayNormal = makeRosterTrayRenderer(
     ()=> liveHeroRoster(), boardTrayCoins,
     'Nenhuma ficha encontrada. Peça para os jogadores usarem "SALVAR".'
   );
-  const renderMestreTray = makeRosterTrayRenderer(
+  const renderHeroTrayPvp = makeRosterTrayRenderer(
+    ()=> liveHeroRoster(), boardTrayCoinsPvp,
+    'Nenhuma ficha encontrada. Peça para os jogadores usarem "SALVAR".', true
+  );
+  // renderHeroTray()/renderMestreTray() continuam sendo os nomes chamados no resto do código
+  // (toda vez que o roster ou o tabuleiro mudam) — viram um função só que redesenha as DUAS abas
+  // (normal + PVP) juntas, pra não precisar caçar e duplicar cada chamada existente.
+  function renderHeroTray(){ renderHeroTrayNormal(); renderHeroTrayPvp(); }
+
+  const renderMestreTrayNormal = makeRosterTrayRenderer(
     ()=> mestreRoster, boardTrayMestreCoins,
     'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".'
   );
+  const renderMestreTrayPvp = makeRosterTrayRenderer(
+    ()=> mestreRoster, boardTrayMestreCoinsPvp,
+    'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".', true
+  );
+  function renderMestreTray(){ renderMestreTrayNormal(); renderMestreTrayPvp(); }
 
   function renderEnemyCoins(){
     boardEnemyCoins.innerHTML = '';
@@ -7673,6 +7786,7 @@ body{
         portrait: isBlockKind(rt.kind) ? null : resolveTokenPortrait(rt),
         donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0,
       };
+      if(rt.pvp) token.pvp = true;
       if(rt.seq) token.seq = rt.seq;
       placeToken(rt.anchorR, rt.anchorC, token);
     });
@@ -8684,6 +8798,11 @@ body{
   let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true };
   let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null;
   let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null;
+  // ids de peça (token.id) já avistadas nesta sessão de jogador (ver isSpottableToken()/
+  // announceTokenSpotted(), chamadas dentro de renderLiveBoardMini()) — só pra não repetir o aviso
+  // de "avistamento" a cada nova renderização enquanto o alcance de Fog continuar cobrindo a mesma
+  // peça; reiniciado em disconnectLiveBoard() (troca de conta/logout no mesmo navegador).
+  let spottedTokenIds = new Set();
 
   function liveBoardKey(r,c){ return r + '_' + c; }
 
@@ -8804,6 +8923,14 @@ body{
         // inimigo/monstro/boss) ficam escondidos fora do alcance; parede/bloco é geografia do mapa,
         // não "informação escondida", e o jogador precisa ver onde não pode passar mesmo longe dali.
         if(token && token.anchorR === r && token.anchorC === c && (!fogActive || fogReachable.has(cellKey) || isBlockKind(token.kind))){
+          // Avistamento (ver isSpottableToken()/announceTokenSpotted() e spottedTokenIds, lá em
+          // cima): só dispara quando é o alcance de Fog (fogReachable) que está trazendo essa peça
+          // à vista agora — bloco nunca conta (não é avistável) e, com o Fog desligado, não existe
+          // "avistar" (já estava tudo visível desde o início).
+          if(fogActive && fogReachable.has(cellKey) && isSpottableToken(token) && !spottedTokenIds.has(token.id)){
+            spottedTokenIds.add(token.id);
+            announceTokenSpotted(token);
+          }
           const t = document.createElement('div');
           const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
           const mine = isMyLiveToken(token);
@@ -8812,6 +8939,7 @@ body{
           t.className = 'board-token token-' + token.kind + (isBlock ? '' : tokenSizeClass(token.size))
             + (isBlock ? ' token-block' : '')
             + (isMestreHero ? ' token-hero-mestre' : '')
+            + (token.pvp ? ' token-hero-pvp' : '')
             + (mine ? ' live-board-token-mine' : '')
             + (dead ? ' token-dead' : '');
           if(isBlock){
@@ -8847,8 +8975,15 @@ body{
             tip.className = 'board-token-tip';
             tip.textContent = tokenTooltipText(token);
             if(token.kind === 'hero'){
-              tip.style.color = '#000';
-              tip.style.background = isMestreHero ? '#fff' : tokenRingColorHex(token.kind);
+              // mesmo esquema de cor do tooltip de renderBoardCell() (aba Mesa do mestre) — ver o
+              // comentário lá pra detalhe do caso PVP (token.pvp).
+              if(isMestreHero){
+                tip.style.background = '#fff';
+                tip.style.color = token.pvp ? 'var(--enemy-ring-color)' : '#000';
+              } else {
+                tip.style.background = token.pvp ? 'var(--enemy-ring-color)' : tokenRingColorHex(token.kind);
+                tip.style.color = '#000';
+              }
             } else {
               tip.style.color = tokenRingColorHex(token.kind) || 'var(--ink)';
             }
@@ -8952,6 +9087,7 @@ body{
         id: rt.id, kind: 'hero', name: rt.name, size: 1,
         portrait: resolveTokenPortrait(rt), donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0,
       };
+      if(rt.pvp) token.pvp = true;
       if(rt.seq) token.seq = rt.seq;
       placeToken(rt.anchorR, rt.anchorC, token);
       affected.add(boardKey(rt.anchorR, rt.anchorC));
@@ -8974,6 +9110,7 @@ body{
     if(liveVitalsRef){ liveVitalsRef.off('value', liveVitalsCb); liveVitalsRef = null; liveVitalsCb = null; }
     liveVitalsAll = {};
     liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true };
+    spottedTokenIds = new Set();
     renderLiveBoardMini();
   }
 
