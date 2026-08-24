@@ -710,23 +710,42 @@ body{
 #mesaModal .modal-box{max-width:760px;}
 .board-section{margin-top:20px;padding-top:16px;border-top:1px dashed var(--border-brown);}
 .board-title{font-family:'Orbitron',sans-serif;font-size:16px;color:var(--ink);margin:0 0 4px;}
-/* modos de visão do tabuleiro ao vivo (Dark/Fog) — ficam no menu abaixo do tabuleiro, junto do
-   botão de Iniciativa (ver #boardDarkModeLabel/#boardFogModeLabel dentro de .board-menu-bottom-actions
-   no HTML). .board-view-modes não é mais usado no HTML, mas a regra fica aqui sem risco. */
+/* modos de visão do tabuleiro ao vivo (Revelar/Dark/Fog) — ficam no menu abaixo do tabuleiro, junto
+   do botão de Iniciativa (ver #boardRevealModeLabel/#boardDarkModeLabel/#boardFogModeLabel dentro de
+   .board-menu-bottom-actions no HTML). .board-view-modes não é mais usado no HTML, mas a regra fica
+   aqui sem risco. Cada um é o PRÓPRIO botão agora (não tem mais checkbox do lado — clicar acende/apaga
+   o botão em si, ver .mode-active e os cliques em setBoardDarkMode()/setBoardFogRemoved()/
+   setBoardRevealMode() no <script>). */
 .board-view-modes{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 4px;}
 .board-mode-toggle{
   display:flex;align-items:center;gap:7px;flex-wrap:wrap;
   border:1px solid var(--ink-faint);border-radius:5px;
   padding:7px 12px;cursor:pointer;background:rgba(120,85,40,.06);
   transition:border-color .15s, background .15s;
+  font:inherit;
 }
-.board-mode-toggle input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--gold-bright);}
 .board-mode-toggle-name{font-family:'Orbitron',sans-serif;font-weight:700;font-size:12.5px;color:var(--ink);}
 .board-mode-toggle-hint{font-size:11px;color:var(--ink-soft);}
-.board-mode-toggle:has(input:checked){border-color:var(--gold-bright);background:rgba(57,255,136,.14);}
 .board-mode-toggle.mode-active{border-color:var(--gold-bright);background:rgba(57,255,136,.14);}
-#boardDarkModeLabel:has(input:checked), #boardDarkModeLabel.mode-active{border-color:#5c5c5c;background:rgba(0,0,0,.35);}
-#boardDarkModeLabel:has(input:checked) .board-mode-toggle-name, #boardDarkModeLabel.mode-active .board-mode-toggle-name{color:#c9c9c9;}
+#boardDarkModeLabel.mode-active{border-color:#5c5c5c;background:rgba(0,0,0,.35);}
+#boardDarkModeLabel.mode-active .board-mode-toggle-name{color:#c9c9c9;}
+/* REVELAR aceso usa o azul-elétrico já usado em --lightning-color (tema 40K) — o verde padrão de
+   .mode-active já é a cor "ativa" normal deste tema, então REVELAR ganha uma cor própria pra não
+   passar despercebido do lado do Fog. */
+#boardRevealModeLabel.mode-active{border-color:#8ecbff;background:rgba(142,203,255,.18);}
+#boardRevealModeLabel.mode-active .board-mode-toggle-name{color:#8ecbff;}
+/* enquanto REVELAR não estiver marcado, o mini-tabuleiro ao vivo fica todo preto pra quem não é
+   mestre (ver o guard "revealed" em renderLiveBoardMini() no <script>) — cobre até o fundo
+   customizado (background-image inline, por isso o !important) e a cor de base de cada casa
+   (cell-light/cell-dark, que também é sobrescrita com !important). Só o #liveBoardGrid (mini-
+   tabuleiro compartilhado) é afetado — nunca o #boardGrid de verdade do mestre dentro de MESA. */
+#liveBoardGrid.reveal-hidden{background-image:none !important;}
+#liveBoardGrid.reveal-hidden .board-cell{
+  background-color:#000 !important;
+  background-image:none !important;
+  box-shadow:none !important;
+  outline:none !important;
+}
 /* zoom do tabuleiro (mestre e "Tabuleiro ao Vivo") — ver setupBoardZoom() no <script>. Zoom em um
    MAPA de verdade: a "janela" (.board-wrap/.live-board-wrap) NÃO muda de tamanho na tela — só o
    tabuleiro por dentro dela cresce, e o resto vira scroll/pan, exatamente como um mapa. Tentamos
@@ -3770,19 +3789,24 @@ body{
         <!-- Reset combina o que antes eram 2 botões separados (Limpar tabuleiro + Tabuleiro padrão)
              — ver o listener único de boardResetBtn no <script>, que faz as duas coisas de uma vez. -->
         <button id="boardResetBtn" class="mini-btn" type="button">↺ Reset</button>
-        <!-- modos de visão do tabuleiro ao vivo (jogadores) — ver boardFogMode/boardDarkMode e os
-             listeners de #boardFogModeToggle/#boardDarkModeToggle no <script>. Fog agora vem
-             ATIVO por padrão (protege info dos jogadores sem o mestre precisar lembrar de ligar) —
-             este checkbox é "Remover Fog": marcado = fog desligado. Dark é independente (congela a
-             publicação inteira pro tabuleiro ao vivo) — os dois não são mais mutuamente exclusivos. -->
-        <label class="board-mode-toggle" id="boardFogModeLabel">
-          <input type="checkbox" id="boardFogModeToggle">
+        <!-- modos de visão do tabuleiro ao vivo (jogadores) — ver boardRevealMode/boardFogMode/
+             boardDarkMode e os cliques em #boardRevealModeLabel/#boardFogModeLabel/#boardDarkModeLabel
+             no <script>. Os 3 agora SÃO o próprio botão (sem checkbox do lado) — clicar acende/apaga
+             o botão em si (classe .mode-active). REVELAR: enquanto apagado, o tabuleiro ao vivo
+             aparece todo preto pra quem não é mestre, tenha ficha no tabuleiro ou não — pedido
+             explícito, pra o mestre preparar a cena sem nada vazar antes da hora. Fog vem ATIVO por
+             padrão (protege info dos jogadores sem o mestre precisar lembrar de ligar) — este botão é
+             "Remover Fog": aceso = fog desligado. Dark é independente (congela a publicação inteira
+             pro tabuleiro ao vivo) — nenhum dos 3 é mutuamente exclusivo com os outros. -->
+        <button type="button" class="board-mode-toggle" id="boardRevealModeLabel" aria-pressed="false">
+          <span class="board-mode-toggle-name">👁️ REVELAR</span>
+        </button>
+        <button type="button" class="board-mode-toggle" id="boardFogModeLabel" aria-pressed="false">
           <span class="board-mode-toggle-name">🌫️ Remover Fog</span>
-        </label>
-        <label class="board-mode-toggle" id="boardDarkModeLabel">
-          <input type="checkbox" id="boardDarkModeToggle">
+        </button>
+        <button type="button" class="board-mode-toggle" id="boardDarkModeLabel" aria-pressed="false">
           <span class="board-mode-toggle-name">🌑 ESCURIDÃO TOTAL</span>
-        </label>
+        </button>
       </div>
       <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
       <div id="boardSendHint" class="mesa-hint"></div>
@@ -7069,8 +7093,6 @@ body{
   const boardBlockColsInput = $('boardBlockColsInput');
   const boardSendBtn     = $('boardSendBtn');
   const boardSendHint    = $('boardSendHint');
-  const boardDarkModeToggle = $('boardDarkModeToggle');
-  const boardFogModeToggle  = $('boardFogModeToggle');
   const boardResetBtn    = $('boardResetBtn');
   const boardRowsInput   = $('boardRowsInput');
   const boardColsInput   = $('boardColsInput');
@@ -7159,19 +7181,25 @@ body{
   let boardTokens  = {};   // "r_c" -> {id, kind, name, portrait, size, anchorR, anchorC} (todas as casas ocupadas apontam pro mesmo objeto)
   let boardBackground = null; // data URL da imagem de fundo custom, ou null = tabuleiro de mármore padrão
   let boardGridColor = '#ffffff'; // cor das linhas do grid (só aparecem por cima de um fundo custom) — sempre aplicada semitransparente
-  // ---------- modos de visão do tabuleiro (Dark / Fog) ----------
+  // ---------- modos de visão do tabuleiro (Revelar / Dark / Fog) ----------
   // Dark: enquanto ativo, NADA é publicado em mesa40k/liveBoard/* — o mini-tabuleiro dos jogadores
   // simplesmente para de atualizar, congelado no último estado que já tinham recebido (ver os
   // "return" no topo de scheduleBoardMetaPush/MarksPush/TokensPush, mais abaixo). Fog: o
   // tabuleiro continua sendo publicado normalmente, mas cada jogador só vê as MARCAÇÕES (pintura
   // verde/amarela/vermelha das casas) E as PEÇAS/ÍCONES (fichas, inimigos, obstáculos) que estão
   // dentro do alcance de movimento da própria ficha — ver o filtro em renderLiveBoardMini(). Fog
-  // agora vem LIGADO por padrão (boardFogMode = true) — o checkbox no HTML é "Remover Fog": marcado
-  // desliga o filtro (boardFogMode vira false), desmarcado deixa o filtro ativo, que é o padrão.
-  // Dark e "Remover Fog" são independentes agora (não são mais mutuamente exclusivos — ver os
-  // listeners de #boardDarkModeToggle/#boardFogModeToggle mais abaixo).
+  // agora vem LIGADO por padrão (boardFogMode = true) — o botão "Remover Fog" aceso desliga o
+  // filtro (boardFogMode vira false), apagado deixa o filtro ativo, que é o padrão. Revelar: pedido
+  // explícito ("o tabuleiro só atualiza pros jogadores caso essa caixa esteja marcada") — enquanto
+  // apagado, TODO o mini-tabuleiro (marcações, peças, spot) fica escondido pra quem não é mestre,
+  // renderizado como uma tela preta (ver o guard "revealed" dentro de renderLiveBoardMini()),
+  // independente de fog/alcance — é uma cortina por cima de tudo, não mais um filtro por casa. Vem
+  // DESLIGADO por padrão (mesmo espírito protetor do Fog: o mestre prepara a cena sem nada vazar
+  // antes de clicar em REVELAR). Nenhum dos 3 é mutuamente exclusivo com os outros (ver os cliques
+  // em #boardRevealModeLabel/#boardDarkModeLabel/#boardFogModeLabel mais abaixo).
   let boardDarkMode = false;
   let boardFogMode  = true;
+  let boardRevealMode = false;
   let heroRoster   = [];   // [{id, name, portrait}] — fichas de jogador ativas
   let mestreRoster = [];   // [{id, name, portrait}] — fichas do mestre ativas (id sempre prefixado "mestre:" pra nunca colidir com o de um jogador)
   let spawnCounter = 1;
@@ -7333,22 +7361,28 @@ body{
   const scheduleBoardMetaPush = makeDebouncedBoardPush('mesa40k/liveBoard/meta', ()=> ({
     rows: BOARD_ROWS, cols: BOARD_COLS, gridColor: boardGridColor, background: boardBackground || null,
     fog: !!boardFogMode,
+    revealed: !!boardRevealMode,
     ts: firebase.database.ServerValue.TIMESTAMP,
   }));
   const scheduleBoardMarksPush = makeDebouncedBoardPush('mesa40k/liveBoard/marks', ()=> Object.assign({}, boardMarks));
   const scheduleBoardTokensPush = makeDebouncedBoardPush('mesa40k/liveBoard/tokens', collectBoardTokensOut);
 
-  // ---------- toggle Dark / "Remover Fog" (ver .board-menu-bottom-actions no HTML) ----------
-  // Independentes um do outro agora (não é mais só um dos dois por vez): Dark congela a publicação
-  // inteira; "Remover Fog" só decide se o filtro de alcance (ver renderLiveBoardMini()) é aplicado
-  // ou não pros jogadores — o tabuleiro continua atualizando ao vivo normalmente nos dois estados
-  // dele. Fog vem ATIVO por padrão (boardFogMode=true), então o checkbox de Fog desmarcado É o
-  // padrão; marcá-lo ("Remover Fog") desliga o filtro.
+  // ---------- toggles Revelar / Dark / "Remover Fog" (ver .board-menu-bottom-actions no HTML) ----------
+  // Os 3 são independentes entre si: Dark congela a publicação inteira; "Remover Fog" só decide se o
+  // filtro de alcance (ver renderLiveBoardMini()) é aplicado ou não pros jogadores — o tabuleiro
+  // continua atualizando ao vivo normalmente nos dois estados dele; Revelar decide se o mini-
+  // tabuleiro inteiro aparece ou fica todo preto pros jogadores (ver o guard "revealed" dentro de
+  // renderLiveBoardMini()). Fog vem ATIVO por padrão (boardFogMode=true), então o botão de Fog
+  // apagado É o padrão; aceso ("Remover Fog") desliga o filtro. Os 3 agora são botões de verdade
+  // (sem checkbox do lado, ver CSS .board-mode-toggle/.mode-active) — cada set*() só espelha o
+  // estado atual na classe .mode-active/aria-pressed do próprio botão.
   function setBoardDarkMode(on){
     boardDarkMode = !!on;
-    if(boardDarkModeToggle) boardDarkModeToggle.checked = boardDarkMode;
     const darkLabel = $('boardDarkModeLabel');
-    if(darkLabel) darkLabel.classList.toggle('mode-active', boardDarkMode);
+    if(darkLabel){
+      darkLabel.classList.toggle('mode-active', boardDarkMode);
+      darkLabel.setAttribute('aria-pressed', boardDarkMode ? 'true' : 'false');
+    }
     // ligar Dark não precisa publicar nada (o guard no topo de scheduleBoard*Push já barra
     // sozinho); desligar precisa republicar tudo de uma vez pra sincronizar os jogadores com o
     // que está na tela agora — chamar as 3 funções sempre, sem risco, cobre os dois casos.
@@ -7357,18 +7391,32 @@ body{
     scheduleBoardTokensPush();
   }
   function setBoardFogRemoved(removed){
-    boardFogMode = !removed; // "Remover Fog" marcado = filtro desligado (boardFogMode = false)
-    if(boardFogModeToggle) boardFogModeToggle.checked = !!removed;
+    boardFogMode = !removed; // "Remover Fog" aceso = filtro desligado (boardFogMode = false)
     const fogLabel = $('boardFogModeLabel');
-    if(fogLabel) fogLabel.classList.toggle('mode-active', !!removed);
+    if(fogLabel){
+      fogLabel.classList.toggle('mode-active', !!removed);
+      fogLabel.setAttribute('aria-pressed', removed ? 'true' : 'false');
+    }
     scheduleBoardMetaPush(); // só o campo "fog" de mesa40k/liveBoard/meta depende disso
   }
-  if(boardDarkModeToggle) boardDarkModeToggle.addEventListener('change', ()=>{
-    setBoardDarkMode(boardDarkModeToggle.checked);
-  });
-  if(boardFogModeToggle) boardFogModeToggle.addEventListener('change', ()=>{
-    setBoardFogRemoved(boardFogModeToggle.checked);
-  });
+  function setBoardRevealMode(on){
+    boardRevealMode = !!on;
+    const revealLabel = $('boardRevealModeLabel');
+    if(revealLabel){
+      revealLabel.classList.toggle('mode-active', boardRevealMode);
+      revealLabel.setAttribute('aria-pressed', boardRevealMode ? 'true' : 'false');
+    }
+    scheduleBoardMetaPush(); // só o campo "revealed" de mesa40k/liveBoard/meta depende disso
+    renderLiveBoardMini(); // o mestre também tem um mini-tabuleiro (nunca fica preto pra ele), mas
+    // reaplicar aqui evita qualquer piscar/atraso perceptível na tela dele até o Firebase ecoar de volta
+  }
+  $('boardDarkModeLabel').addEventListener('click', ()=> setBoardDarkMode(!boardDarkMode));
+  // boardFogMode true = filtro ATIVO (Fog normal, não removido) — clicar deve alternar pro estado
+  // "removido" OPOSTO do atual; o valor atual de boardFogMode (ainda não atualizado nesta chamada)
+  // já É esse oposto de "removido", então passa ele mesmo como o novo "removed" pra
+  // setBoardFogRemoved() — ver o comentário dentro dela pra reversão completa.
+  $('boardFogModeLabel').addEventListener('click', ()=> setBoardFogRemoved(boardFogMode));
+  $('boardRevealModeLabel').addEventListener('click', ()=> setBoardRevealMode(!boardRevealMode));
 
   function buildBoardGrid(){
     boardGrid.innerHTML = '';
@@ -9142,7 +9190,7 @@ body{
   // localStorage separada da do tabuleiro do mestre, cada um lembra o próprio nível.
   const applyLiveBoardZoom = setupBoardZoom(liveBoardZoomSpacerEl, liveBoardOuterEl, $('liveBoardZoomReadout'), $('liveBoardZoomOutBtn'), $('liveBoardZoomInBtn'), 'rpg_ficha_liveboard_zoom');
 
-  let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true };
+  let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false };
   let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null;
   let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null;
   // ids de peça (token.id) já avistadas nesta sessão de jogador (ver isSpottableToken()/
@@ -9276,18 +9324,36 @@ body{
   // um caminho livre contornando. TANTO as marcações (pintura verde/amarela/vermelha) QUANTO as
   // peças/ícones (fichas, inimigos, obstáculos) fora desse conjunto ficam escondidos — a própria
   // ficha do jogador nunca some porque a casa-âncora dela sempre está a distância 0 do próprio
-  // alcance. Sem ficha própria no tabuleiro ainda, o conjunto fica vazio e nada aparece (nem
-  // marcação nem peça).
+  // alcance.
+  //
+  // Pedido explícito: "caso a ficha de um jogador não esteja no tabuleiro ele visualiza um
+  // combinado das informações dos outros jogadores... se não conseguirem visualizar nenhum, o
+  // jogador sem presença na mesa também não consegue visualizar nenhum". Ou seja: se o jogador que
+  // está vendo não tem NENHUMA ficha própria (isMyLiveToken) ancorada no tabuleiro agora, em vez de
+  // ficar com o conjunto vazio (ninguém veria nada), usa a visão COMBINADA de toda ficha de OUTRO
+  // jogador (kind 'hero', sem o prefixo "mestre:" — NPCs do mestre não contam como "outro jogador")
+  // que estiver no tabuleiro — sem fichas de jogador nenhuma lá, o conjunto realmente fica vazio
+  // (ninguém pra herdar visão de).
   function computeFogReachableKeys(){
+    const allKeys = Object.keys(liveBoardState.tokens || {});
+    let hasOwnToken = false;
+    allKeys.forEach(key=>{
+      const tok = liveBoardState.tokens[key];
+      if(!tok || key !== liveBoardKey(tok.anchorR, tok.anchorC)) return;
+      if(isMyLiveToken(tok)) hasOwnToken = true;
+    });
+    const includeToken = hasOwnToken
+      ? (tok)=> isMyLiveToken(tok)
+      : (tok)=> tok.kind === 'hero' && !(typeof tok.id === 'string' && tok.id.indexOf('mestre:') === 0);
     const reachable = new Set();
-    Object.keys(liveBoardState.tokens || {}).forEach(key=>{
+    allKeys.forEach(key=>{
       const tok = liveBoardState.tokens[key];
       if(!tok || key !== liveBoardKey(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça (peças grandes ocupam mais de uma casa apontando pro mesmo objeto)
-      if(!isMyLiveToken(tok)) return;
+      if(!includeToken(tok)) return;
       const visionLimit = 1 + (tok.bonusDes || 0) + FOG_VISION_BONUS_TILES;
       reachable.add(key); // a própria casa da ficha sempre entra
       computeLiveBoardReachable(tok.anchorR, tok.anchorC, visionLimit).forEach((dist, reachKey)=>{
-        if(reachable.has(reachKey)) return; // já visível por outra ficha própria (ou é a própria casa)
+        if(reachable.has(reachKey)) return; // já visível por outra ficha própria/combinada (ou é a própria casa)
         const [rr, rc] = reachKey.split('_').map(Number);
         if(hasLineOfSight(tok.anchorR, tok.anchorC, rr, rc)) reachable.add(reachKey);
       });
@@ -9306,19 +9372,27 @@ body{
     // cor da grade fica num custom property LOCAL (no próprio container, não em :root) — assim não
     // briga com a cor que o mestre esteja ajustando ao vivo na aba Mesa (ver applyBoardGridColor()).
     liveBoardOuterEl.style.setProperty('--grid-line-color', hexToRgba(liveBoardState.gridColor || '#ffffff', .35));
+    // Revelar (ver boardRevealMode/setBoardRevealMode()) só se aplica pra jogador, igual o Fog — o
+    // mestre nunca vê a própria Mesa apagada. Enquanto não revelado, o tabuleiro inteiro fica preto
+    // (ver CSS #liveBoardGrid.reveal-hidden) e nem marcação, nem peça, nem avistamento são
+    // processados — é uma cortina por cima de tudo, aplicada ANTES do filtro de Fog (que continua
+    // existindo por baixo, pra quando REVELAR for ligado).
+    const revealed = currentRole === 'mestre' || !!liveBoardState.revealed;
+    liveBoardGridEl.classList.toggle('reveal-hidden', !revealed);
     // Fog só se aplica pra jogador — o mestre nunca vê a própria publicação filtrada (mesmo que
     // esteja com esse mini-tabuleiro aberto em algum canto da tela dele).
     const fogActive = !!liveBoardState.fog && currentRole !== 'mestre';
-    const fogReachable = fogActive ? computeFogReachableKeys() : null;
+    const fogReachable = (revealed && fogActive) ? computeFogReachableKeys() : null;
     for(let r = 0; r < rows; r++){
       for(let c = 0; c < cols; c++){
         const cell = document.createElement('div');
         cell.className = 'board-cell ' + ((r + c) % 2 === 0 ? 'cell-light' : 'cell-dark');
         const cellKey = liveBoardKey(r,c);
-        const mark = liveBoardState.marks[cellKey];
-        if(mark && (!fogActive || fogReachable.has(cellKey))) cell.classList.add('mark-' + mark);
         cell.addEventListener('dragover', (e)=> e.preventDefault());
         cell.addEventListener('drop', (e)=>{ e.preventDefault(); handleLiveBoardDrop(r, c, e); });
+        if(!revealed){ liveBoardGridEl.appendChild(cell); continue; }
+        const mark = liveBoardState.marks[cellKey];
+        if(mark && (!fogActive || fogReachable.has(cellKey))) cell.classList.add('mark-' + mark);
         const token = liveBoardState.tokens[liveBoardKey(r,c)];
         // bloco legado (materiais antigos) NUNCA some com o Fog — só ícones de combatente (herói/
         // aliado/inimigo/monstro/boss) ficam escondidos fora do alcance; parede/bloco é geografia
@@ -9517,7 +9591,7 @@ body{
     // continuaria recebendo (e reagindo a) atualizações de mesa/live mesmo depois de deslogar.
     if(liveVitalsRef){ liveVitalsRef.off('value', liveVitalsCb); liveVitalsRef = null; liveVitalsCb = null; }
     liveVitalsAll = {};
-    liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true };
+    liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false };
     spottedTokenIds = new Set();
     renderLiveBoardMini();
   }
@@ -9535,6 +9609,9 @@ body{
       // renderLiveBoardMini() esconde as marcações fora do alcance da(s) própria(s) ficha(s) — só
       // pra jogador, o mestre nunca vê a própria Mesa filtrada.
       liveBoardState.fog = !!val.fog;
+      // Revelar (ver boardRevealMode/setBoardRevealMode()): quando falso, o mini-tabuleiro inteiro
+      // fica preto pra quem não é mestre (ver o guard "revealed" dentro de renderLiveBoardMini()).
+      liveBoardState.revealed = !!val.revealed;
       renderLiveBoardMini();
     });
     liveBoardMarksRef = fbDb.ref('mesa40k/liveBoard/marks');
@@ -10007,18 +10084,19 @@ body{
       // lá em cima, ver o comentário grande dentro de setupBoardZoom() no <script>).
       applyLiveBoardZoom();
       connectLiveBoard();
-      // boardFogMode/boardDarkMode são só variáveis de sessão (sempre recomeçam com o padrão a
-      // cada carregamento de página — Fog LIGADO, "let boardFogMode = true" mais acima) — mas o
-      // Fog publicado em mesa40k/liveBoard/meta.fog fica gravado no Firebase e NÃO se corrige
-      // sozinho: se o mestre marcou "Remover Fog" numa sessão e fechou o navegador (ou caiu a
-      // conexão) sem desmarcar de novo, o campo continua "false" lá, e os jogadores ficam vendo o
-      // tabuleiro totalmente aberto mesmo com o checkbox do mestre aparecendo desmarcado ("Remover
-      // Fog" desativado = Fog deveria estar ativo) na tela nova. Corrige isso assim que o mestre
-      // loga, republicando fog:true (só esse campo, com update() — não mexe em rows/cols/fundo/cor,
-      // que continuam os que já estavam publicados) pra manter o Firebase sempre igual ao que a
-      // tela do mestre realmente mostra logo após entrar (Fog ativo até ele marcar "Remover Fog").
+      // boardFogMode/boardDarkMode/boardRevealMode são só variáveis de sessão (sempre recomeçam com
+      // o padrão a cada carregamento de página — Fog LIGADO e Revelar DESLIGADO, "let boardFogMode =
+      // true"/"let boardRevealMode = false" mais acima) — mas os campos publicados em
+      // mesa40k/liveBoard/meta ficam gravados no Firebase e NÃO se corrigem sozinhos: se o mestre
+      // marcou "Remover Fog" (ou tinha REVELAR aceso) numa sessão e fechou o navegador (ou caiu a
+      // conexão) sem desmarcar de novo, os campos continuam do jeito que ficaram lá, e os jogadores
+      // ficam vendo algo diferente do que os botões do mestre mostram na tela nova (ambos aparecendo
+      // apagados = Fog ativo e Revelar desligado). Corrige isso assim que o mestre loga, republicando
+      // fog:true e revealed:false (só esses 2 campos, com update() — não mexe em rows/cols/fundo/cor,
+      // que continuam os que já estavam publicados) pra manter o Firebase sempre igual ao que a tela
+      // do mestre realmente mostra logo após entrar.
       if(currentRole === 'mestre'){
-        try{ fbDb.ref('mesa40k/liveBoard/meta').update({ fog: true }); }catch(err){}
+        try{ fbDb.ref('mesa40k/liveBoard/meta').update({ fog: true, revealed: false }); }catch(err){}
       }
       // "?mesa=1" na URL (posto pelo botão "🗗" do modal da Mesa, ver popoutMesaBtn mais acima) —
       // essa é a janela separada, abre a aba Mesa sozinha assim que o login (mestre) termina, sem
