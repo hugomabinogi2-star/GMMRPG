@@ -975,6 +975,7 @@ body{
   box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45), 0 0 0 2.5px rgba(224,182,86,.6);
 }
 .board-grid-color-hint{font-size:11px;color:var(--ink-faint);}
+.board-tray-hint{font-size:11px;color:var(--ink-faint);margin:0 0 10px;line-height:1.4;}
 
 /* ---------- blocos de obstáculo (tabuleiro): mármore, tijolo e 4 cores lisas ---------- */
 .board-token.token-block, .tray-coin.token-block{
@@ -1025,7 +1026,8 @@ body{
     linear-gradient(125deg, transparent 46%, rgba(10,35,32,.22) 47%, transparent 49%),
     linear-gradient(35deg, transparent 55%, rgba(10,35,32,.18) 56%, transparent 58%);
 }
-.token-jade1, .token-jade2, .token-jade3, .token-jade{
+.token-jade1, .token-jade2, .token-jade3, .token-jade,
+.token-barreira{
   background-color:#3f8f5e;
   background-image:
     radial-gradient(circle at 25% 22%, rgba(220,255,225,.55), transparent 55%),
@@ -3449,7 +3451,7 @@ body{
           <button type="button" class="board-menu-tab active" data-panel="boardPanelJogadores">Fichas dos Jogadores</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelMestre">Fichas do Mestre</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelGeral">Geral</button>
-          <button type="button" class="board-menu-tab" data-panel="boardPanelBlocos">Blocos</button>
+          <button type="button" class="board-menu-tab" data-panel="boardPanelBlocos">Barreiras</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelPvp">⚔️ PVP</button>
         </div>
 
@@ -3476,23 +3478,17 @@ body{
           <div class="board-tray-coins" id="boardTrayMestreCoinsPvp"></div>
         </div>
         <div class="board-menu-panel" id="boardPanelBlocos">
-          <div class="board-block-material-control">
-            <label for="boardBlockMaterialSelect">Tipo de bloco</label>
-            <select id="boardBlockMaterialSelect">
-              <option value="marmore">Mármore</option>
-              <option value="tijolo">Tijolo</option>
-              <option value="marrom">Marrom</option>
-              <option value="vermelho">Vermelho</option>
-              <option value="turquesa">Turquesa</option>
-              <option value="jade">Jade</option>
-            </select>
-          </div>
-          <!-- tamanho do bloco: em vez dos 3 tamanhos fixos de antes (1x1/2x2/3x3), um seletor livre
-               "linhas x colunas" (mesmo estilo do seletor de tamanho do tabuleiro, ver
-               .board-size-fields no <style>) — lido ao vivo na hora de arrastar a moeda pro
-               tabuleiro (ver renderObstacleCoins() no <script>). -->
+          <!-- só existe UMA barreira agora (verde, ver OBSTACLE_KINDS no <script>) — sem seletor de
+               material. Diferença chave do bloco antigo: essa barreira NUNCA aparece pro jogador
+               (nem no tabuleiro ao vivo, nem sob Fog) — só o mestre vê ela aqui dentro de MESA. Ela
+               continua bloqueando movimento normalmente (ver isBlockKind()/canPlace()), só o
+               VISUAL some pro jogador — é uma armadilha/parede invisível. -->
+          <p class="board-tray-hint">Barreira invisível pros jogadores — só o mestre vê no tabuleiro de MESA. Continua bloqueando movimento normalmente.</p>
+          <!-- tamanho da barreira: seletor livre "linhas x colunas" (mesmo estilo do seletor de
+               tamanho do tabuleiro, ver .board-size-fields no <style>) — lido ao vivo na hora de
+               arrastar a moeda pro tabuleiro (ver renderObstacleCoins() no <script>). -->
           <div class="board-block-size-control board-size-fields">
-            <label for="boardBlockRowsInput">Tamanho do bloco</label>
+            <label for="boardBlockRowsInput">Tamanho da barreira</label>
             <input type="number" id="boardBlockRowsInput" min="1" max="12" value="1" title="Número de linhas">
             <span>x</span>
             <input type="number" id="boardBlockColsInput" min="1" max="12" value="1" title="Número de colunas">
@@ -6429,6 +6425,38 @@ body{
     }
   }
 
+  // Movimentação no tabuleiro ao vivo (ver handleLiveBoardDrop() mais abaixo) registra a casa de
+  // onde/pra onde só AQUI, no Histórico de Rolagens — o aviso no chat/Discord (ver
+  // announceLiveBoardMove()) agora é só "NOME se movimentou", sem posição nenhuma. Mesmo formato
+  // de gravação de pushRollLog() (mesmo arquivo ROLL_LOG_PATH, mesmo corte ROLL_LOG_MAX), só que
+  // SEM postar no Discord (isso já é feito à parte, com o texto simples) — entry.tipo:'movimento'
+  // é o que loadRollLog() usa pra formatar essa linha diferente das demais (ver ali).
+  async function pushMoveLog(entry){
+    if(isSilenceActive()) return;
+    if(!getToken()) return;
+    try{
+      const existing = await githubGetFileContent(ROLL_LOG_PATH).catch(()=>null);
+      let arr = [];
+      if(existing){
+        try{ arr = JSON.parse(existing.content); if(!Array.isArray(arr)) arr = []; }catch(e){ arr = []; }
+      }
+      arr.push(entry);
+      if(arr.length > ROLL_LOG_MAX) arr = arr.slice(arr.length - ROLL_LOG_MAX);
+      const body = {
+        message: `Registra movimentação de ${entry.nome || 'alguém'}`,
+        content: b64EncodeUnicode(JSON.stringify(arr, null, 2))
+      };
+      if(existing && existing.sha) body.sha = existing.sha;
+      await fetch(apiUrl(ROLL_LOG_PATH), {
+        method:'PUT',
+        headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
+      });
+    }catch(err){
+      console.warn('Não foi possível registrar a movimentação no histórico compartilhado:', err);
+    }
+  }
+
   // Histórico de Rolagens agora mora dentro do modal da Mesa (primeiro painel lá, minimizável —
   // ver wirePanelToggle('rollLogToggleBtn', ...) mais abaixo e openMesaModal(), que chama
   // loadRollLog() toda vez que a Mesa abre).
@@ -6486,7 +6514,11 @@ body{
       arr.forEach(entry=>{
         const nome = escapeHtml(entry.nome || '(sem nome)');
         let texto;
-        if(entry.tipo === 'dano'){
+        if(entry.tipo === 'movimento'){
+          // ver pushMoveLog()/handleLiveBoardDrop() — só aqui no histórico é que a posição de
+          // onde/pra onde aparece; o aviso no chat/Discord é só "NOME se movimentou".
+          texto = `"${nome}" SE MOVIMENTOU de ${escapeHtml(entry.de || '?')} para ${escapeHtml(entry.para || '?')}`;
+        } else if(entry.tipo === 'dano'){
           const qtd = entry.qtd || 1;
           const detalhe = (Array.isArray(entry.rolls) && qtd > 1)
             ? `${qtd}d${escapeHtml(String(entry.maxVal))}: [${entry.rolls.map(r=>escapeHtml(String(r))).join(', ')}] = ${escapeHtml(String(entry.resultado))}`
@@ -6727,7 +6759,6 @@ body{
   const boardTrayMestreCoinsPvp = $('boardTrayMestreCoinsPvp');
   const boardEnemyCoins  = $('boardEnemyCoins');
   const boardObstacleCoins = $('boardObstacleCoins');
-  const boardBlockMaterialSelect = $('boardBlockMaterialSelect');
   const boardBlockRowsInput = $('boardBlockRowsInput');
   const boardBlockColsInput = $('boardBlockColsInput');
   const boardSendBtn     = $('boardSendBtn');
@@ -6873,21 +6904,31 @@ body{
   // .tray-coin logo abaixo em renderObstacleCoins()). kind = o próprio material, sem sufixo de
   // tamanho — o tamanho de verdade fica em token.size (linhas) + token.sizeC (colunas), lidos na
   // hora de colocar (handleBoardDrop) e guardados no token, não no "kind".
-  const BOARD_BLOCK_MAX_SIZE = 12; // teto de linhas/colunas do seletor de tamanho do bloco
+  const BOARD_BLOCK_MAX_SIZE = 12; // teto de linhas/colunas do seletor de tamanho da barreira
+  // "Blocos" virou "Barreiras": só existe MAIS UM tipo agora (verde, reaproveita o visual do
+  // antigo "Jade" — ver .token-jade/.token-barreira no <style>), sem seletor de material. Grande
+  // diferença pro bloco antigo: essa barreira NUNCA aparece pro jogador (nem no tabuleiro ao vivo,
+  // nem sob Fog) — só o mestre vê ela, dentro de MESA (ver o "isHidden" em renderLiveBoardMini()).
+  // Continua bloqueando movimento normalmente pra todo mundo (ver isBlockKind() em
+  // computeLiveBoardReachable()/canPlace()) — só o VISUAL some pro jogador.
   const OBSTACLE_KINDS = [
-    {kind:'marmore', material:'marmore', label:'Mármore'},
-    {kind:'tijolo', material:'tijolo', label:'Tijolo'},
-    {kind:'marrom', material:'marrom', label:'Marrom'},
-    {kind:'vermelho', material:'vermelho', label:'Vermelho'},
-    {kind:'turquesa', material:'turquesa', label:'Turquesa'},
-    {kind:'jade', material:'jade', label:'Jade'},
+    {kind:'barreira', material:'jade', label:'Barreira'},
   ];
-  // tabuleiros salvos ANTES dessa mudança podem ter blocos com o "kind" antigo (sufixo 1/2/3, ex:
-  // "marmore2") — continuam reconhecidos como bloco (isBlockKind) e com o mesmo visual (CSS, ver
-  // .token-marmore1 etc no <style>), só não aparecem mais como opção nova na bandeja.
-  const LEGACY_BLOCK_KINDS = ['marmore1','marmore2','marmore3','tijolo1','tijolo2','tijolo3','marrom1','marrom2','marrom3','vermelho1','vermelho2','vermelho3','turquesa1','turquesa2','turquesa3','jade1','jade2','jade3'];
+  // tabuleiros salvos ANTES dessa mudança podem ter blocos dos materiais antigos (mármore, tijolo,
+  // marrom, vermelho, turquesa, jade — com ou sem sufixo de tamanho 1/2/3, ex: "marmore2") —
+  // continuam reconhecidos como bloco (isBlockKind), com o mesmo visual de sempre (CSS, ver
+  // .token-marmore1 etc no <style>) e ainda VISÍVEIS pro jogador (comportamento antigo, só a
+  // barreira nova fica invisível) — só não aparecem mais como opção nova na bandeja.
+  const LEGACY_BLOCK_KINDS = [
+    'marmore','tijolo','marrom','vermelho','turquesa','jade',
+    'marmore1','marmore2','marmore3','tijolo1','tijolo2','tijolo3','marrom1','marrom2','marrom3',
+    'vermelho1','vermelho2','vermelho3','turquesa1','turquesa2','turquesa3','jade1','jade2','jade3',
+  ];
   const BLOCK_KIND_SET = new Set(OBSTACLE_KINDS.map(k=> k.kind).concat(LEGACY_BLOCK_KINDS));
   function isBlockKind(kind){ return BLOCK_KIND_SET.has(kind); }
+  // só a barreira NOVA (kind 'barreira') fica invisível pro jogador — blocos legados (materiais
+  // antigos, ver LEGACY_BLOCK_KINDS acima) continuam com o visual sempre visível de antes.
+  function isHiddenBlockKind(kind){ return kind === 'barreira'; }
   function tokenSizeClass(size){ return size === 3 ? ' token-size3' : size === 2 ? ' token-size2' : ''; }
 
   // bloco pode ser retangular (linhas != colunas, ver tokenFootprintSize()) — as classes
@@ -7559,11 +7600,10 @@ body{
     });
   }
 
-  // o seletor "Tipo de bloco" escolhe o material (Mármore/Tijolo/Marrom/Vermelho/Turquesa/Jade); o
-  // tamanho não é mais fixo em 1x1/2x2/3x3 — vem dos campos "linhas x colunas" ao lado (mesmo
-  // estilo do seletor de tamanho do tabuleiro, ver #boardBlockRowsInput/#boardBlockColsInput no
-  // HTML), lidos ao vivo no instante em que o arrasto começa (dragstart), então só existe UMA
-  // moeda por material — o tamanho escolhido vai junto no payload do drag.
+  // só existe UM tipo de barreira agora (ver OBSTACLE_KINDS acima) — sem seletor de material. O
+  // tamanho não é fixo em 1x1/2x2/3x3 — vem dos campos "linhas x colunas" ao lado (mesmo estilo do
+  // seletor de tamanho do tabuleiro, ver #boardBlockRowsInput/#boardBlockColsInput no HTML), lido
+  // ao vivo no instante em que o arrasto começa (dragstart).
   function currentBlockSize(){
     const sizeR = Math.max(1, Math.min(BOARD_BLOCK_MAX_SIZE, parseInt(boardBlockRowsInput.value, 10) || 1));
     const sizeC = Math.max(1, Math.min(BOARD_BLOCK_MAX_SIZE, parseInt(boardBlockColsInput.value, 10) || 1));
@@ -7571,8 +7611,7 @@ body{
   }
   function renderObstacleCoins(){
     boardObstacleCoins.innerHTML = '';
-    const material = boardBlockMaterialSelect.value || 'marmore';
-    const cfg = OBSTACLE_KINDS.find(k=> k.material === material);
+    const cfg = OBSTACLE_KINDS[0];
     if(!cfg) return;
     const [sizeR, sizeC] = currentBlockSize();
     const wrap = document.createElement('div');
@@ -7580,7 +7619,7 @@ body{
     const coin = document.createElement('div');
     coin.className = 'tray-coin token-' + cfg.kind + ' token-block';
     coin.draggable = true;
-    coin.title = `Arraste para o tabuleiro (ocupa ${sizeR}x${sizeC} casas) — pode repetir quantas vezes quiser`;
+    coin.title = `Arraste para o tabuleiro (ocupa ${sizeR}x${sizeC} casas, invisível pro jogador) — pode repetir quantas vezes quiser`;
     coin.addEventListener('dragstart', (e)=>{
       const [dragSizeR, dragSizeC] = currentBlockSize();
       e.dataTransfer.setData('text/plain', JSON.stringify({source:'tray', kind: cfg.kind, sizeR: dragSizeR, sizeC: dragSizeC}));
@@ -7592,9 +7631,8 @@ body{
     wrap.appendChild(lbl);
     boardObstacleCoins.appendChild(wrap);
   }
-  boardBlockMaterialSelect.addEventListener('change', renderObstacleCoins);
   // o "title" (dica ao passar o mouse) mostra o tamanho atual — reaplica sempre que os campos de
-  // linhas/colunas mudam, pra ficar sempre certo mesmo sem soltar o material de novo.
+  // linhas/colunas mudam.
   boardBlockRowsInput.addEventListener('input', renderObstacleCoins);
   boardBlockColsInput.addEventListener('input', renderObstacleCoins);
 
@@ -8874,22 +8912,30 @@ body{
     }
   }
 
+  // quanto o campo de VISÃO (Fog) enxerga além do alcance de MOVIMENTO — pedido explícito ("o
+  // campo de visão do personagem passa a ser 3 casas a mais do que ele consegue se movimentar").
+  // Continua sendo Manhattan/BFS bloqueado por barreira (mesma computeLiveBoardReachable), só o
+  // limite (número de passos) é maior — não é mais possível MOVER até o fim do próprio campo de
+  // visão, só ver até lá.
+  const FOG_VISION_BONUS_TILES = 3;
   // Fog (ver boardFogMode/liveBoardState.fog): monta o conjunto de casas "r_c" que a(s) própria(s)
-  // ficha(s) do jogador alcançariam nesse tabuleiro agora — mesma regra de alcance usada pro
-  // arrasto normal (highlightLiveBoardReachable/handleLiveBoardDrop: Manhattan até 1 + bônus de
-  // DES). TANTO as marcações (pintura verde/amarela/vermelha) QUANTO as peças/ícones (fichas,
-  // inimigos, obstáculos) fora desse conjunto ficam escondidos — a própria ficha do jogador nunca
-  // some porque a casa-âncora dela sempre está a distância 0 do próprio alcance. Sem ficha própria
-  // no tabuleiro ainda, o conjunto fica vazio e nada aparece (nem marcação nem peça).
+  // ficha(s) do jogador ENXERGAM nesse tabuleiro agora — mesma regra de alcance usada pro arrasto
+  // normal (highlightLiveBoardReachable/handleLiveBoardDrop: Manhattan até 1 + bônus de DES), só
+  // que com +FOG_VISION_BONUS_TILES casas de alcance (ver acima) — o campo de visão sempre foi
+  // maior que o de movimento. TANTO as marcações (pintura verde/amarela/vermelha) QUANTO as
+  // peças/ícones (fichas, inimigos, obstáculos) fora desse conjunto ficam escondidos — a própria
+  // ficha do jogador nunca some porque a casa-âncora dela sempre está a distância 0 do próprio
+  // alcance. Sem ficha própria no tabuleiro ainda, o conjunto fica vazio e nada aparece (nem
+  // marcação nem peça).
   function computeFogReachableKeys(){
     const reachable = new Set();
     Object.keys(liveBoardState.tokens || {}).forEach(key=>{
       const tok = liveBoardState.tokens[key];
       if(!tok || key !== liveBoardKey(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça (peças grandes ocupam mais de uma casa apontando pro mesmo objeto)
       if(!isMyLiveToken(tok)) return;
-      const limit = 1 + (tok.bonusDes || 0);
+      const visionLimit = 1 + (tok.bonusDes || 0) + FOG_VISION_BONUS_TILES;
       reachable.add(key); // a própria casa da ficha sempre entra
-      computeLiveBoardReachable(tok.anchorR, tok.anchorC, limit).forEach((dist, reachKey)=> reachable.add(reachKey));
+      computeLiveBoardReachable(tok.anchorR, tok.anchorC, visionLimit).forEach((dist, reachKey)=> reachable.add(reachKey));
     });
     return reachable;
   }
@@ -8919,21 +8965,27 @@ body{
         cell.addEventListener('dragover', (e)=> e.preventDefault());
         cell.addEventListener('drop', (e)=>{ e.preventDefault(); handleLiveBoardDrop(r, c, e); });
         const token = liveBoardState.tokens[liveBoardKey(r,c)];
-        // bloco (obstáculo/cenário) NUNCA some com o Fog — só ícones de combatente (herói/aliado/
-        // inimigo/monstro/boss) ficam escondidos fora do alcance; parede/bloco é geografia do mapa,
-        // não "informação escondida", e o jogador precisa ver onde não pode passar mesmo longe dali.
-        if(token && token.anchorR === r && token.anchorC === c && (!fogActive || fogReachable.has(cellKey) || isBlockKind(token.kind))){
+        // bloco legado (materiais antigos) NUNCA some com o Fog — só ícones de combatente (herói/
+        // aliado/inimigo/monstro/boss) ficam escondidos fora do alcance; parede/bloco é geografia
+        // do mapa, não "informação escondida". A BARREIRA nova (isHiddenBlockKind) é a exceção
+        // oposta: nunca aparece aqui pra ninguém (nem mestre, nem jogador, com Fog ativo ou não) —
+        // ela só é visível no tabuleiro de verdade (renderBoardCell(), aba MESA do mestre); aqui
+        // ela continua bloqueando movimento normalmente (ver isBlockKind() em
+        // computeLiveBoardReachable()), só o VISUAL some.
+        if(token && !isHiddenBlockKind(token.kind) && token.anchorR === r && token.anchorC === c && (!fogActive || fogReachable.has(cellKey) || isBlockKind(token.kind))){
           // Avistamento (ver isSpottableToken()/announceTokenSpotted() e spottedTokenIds, lá em
           // cima): só dispara quando é o alcance de Fog (fogReachable) que está trazendo essa peça
-          // à vista agora — bloco nunca conta (não é avistável) e, com o Fog desligado, não existe
-          // "avistar" (já estava tudo visível desde o início).
-          if(fogActive && fogReachable.has(cellKey) && isSpottableToken(token) && !spottedTokenIds.has(token.id)){
+          // à vista agora — bloco nunca conta (não é avistável), com o Fog desligado não existe
+          // "avistar" (já estava tudo visível desde o início), e a própria ficha de quem está
+          // vendo nunca conta (ninguém "avista" a si mesmo — pode acontecer com uma ficha PVP, já
+          // que ela é avistável E sempre está dentro do próprio alcance).
+          const mine = isMyLiveToken(token);
+          if(fogActive && fogReachable.has(cellKey) && isSpottableToken(token) && !mine && !spottedTokenIds.has(token.id)){
             spottedTokenIds.add(token.id);
             announceTokenSpotted(token);
           }
           const t = document.createElement('div');
           const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
-          const mine = isMyLiveToken(token);
           const dead = isHeroDead(token);
           const isBlock = isBlockKind(token.kind);
           t.className = 'board-token token-' + token.kind + (isBlock ? '' : tokenSizeClass(token.size))
@@ -9052,13 +9104,15 @@ body{
     renderLiveBoardMini();
     const patch = {}; patch[oldKey] = null; patch[newKey] = movedToken;
     fbDb.ref('mesa/liveBoard/tokens').update(patch).catch(err=> console.error('Não foi possível mover a ficha no tabuleiro ao vivo:', err));
-    // avisa no chat (e no Discord, se tiver webhook) quem se moveu e pra onde — usa a MESMA
-    // notação de casa que já aparece nos cabeçalhos do próprio tabuleiro (coluna em letra, estilo
-    // planilha, ver columnLabel() + linha em número, 1-indexada — ver buildLiveBoardHeaders()),
-    // pra bater exatamente com o que todo mundo já está vendo desenhado ao redor da grade.
+    // avisa no chat/Discord só QUE alguém se moveu, sem revelar a casa (pedido explícito) — a
+    // posição de verdade (de/pra) vai só pro Histórico de Rolagens (ver pushMoveLog() logo
+    // abaixo), não pro chat nem pro Discord. Notação de casa igual à dos cabeçalhos do tabuleiro
+    // (coluna em letra, estilo planilha, ver columnLabel() + linha em número, 1-indexada — ver
+    // buildLiveBoardHeaders()).
     const fromLabel = columnLabel(payload.c) + (payload.r + 1);
     const toLabel = columnLabel(c) + (r + 1);
-    postToDiscord(`🚶 **${tok.name}** se moveu de ${fromLabel} para ${toLabel}`, null);
+    postToDiscord(`🚶 **${tok.name}** se movimentou`, null);
+    pushMoveLog({ nome: tok.name, tipo:'movimento', de: fromLabel, para: toLabel, ts: Date.now() });
   }
 
   // Além de alimentar o mini-tabuleiro, essa mesma leitura de mesa/liveBoard/tokens também
