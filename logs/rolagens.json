@@ -5,5 +5,12 @@
     "de": "F29",
     "para": "F26",
     "ts": 1787609459580
+  },
+  {
+    "nome": "Bulleta",
+    "tipo": "movimento",
+    "de": "F26",
+    "para": "F22",
+    "ts": 1787609463396
   }
 ]
