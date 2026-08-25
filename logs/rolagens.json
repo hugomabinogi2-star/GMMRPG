@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "F18",
-    "para": "E16",
-    "ts": 1787609478186
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "E16",
     "para": "E13",
     "ts": 1787609489211
@@ -212,5 +205,14 @@
     "de": "AA6",
     "para": "AA5",
     "ts": 1787680204954
+  },
+  {
+    "nome": "Erdwino",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 17,
+    "resultLabel": "Acerto",
+    "ts": 1787680272530
   }
 ]
