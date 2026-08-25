@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "F21",
-    "para": "F17",
-    "ts": 1787614774576
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "F17",
     "para": "F16",
     "ts": 1787614777135
@@ -246,5 +239,36 @@
     "resultado": 10,
     "habilidade": "",
     "ts": 1787680802083
+  },
+  {
+    "nome": "Erdwino",
+    "tipo": "dano",
+    "qtd": 20,
+    "maxVal": 1,
+    "rolls": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "resultado": 20,
+    "habilidade": "",
+    "ts": 1787680817622
   }
 ]
