@@ -140,5 +140,14 @@
     "resultado": 1,
     "resultLabel": "Erro Crítico",
     "ts": 1787663341111
+  },
+  {
+    "nome": "Startuk",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1787663346078
   }
 ]
