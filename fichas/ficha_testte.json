@@ -1,0 +1,66 @@
+{
+  "ownerUid": "ONoFegsezRbvGUMUmLJlgCm3rbo1",
+  "donoChave": "6d62dc1c-ab45-44af-89d8-6743fb141c89",
+  "nome": "Testte",
+  "deidade": "Zeus",
+  "xp": "0",
+  "historia": "",
+  "base": {
+    "for": "7",
+    "con": "7",
+    "des": "7",
+    "int": "5",
+    "von": "3",
+    "car": "1"
+  },
+  "mods": {
+    "ar": "0",
+    "ap": "0",
+    "vida": "0",
+    "mana": "0",
+    "for": "0",
+    "con": "0",
+    "des": "0",
+    "int": "0",
+    "von": "0",
+    "car": "0"
+  },
+  "curVida": "24",
+  "curMana": "8",
+  "barreiraMax": "0",
+  "barreiraCur": "0",
+  "portrait": null,
+  "inventory": [
+    {
+      "nome": "OURO",
+      "qtd": "0",
+      "desc": "DINHEIRO"
+    },
+    {
+      "nome": "",
+      "qtd": "0",
+      "desc": ""
+    },
+    {
+      "nome": "",
+      "qtd": "0",
+      "desc": ""
+    }
+  ],
+  "habilidadesExtras": [
+    {
+      "nome": "",
+      "attr": "FOR",
+      "desc": "",
+      "imagem": "",
+      "custo": "1"
+    },
+    {
+      "nome": "",
+      "attr": "FOR",
+      "desc": "",
+      "imagem": "",
+      "custo": "1"
+    }
+  ]
+}
