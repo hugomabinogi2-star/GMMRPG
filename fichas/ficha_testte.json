@@ -3,7 +3,7 @@
   "donoChave": "6d62dc1c-ab45-44af-89d8-6743fb141c89",
   "nome": "Testte",
   "deidade": "Zeus",
-  "xp": "0",
+  "xp": "50",
   "historia": "",
   "base": {
     "for": "7",
@@ -11,7 +11,7 @@
     "des": "7",
     "int": "5",
     "von": "3",
-    "car": "1"
+    "car": "2"
   },
   "mods": {
     "ar": "0",
