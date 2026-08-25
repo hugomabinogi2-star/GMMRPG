@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "E16",
-    "para": "E13",
-    "ts": 1787609489211
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "E13",
     "para": "E9",
     "ts": 1787609492355
@@ -214,5 +207,14 @@
     "resultado": 17,
     "resultLabel": "Acerto",
     "ts": 1787680272530
+  },
+  {
+    "nome": "Testte",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 7,
+    "resultado": 7,
+    "resultLabel": "Erro",
+    "ts": 1787680278188
   }
 ]
