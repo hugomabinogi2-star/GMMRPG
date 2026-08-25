@@ -131,5 +131,14 @@
     "de": "S11",
     "para": "W11",
     "ts": 1787614823120
+  },
+  {
+    "nome": "Erdwino",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 8,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1787663341111
   }
 ]
