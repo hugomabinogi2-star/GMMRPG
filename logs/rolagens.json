@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "F12",
-    "para": "G9",
-    "ts": 1787614800931
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "G9",
     "para": "J8",
     "ts": 1787614807364
@@ -274,5 +267,14 @@
     "resultado": 15,
     "resultLabel": "Acerto",
     "ts": 1787680957749
+  },
+  {
+    "nome": "Erdwino",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 16,
+    "resultado": 7,
+    "resultLabel": "Acerto",
+    "ts": 1787680999544
   }
 ]
