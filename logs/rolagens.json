@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "E13",
-    "para": "E9",
-    "ts": 1787609492355
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "F29",
     "para": "J29",
     "ts": 1787614731351
@@ -216,5 +209,13 @@
     "resultado": 7,
     "resultLabel": "Erro",
     "ts": 1787680278188
+  },
+  {
+    "nome": "Erdwino",
+    "tipo": "sorte",
+    "escolha": "cara",
+    "resultado": "coroa",
+    "verdict": "erro",
+    "ts": 1787680554350
   }
 ]
