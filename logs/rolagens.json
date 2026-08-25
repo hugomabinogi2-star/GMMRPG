@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "F16",
-    "para": "F12",
-    "ts": 1787614799155
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "F12",
     "para": "G9",
     "ts": 1787614800931
@@ -272,5 +265,14 @@
     "resultado": 1,
     "resultLabel": "Erro Crítico",
     "ts": 1787680947603
+  },
+  {
+    "nome": "Erdwino",
+    "tipo": "atributo",
+    "statKey": "car",
+    "statValor": 16,
+    "resultado": 15,
+    "resultLabel": "Acerto",
+    "ts": 1787680957749
   }
 ]
