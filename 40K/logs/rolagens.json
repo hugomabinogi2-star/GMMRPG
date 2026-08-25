@@ -152,5 +152,13 @@
     "de": "D3",
     "para": "E3",
     "ts": 1787593764143
+  },
+  {
+    "nome": "(sem nome)",
+    "tipo": "sorte",
+    "escolha": "coroa",
+    "resultado": "coroa",
+    "verdict": "acerto",
+    "ts": 1787681205935
   }
 ]
