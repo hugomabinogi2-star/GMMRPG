@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "F29",
-    "para": "F25",
-    "ts": 1787614760881
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "F25",
     "para": "F21",
     "ts": 1787614771850
@@ -227,5 +220,17 @@
     "resultado": 4,
     "habilidade": "Erotika",
     "ts": 1787680767817
+  },
+  {
+    "nome": "Erdwino",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 6,
+    "rolls": [
+      5
+    ],
+    "resultado": 5,
+    "habilidade": "",
+    "ts": 1787680783058
   }
 ]
