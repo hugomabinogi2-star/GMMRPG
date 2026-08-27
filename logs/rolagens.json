@@ -6,15 +6,6 @@
     "statValor": 4,
     "resultado": 16,
     "resultLabel": "Acerto",
-    "ts": 1787831452676
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
-    "resultado": 16,
-    "resultLabel": "Acerto",
     "ts": 1787831454611
   },
   {
@@ -220,5 +211,12 @@
     "de": "H3",
     "para": "I3",
     "ts": 1787836086216
+  },
+  {
+    "nome": "Bulleta",
+    "tipo": "movimento",
+    "de": "I3",
+    "para": "J4",
+    "ts": 1787836089365
   }
 ]
