@@ -127,5 +127,12 @@
     "de": "E7",
     "para": "I7",
     "ts": 1787832098099
+  },
+  {
+    "nome": "Bulleta",
+    "tipo": "movimento",
+    "de": "I7",
+    "para": "J7",
+    "ts": 1787832102264
   }
 ]
