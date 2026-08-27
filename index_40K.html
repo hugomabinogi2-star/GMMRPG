@@ -1062,6 +1062,10 @@ body{
 .tray-coin.token-hero{background-color:#c9a227;}
 .tray-coin .token-fallback{font-family:'Orbitron',sans-serif;font-weight:700;font-size:15px;color:#3a280e;}
 .tray-coin.token-monstro{width:56px;height:56px;}
+/* moeda "grande" (2x2 casas) da bandeja de fichas do mestre — ver allowLarge em
+   makeRosterTrayRenderer(); mesmo tamanho visual já usado pra sinalizar "ocupa mais casas" em
+   .tray-coin.token-monstro acima. */
+.tray-coin.token-hero-large{width:56px;height:56px;}
 .tray-coin.placed{opacity:.35;filter:grayscale(.5);cursor:not-allowed;}
 .tray-coin-name{font-size:9px;text-align:center;color:var(--ink-soft);line-height:1.2;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 /* moedas da aba PVP (ver .board-menu-panel#boardPanelPvp e makeRosterTrayRenderer(..., pvp) no
@@ -1252,7 +1256,10 @@ body{
 .master-card .mc-attrs strong{color:var(--ink);font-family:'Share Tech Mono',monospace;}
 /* distribuir XP direto do resumo ao vivo (mesaHeroSummaryPanel) -- ver opts.xpControls em
    makeFichasListLoader() e grantXpToPlayer() no <script>. Só aparece pro mestre (o painel inteiro
-   já é mestre-only) e só quando a ficha tem dono (ownerUid) pra saber pra quem mandar o XP. */
+   já é mestre-only) e só quando a ficha tem dono (ownerUid) pra saber pra quem mandar o XP.
+   Mesma classe (.mc-xp-controls/.mc-xp-btn) é reaproveitada também em "🔒 Fichas do Mestre" --
+   ver opts.npcXpControls, NPC não tem dono/ownerUid então ali o XP é ajustado direto no arquivo
+   da ficha no GitHub, sem "ao vivo" nenhum. */
 .master-card .mc-xp-controls{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .master-card .mc-xp-controls-label{font-size:11px;color:var(--ink-faint);margin-right:2px;}
 .master-card .mc-xp-btn{min-width:34px;}
@@ -1303,7 +1310,12 @@ body{
   width:100%;
   min-height:1180px;
   transform-style:preserve-3d;
-  transition:transform .9s cubic-bezier(.4,.2,.2,1);
+  /* altura em px agora é calculada e aplicada por JS (ver syncCardHeight() no <script>), pra
+     acompanhar exatamente o conteúdo da face ativa (frente OU verso, dependendo de .flipped) sem
+     precisar de barra de rolagem interna dentro de .face-inner -- min-height acima é só o valor
+     inicial antes do primeiro cálculo. height entra na mesma transição do giro, pra suavizar a
+     mudança de altura ao virar entre uma face mais alta e uma mais baixa. */
+  transition:transform .9s cubic-bezier(.4,.2,.2,1), height .4s ease;
   text-transform:uppercase;
 }
 .card.flipped{transform:rotateY(180deg);}
@@ -1342,19 +1354,22 @@ body{
 .face::after{bottom:0;transform:scaleY(-1);}
 .face-inner{
   position:absolute;
-  inset:16px;
+  /* SEM "bottom" (era inset:16px nos 4 lados) -- de propósito: sem uma altura travada entre o
+     topo e o fundo de .face, a altura vira automática (acompanha o conteúdo), então não sobra
+     conteúdo pra cortar/rolar. Quem garante que isso sempre cabe dentro de .face (que continua
+     com overflow:hidden) é o JS: syncCardHeight() mede a altura natural daqui e ajusta a altura
+     de #card pra caber certinho, toda vez que o conteúdo muda de tamanho (ResizeObserver) ou o
+     cartão vira (flip). */
+  top:16px;left:16px;right:16px;
   border:1px solid var(--ink-faint);
   outline:1px solid rgba(60,42,20,.25);
   outline-offset:5px;
   border-radius:3px;
   padding:26px 30px 34px;
-  overflow-y:auto;
   /* explícito (em vez de deixar implícito): mesmo que algum conteúdo futuro fique largo demais,
      ele encolhe/corta em vez de abrir uma barra de rolagem lateral no painel. */
   overflow-x:hidden;
 }
-.face-inner::-webkit-scrollbar{width:8px;}
-.face-inner::-webkit-scrollbar-thumb{background:var(--ink-faint);border-radius:4px;}
 
 /* marcas dos cantos — douradas, como um selo/ornamento de metal precioso embutido na pedra
    (antes eram manchas de envelhecimento marrons, condizentes com o papiro antigo). */
@@ -2244,9 +2259,12 @@ body{
   opacity:0;
   /* as cores vêm de --deity-flash-strong/--deity-flash-mid (setadas em updateDeityEyeGlow() a
      partir da divindade escolhida) — o âmbar aqui é só o valor de fallback caso a variável ainda
-     não tenha sido definida (ex.: antes do primeiro recalc()). */
+     não tenha sido definida (ex.: antes do primeiro recalc()). O CENTRO do brilho (--levelup-flash-x/
+     --levelup-flash-y, em % da viewport) é calculado em celebrateLevelUp() a partir da posição da
+     vela acima do retrato (#candleWrap) bem antes de disparar a animação, pra parecer que a luz
+     "vem" dela — 50%/38% aqui são só o fallback caso o cálculo não rode por algum motivo. */
   background:
-    radial-gradient(circle at 50% 38%, var(--deity-flash-strong, rgba(255,235,170,.75)), var(--deity-flash-mid, rgba(255,205,90,.35)) 38%, var(--deity-flash-fade, rgba(255,205,90,0)) 72%);
+    radial-gradient(circle at var(--levelup-flash-x,50%) var(--levelup-flash-y,38%), var(--deity-flash-strong, rgba(255,235,170,.75)), var(--deity-flash-mid, rgba(255,205,90,.35)) 38%, var(--deity-flash-fade, rgba(255,205,90,0)) 72%);
   mix-blend-mode:screen;
 }
 @keyframes levelUpFlashFade{
@@ -2499,6 +2517,10 @@ body{
    que são as ferramentas mais usadas da ficha — só ganham a opção de encolher pra quem quiser
    liberar espaço na tela. */
 .dice-panel-body.collapsed{display:none;}
+/* "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa -- mesmo mecanismo de minimizar do
+   Histórico de Rolagens logo abaixo, só que aplicado direto na lista (.master-list é reaproveitada
+   por outras listas fora da Mesa, então o seletor fica travado no ID pra não afetar as outras). */
+#mesaHeroSummaryList.collapsed{display:none;}
 /* botão de minimizar/expandir no cabeçalho de Modificadores — flutua à direita do título, sem
    mudar a altura da faixa (border-bottom) que já existe embaixo de todo <h2> de painel. */
 .panel-toggle-btn{
@@ -2613,7 +2635,7 @@ body{
 }
 .extra-skill-attr-btn:hover{border-color:#e0b656;background:linear-gradient(180deg,#8a6a2e,#54401a);}
 .extra-skill-attr-btn:active{transform:translateY(1px);}
-/* campo de CUSTO (1 a 10) antes do seletor de atributo — estreito o bastante pra caber na linha
+/* campo de CUSTO (0 a 10) antes do seletor de atributo — estreito o bastante pra caber na linha
    sem alargar o painel (a caixinha do atributo é flex:1 1 auto, então encolhe sozinho pra abrir
    espaço). O texto "CUSTO" só aparece como tooltip ao passar o mouse (atributo title). */
 .extra-skill-cost{
@@ -3438,7 +3460,7 @@ body{
               </div>
               <div class="vitals-grid">
                 <div class="vital-box">
-                  <div class="vlabel">Vida</div>
+                  <div class="vlabel ar-ap-tip">Vida<div class="cs-tooltip">10 + FOR + CON</div></div>
                   <div class="vval"><input type="number" class="cur" id="cur_vida" value="10" readonly><span class="max">/ <span id="max_vida">10</span></span></div>
                   <div class="vital-btn-row">
                     <button type="button" class="vital-step-btn" id="vidaMinusBtn" aria-label="Diminuir Vida">−</button>
@@ -3447,7 +3469,7 @@ body{
                   </div>
                 </div>
                 <div class="vital-box">
-                  <div class="vlabel">Mana</div>
+                  <div class="vlabel ar-ap-tip">Mana<div class="cs-tooltip">INT+VON</div></div>
                   <div class="vval"><input type="number" class="cur" id="cur_mana" value="10" readonly><span class="max">/ <span id="max_mana">10</span></span></div>
                   <div class="vital-btn-row">
                     <button type="button" class="vital-step-btn" id="manaMinusBtn" aria-label="Diminuir Mana">−</button>
@@ -3861,13 +3883,13 @@ body{
     </div>
 
     <div class="panel dice-panel" id="mesaHeroSummaryPanel">
-      <h2>📋 Fichas dos Jogadores (resumo ao vivo)</h2>
+      <h2>📋 Fichas dos Jogadores (resumo ao vivo) <button type="button" class="panel-toggle-btn" id="mesaHeroSummaryToggleBtn" aria-label="Minimizar Fichas dos Jogadores" title="Minimizar/expandir Fichas dos Jogadores">▾</button></h2>
       <div id="mesaHeroSummaryList" class="master-list"></div>
     </div>
 
     <div class="panel dice-panel" id="rollLogPanel">
       <h2>🎲 Histórico de Rolagens <button type="button" class="panel-toggle-btn" id="rollLogToggleBtn" aria-label="Minimizar Histórico de Rolagens" title="Minimizar/expandir Histórico de Rolagens">▾</button></h2>
-      <div id="rollLogBody">
+      <div id="rollLogBody" class="dice-panel-body">
         <div class="roll-log-actions">
           <button id="refreshRollLog" class="add-row-btn">↻ Atualizar histórico</button>
           <button id="clearRollLog" class="add-row-btn danger-row-btn">🗑️ Limpar histórico</button>
@@ -4000,6 +4022,16 @@ body{
 <script>
 (function(){
   const $ = id => document.getElementById(id);
+
+  // Ficha sem nome preenchido não deve gerar aviso nenhum (nem chat/Discord, nem Histórico de
+  // Rolagens) -- pedido explícito ("Fichas sem nome não geram mensagens ou log"). Cobre tanto o
+  // campo vazio quanto o fallback textual "(sem nome)" que várias mensagens já usavam antes de
+  // mandar pro Discord/histórico (ver pushRollLog()/pushMoveLog()/celebrateLevelUp() etc.), pra
+  // não precisar reescrever a lógica de cada uma dessas chamadas, só barrar na entrada.
+  function isBlankName(n){
+    const t = (n == null ? '' : String(n)).trim();
+    return !t || t === '(sem nome)';
+  }
 
   // a imagem do guerreiro do lado direito reaproveita o mesmo retrato (data URI) já carregado na
   // do lado esquerdo, em vez de duplicar esse base64 gigante de novo no HTML — mais leve pra
@@ -4880,6 +4912,7 @@ body{
   wirePanelToggle('danoToggleBtn', 'danoBody', 'Rolagem de Dano');
   wirePanelToggle('sorteToggleBtn', 'sorteBody', 'Rolagem de Sorte');
   wirePanelToggle('rollLogToggleBtn', 'rollLogBody', 'Histórico de Rolagens');
+  wirePanelToggle('mesaHeroSummaryToggleBtn', 'mesaHeroSummaryList', 'Fichas dos Jogadores');
 
   // joia de Nível: sem tooltip nativo (não tem mais "title") — em vez disso, passar o mouse
   // por cima troca o numeral romano por número normal (ex: "XIV" vira "14"), e volta pro
@@ -5271,6 +5304,20 @@ body{
 
   // efeito comemorativo de subida de nível: brilho na página inteira + estrelinhas na barra de XP + fanfarra
   function celebrateLevelUp(newLevel){
+    // centraliza o brilho na vela acima do retrato (#candleWrap), como se a luz viesse dela --
+    // recalcula toda vez (não só uma vez no load) porque a ficha pode ter rolado a página ou
+    // mudado de layout (coluna única em telas estreitas) desde a última subida de nível. Sem a
+    // vela na tela (ex.: verso da ficha aberto), cai no fallback 50%/38% já definido no CSS.
+    const candleWrap = $('candleWrap');
+    if(candleWrap){
+      const rect = candleWrap.getBoundingClientRect();
+      if(rect.width && rect.height){
+        const cx = rect.left + rect.width/2;
+        const cy = rect.top + rect.height*0.35; // perto da chama, não do centro do castiçal
+        document.documentElement.style.setProperty('--levelup-flash-x', (cx/window.innerWidth*100).toFixed(2)+'%');
+        document.documentElement.style.setProperty('--levelup-flash-y', (cy/window.innerHeight*100).toFixed(2)+'%');
+      }
+    }
     const flashEl = $('levelUpFlash');
     if(flashEl){
       flashEl.classList.remove('flash');
@@ -5289,13 +5336,16 @@ body{
     const nome = (els.nome.value || '').trim() || '(sem nome)';
     const deidadeNome = (els.deidade.value && els.deidade.value !== 'VAZIO') ? els.deidade.value.trim() : '';
     const bencaoTxt = deidadeNome ? ` POR UMA BENÇÃO DE **${deidadeNome}**` : '';
-    postToDiscord(`🎉 **${nome}** PASSA PARA O NÍVEL ${newLevel}${bencaoTxt}!`, buildLevelUpImageDataUrl());
+    // ficha sem nome não avisa ninguém (ver isBlankName()) -- a festa visual (brilho/partículas/
+    // som) já rolou acima, só o aviso pra mesa/Discord fica de fora.
+    if(!isBlankName(nome)) postToDiscord(`🎉 **${nome}** PASSA PARA O NÍVEL ${newLevel}${bencaoTxt}!`, buildLevelUpImageDataUrl());
   }
 
   // avisa no Discord quando a vida da ficha chega a zero, com um ícone de caveira na mesma
   // moldura circular (com anel na cor da Deidade) usada nos ícones de rolagem enviados pra mesa.
   function announceDeath(){
     const nome = (els.nome.value || '').trim() || '(sem nome)';
+    if(isBlankName(nome)) return; // ficha sem nome não avisa ninguém
     postToDiscord(`💀 **${nome}** MORREU`, buildRollIconDataUrl('morte'));
   }
 
@@ -5329,7 +5379,7 @@ body{
       if(num(els.curMana) - habilidadeAtributoParaMana.custo < 0){
         const nomePersonagem = els.nome.value || '(sem nome)';
         diceHint.textContent = `Mana insuficiente para usar "${habilidadeAtributoParaMana.nome}" (custo ${habilidadeAtributoParaMana.custo}).`;
-        postToDiscord(`**${nomePersonagem}** FALTA PODER PARA USAR (${habilidadeAtributoParaMana.nome.toUpperCase()})`);
+        if(!isBlankName(nomePersonagem)) postToDiscord(`**${nomePersonagem}** FALTA PODER PARA USAR (${habilidadeAtributoParaMana.nome.toUpperCase()})`);
         return;
       }
       manaStep(-habilidadeAtributoParaMana.custo);
@@ -5437,9 +5487,9 @@ body{
     if(mode === 'vantagem') resultLabel += ' — Vantagem';
     else if(mode === 'desvantagem') resultLabel += ' — Desvantagem';
 
-    // acerto rende +1 de XP automaticamente; 20 natural (acerto garantido) rende +5 em vez de +1.
-    if(roll === 20) xpStep(5);
-    else if(verdict === 'acerto') xpStep(1);
+    // acerto rende +3 de XP automaticamente; 20 natural (acerto crítico/garantido) rende +10 em vez de +3.
+    if(roll === 20) xpStep(10);
+    else if(verdict === 'acerto') xpStep(3);
 
     const logEntry = { nome: els.nome.value || '(sem nome)', tipo:'atributo', statKey: stat, statValor: statVal, resultado: roll, resultLabel, ts: Date.now() };
     if(twoDice){ logEntry.mode = mode; logEntry.rolls = [die1, die2]; }
@@ -5589,7 +5639,7 @@ body{
     // igual às outras mensagens automáticas (ex: aviso de morte em announceDeath()).
     if(getOuroQty() < 1){
       const nome = els.nome.value.trim() || '(sem nome)';
-      postToDiscord(`**${nome}** NÃO TEM MOEDAS PARA ROLAR SORTE`, null);
+      if(!isBlankName(nome)) postToDiscord(`**${nome}** NÃO TEM MOEDAS PARA ROLAR SORTE`, null);
       return;
     }
 
@@ -5700,6 +5750,38 @@ body{
   // ---------- flip ----------
   const card = $('card');
 
+  // altura de #card em px, calculada a partir do conteúdo (pedido: tirar a barra de rolagem de
+  // dentro da ficha e deixar ela com "tamanho fixo" -- ver .face-inner/.card no <style>: agora
+  // .face-inner não tem mais "bottom" no inset, então a altura dela é automática/acompanha o
+  // conteúdo, em vez de ficar travada do tamanho de .face com scroll interno quando não coubesse.
+  // syncCardHeight() mede a altura natural da face ATIVA no momento (frente OU verso, dependendo
+  // de .card.flipped -- ver frontFaceInnerEl/backFaceInnerEl abaixo) e aplica em #card.style.height,
+  // que é quem realmente dá tamanho a .face (position:absolute;inset:0 dentro de #card). +32 é o
+  // respiro de 16px em cima e 16px embaixo (era o "bottom" que tirei do inset de .face-inner).
+  const frontFaceInnerEl = document.querySelector('.face.front > .face-inner');
+  const backFaceInnerEl  = document.querySelector('.face.back > .face-inner');
+  function syncCardHeight(){
+    const activeInner = card.classList.contains('flipped') ? backFaceInnerEl : frontFaceInnerEl;
+    if(!activeInner) return;
+    const h = activeInner.offsetHeight + 32;
+    card.style.height = h + 'px';
+  }
+  // acompanha automaticamente qualquer mudança de tamanho do conteúdo de QUALQUER uma das duas
+  // faces (adicionar/remover item ou habilidade, expandir/recolher um painel, textarea da história
+  // sendo arrastada pelo canto, imagem de retrato carregando, fonte terminando de carregar, troca
+  // de História<->Mesa dentro do verso via setBackFaceMode() etc.) -- sem precisar chamar
+  // syncCardHeight() manualmente em cada um desses lugares. ResizeObserver já dispara uma vez
+  // sozinho assim que start observando, então isso também cobre o cálculo inicial.
+  if(typeof ResizeObserver === 'function'){
+    const cardResizeObserver = new ResizeObserver(()=> syncCardHeight());
+    if(frontFaceInnerEl) cardResizeObserver.observe(frontFaceInnerEl);
+    if(backFaceInnerEl) cardResizeObserver.observe(backFaceInnerEl);
+  } else {
+    // navegador muito antigo sem ResizeObserver -- ainda assim recalcula ao virar e ao redimensionar
+    // a janela (ver chamadas de syncCardHeight() logo abaixo/dentro do listener de flip).
+    window.addEventListener('resize', syncCardHeight);
+  }
+
   // som sintetizado de "página de livro sendo virada" (um "shff" duplo, como o folhear e o
   // assentar da folha) tocado enquanto a ficha gira — gerado na hora via Web Audio API (ruído
   // branco passando por um filtro passa-faixa que varre de grave pra agudo e volta, simulando o
@@ -5780,6 +5862,7 @@ body{
     card.classList.toggle('flipped');
     $('flipBtn').textContent = card.classList.contains('flipped') ? '↺ Ver frente' : '↺ Ver verso';
     playFlipSound();
+    syncCardHeight(); // virou -- a outra face agora é quem manda na altura de #card
   });
 
   // ---------- inventory list ----------
@@ -5887,7 +5970,7 @@ body{
       ? SKILL_IMAGE_OPTIONS.find(o => o.value === imageValueEl.value)
       : null;
     const imagem = imgOpt ? imgOpt.img : '';
-    // custo de mana (1 a 10, ver .extra-skill-cost em addExtraSkillRow()) -- usado só quando o
+    // custo de mana (0 a 10, ver .extra-skill-cost em addExtraSkillRow()) -- usado só quando o
     // ATRIBUTO da habilidade é rolado (nunca o dano), ver rollBtn.addEventListener() mais abaixo.
     const costEl = row.querySelector('.extra-skill-cost');
     const custo = parseInt((costEl && costEl.value) || '0', 10) || 0;
@@ -5920,10 +6003,10 @@ body{
     const imageOptsHtml = SKILL_IMAGE_OPTIONS.map(o =>
       `<button type="button" class="extra-skill-image-opt" data-value="${o.value}" title="${escapeHtml(o.label)}" style="background-image:url('${o.img}')"></button>`
     ).join('');
-    // campo de CUSTO (1 a 10) antes do seletor de atributo — só mostra o texto "CUSTO" como
+    // campo de CUSTO (0 a 10) antes do seletor de atributo — só mostra o texto "CUSTO" como
     // tooltip (title) ao passar o mouse, não tem rótulo fixo na tela (economiza espaço na linha).
-    // Era uma lista suspensa (1 a 10); virou um botão só, com o valor atual escrito nele mesmo —
-    // cada clique avança pro próximo número (1→2→...→10→1, sempre em ciclo). O atributo/propriedade
+    // Era uma lista suspensa (1 a 10, hoje 0 a 10); virou um botão só, com o valor atual escrito
+    // nele mesmo — cada clique avança pro próximo número (0→1→...→10→0, sempre em ciclo). O atributo/propriedade
     // "value" do próprio <button> continua guardando o número escolhido (button.value existe de
     // verdade no HTML, mesmo sem aparecer na tela), então o resto do código (collectState() etc,
     // ver costEl.value mais abaixo) não precisou mudar nada além do wiring de clique.
@@ -5983,11 +6066,11 @@ body{
     refreshImageBtn();
     refreshHasDesc();
 
-    // botão de CUSTO: cada clique avança um número (1→2→...→10→1, sempre em ciclo) — o valor atual
+    // botão de CUSTO: cada clique avança um número (0→1→...→10→0, sempre em ciclo) — o valor atual
     // fica escrito no próprio botão, sem precisar de rótulo/lista à parte.
     const costBtn = entry.querySelector('.extra-skill-cost');
     costBtn.addEventListener('click', ()=>{
-      const next = (parseInt(costBtn.value, 10) % 10) + 1; // 1..10, volta pro 1 depois do 10
+      const next = (parseInt(costBtn.value, 10) + 1) % 11; // 0..10, volta pro 0 depois do 10
       costBtn.value = String(next);
       costBtn.textContent = String(next);
     });
@@ -6153,20 +6236,26 @@ body{
     // toda guia minimizável começa minimizada sempre que uma ficha é acessada (nova, carregada
     // automaticamente pro jogador, ou aberta pela lista de Fichas de Jogador/Fichas do Mestre) —
     // não só Modificadores (que já nascia assim antes desta rodada): os 3 painéis de rolagem
-    // (Atributo/Dano/Sorte) e o Histórico de Rolagens (dentro da Mesa) também. Independe de como
-    // cada painel estava antes — sempre volta a fechado neste ponto.
+    // (Atributo/Dano/Sorte), o Histórico de Rolagens e "Fichas dos Jogadores (resumo ao vivo)"
+    // (os dois últimos dentro da Mesa) também. Independe de como cada painel estava antes —
+    // sempre volta a fechado neste ponto.
     [
       [modToggleBtn, modsGrid, 'Modificadores'],
       [$('diceToggleBtn'), $('diceBody'), 'Rolagem de Atributo'],
       [$('danoToggleBtn'), $('danoBody'), 'Rolagem de Dano'],
       [$('sorteToggleBtn'), $('sorteBody'), 'Rolagem de Sorte'],
       [$('rollLogToggleBtn'), $('rollLogBody'), 'Histórico de Rolagens'],
+      [$('mesaHeroSummaryToggleBtn'), $('mesaHeroSummaryList'), 'Fichas dos Jogadores'],
     ].forEach(([btn, body, titulo])=>{
       if(!btn || !body) return;
       body.classList.add('collapsed');
       btn.classList.add('is-collapsed');
       btn.setAttribute('aria-label', `Expandir ${titulo}`);
     });
+    // "🗺️ Tabuleiro ao Vivo" agora segue a mesma regra acima (sempre minimizado ao acessar a
+    // ficha) em vez de lembrar o estado por navegador — ver setLiveBoardMinimized() mais abaixo,
+    // que não usa mais localStorage pra isso.
+    if(typeof setLiveBoardMinimized === 'function') setLiveBoardMinimized(true);
 
     updateFichaTitleHeading();
   }
@@ -6834,6 +6923,11 @@ body{
   }
 
   async function pushRollLog(entry){
+    // ficha sem nome não gera mensagem nem entra no Histórico de Rolagens (ver isBlankName()) --
+    // barra aqui, num lugar só, em vez de repetir a checagem em cada chamador (rolagem de
+    // atributo/dano/sorte já mandam entry.nome com o mesmo fallback "(sem nome)" usado em
+    // isBlankName()).
+    if(isBlankName(entry && entry.nome)) return;
     // botão SILENCIAR (só o mestre vê) — enquanto ativo NUMA SESSÃO DE MESTRE, a rolagem nem manda
     // mensagem pro Discord (postToDiscord já vira no-op sozinho) nem entra no histórico
     // compartilhado (o resto desta função, que grava no GitHub, nem chega a rodar). Rolagens feitas
@@ -6882,6 +6976,8 @@ body{
   // entry.tipo:'movimento' é o que loadRollLog() usa pra formatar essa linha diferente das demais
   // (ver ali).
   async function pushMoveLog(entry){
+    // mesma regra de pushRollLog(): ficha (token) sem nome não entra no Histórico de Rolagens.
+    if(isBlankName(entry && entry.nome)) return;
     if(isSilenceActive()) return;
     if(!getToken()) return;
     try{
@@ -7100,6 +7196,7 @@ body{
       $('flipBtn').textContent = '↺ Ver frente';
       playFlipSound();
     }
+    syncCardHeight(); // Mesa é o verso -- garante que #card já acompanha a altura dele
     // o tabuleiro do mestre só existe de verdade (offsetWidth > 0) com a Mesa visível — reaplica o
     // zoom agora que dá pra medir o tamanho natural certinho (ver comentário grande dentro de
     // setupBoardZoom() sobre esse "não visível = 0px" no <script>).
@@ -7117,6 +7214,7 @@ body{
     card.classList.remove('flipped');
     $('flipBtn').textContent = '↺ Ver verso';
     playFlipSound();
+    syncCardHeight(); // voltou pra frente -- ela é quem manda na altura de #card agora
     loadMesaHeroSummary.detachLiveListeners();
     detachRollLogLiveListener();
   }
@@ -7892,9 +7990,10 @@ body{
   // de mestre), sem precisar repetir a categoria separadamente.
   function announceTokenSpotted(token){
     if(!currentUser) return;
-    const nome = (els.nome && els.nome.value ? els.nome.value.trim() : '')
-      || (currentUser.email ? currentUser.email.split('@')[0] : '')
-      || 'Jogador';
+    // ficha sem nome não avisa ninguém (ver isBlankName()) -- antes caía no e-mail/"Jogador" como
+    // fallback; agora, sem nome preenchido na ficha, o avistamento simplesmente não é anunciado.
+    if(isBlankName(els.nome && els.nome.value)) return;
+    const nome = els.nome.value.trim();
     postToDiscord(`👁️ **${nome}** avista **${tokenTooltipText(token)}**`);
   }
 
@@ -7928,6 +8027,13 @@ body{
         if(!hero) return;
         const prevKey = findHeroCell(hero.id);
         const prevToken = prevKey ? boardTokens[prevKey] : null;
+        // fichas de MESTRE (id sempre prefixado "mestre:" — ver mestreRoster) podem ocupar 1 casa
+        // OU 2x2, conforme qual das duas moedas da bandeja foi arrastada (payload.large, ver
+        // allowLarge em makeRosterTrayRenderer()); fichas de jogador nunca mandam "large" no
+        // payload (só têm a moeda de 1 casa), então continuam sempre 1x1 — o "&& isMestreHero"
+        // abaixo é só uma segunda trava contra um payload adulterado.
+        const isMestreHero = typeof hero.id === 'string' && hero.id.indexOf('mestre:') === 0;
+        const heroSize = (payload.large && isMestreHero) ? 2 : 1;
         if(payload.pvp){
           // aba PVP (ver .board-menu-panel#boardPanelPvp/makeRosterTrayRenderer(..., pvp) e o
           // aviso no HTML): nunca "move" um ícone já existente pra virar PVP — só coloca se essa
@@ -7935,20 +8041,20 @@ body{
           // travada (não-arrastável) nesse caso (ver "placed" em makeRosterTrayRenderer()), isto
           // aqui é só a segunda trava, direto no drop.
           if(prevToken) return;
-          if(!canPlace(r, c, 1, 1, null)) return;
-          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:1, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, deidade: hero.deidade || '', pvp: true};
+          if(!canPlace(r, c, heroSize, heroSize, null)) return;
+          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, deidade: hero.deidade || '', pvp: true};
           placeToken(r, c, token);
-          renderBoardCell(r,c);
+          footprintCells(r, c, heroSize).forEach(([fr,fc]) => renderBoardCell(fr,fc));
           renderHeroTray();
           renderMestreTray();
         } else {
-          if(!canPlace(r, c, 1, 1, prevToken ? prevToken.id : null)) return;
+          if(!canPlace(r, c, heroSize, heroSize, prevToken ? prevToken.id : null)) return;
           let prevCells = [];
-          if(prevToken){ prevCells = footprintCells(prevToken.anchorR, prevToken.anchorC, 1, 1); clearTokenFootprint(prevToken); }
-          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:1, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, deidade: hero.deidade || ''};
+          if(prevToken){ const [pSizeR, pSizeC] = tokenFootprintSize(prevToken); prevCells = footprintCells(prevToken.anchorR, prevToken.anchorC, pSizeR, pSizeC); clearTokenFootprint(prevToken); }
+          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, deidade: hero.deidade || ''};
           placeToken(r, c, token);
           prevCells.forEach(([pr,pc]) => renderBoardCell(pr,pc));
-          renderBoardCell(r,c);
+          footprintCells(r, c, heroSize).forEach(([fr,fc]) => renderBoardCell(fr,fc));
           renderHeroTray();
           renderMestreTray();
         }
@@ -8045,7 +8151,12 @@ body{
   // hero.id), sem olhar pra pvp — então a moeda fica travada (não dá pra arrastar) em AMBAS as
   // abas assim que existir um ícone dela no tabuleiro, seja ele normal ou PVP, evitando os dois
   // ao mesmo tempo (ver comentário de handleBoardDrop()).
-  function makeRosterTrayRenderer(getRoster, trayEl, emptyMsg, pvp){
+  // allowLarge (opcional, padrão false — só true pra bandeja de fichas do MESTRE): além da moeda
+  // de sempre (1 casa), desenha uma SEGUNDA moeda maior pra mesma ficha, que ocupa 2x2 casas no
+  // tabuleiro (mesmo "large" lido no payload do arrasto por handleBoardDrop()). As duas travam
+  // juntas — o mesmo findHeroCell(hero.id) das duas — já que só pode existir UM ícone daquela
+  // ficha no tabuleiro por vez, não importa o tamanho escolhido.
+  function makeRosterTrayRenderer(getRoster, trayEl, emptyMsg, pvp, allowLarge){
     return function renderTray(){
       if(!trayEl) return;
       trayEl.innerHTML = '';
@@ -8057,29 +8168,33 @@ body{
         trayEl.appendChild(empty);
       }
       roster.forEach(hero=>{
-        const wrap = document.createElement('div');
-        wrap.className = 'tray-coin-wrap';
         const placed = !!findHeroCell(hero.id);
-        const coin = document.createElement('div');
-        coin.className = 'tray-coin token-hero' + (pvp ? ' token-hero-pvp' : '') + (placed ? ' placed' : '');
-        coin.draggable = !placed;
-        if(hero.portrait){
-          coin.style.backgroundImage = `url("${hero.portrait}")`;
-        } else {
-          coin.innerHTML = `<span class="token-fallback">${escapeHtml((hero.name||'?').slice(0,2).toUpperCase())}</span>`;
-        }
-        const displayName = pvp ? `${hero.name} (PVP)` : hero.name;
-        coin.title = placed ? `${displayName} (já está no tabuleiro)` : displayName;
-        coin.addEventListener('dragstart', (e)=>{
-          if(placed){ e.preventDefault(); return; }
-          e.dataTransfer.setData('text/plain', JSON.stringify({source:'tray', kind:'hero', heroId: hero.id, pvp: !!pvp}));
+        const variants = allowLarge ? [false, true] : [false];
+        variants.forEach(large=>{
+          const wrap = document.createElement('div');
+          wrap.className = 'tray-coin-wrap';
+          const coin = document.createElement('div');
+          coin.className = 'tray-coin token-hero' + (pvp ? ' token-hero-pvp' : '') + (large ? ' token-hero-large' : '') + (placed ? ' placed' : '');
+          coin.draggable = !placed;
+          if(hero.portrait){
+            coin.style.backgroundImage = `url("${hero.portrait}")`;
+          } else {
+            coin.innerHTML = `<span class="token-fallback">${escapeHtml((hero.name||'?').slice(0,2).toUpperCase())}</span>`;
+          }
+          const displayName = pvp ? `${hero.name} (PVP)` : hero.name;
+          const sizeSuffix = large ? ' — ocupa 2x2 casas' : ' — ocupa 1 casa';
+          coin.title = placed ? `${displayName} (já está no tabuleiro)` : (displayName + (allowLarge ? sizeSuffix : ''));
+          coin.addEventListener('dragstart', (e)=>{
+            if(placed){ e.preventDefault(); return; }
+            e.dataTransfer.setData('text/plain', JSON.stringify({source:'tray', kind:'hero', heroId: hero.id, pvp: !!pvp, large: !!large}));
+          });
+          const label = document.createElement('div');
+          label.className = 'tray-coin-name' + (pvp ? ' tray-coin-name-pvp' : '');
+          label.textContent = large ? `${hero.name} (2x2)` : hero.name;
+          wrap.appendChild(coin);
+          wrap.appendChild(label);
+          trayEl.appendChild(wrap);
         });
-        const label = document.createElement('div');
-        label.className = 'tray-coin-name' + (pvp ? ' tray-coin-name-pvp' : '');
-        label.textContent = hero.name;
-        wrap.appendChild(coin);
-        wrap.appendChild(label);
-        trayEl.appendChild(wrap);
       });
     };
   }
@@ -8097,13 +8212,15 @@ body{
   // (normal + PVP) juntas, pra não precisar caçar e duplicar cada chamada existente.
   function renderHeroTray(){ renderHeroTrayNormal(); renderHeroTrayPvp(); }
 
+  // fichas do mestre: allowLarge=true (último argumento) — cada NPC ganha as duas moedas (1 casa e
+  // 2x2), ver comentário de makeRosterTrayRenderer() acima.
   const renderMestreTrayNormal = makeRosterTrayRenderer(
     ()=> mestreRoster, boardTrayMestreCoins,
-    'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".'
+    'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".', false, true
   );
   const renderMestreTrayPvp = makeRosterTrayRenderer(
     ()=> mestreRoster, boardTrayMestreCoinsPvp,
-    'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".', true
+    'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".', true, true
   );
   function renderMestreTray(){ renderMestreTrayNormal(); renderMestreTrayPvp(); }
 
@@ -8861,6 +8978,12 @@ body{
     // na hora, ver connectDeidadeListener()) e também ESCUTA esse mesmo nó (pra refletir aqui, sem
     // reabrir a lista, se outra aba/mestre alterar a mesma ficha).
     const deidadeControl = !!(opts && opts.deidadeControl);
+    // opts.npcXpControls (usado só pela lista "🔒 Fichas do Mestre") -- adiciona os botões
+    // −100/+100 de ajustar XP direto em cada ficha DE NPC (sem dono/ownerUid, por isso não dá pra
+    // reaproveitar xpControls/grantXpToPlayer(), que manda o XP pra um jogador conectado via
+    // Firebase). Aqui não existe "ao vivo": ajusta o campo xp direto no JSON da ficha e regrava no
+    // GitHub na hora (ver githubPutFile()/o clique de "Apagar" logo abaixo, mesma ideia).
+    const npcXpControls = !!(opts && opts.npcXpControls);
     // "ao vivo": enquanto a lista estiver na tela, cada ficha com dono (ownerUid) escuta
     // mesa/live/{uid} (ver pushLiveVitals() lá em cima, perto de recalc()) e atualiza Vida/Mana/
     // Escudo na hora, sem precisar que ninguém clique em SALVAR nem reabra a lista. Preciso
@@ -8943,6 +9066,11 @@ body{
                 <button type="button" class="mini-btn mc-xp-btn" data-delta="1">+1</button>
                 <button type="button" class="mini-btn mc-xp-btn" data-delta="10">+10</button>
               </div>` : ''}
+              ${npcXpControls ? `<div class="mc-xp-controls">
+                <span class="mc-xp-controls-label">Ajustar XP:</span>
+                <button type="button" class="mini-btn mc-xp-btn mc-npc-xp-btn" data-delta="-100">−100</button>
+                <button type="button" class="mini-btn mc-xp-btn mc-npc-xp-btn" data-delta="100">+100</button>
+              </div>` : ''}
               ${(deidadeControl && data.ownerUid) ? `<div class="mc-deidade-control">
                 <span class="mc-deidade-control-label">Divindade:</span>
                 <select class="mc-deidade-select">${deidadeOptionsHtml}</select>
@@ -8956,6 +9084,52 @@ body{
             card.querySelectorAll('.mc-xp-btn').forEach(btn=>{
               btn.addEventListener('click', ()=>{
                 grantXpToPlayer(data.ownerUid, parseInt(btn.dataset.delta, 10), data.nome || '');
+              });
+            });
+          }
+          if(npcXpControls){
+            // NPC (ficha do mestre) não tem ownerUid/mesa-live -- ajusta o campo xp direto no
+            // objeto `data` já carregado e regrava o arquivo no GitHub na hora (mesmo
+            // githubPutFile() usado por "SALVAR"), sem depender de ninguém abrir a ficha. Otimista:
+            // atualiza o card na tela IMEDIATAMENTE e só desfaz (com alert) se a gravação falhar --
+            // mesmo espírito do botão "Apagar" logo abaixo.
+            card.querySelectorAll('.mc-npc-xp-btn').forEach(btn=>{
+              btn.addEventListener('click', async ()=>{
+                if(fbReady && currentRole !== 'mestre'){
+                  alert('Só o mestre pode ajustar o XP das fichas do mestre.');
+                  return;
+                }
+                if(!getToken()){
+                  alert('Configure seu token do GitHub para poder ajustar o XP.');
+                  tokenModal.hidden = false;
+                  return;
+                }
+                const delta = parseInt(btn.dataset.delta, 10) || 0;
+                const prevXp = data.xp;
+                const newXp = Math.max(0, (parseFloat(data.xp) || 0) + delta);
+                data.xp = newXp;
+                const xpEl = card.querySelector('.mc-live-xp');
+                const xpNeededEl = card.querySelector('.mc-live-xp-needed');
+                const levelEl = card.querySelector('.mc-live-level');
+                const applyLevelInfo = (xpVal)=>{
+                  const info = levelInfoFromXp(parseFloat(xpVal) || 0);
+                  if(xpEl) xpEl.textContent = Math.round(info.xpInBlock);
+                  if(xpNeededEl) xpNeededEl.textContent = info.xpNeeded;
+                  if(levelEl) levelEl.textContent = `— Nv. ${info.level}`;
+                };
+                applyLevelInfo(newXp);
+                const npcXpBtns = card.querySelectorAll('.mc-npc-xp-btn');
+                npcXpBtns.forEach(b=> b.disabled = true);
+                try{
+                  const result = await githubPutFile(path, data, `Ajusta XP de ${data.nome} (${delta>0?'+':''}${delta})`, sha);
+                  if(result && result.content && result.content.sha) sha = result.content.sha;
+                }catch(err){
+                  console.error(err);
+                  data.xp = prevXp;
+                  applyLevelInfo(prevXp);
+                  alert(`Não foi possível salvar o novo XP de "${data.nome}" no GitHub agora. Tente de novo.`);
+                }
+                npcXpBtns.forEach(b=> b.disabled = false);
               });
             });
           }
@@ -9082,7 +9256,8 @@ body{
   );
   const loadMasterMestreList = makeFichasListLoader(
     FICHAS_MESTRE_PATH, masterMestreList, masterMestreModal,
-    'Nenhuma ficha do mestre salva ainda. Use "SALVAR" logado como mestre.'
+    'Nenhuma ficha do mestre salva ainda. Use "SALVAR" logado como mestre.',
+    { npcXpControls: true }
   );
   // painel "Fichas dos Jogadores (resumo ao vivo)" dentro da própria Mesa — mesmo card/dados ao
   // vivo da lista "📜 Fichas de Jogador", só que só de leitura (sem "Ver ficha"/"Apagar") e sem
@@ -9472,7 +9647,6 @@ body{
   const liveBoardRowHeaderEl = $('liveBoardRowHeader');
   const liveBoardGridEl   = $('liveBoardGrid');
   const liveBoardHintEl   = $('liveBoardHint');
-  const LIVE_BOARD_MIN_KEY = 'rpg_ficha_liveboard_minimized';
   // zoom do mini-tabuleiro (ver setupBoardZoom(), lá em cima perto do zoom da aba Mesa) — chave de
   // localStorage separada da do tabuleiro do mestre, cada um lembra o próprio nível.
   const applyLiveBoardZoom = setupBoardZoom(liveBoardZoomSpacerEl, liveBoardOuterEl, $('liveBoardZoomReadout'), $('liveBoardZoomOutBtn'), $('liveBoardZoomInBtn'), 'rpg_ficha_liveboard_zoom');
@@ -9975,7 +10149,9 @@ body{
     // buildLiveBoardHeaders()).
     const fromLabel = columnLabel(payload.c) + (payload.r + 1);
     const toLabel = columnLabel(c) + (r + 1);
-    postToDiscord(`🚶 **${tok.name}** se movimentou`, null);
+    // ficha/token sem nome não avisa ninguém nem entra no Histórico (ver isBlankName()) --
+    // pushMoveLog() já se protege sozinha, mas o aviso de chat/Discord é uma chamada separada.
+    if(!isBlankName(tok.name)) postToDiscord(`🚶 **${tok.name}** se movimentou`, null);
     pushMoveLog({ nome: tok.name, tipo:'movimento', de: fromLabel, para: toLabel, ts: Date.now() });
   }
 
@@ -10136,11 +10312,15 @@ body{
     scheduleNextLiveBoardBgParticle();
   }
 
+  // "🗺️ Tabuleiro ao Vivo" não lembra mais o estado minimizado/expandido por navegador (isso
+  // ficava salvo em localStorage antes) — agora segue a mesma regra dos outros painéis
+  // minimizáveis da ficha (Modificadores, os 3 de rolagem, Histórico de Rolagens): sempre começa
+  // minimizado sempre que uma ficha é acessada (ver applyState()); o chat da mesa continua sendo
+  // a única exceção que ainda lembra o estado por navegador.
   function setLiveBoardMinimized(min){
     liveBoardPanelEl.classList.toggle('minimized', min);
     $('liveBoardMinimizeBtn').textContent = min ? '▸' : '▾';
     $('liveBoardMinimizeBtn').title = min ? 'Expandir' : 'Minimizar';
-    localStorage.setItem(LIVE_BOARD_MIN_KEY, min ? '1' : '0');
     if(min) stopLiveBoardBgFx(); else startLiveBoardBgFx();
     // o mini-tabuleiro ao vivo só existe de verdade (offsetWidth > 0) desminimizado — reaplica o
     // zoom agora que dá pra medir o tamanho natural certinho (mesma ideia de openMesaModal() lá
@@ -10148,7 +10328,7 @@ body{
     if(!min) applyLiveBoardZoom();
   }
   $('liveBoardMinimizeBtn').addEventListener('click', ()=> setLiveBoardMinimized(!liveBoardPanelEl.classList.contains('minimized')));
-  setLiveBoardMinimized(localStorage.getItem(LIVE_BOARD_MIN_KEY) !== '0');
+  setLiveBoardMinimized(true);
 
   // ---------- chat da mesa (global — todo mundo logado, mestre e jogadores, no mesmo chat) ----------
   const chatPanelEl = $('chatPanel');
@@ -10392,6 +10572,7 @@ body{
       label = 'MANA ATUAL';
       cur = num(els.curMana); max = parseFloat(els.maxMana.textContent) || 0;
     }
+    if(isBlankName(nome)) return; // ficha sem nome não avisa ninguém
     const content = `${label} DE "${nome}" (${cur} / ${max})`;
     postToDiscord(content, img);
   }
