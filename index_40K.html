@@ -5016,6 +5016,14 @@ body{
   function attrStep(key, delta){
     const el = ATTR_INPUT_BY_KEY[key];
     if(!el) return;
+    // o próprio botão < / > já nasce desabilitado quando não há pontos suficientes pro próximo
+    // rank (ou o papel atual não pode reduzir, ver recalc()/"remaining < nextCost" mais acima) —
+    // reconferimos aqui porque "segurar" (wireHoldRepeat abaixo) dispara passos repetidos direto
+    // por um setTimeout, sem passar pelo 'click' do navegador, que é o único evento que um botão
+    // disabled bloqueia sozinho. Sem isso, segurar o "+" até acabarem os pontos continuaria
+    // incrementando (só o clamp 1-18 abaixo protegeria), furando o limite de pontos distribuídos.
+    const btn = $((delta > 0 ? 'inc_' : 'dec_') + key);
+    if(btn && btn.disabled) return;
     const val = num(el);
     const next = Math.max(1, Math.min(18, val + delta));
     if(next === val) return; // já no limite, ou o botão deveria estar desabilitado
@@ -5034,6 +5042,13 @@ body{
     const inc = $('inc_' + key);
     if(dec) dec.addEventListener('click', ()=> attrStep(key, -1));
     if(inc) inc.addEventListener('click', ()=> attrStep(key, 1));
+    // segurar (mouse ou touch) repete o passo automaticamente, igual já valia pra Vida/Mana/XP/
+    // Barreira/Dano — som/efeito de cada passo (inclusive os repetidos) já saem de dentro do
+    // próprio attrStep() acima, por isso o 3º argumento aqui é um "no-op": wireHoldRepeat tocaria
+    // um som próprio nos passos repetidos por padrão (os outros steppers não tocam som sozinhos),
+    // o que aqui duplicaria o som/efeito de attrStep.
+    if(dec) wireHoldRepeat(dec, ()=> attrStep(key, -1), ()=>{});
+    if(inc) wireHoldRepeat(inc, ()=> attrStep(key, 1), ()=>{});
   });
 
   // Redimensiona/comprime uma imagem escolhida pelo usuário antes de guardar como data URL — fotos
