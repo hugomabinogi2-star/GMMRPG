@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 4,
-    "resultado": 17,
-    "resultLabel": "Acerto",
-    "ts": 1787831456263
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
     "resultado": 12,
     "resultLabel": "Erro",
     "ts": 1787831458010
@@ -216,5 +207,14 @@
     "de": "J4",
     "para": "K4",
     "ts": 1787836091982
+  },
+  {
+    "nome": "Polifemo",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 18,
+    "resultado": 2,
+    "resultLabel": "Acerto",
+    "ts": 1787852071211
   }
 ]
