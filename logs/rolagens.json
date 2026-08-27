@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 4,
-    "resultado": 7,
-    "resultLabel": "Erro",
-    "ts": 1787831459778
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
     "resultado": 12,
     "resultLabel": "Erro",
     "ts": 1787831463694
@@ -216,5 +207,21 @@
     "resultado": 17,
     "resultLabel": "Acerto",
     "ts": 1787852098784
+  },
+  {
+    "nome": "Polifemo",
+    "tipo": "dano",
+    "qtd": 5,
+    "maxVal": 11,
+    "rolls": [
+      10,
+      8,
+      7,
+      3,
+      1
+    ],
+    "resultado": 29,
+    "habilidade": "Esmaga-MENTOS!",
+    "ts": 1787852122837
   }
 ]
