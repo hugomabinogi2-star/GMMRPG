@@ -50,7 +50,7 @@
   ],
   "habilidadesExtras": [
     {
-      "nome": "Pancada",
+      "nome": "PAN-K/D/A",
       "attr": "FOR",
       "desc": "Esmurra uma direção causando dano físico massivo. O dano será de 3 dados mais o modificador de habilidade.",
       "imagem": "range8",
