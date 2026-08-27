@@ -218,5 +218,12 @@
     "de": "J3",
     "para": "H5",
     "ts": 1787836045330
+  },
+  {
+    "nome": "Bulleta",
+    "tipo": "movimento",
+    "de": "F7",
+    "para": "G4",
+    "ts": 1787836078916
   }
 ]
