@@ -8,5 +8,14 @@
     "resultLabel": "Acerto",
     "ts": 1787831176511,
     "habilidade": "TESTE"
+  },
+  {
+    "nome": "Bulleta",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 14,
+    "resultLabel": "Erro",
+    "ts": 1787831450830
   }
 ]
