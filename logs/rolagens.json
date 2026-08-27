@@ -4,16 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 4,
-    "resultado": 16,
-    "resultLabel": "Acerto",
-    "ts": 1787831176511,
-    "habilidade": "TESTE"
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
     "resultado": 14,
     "resultLabel": "Erro",
     "ts": 1787831450830
@@ -225,5 +215,12 @@
     "de": "F7",
     "para": "G4",
     "ts": 1787836078916
+  },
+  {
+    "nome": "Bulleta",
+    "tipo": "movimento",
+    "de": "G4",
+    "para": "H3",
+    "ts": 1787836083288
   }
 ]
