@@ -71,5 +71,12 @@
     "resultado": 12,
     "resultLabel": "Erro",
     "ts": 1787831463694
+  },
+  {
+    "nome": "Bulleta",
+    "tipo": "movimento",
+    "de": "G28",
+    "para": "H25",
+    "ts": 1787831649064
   }
 ]
