@@ -44,5 +44,14 @@
     "resultado": 17,
     "resultLabel": "Acerto",
     "ts": 1787831456263
+  },
+  {
+    "nome": "Bulleta",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 12,
+    "resultLabel": "Erro",
+    "ts": 1787831458010
   }
 ]
