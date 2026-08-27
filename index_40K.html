@@ -853,36 +853,46 @@ body{
 .board-cell.drag-over{outline:2px solid var(--gold-bright);outline-offset:-2px;z-index:3;}
 
 /* Seta de direção (8 sentidos) do tabuleiro ao vivo — ver FACING_ANGLES/buildFacingArrowEl() e
-   handleLiveBoardDrop()/renderLiveBoardMini() no <script>. Sempre do tamanho de uma casa (mesma
-   técnica de .board-token: position:absolute preenchendo a casa), desenhada na casa imediatamente
-   ABAIXO do ícone do personagem que a escolheu; z-index menor que .board-token (2) pra nunca tampar
-   nenhum ícone vizinho por engano, e pointer-events:none pra não atrapalhar arrastar/soltar peças. */
+   handleLiveBoardDrop()/renderLiveBoardMini() no <script>. Fica na MESMA casa do ícone do
+   personagem que a escolheu (não mais numa casa separada embaixo), pequena e encostada bem na
+   borda do círculo do ícone (ver FACING_POINTS — raio calculado pra tocar o contorno), como se
+   fosse uma continuação dele; cor = tokenRingColorForFacing() (dourado normal, vermelho em modo
+   PVP — o MESMO contorno do próprio ícone, não mais a cor da divindade). z-index acima do token
+   (2) mas abaixo do seletor de 8 direções (4, enquanto ele estiver aberto), e pointer-events:none
+   pra não atrapalhar arrastar/soltar peças. */
 .board-facing-arrow{
-  position:absolute;inset:14%;
+  position:absolute;
+  width:30%;height:30%;
   pointer-events:none;
-  z-index:1;
+  z-index:3;
   display:flex;align-items:center;justify-content:center;
-  font-size:22px;line-height:1;
+  font-size:12px;line-height:1;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.9));
-  transition:transform .25s ease;
+  transition:left .25s ease, top .25s ease, transform .25s ease;
 }
-/* seletor de 8 direções — aparece na mesma casa (imediatamente abaixo do ícone) assim que o próprio
+/* seletor de 8 direções — aparece AO REDOR do ícone (na MESMA casa dele) assim que o próprio
    jogador termina de mover a própria ficha (ver pendingFacingTokenIds/buildFacingPickerEl()); cada
-   botão fica posicionado num ponto cardeal ao redor do centro da casa (ver FACING_POINTS) e já
-   rotacionado pra apontar na direção que escolhe. */
+   botão fica posicionado num ponto cardeal por fora do círculo do ícone (ver FACING_PICKER_POINTS —
+   raio maior que FACING_POINTS, pra formar um anel ao redor dele em vez de tampá-lo) e já
+   rotacionado pra apontar na direção que escolhe. O próprio "wrap" não recebe clique
+   (pointer-events:none) — só os botões (pointer-events:auto) — pra não bloquear arrastar/soltar
+   nas casas vizinhas que ele acabe cobrindo visualmente, já que o anel extrapola um pouco a
+   própria casa. */
 .board-facing-picker{
   position:absolute;inset:0;
   z-index:4;
+  pointer-events:none;
 }
 .board-facing-picker-btn{
   position:absolute;
-  width:32%;height:32%;
+  width:26%;height:26%;
+  pointer-events:auto;
   border:1.5px solid rgba(255,244,214,.9);
   border-radius:50%;
   background:rgba(20,16,10,.85);
   color:#ffe9a8;
   display:flex;align-items:center;justify-content:center;
-  font-size:12px;line-height:1;
+  font-size:10px;line-height:1;
   cursor:pointer;
   padding:0;
 }
@@ -9552,27 +9562,33 @@ body{
     }
   }
 
-  // quanto o campo de VISÃO (Fog) enxerga além do alcance de MOVIMENTO — pedido explícito mais
-  // recente: sem direção apontada (ou fora do cone), o alcance é só movimento+3 EM TODAS as
-  // direções; NA direção que a ficha estiver apontando (ver facing/FACING_VECTORS logo abaixo),
-  // dentro de um cone a partir dela, o alcance sobe pra movimento+20. Continua sendo Manhattan/BFS
-  // bloqueado por barreira (mesma computeLiveBoardReachable) — só o limite (número de passos) muda
-  // conforme a casa cai dentro do cone ou não. A linha de visão de verdade (hasLineOfSight/
+  // quanto o campo de VISÃO (Fog) enxerga — pedido explícito mais recente: SEM direção apontada (ou
+  // fora do cone), o alcance de visão passa a ser EXATAMENTE o alcance de MOVIMENTO (só os campos
+  // aonde a ficha poderia se mover neste turno: 1 + bônus de DES — mesma conta de
+  // highlightLiveBoardReachable()/handleLiveBoardDrop() —, sem nenhum bônus extra); NA direção que a
+  // ficha estiver apontando (ver facing/FACING_VECTORS logo abaixo), dentro do cone a partir dela, o
+  // alcance vai até a BORDA do tabuleiro. Continua sendo Manhattan/BFS bloqueado por barreira (mesma
+  // computeLiveBoardReachable) pra decidir até onde "dá pra chegar" — só o limite (número de passos)
+  // muda conforme a casa cai dentro do cone ou não. A linha de visão de verdade (hasLineOfSight/
   // computeLineCells, logo abaixo) continua cortando quem está atrás de uma barreira, mesmo dentro
-  // desse alcance maior.
-  const FOG_VISION_BASE_BONUS_TILES = 3;
-  const FOG_VISION_CONE_BONUS_TILES = 20;
+  // desse alcance maior na direção apontada.
+  const FOG_VISION_EDGE_LIMIT = 9999; // grande o bastante pra nunca ser o fator limitante — o BFS já para sozinho nas bordas do tabuleiro (ver computeLiveBoardReachable).
 
   // 8 direções do seletor de "pra onde a ficha está olhando" (ver handleLiveBoardDrop(), que limpa
   // token.facing a cada movimento, e buildFacingPickerEl()/chooseLiveBoardFacing(), que fixam a
   // escolha). FACING_ANGLES é o ângulo (graus, sentido horário a partir de "pra cima") usado tanto
   // pra girar a própria seta fixada (CSS transform:rotate) quanto os botões do seletor. FACING_POINTS
-  // é [esquerda%, topo%] de cada botão do seletor dentro da casa (ver .board-facing-picker-btn no
-  // <style>). FACING_VECTORS é o vetor unitário de cada direção (linha desce = +r, coluna direita =
-  // +c) usado só pra decidir se uma casa cai dentro do cone (ver isInFacingCone() logo abaixo).
+  // é [esquerda%, topo%] de cada ponto cardeal ENCOSTADO na borda do ícone (raio menor — usado pela
+  // seta já fixada, ver buildFacingArrowEl()); FACING_PICKER_POINTS é o mesmo esquema com um raio
+  // MAIOR, pros 8 botões do seletor formarem um anel por FORA do ícone em vez de tampá-lo (ver
+  // buildFacingPickerEl()) — os dois são percentuais dentro da própria casa do ícone (podem passar
+  // de 0%/100%, pra "vazar" um pouco pras casas vizinhas de propósito). FACING_VECTORS é o vetor
+  // unitário de cada direção (linha desce = +r, coluna direita = +c) usado só pra decidir se uma
+  // casa cai dentro do cone (ver isInFacingCone() logo abaixo).
   const FACING_ORDER = ['N','NE','E','SE','S','SW','W','NW'];
   const FACING_ANGLES = { N:0, NE:45, E:90, SE:135, S:180, SW:225, W:270, NW:315 };
   const FACING_POINTS = { N:[50,6], NE:[82,18], E:[94,50], SE:[82,82], S:[50,94], SW:[18,82], W:[6,50], NW:[18,18] };
+  const FACING_PICKER_POINTS = { N:[50,-14], NE:[95,5], E:[114,50], SE:[95,95], S:[50,114], SW:[5,95], W:[-14,50], NW:[5,5] };
   const FACING_VECTORS = {
     N:[-1,0], NE:[-Math.SQRT1_2, Math.SQRT1_2], E:[0,1], SE:[Math.SQRT1_2, Math.SQRT1_2],
     S:[1,0], SW:[Math.SQRT1_2, -Math.SQRT1_2], W:[0,-1], NW:[-Math.SQRT1_2, -Math.SQRT1_2],
@@ -9631,9 +9647,9 @@ body{
 
   // Fog (ver boardFogMode/liveBoardState.fog): monta o conjunto de casas "r_c" que a(s) própria(s)
   // ficha(s) do jogador ENXERGAM nesse tabuleiro agora — mesma regra de alcance usada pro arrasto
-  // normal (highlightLiveBoardReachable/handleLiveBoardDrop: Manhattan até 1 + bônus de DES), só
-  // que com +FOG_VISION_BONUS_TILES casas de alcance (ver acima) — o campo de visão sempre foi
-  // maior que o de movimento. Além de precisar estar dentro desse alcance (BFS, respeita barreira
+  // normal (highlightLiveBoardReachable/handleLiveBoardDrop: Manhattan até 1 + bônus de DES) EM
+  // TODAS as direções, exceto na direção apontada (ver facing/FACING_VECTORS acima), onde o alcance
+  // vai até a borda do tabuleiro. Além de precisar estar dentro desse alcance (BFS, respeita barreira
   // como parede pra ATRAVESSAR), agora também precisa ter LINHA DE VISÃO reta livre até lá (ver
   // hasLineOfSight acima) — uma barreira entre a ficha e a casa esconde essa casa mesmo que exista
   // um caminho livre contornando. TANTO as marcações (pintura verde/amarela/vermelha) QUANTO as
@@ -9665,15 +9681,15 @@ body{
       const tok = liveBoardState.tokens[key];
       if(!tok || key !== liveBoardKey(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça (peças grandes ocupam mais de uma casa apontando pro mesmo objeto)
       if(!includeToken(tok)) return;
-      const baseLimit = 1 + (tok.bonusDes || 0) + FOG_VISION_BASE_BONUS_TILES;
-      const coneLimit = tok.facing ? 1 + (tok.bonusDes || 0) + FOG_VISION_CONE_BONUS_TILES : 0;
+      const baseLimit = 1 + (tok.bonusDes || 0);
+      const coneLimit = tok.facing ? FOG_VISION_EDGE_LIMIT : 0;
       const visionLimit = Math.max(baseLimit, coneLimit);
       reachable.add(key); // a própria casa da ficha sempre entra
       computeLiveBoardReachable(tok.anchorR, tok.anchorC, visionLimit).forEach((dist, reachKey)=>{
         if(reachable.has(reachKey)) return; // já visível por outra ficha própria/combinada (ou é a própria casa)
         const [rr, rc] = reachKey.split('_').map(Number);
-        // dentro do alcance base (movimento+3, todas as direções) OU dentro do cone apontado
-        // (movimento+20, só na direção/cone de facing) — o que valer primeiro já basta.
+        // dentro do alcance de movimento (todas as direções) OU dentro do cone apontado (até a
+        // borda do tabuleiro, só na direção/cone de facing) — o que valer primeiro já basta.
         const withinBase = dist <= baseLimit;
         const withinCone = tok.facing && dist <= coneLimit && isInFacingCone(tok.anchorR, tok.anchorC, tok.facing, rr, rc);
         if(!withinBase && !withinCone) return;
@@ -9796,46 +9812,59 @@ body{
       }
     }
     // Seta de direção / seletor de 8 direções — passe separado, DEPOIS da grade inteira montada
-    // (pedido: casa do tamanho de uma casa, imediatamente abaixo do ícone), pra poder usar
-    // liveBoardGridEl.children[] com índice já pronto em vez de tentar encaixar isso dentro do loop
-    // acima. Só roda com o tabuleiro revelado (senão não tem ícone nenhum desenhado pra "apontar
-    // abaixo de"); respeita Fog igual às peças normais (mesma condição fogReachable.has(key) usada
-    // acima pro próprio ícone, já que uma seta não faz sentido pra quem nem vê a peça dona dela).
+    // (pedido: aparecem AO REDOR do próprio ícone, na MESMA casa dele — não mais numa casa separada
+    // embaixo), pra poder usar liveBoardGridEl.children[] com índice já pronto em vez de tentar
+    // encaixar isso dentro do loop acima. Só roda com o tabuleiro revelado (senão não tem ícone
+    // nenhum desenhado pra "apontar"); respeita Fog igual às peças normais (mesma condição
+    // fogReachable.has(key) usada acima pro próprio ícone, já que uma seta não faz sentido pra quem
+    // nem vê a peça dona dela).
     if(revealed){
       Object.keys(liveBoardState.tokens).forEach(key=>{
         const tok = liveBoardState.tokens[key];
         if(!tok || tok.kind !== 'hero') return;
         if(key !== liveBoardKey(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça
         if(fogActive && fogReachable && !fogReachable.has(key)) return;
-        const belowR = tok.anchorR + 1, belowC = tok.anchorC;
-        if(belowR >= rows) return; // sem casa abaixo (última linha) — não desenha nada
-        const belowCell = liveBoardGridEl.children[belowR * cols + belowC];
-        if(!belowCell) return;
+        const cellEl = liveBoardGridEl.children[tok.anchorR * cols + tok.anchorC];
+        if(!cellEl) return;
         const mine = isMyLiveToken(tok);
         if(mine && pendingFacingTokenIds.has(tok.id)){
-          belowCell.appendChild(buildFacingPickerEl(tok));
+          cellEl.appendChild(buildFacingPickerEl(tok));
         } else if(tok.facing){
-          belowCell.appendChild(buildFacingArrowEl(tok));
+          cellEl.appendChild(buildFacingArrowEl(tok));
         }
       });
     }
   }
 
-  // Seta já fixada (token.facing definido) — do tamanho de uma casa (ver .board-facing-arrow no
-  // <style>), cor de acordo com a divindade do dono (DEITY_EYE_COLOR — mesma paleta usada na
-  // própria ficha; VAZIO/sem divindade cai em preto, coerente com o pedido "cor PRETO" pra VAZIO).
+  // Cor da seta fixada / dos botões do seletor — pedido explícito: "a seta respeita a cor da borda
+  // do ícone como se fosse parte dele", não mais a cor da divindade (DEITY_EYE_COLOR deixou de ser
+  // usada aqui). Só ficha de herói ganha seta (ver isMyLiveToken()/pendingFacingTokenIds), e o
+  // contorno dela é sempre dourado (tokenRingColorHex('hero'), == --hero-ring-color no <style>),
+  // EXCETO em modo PVP, que usa o mesmo vermelho de inimigo (--enemy-ring-color) — mesma regra da
+  // classe CSS .token-hero-pvp em .board-token.
+  function tokenRingColorForFacing(tok){
+    if(tok.pvp) return tokenRingColorHex('inimigo');
+    return tokenRingColorHex(tok.kind) || '#ffd700';
+  }
+
+  // Seta já fixada (token.facing definido) — pequena, encostada na borda do círculo do ícone (ver
+  // FACING_POINTS/.board-facing-arrow no <style>), na MESMA casa dele.
   function buildFacingArrowEl(tok){
     const el = document.createElement('div');
     el.className = 'board-facing-arrow';
     el.textContent = '▲';
-    el.style.color = DEITY_EYE_COLOR[tok.deidade] || '#000000';
-    el.style.transform = `rotate(${FACING_ANGLES[tok.facing] || 0}deg)`;
+    el.style.color = tokenRingColorForFacing(tok);
+    const [leftPct, topPct] = FACING_POINTS[tok.facing] || [50, 50];
+    el.style.left = leftPct + '%';
+    el.style.top = topPct + '%';
+    el.style.transform = `translate(-50%,-50%) rotate(${FACING_ANGLES[tok.facing] || 0}deg)`;
     return el;
   }
 
   // Seletor de 8 direções — some assim que uma direção é escolhida (ver chooseLiveBoardFacing()) e
   // reaparece a cada novo movimento (ver handleLiveBoardDrop()). Um botão por direção, posicionado
-  // ao redor do centro da casa (FACING_POINTS) e já rotacionado pra apontar certo.
+  // AO REDOR do ícone, por fora do círculo dele (FACING_PICKER_POINTS — raio maior que
+  // FACING_POINTS) e já rotacionado pra apontar certo.
   function buildFacingPickerEl(tok){
     const wrap = document.createElement('div');
     wrap.className = 'board-facing-picker';
@@ -9844,7 +9873,7 @@ body{
       btn.type = 'button';
       btn.className = 'board-facing-picker-btn';
       btn.textContent = '▲';
-      const [leftPct, topPct] = FACING_POINTS[dir];
+      const [leftPct, topPct] = FACING_PICKER_POINTS[dir];
       btn.style.left = leftPct + '%';
       btn.style.top = topPct + '%';
       btn.style.transform = `translate(-50%,-50%) rotate(${FACING_ANGLES[dir]}deg)`;
