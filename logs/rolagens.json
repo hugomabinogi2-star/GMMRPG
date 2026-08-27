@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "L25",
-    "para": "N24",
-    "ts": 1787831662462
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "N24",
     "para": "O24",
     "ts": 1787831668479
@@ -237,5 +230,15 @@
     "resultado": 13,
     "resultLabel": "Erro",
     "ts": 1787862346695
+  },
+  {
+    "nome": "Bulleta",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 17,
+    "resultLabel": "Acerto",
+    "ts": 1787862354331,
+    "habilidade": "GUNFIRE"
   }
 ]
