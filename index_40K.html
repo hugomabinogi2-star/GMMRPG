@@ -1256,10 +1256,7 @@ body{
 .master-card .mc-attrs strong{color:var(--ink);font-family:'Share Tech Mono',monospace;}
 /* distribuir XP direto do resumo ao vivo (mesaHeroSummaryPanel) -- ver opts.xpControls em
    makeFichasListLoader() e grantXpToPlayer() no <script>. Só aparece pro mestre (o painel inteiro
-   já é mestre-only) e só quando a ficha tem dono (ownerUid) pra saber pra quem mandar o XP.
-   Mesma classe (.mc-xp-controls/.mc-xp-btn) é reaproveitada também em "🔒 Fichas do Mestre" --
-   ver opts.npcXpControls, NPC não tem dono/ownerUid então ali o XP é ajustado direto no arquivo
-   da ficha no GitHub, sem "ao vivo" nenhum. */
+   já é mestre-only) e só quando a ficha tem dono (ownerUid) pra saber pra quem mandar o XP. */
 .master-card .mc-xp-controls{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .master-card .mc-xp-controls-label{font-size:11px;color:var(--ink-faint);margin-right:2px;}
 .master-card .mc-xp-btn{min-width:34px;}
@@ -1559,9 +1556,12 @@ body{
   width:100%;
   max-width:300px;
   aspect-ratio:180/230;
-  border:2px solid var(--border-brown);
+  /* borda luminosa: acompanha a cor da divindade selecionada (--deity-eye-color), igual ao
+     .deidade-arrow-btn — cai pro dourado padrão (--border-brown) se a variável ainda não tiver
+     sido definida (updateDeityEyeGlow() roda dentro de recalc(), então normalmente já está). */
+  border:2px solid var(--deity-eye-color, var(--border-brown));
   border-radius:2px;
-  outline:1px solid rgba(60,42,20,.3);
+  outline:1px solid var(--deity-eye-glow-soft, rgba(60,42,20,.3));
   outline-offset:4px;
   background:
     radial-gradient(circle at 30% 20%, rgba(150,110,55,.3), transparent 40%),
@@ -1571,8 +1571,13 @@ body{
   cursor:pointer;
   position:relative;
   overflow:hidden;
-  box-shadow:inset 0 0 18px rgba(90,60,20,.35);
-  transition:outline-color .2s, box-shadow .2s;
+  /* sombra interna original (papel "encaixado") + brilho externo na cor da divindade, em duas
+     camadas (mais apertada + mais espalhada) pra dar sensação de luz saindo da moldura. */
+  box-shadow:
+    inset 0 0 18px rgba(90,60,20,.35),
+    0 0 10px var(--deity-eye-glow-soft, rgba(224,182,86,.55)),
+    0 0 22px var(--deity-eye-glow-soft, rgba(224,182,86,.3));
+  transition:outline-color .2s, box-shadow .2s, border-color .2s;
 }
 .portrait span{
   font-family:'Orbitron',sans-serif;
@@ -1590,7 +1595,13 @@ body{
   max-width:60%;
   aspect-ratio:180/230;
   cursor:default;
-  box-shadow:inset 0 0 12px rgba(90,60,20,.35), 0 2px 6px rgba(0,0,0,.3);
+  /* mesma dupla camada de brilho da divindade do .portrait acima, só que essa regra some por
+     cima da box-shadow dele (mesma especificidade, vem depois no CSS) -- por isso repete aqui. */
+  box-shadow:
+    inset 0 0 12px rgba(90,60,20,.35),
+    0 2px 6px rgba(0,0,0,.3),
+    0 0 10px var(--deity-eye-glow-soft, rgba(224,182,86,.55)),
+    0 0 22px var(--deity-eye-glow-soft, rgba(224,182,86,.3));
 }
 .portrait-back span{font-size:11px;}
 
@@ -1744,6 +1755,10 @@ body{
 /* botões extras de +10/-10 do XP — mais estreitos que os de 1 em 1, pra caber do lado deles sem
    alargar o painel (o campo numérico no meio tem flex:1;width:0, então encolhe sozinho). */
 .xp-step-btn-10{width:28px;font-size:12px;}
+/* linha extra de −100/+100 (só em fichas do mestre, ver .mestre-ficha-only) -- sem campo numérico
+   no meio, só os dois botões lado a lado, mais largos que os xp-step-btn-10 normais. */
+.xp-stepper-100{margin-top:6px;}
+.xp-stepper-100 .xp-step-btn-10{flex:1;width:auto;font-size:13px;}
 
 /* panel box */
 .panel{
@@ -2981,6 +2996,98 @@ body{
 @media (prefers-reduced-motion: reduce){
   .lightning-flash, .lightning-bolt{transition:none;animation:none !important;}
 }
+
+/* ===================================================================================
+   BOTÕES DA FICHA REAGINDO À DIVINDADE — todo botão que faz parte da ficha em si (dentro
+   de #card, tanto a frente quanto o verso/Mesa) passa a acompanhar a cor da divindade
+   selecionada (--deity-eye-color/--deity-eye-glow-soft, atualizadas em updateDeityEyeGlow(),
+   chamada de dentro de recalc() — sempre em dia). Ficam de fora os botões da barra de topo,
+   dos modais (Fichas de Jogador/Mestre, Token, login) e a tela de login, porque nenhum deles
+   fica dentro de #card (ver estrutura: #card fecha antes de #masterModal abrir).
+   Prefixo ".card " em cada seletor abaixo garante esse recorte por posição no DOM, sem
+   precisar julgar classe por classe. Bloco fica no fim do <style> de propósito: precisa
+   vencer o empate de especificidade contra as regras coloridas fixas declaradas mais acima
+   (mesmo seletor de classe = mesma especificidade, quem vem depois no CSS vence) — por isso
+   os estados :hover abaixo reafirmam TODAS as propriedades da regra antiga que remexem
+   (ex.: border-color E background juntos), não só o brilho extra.
+
+   Grupo 1 — botões do "gradiente dourado escuro" (mesma receita de fundo do .deidade-arrow-btn,
+   que já era a única exceção reativa antes desta mudança): passos de XP/Vida/Mana/Escudo, dados,
+   setas de seletor, custo/atributo de habilidade, munição de item. */
+.card .xp-step-btn,
+.card .vital-step-btn,
+.card .barreira-step-btn,
+.card .dice-controls button,
+.card .arrow-select-btn,
+.card .dano-face-btn,
+.card .dice-roll-btn,
+.card .mod-step-btn,
+.card .item-qty-btn,
+.card .extra-skill-attr-btn{
+  background:linear-gradient(180deg, var(--deity-eye-color,#8a661f), #241c0c);
+  border-color:var(--deity-eye-color,#8a661f);
+  box-shadow:0 0 7px var(--deity-eye-glow-soft, rgba(224,182,86,.55)), 0 1px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.18);
+}
+.card .xp-step-btn:hover,
+.card .vital-step-btn:hover,
+.card .barreira-step-btn:hover,
+.card .dice-controls button:hover,
+.card .arrow-select-btn:hover,
+.card .dano-face-btn:hover,
+.card .dice-roll-btn:hover,
+.card .mod-step-btn:hover,
+.card .item-qty-btn:hover,
+.card .extra-skill-attr-btn:hover{
+  border-color:var(--deity-eye-color,#8a661f);
+  background:linear-gradient(180deg, var(--deity-eye-color,#8a661f), #241c0c);
+  filter:brightness(1.18);
+  box-shadow:0 0 12px var(--deity-eye-glow-soft, rgba(224,182,86,.8)), 0 1px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.22);
+}
+
+/* Grupo 2 — .attr-step-btn: mantém o visual "papel claro" (inclusive :disabled), só ganha
+   borda + brilho externo na cor da divindade em vez do dourado fixo. */
+.card .attr-step-btn{
+  border-color:var(--deity-eye-color,var(--border-brown));
+  box-shadow:0 0 6px var(--deity-eye-glow-soft, transparent);
+}
+.card .attr-step-btn:hover:not(:disabled){
+  box-shadow:0 0 11px var(--deity-eye-glow-soft, rgba(224,182,86,.7));
+}
+
+/* Grupo 3 — botões utilitários/ícone (inclui os "perigo" vermelhos, por pedido explícito de
+   TODOS os botões da ficha): mantém o fundo/cor de cada um como já era, só ganha borda +
+   brilho externo reativos. */
+.card .extra-skill-cost,
+.card .extra-skill-image-btn,
+.card .skill-book-btn,
+.card .remove-btn,
+.card .add-row-btn,
+.card .panel-toggle-btn,
+.card .danger-row-btn,
+.card .mini-btn,
+.card .chat-min-btn,
+.card .cm-del-btn,
+.card .board-zoom-btn,
+.card .board-facing-picker-btn{
+  border-color:var(--deity-eye-color,var(--border-brown));
+  box-shadow:0 0 6px var(--deity-eye-glow-soft, transparent);
+  transition:box-shadow .2s, border-color .2s, background .15s ease, color .15s ease, opacity .15s ease;
+}
+.card .extra-skill-cost:hover,
+.card .extra-skill-image-btn:hover,
+.card .skill-book-btn:hover,
+.card .remove-btn:hover,
+.card .add-row-btn:hover,
+.card .panel-toggle-btn:hover,
+.card .danger-row-btn:hover,
+.card .mini-btn:hover,
+.card .chat-min-btn:hover,
+.card .cm-del-btn:hover,
+.card .board-zoom-btn:hover:not(:disabled),
+.card .board-facing-picker-btn:hover{
+  border-color:var(--deity-eye-color,var(--gold-bright));
+  box-shadow:0 0 12px var(--deity-eye-glow-soft, rgba(224,182,86,.75));
+}
 </style>
 </head>
 <body>
@@ -3359,10 +3466,19 @@ body{
                   </select>
                 </div>
               </div>
-              <!-- divindade de verdade -- agora só o mestre altera (ver comentário grande acima);
-                   "VAZIO" é sempre a opção inicial de toda ficha nova (cor PRETO, ver DEITY_EYE_COLOR
-                   no <script>) até o mestre escolher uma de verdade. -->
-              <select id="f_deidade" hidden>
+            </div>
+            <!-- Divindade: continua um <select> só (sem os botões ‹ ›), agora VISÍVEL logo abaixo
+                 do Nome -- mas só em fichas CRIADAS PELO MESTRE (NPC, sem ownerUid), onde não existe
+                 o painel "Fichas dos Jogadores (resumo ao vivo)" pra escolher por fora (esse painel
+                 exige ownerUid pra saber pra quem aplicar, e NPC nunca tem — ver o comentário grande
+                 de setHeroDeidade()/opts.deidadeControl no <script>). Ficha de JOGADOR continua sem
+                 este campo aqui (esse elemento some, via .mestre-ficha-only/
+                 updateMestreFichaControls()) — a divindade dela só muda pelo painel de dentro da
+                 Mesa, como já era. "VAZIO" é sempre a opção inicial de toda ficha nova (cor PRETO,
+                 ver DEITY_EYE_COLOR no <script>) até alguém escolher uma de verdade. -->
+            <div class="field mestre-ficha-only" id="deidadeMestreField" hidden>
+              <label>Divindade</label>
+              <select id="f_deidade">
                 <option value="VAZIO">VAZIO</option>
                 <option>O Imperador</option>
                 <option>Ominissiah</option>
@@ -3604,6 +3720,14 @@ body{
                 <input type="number" id="f_xp" value="0" min="0" step="1" readonly data-total="0">
                 <button type="button" class="xp-step-btn mestre-only" id="xpPlusBtn" aria-label="Aumentar XP">+</button>
                 <button type="button" class="xp-step-btn xp-step-btn-10 mestre-only" id="xpPlusBtn10" aria-label="Aumentar XP em 10">+10</button>
+              </div>
+              <!-- −100/+100: só em fichas CRIADAS PELO MESTRE (NPC, sem ownerUid) -- ver
+                   .mestre-ficha-only/updateMestreFichaControls() no <script>. Morava dentro do
+                   modal "🔒 Fichas do Mestre" (um por card da lista); saiu de lá e virou parte da
+                   própria ficha, igual aos outros passos de XP acima (mesma xpStep(), só que ±100). -->
+              <div class="xp-stepper xp-stepper-100 mestre-ficha-only" id="xp100Stepper" aria-label="Ajustar XP em 100" hidden>
+                <button type="button" class="xp-step-btn xp-step-btn-10" id="xpMinusBtn100" aria-label="Diminuir XP em 100">−100</button>
+                <button type="button" class="xp-step-btn xp-step-btn-10" id="xpPlusBtn100" aria-label="Aumentar XP em 100">+100</button>
               </div>
             </div>
             <div class="xp-bar-wrap">
@@ -4712,6 +4836,7 @@ body{
     updateDeityLore();
     updateDeityEyeGlow();
     updateBarreiraShield();
+    updateMestreFichaControls();
     scheduleLiveVitalsPush();
   }
 
@@ -4967,6 +5092,8 @@ body{
   $('xpMinusBtn').addEventListener('click', ()=> xpStep(-1));
   $('xpPlusBtn10').addEventListener('click', ()=> xpStep(10));
   $('xpMinusBtn10').addEventListener('click', ()=> xpStep(-10));
+  $('xpPlusBtn100').addEventListener('click', ()=> xpStep(100));
+  $('xpMinusBtn100').addEventListener('click', ()=> xpStep(-100));
 
   // segurar o botão (mouse ou toque) repete o passo automaticamente, acelerando quanto mais
   // tempo fica segurado — evita ter que clicar dezenas de vezes pra ganhar/remover XP em lote.
@@ -5009,6 +5136,8 @@ body{
   wireHoldRepeat($('xpMinusBtn'), ()=> xpStep(-1));
   wireHoldRepeat($('xpPlusBtn10'), ()=> xpStep(10));
   wireHoldRepeat($('xpMinusBtn10'), ()=> xpStep(-10));
+  wireHoldRepeat($('xpPlusBtn100'), ()=> xpStep(100));
+  wireHoldRepeat($('xpMinusBtn100'), ()=> xpStep(-100));
 
   // ---------- atributos: só sobem/descem pelos botões < >, não são mais digitáveis ----------
   const ATTR_KEYS = ['for','con','des','int','von','car'];
@@ -8993,12 +9122,6 @@ body{
     // na hora, ver connectDeidadeListener()) e também ESCUTA esse mesmo nó (pra refletir aqui, sem
     // reabrir a lista, se outra aba/mestre alterar a mesma ficha).
     const deidadeControl = !!(opts && opts.deidadeControl);
-    // opts.npcXpControls (usado só pela lista "🔒 Fichas do Mestre") -- adiciona os botões
-    // −100/+100 de ajustar XP direto em cada ficha DE NPC (sem dono/ownerUid, por isso não dá pra
-    // reaproveitar xpControls/grantXpToPlayer(), que manda o XP pra um jogador conectado via
-    // Firebase). Aqui não existe "ao vivo": ajusta o campo xp direto no JSON da ficha e regrava no
-    // GitHub na hora (ver githubPutFile()/o clique de "Apagar" logo abaixo, mesma ideia).
-    const npcXpControls = !!(opts && opts.npcXpControls);
     // "ao vivo": enquanto a lista estiver na tela, cada ficha com dono (ownerUid) escuta
     // mesa/live/{uid} (ver pushLiveVitals() lá em cima, perto de recalc()) e atualiza Vida/Mana/
     // Escudo na hora, sem precisar que ninguém clique em SALVAR nem reabra a lista. Preciso
@@ -9081,11 +9204,6 @@ body{
                 <button type="button" class="mini-btn mc-xp-btn" data-delta="1">+1</button>
                 <button type="button" class="mini-btn mc-xp-btn" data-delta="10">+10</button>
               </div>` : ''}
-              ${npcXpControls ? `<div class="mc-xp-controls">
-                <span class="mc-xp-controls-label">Ajustar XP:</span>
-                <button type="button" class="mini-btn mc-xp-btn mc-npc-xp-btn" data-delta="-100">−100</button>
-                <button type="button" class="mini-btn mc-xp-btn mc-npc-xp-btn" data-delta="100">+100</button>
-              </div>` : ''}
               ${(deidadeControl && data.ownerUid) ? `<div class="mc-deidade-control">
                 <span class="mc-deidade-control-label">Divindade:</span>
                 <select class="mc-deidade-select">${deidadeOptionsHtml}</select>
@@ -9099,52 +9217,6 @@ body{
             card.querySelectorAll('.mc-xp-btn').forEach(btn=>{
               btn.addEventListener('click', ()=>{
                 grantXpToPlayer(data.ownerUid, parseInt(btn.dataset.delta, 10), data.nome || '');
-              });
-            });
-          }
-          if(npcXpControls){
-            // NPC (ficha do mestre) não tem ownerUid/mesa-live -- ajusta o campo xp direto no
-            // objeto `data` já carregado e regrava o arquivo no GitHub na hora (mesmo
-            // githubPutFile() usado por "SALVAR"), sem depender de ninguém abrir a ficha. Otimista:
-            // atualiza o card na tela IMEDIATAMENTE e só desfaz (com alert) se a gravação falhar --
-            // mesmo espírito do botão "Apagar" logo abaixo.
-            card.querySelectorAll('.mc-npc-xp-btn').forEach(btn=>{
-              btn.addEventListener('click', async ()=>{
-                if(fbReady && currentRole !== 'mestre'){
-                  alert('Só o mestre pode ajustar o XP das fichas do mestre.');
-                  return;
-                }
-                if(!getToken()){
-                  alert('Configure seu token do GitHub para poder ajustar o XP.');
-                  tokenModal.hidden = false;
-                  return;
-                }
-                const delta = parseInt(btn.dataset.delta, 10) || 0;
-                const prevXp = data.xp;
-                const newXp = Math.max(0, (parseFloat(data.xp) || 0) + delta);
-                data.xp = newXp;
-                const xpEl = card.querySelector('.mc-live-xp');
-                const xpNeededEl = card.querySelector('.mc-live-xp-needed');
-                const levelEl = card.querySelector('.mc-live-level');
-                const applyLevelInfo = (xpVal)=>{
-                  const info = levelInfoFromXp(parseFloat(xpVal) || 0);
-                  if(xpEl) xpEl.textContent = Math.round(info.xpInBlock);
-                  if(xpNeededEl) xpNeededEl.textContent = info.xpNeeded;
-                  if(levelEl) levelEl.textContent = `— Nv. ${info.level}`;
-                };
-                applyLevelInfo(newXp);
-                const npcXpBtns = card.querySelectorAll('.mc-npc-xp-btn');
-                npcXpBtns.forEach(b=> b.disabled = true);
-                try{
-                  const result = await githubPutFile(path, data, `Ajusta XP de ${data.nome} (${delta>0?'+':''}${delta})`, sha);
-                  if(result && result.content && result.content.sha) sha = result.content.sha;
-                }catch(err){
-                  console.error(err);
-                  data.xp = prevXp;
-                  applyLevelInfo(prevXp);
-                  alert(`Não foi possível salvar o novo XP de "${data.nome}" no GitHub agora. Tente de novo.`);
-                }
-                npcXpBtns.forEach(b=> b.disabled = false);
               });
             });
           }
@@ -9271,8 +9343,7 @@ body{
   );
   const loadMasterMestreList = makeFichasListLoader(
     FICHAS_MESTRE_PATH, masterMestreList, masterMestreModal,
-    'Nenhuma ficha do mestre salva ainda. Use "SALVAR" logado como mestre.',
-    { npcXpControls: true }
+    'Nenhuma ficha do mestre salva ainda. Use "SALVAR" logado como mestre.'
   );
   // painel "Fichas dos Jogadores (resumo ao vivo)" dentro da própria Mesa — mesmo card/dados ao
   // vivo da lista "📜 Fichas de Jogador", só que só de leitura (sem "Ver ficha"/"Apagar") e sem
@@ -9629,6 +9700,31 @@ body{
   function applyRoleVisibility(){
     document.querySelectorAll('.mestre-only').forEach(el=>{
       el.style.display = (currentRole === 'mestre') ? '' : 'none';
+    });
+    updateMestreFichaControls();
+  }
+
+  // controles que só existem em fichas CRIADAS PELO MESTRE (NPC) -- diferente de .mestre-only
+  // (que só olha o PAPEL de quem está logado, aparecendo em QUALQUER ficha), aqui também importa
+  // DE QUEM é a ficha aberta na tela agora: só quando o mestre está editando uma ficha sem dono
+  // (loadedFichaOwnerUid null — nem carregada de "Fichas de Jogador" nem "ao vivo" de um jogador
+  // conectado), ou seja, uma ficha nova em branco que ele está prestes a salvar como NPC, ou uma
+  // ficha do mestre já salva antes (NPC nunca ganha ownerUid, ver cascadeRemoveFichaEverywhere()/
+  // pushLiveVitals() no <script>). Chamada de dentro de recalc() (roda a cada mudança de campo,
+  // inclusive logo depois de applyState() carregar/zerar uma ficha) e de applyRoleVisibility()
+  // (troca de papel), pra nunca ficar com o estado antigo na tela.
+  function updateMestreFichaControls(){
+    const isMestreFicha = currentRole === 'mestre' && !loadedFichaOwnerUid;
+    document.querySelectorAll('.mestre-ficha-only').forEach(el=>{
+      // dois passos, não só um: o atributo "hidden" do HTML (ex: <div ... hidden>) sozinho já
+      // basta pra esconder um elemento cuja classe não define "display" nenhum (ex: .field, que só
+      // tem margin-bottom — cai na folha padrão do navegador, [hidden]{display:none}, que ganha
+      // por não ter concorrência). Mas outro destes elementos (.xp-stepper-100) TEM display:flex
+      // definido por classe, e CSS de autor sempre vence a folha padrão do navegador mesmo com o
+      // atributo "hidden" ainda lá — por isso só tirar o atributo não bastaria pra esconder esse.
+      // Fazendo os dois juntos (remove/põe o atributo E força style.display) cobre os dois casos.
+      el.hidden = !isMestreFicha;
+      el.style.display = isMestreFicha ? '' : 'none';
     });
   }
 
