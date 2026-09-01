@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "O24",
-    "para": "N24",
-    "ts": 1787831673352
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "N24",
     "para": "J24",
     "ts": 1787831679592
@@ -247,5 +240,14 @@
       10,
       6
     ]
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 17,
+    "resultLabel": "Acerto",
+    "ts": 1788299614471
   }
 ]
