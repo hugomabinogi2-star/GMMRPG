@@ -150,8 +150,8 @@ body{
   height:10px;
   transform:translate(-50%,-50%);
   border-radius:50%;
-  background:radial-gradient(circle, var(--deity-eye-color,#ffd23f) 0%, var(--deity-eye-color,#ffd23f) 40%, transparent 78%);
-  box-shadow:0 0 6px 2px var(--deity-eye-color,#ffd23f), 0 0 16px 6px var(--deity-eye-glow-soft,rgba(255,210,63,.55));
+  background:radial-gradient(circle, var(--deity-glow-fx-color,#ffd23f) 0%, var(--deity-glow-fx-color,#ffd23f) 40%, transparent 78%);
+  box-shadow:0 0 6px 2px var(--deity-glow-fx-color,#ffd23f), 0 0 16px 6px var(--deity-glow-fx-soft,rgba(255,210,63,.55));
   animation:deityEyeGlowPulse 2.6s ease-in-out infinite;
   mix-blend-mode:screen;
 }
@@ -199,7 +199,7 @@ body{
 .footer-banner-glow{
   position:absolute;
   inset:0;
-  background:radial-gradient(circle at 50% 55%, var(--deity-eye-color,#000000) 0%, transparent 60%);
+  background:radial-gradient(circle at 50% 55%, var(--deity-glow-fx-color,#000000) 0%, transparent 60%);
   opacity:.55;
   transition:opacity .4s ease;
 }
@@ -4290,10 +4290,12 @@ body{
   // cor do brilho nos olhos dos dois guerreiros decorativos (fundo da página), escolhida conforme
   // o domínio/símbolo de cada divindade — ex: Zeus (raio) ganha um azul elétrico, Ares (guerra/sangue)
   // um vermelho vivo, Hades (submundo) um verde espectral, etc. 'VAZIO' (sem divindade escolhida
-  // pelo mestre ainda — ver DEITY_LORE/updateDeityLore() acima e o default em applyState()) usa
-  // PRETO, pedido explícito ("adicione uma opção VAZIO, cor PRETO").
+  // pelo mestre ainda — ver DEITY_LORE/updateDeityLore() acima e o default em applyState()) usa a
+  // MESMA cor do fundo do papiro (--paper, ver :root lá em cima) em vez de uma cor de verdade —
+  // assim bordas/botões/joia/anel que reagem a essa cor ficam discretos, quase somem no papiro,
+  // em vez de aparecer pretos e chamando atenção, já que "sem Divindade" não é uma cor de verdade.
   const DEITY_EYE_COLOR = {
-    'VAZIO': '#000000',      // sem divindade — preto
+    'VAZIO': '#eee2c8',      // sem divindade — mesma cor do papiro (--paper)
     'Zeus': '#00D4FF',       // Azul Elétrico Trovão
     'Hera': '#4B0082',       // Púrpura Imperial
     'Poseidon': '#004B49',   // Azul Oceano Profundo
@@ -4496,14 +4498,22 @@ body{
     const color = DEITY_EYE_COLOR[nome] || '#ffd23f';
     document.documentElement.style.setProperty('--deity-eye-color', color);
     document.documentElement.style.setProperty('--deity-eye-glow-soft', hexToRgba(color, .55));
-    // brilho geral das velas do rodapé sobre o papiro inteiro — bem mais fraco que o brilho dos
-    // olhos (que é pontual e pequeno), pra tingir a folha de leve sem atrapalhar a leitura.
-    document.documentElement.style.setProperty('--deity-glow-wash-strong', hexToRgba(color, .15));
-    document.documentElement.style.setProperty('--deity-glow-wash-faint', hexToRgba(color, .03));
-    // brilho de tela cheia da subida de nível (.level-up-flash) — mesma cor da divindade, nas
-    // opacidades que o efeito de flash já usava (forte no centro, sumindo nas bordas).
-    document.documentElement.style.setProperty('--deity-flash-strong', hexToRgba(color, .75));
-    document.documentElement.style.setProperty('--deity-flash-mid', hexToRgba(color, .35));
+    // "VAZIO" cai aqui pra tudo que segue: como agora é a cor do papiro (não mais preto — ver
+    // DEITY_EYE_COLOR acima), ela não pode mais alimentar os efeitos de brilho/flash que usam
+    // mix-blend-mode:screen (brilho do olho dos guerreiros de fundo, brilho do rodapé, flash de
+    // subir de nível) nem o brilho da Barreira (mix-blend-mode:multiply) -- em "screen" uma cor
+    // clara feito a do papiro criaria um brilho claro esquisito onde antes (com preto) não
+    // aparecia nada, e em "multiply" ela escureceria o papiro à toa (mesmo motivo de antes, só
+    // que agora com qualquer cor clara, não só preto). "Sem Divindade" continua sem gerar nenhum
+    // brilho/flash — só os elementos "materiais" (borda, botão, joia, anel, contorno do texto)
+    // acompanham a cor do papiro de verdade, ficando discretos em vez de pretos.
+    const semDivindadeWash = (!nome || nome === 'VAZIO');
+    document.documentElement.style.setProperty('--deity-glow-fx-color', semDivindadeWash ? 'transparent' : color);
+    document.documentElement.style.setProperty('--deity-glow-fx-soft', semDivindadeWash ? 'transparent' : hexToRgba(color, .55));
+    document.documentElement.style.setProperty('--deity-glow-wash-strong', semDivindadeWash ? 'transparent' : hexToRgba(color, .15));
+    document.documentElement.style.setProperty('--deity-glow-wash-faint', semDivindadeWash ? 'transparent' : hexToRgba(color, .03));
+    document.documentElement.style.setProperty('--deity-flash-strong', semDivindadeWash ? 'transparent' : hexToRgba(color, .75));
+    document.documentElement.style.setProperty('--deity-flash-mid', semDivindadeWash ? 'transparent' : hexToRgba(color, .35));
     document.documentElement.style.setProperty('--deity-flash-fade', hexToRgba(color, 0));
     updateCursorForDeity(color);
     updateFooterBanner(nome);
