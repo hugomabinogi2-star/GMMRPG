@@ -4897,6 +4897,7 @@ body{
     updateBarreiraShield();
     updateMestreFichaControls();
     scheduleLiveVitalsPush();
+    scheduleAtributosPush();
   }
 
   // ---------- vitais "ao vivo" (Vida/Mana/Escudo) pro mestre ver em "Fichas de Jogador" sem
@@ -4953,6 +4954,34 @@ body{
       payload.totals = { for: totals.for, con: totals.con, des: totals.des, int: totals.int, von: totals.von, car: totals.car };
     }
     fbDb.ref('mesa/live/' + ownerUid).set(payload);
+  }
+
+  // ---------- atributos ao vivo: mestre corrigindo a ficha de um jogador ----------
+  // Único jeito de hoje o mestre mexer nos atributos base (FOR/CON/DES/INT/VON/CAR) de um jogador é
+  // abrir "📜 Fichas de Jogador" → "Ver ficha" (carrega a ficha daquela pessoa na TELA DO MESTRE,
+  // via applyState() — loadedFichaOwnerUid vira o uid de verdade do dono) e editar ali com os
+  // mesmos botões ‹ › de sempre. Sem isto, essa edição só chegava no jogador depois do mestre
+  // clicar em SALVAR *e* o jogador recarregar a própria ficha — igual ao problema que XP
+  // (grantXpToPlayer()) e Divindade (setHeroDeidade()) já resolveram antes. Aqui usa o mesmo
+  // padrão de ESTADO simples da Divindade (.set(), sempre sobrescrevendo com o valor atual — não
+  // é uma fila de "presentes" como o XP, já que não faz sentido "somar" duas edições de atributo).
+  // Só dispara quando currentRole é mestre E a ficha carregada tem dono (loadedFichaOwnerUid) —
+  // nunca na própria ficha em branco/NPC do mestre (sem ownerUid) nem quando um jogador edita a
+  // própria ficha (aí não tem ninguém do outro lado pra "espelhar"). Debounce igual ao
+  // scheduleLiveVitalsPush() acima, pelo mesmo motivo (recalc() roda a cada tecla/clique).
+  let atributosPushTimer = null;
+  function scheduleAtributosPush(){
+    if(!fbReady || !fbDb || currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
+    if(atributosPushTimer) clearTimeout(atributosPushTimer);
+    atributosPushTimer = setTimeout(pushAtributos, 600);
+  }
+  function pushAtributos(){
+    if(!fbReady || !fbDb || currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
+    fbDb.ref('mesa/atributos/' + loadedFichaOwnerUid).set({
+      for: num(els.bFor), con: num(els.bCon), des: num(els.bDes),
+      int: num(els.bInt), von: num(els.bVon), car: num(els.bCar),
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
   }
 
   // ---------- distribuir XP pelo resumo ao vivo (dentro de MESA) ----------
@@ -10635,6 +10664,43 @@ body{
     deidadeListenerRef.on('value', handleDeidadeChange);
   }
 
+  // ---------- recebe os atributos corrigidos pelo mestre (ver scheduleAtributosPush() lá em cima,
+  // perto de pushLiveVitals()) ---------- escuta mesa/atributos/{meuUid}: mesmo padrão de ESTADO
+  // simples do Divindade acima (.set(), sempre sobrescreve com o valor atual dos 6 atributos base).
+  // Atualiza attrGuard[key] JUNTO com o valor do campo, ANTES de chamar recalc() — sem isso, a
+  // regra "só o mestre pode reduzir um atributo já distribuído" (ver recalc(), perto de
+  // attrDecreaseBlocked) bloquearia a própria correção do mestre quando ela reduz um valor, porque
+  // do lado do JOGADOR (currentRole !== 'mestre') recalc() trataria a mudança como se o jogador
+  // tivesse tentado reduzir o próprio atributo sozinho, e reverteria na hora.
+  let atributosListenerRef = null;
+  function disconnectAtributosListener(){
+    if(atributosListenerRef){
+      atributosListenerRef.off('value', handleAtributosChange);
+      atributosListenerRef = null;
+    }
+  }
+  function handleAtributosChange(snap){
+    const val = snap.val();
+    if(!val) return;
+    const map = { for: els.bFor, con: els.bCon, des: els.bDes, int: els.bInt, von: els.bVon, car: els.bCar };
+    let changed = false;
+    Object.keys(map).forEach(key=>{
+      const el = map[key];
+      if(!el || typeof val[key] !== 'number') return;
+      if(num(el) !== val[key]){
+        el.value = val[key];
+        attrGuard[key] = val[key];
+        changed = true;
+      }
+    });
+    if(changed) recalc();
+  }
+  function connectAtributosListener(){
+    if(atributosListenerRef || !fbDb || !currentUser) return;
+    atributosListenerRef = fbDb.ref('mesa/atributos/' + currentUser.uid);
+    atributosListenerRef.on('value', handleAtributosChange);
+  }
+
   function removeChatMessage(snap){
     const el = chatMessagesEl.querySelector(`.chat-msg[data-msg-id="${snap.key}"]`);
     if(el) el.remove();
@@ -10939,6 +11005,7 @@ body{
         disconnectChat();
         disconnectXpGrantListener();
         disconnectDeidadeListener();
+        disconnectAtributosListener();
         $('chatPanel').hidden = true;
         disconnectLiveBoard();
         $('liveBoardPanel').hidden = true;
@@ -11011,6 +11078,7 @@ body{
         ownFichaLoaded.then(()=>{
           connectXpGrantListener();
           connectDeidadeListener();
+          connectAtributosListener();
         });
       }
       fbDb.ref('mesa/config/webhook').on('value', (snap)=>{
