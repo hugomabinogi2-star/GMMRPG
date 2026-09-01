@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "N24",
-    "para": "O24",
-    "ts": 1787831668479
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "O24",
     "para": "N24",
     "ts": 1787831673352
@@ -240,5 +233,19 @@
     "resultLabel": "Acerto",
     "ts": 1787862354331,
     "habilidade": "GUNFIRE"
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 6,
+    "resultLabel": "Erro — Desvantagem",
+    "ts": 1788293938242,
+    "mode": "desvantagem",
+    "rolls": [
+      10,
+      6
+    ]
   }
 ]
