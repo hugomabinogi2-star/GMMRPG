@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "F7",
-    "para": "E7",
-    "ts": 1787832078780
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "E7",
     "para": "I7",
     "ts": 1787832098099
@@ -251,5 +244,14 @@
     "resultado": 19,
     "resultLabel": "Acerto",
     "ts": 1788347263127
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 16,
+    "resultLabel": "Acerto",
+    "ts": 1788347266872
   }
 ]
