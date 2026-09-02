@@ -5237,6 +5237,21 @@ body{
     recalc();
     // o plim já toca sozinho: no clique normal via delegação global (ver playPlim() mais abaixo),
     // e nos passos repetidos do "segurar" via wireHoldRepeat — não precisa chamar de novo aqui.
+    // Mestre usando os botões +/−/±10 DIRETO na ficha de um jogador já aberta na tela (via "Ver
+    // ficha") -- até esta rodada, só o Distribuir XP do resumo ao vivo (grantXpToPlayer(), dentro
+    // de MESA) empurrava o "presente" pro Firebase; editando aqui na própria ficha, a mudança
+    // ficava só local até SALVAR, sem chegar em tempo real pra tela do jogador (mesmo problema que
+    // Atributos/Vida/Mana já resolveram antes, ver pushAtributos()/pushVidaMana() acima).
+    // Reaproveita o MESMO mecanismo de "presente" (mesa40k/xpGrants/{uid}), já que XP soma (delta),
+    // não é um estado pra sobrescrever -- assim o jogador aplica com o próprio xpStep() do lado
+    // dele (ver handleXpGrant() mais abaixo) e chega no mesmo total. Só dispara quando é o MESTRE
+    // mexendo numa ficha de jogador já carregada (loadedFichaOwnerUid) -- nunca na própria ficha em
+    // branco/NPC do mestre (sem dono, os botões ±100 usam esse mesmo xpStep() também), nem quando é
+    // o próprio jogador recebendo um presente (handleXpGrant() chama xpStep() direto -- currentRole
+    // é 'jogador' nesse caso, não bate na condição abaixo).
+    if(currentRole === 'mestre' && loadedFichaOwnerUid){
+      grantXpToPlayer(loadedFichaOwnerUid, delta, els.nome.value);
+    }
   }
   $('xpPlusBtn').addEventListener('click', ()=> xpStep(1));
   $('xpMinusBtn').addEventListener('click', ()=> xpStep(-1));
