@@ -155,8 +155,8 @@ body{
   height:10px;
   transform:translate(-50%,-50%);
   border-radius:50%;
-  background:radial-gradient(circle, var(--deity-eye-color,#ffd23f) 0%, var(--deity-eye-color,#ffd23f) 40%, transparent 78%);
-  box-shadow:0 0 6px 2px var(--deity-eye-color,#ffd23f), 0 0 16px 6px var(--deity-eye-glow-soft,rgba(255,210,63,.55));
+  background:radial-gradient(circle, var(--deity-glow-fx-color,#ffd23f) 0%, var(--deity-glow-fx-color,#ffd23f) 40%, transparent 78%);
+  box-shadow:0 0 6px 2px var(--deity-glow-fx-color,#ffd23f), 0 0 16px 6px var(--deity-glow-fx-soft,rgba(255,210,63,.55));
   animation:deityEyeGlowPulse 2.6s ease-in-out infinite;
   mix-blend-mode:screen;
 }
@@ -1275,6 +1275,47 @@ body{
 .master-card button:hover{border-color:var(--ink);color:var(--ink);}
 .master-card .mc-delete{border-color:var(--wax);color:var(--wax-dark);}
 .master-card .mc-delete:hover{border-color:var(--wax-bright);background:rgba(138,45,33,.1);}
+
+/* "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa -- os cards aqui eram idênticos aos das
+   listas em modal (.master-card, empilhados em coluna, letra pequena), o que deixava difícil ler
+   os valores de relance durante a sessão. Muda só ESTE painel (seletor travado no ID, igual o
+   comentário de #mesaHeroSummaryList.collapsed acima explica) pra cartões maiores, lado a lado
+   (coluna vira linha) com uma barra de rolagem horizontal quando não cabem todos na largura da
+   tela -- .master-list/.master-card seguem intocados nas outras listas (masterList/
+   masterMestreList, dentro dos modais). */
+#mesaHeroSummaryList{
+  display:flex;
+  flex-direction:row;
+  flex-wrap:nowrap;
+  align-items:stretch;
+  gap:16px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding-bottom:12px; /* respiro pra barra de rolagem não colar nos cards */
+  scrollbar-gutter:stable;
+}
+#mesaHeroSummaryList .master-card{
+  display:flex;
+  flex-direction:column;
+  flex:0 0 280px;
+  width:280px;
+  padding:16px 18px;
+}
+#mesaHeroSummaryList .master-card .mc-name{font-size:22px;}
+#mesaHeroSummaryList .master-card .mc-meta{font-size:14px;margin-top:4px;}
+#mesaHeroSummaryList .master-card .mc-vitals{font-size:14.5px;line-height:1.6;margin-top:8px;}
+#mesaHeroSummaryList .master-card .mc-attrs{font-size:13.5px;gap:10px;margin-top:10px;}
+#mesaHeroSummaryList .master-card .mc-xp-controls{margin-top:12px;gap:8px;}
+#mesaHeroSummaryList .master-card .mc-xp-controls-label,
+#mesaHeroSummaryList .master-card .mc-deidade-control-label{font-size:13px;}
+#mesaHeroSummaryList .master-card .mc-xp-btn{font-size:13px;padding:7px 11px;min-width:38px;}
+#mesaHeroSummaryList .master-card .mc-deidade-control{margin-top:10px;gap:8px;}
+#mesaHeroSummaryList .master-card .mc-deidade-select{font-size:13px;padding:5px 7px;}
+/* telas estreitas: cards um pouco menores pra não dominar sozinhos a largura visível */
+@media (max-width: 600px){
+  #mesaHeroSummaryList .master-card{flex-basis:230px;width:230px;padding:13px 14px;}
+  #mesaHeroSummaryList .master-card .mc-name{font-size:19px;}
+}
 
 /* ---------- modal de Configurações (só mestre) ---------- */
 
@@ -4232,6 +4273,13 @@ body{
   // Com um dono definido, só ele (currentUser.uid igual) ou o mestre podem editar — ver
   // isFichaEditable()/applyFichaLockUI() mais abaixo.
   let loadedFichaOwnerUid = null;
+  // liga/desliga temporariamente o push de Divindade pro Firebase (ver o listener de #f_deidade
+  // logo abaixo de setHeroDeidade() e o "true"/"false" em volta dos dispatchEvent('change') de
+  // applyState() e handleDeidadeChange()) -- sem isso, TODA vez que uma ficha é carregada (troca
+  // de #f_deidade.value disparada por código, não pela pessoa) o listener acharia que foi uma
+  // escolha de verdade do mestre e tentaria empurrar de novo pro Firebase, usando o
+  // loadedFichaOwnerUid ainda do dono ANTERIOR (esse só é atualizado mais adiante em applyState()).
+  let suppressDeidadePush = false;
   // chave de dono (donoChave) — igual ao ownerUid acima, só que baseada numa CHAVE própria gerada
   // uma única vez pra cada conta cadastrada (currentUserKey, ver generateAccountKey()/
   // onAuthStateChanged() mais abaixo), em vez do uid do Firebase Auth diretamente. É essa chave que
@@ -4335,9 +4383,11 @@ body{
   // efeitos reativos (cursor, joia de Nível, anéis do Escudo, flash de level-up etc, todos puxando
   // de --deity-eye-color), escolhida conforme a cor oficial de cada divindade/facção do 40K. 'VAZIO'
   // (sem divindade escolhida pelo mestre ainda — ver DEITY_LORE/updateDeityLore() acima e o default
-  // em applyState()) usa PRETO, pedido explícito ("adicione uma opção VAZIO, cor PRETO").
+  // em applyState()) usa a MESMA cor do fundo do papiro (--paper, ver :root lá em cima) em vez de
+  // uma cor de verdade — assim bordas/botões/joia/anel que reagem a essa cor ficam discretos,
+  // quase somem no papiro, em vez de aparecer pretos e chamando atenção à toa.
   const DEITY_EYE_COLOR = {
-    'VAZIO': '#000000',      // sem divindade — preto
+    'VAZIO': '#eee2c8',      // sem divindade — mesma cor do papiro (--paper)
     'O Imperador': '#ffd700', // dourado imperial
     'Ominissiah': '#5ec8f0',  // azul claro — Adeptus Mechanicus
     'Khorne': '#e0201a',      // vermelho sangue
@@ -4526,14 +4576,22 @@ body{
     const color = DEITY_EYE_COLOR[nome] || '#ffd23f';
     document.documentElement.style.setProperty('--deity-eye-color', color);
     document.documentElement.style.setProperty('--deity-eye-glow-soft', hexToRgba(color, .55));
-    // brilho geral das velas do rodapé sobre o papiro inteiro — bem mais fraco que o brilho dos
-    // olhos (que é pontual e pequeno), pra tingir a folha de leve sem atrapalhar a leitura.
-    document.documentElement.style.setProperty('--deity-glow-wash-strong', hexToRgba(color, .15));
-    document.documentElement.style.setProperty('--deity-glow-wash-faint', hexToRgba(color, .03));
-    // brilho de tela cheia da subida de nível (.level-up-flash) — mesma cor da divindade, nas
-    // opacidades que o efeito de flash já usava (forte no centro, sumindo nas bordas).
-    document.documentElement.style.setProperty('--deity-flash-strong', hexToRgba(color, .75));
-    document.documentElement.style.setProperty('--deity-flash-mid', hexToRgba(color, .35));
+    // "VAZIO" cai aqui pra tudo que segue: como agora é a cor do papiro (não mais preto — ver
+    // DEITY_EYE_COLOR acima), ela não pode mais alimentar os efeitos de brilho/flash que usam
+    // mix-blend-mode:screen (brilho do olho dos guerreiros de fundo, flash de subir de nível) nem
+    // o brilho da Barreira (mix-blend-mode:multiply) -- em "screen" uma cor clara feito a do
+    // papiro criaria um brilho claro esquisito onde antes (com preto) não aparecia nada, e em
+    // "multiply" ela escureceria o papiro à toa (mesmo motivo de antes, só que agora com qualquer
+    // cor clara, não só preto). "Sem Divindade" continua sem gerar nenhum brilho/flash — só os
+    // elementos "materiais" (borda, botão, joia, anel, contorno do texto) acompanham a cor do
+    // papiro de verdade, ficando discretos em vez de pretos.
+    const semDivindadeWash = (!nome || nome === 'VAZIO');
+    document.documentElement.style.setProperty('--deity-glow-fx-color', semDivindadeWash ? 'transparent' : color);
+    document.documentElement.style.setProperty('--deity-glow-fx-soft', semDivindadeWash ? 'transparent' : hexToRgba(color, .55));
+    document.documentElement.style.setProperty('--deity-glow-wash-strong', semDivindadeWash ? 'transparent' : hexToRgba(color, .15));
+    document.documentElement.style.setProperty('--deity-glow-wash-faint', semDivindadeWash ? 'transparent' : hexToRgba(color, .03));
+    document.documentElement.style.setProperty('--deity-flash-strong', semDivindadeWash ? 'transparent' : hexToRgba(color, .75));
+    document.documentElement.style.setProperty('--deity-flash-mid', semDivindadeWash ? 'transparent' : hexToRgba(color, .35));
     document.documentElement.style.setProperty('--deity-flash-fade', hexToRgba(color, 0));
     updateCursorForDeity(color);
   }
@@ -4839,6 +4897,7 @@ body{
     updateMestreFichaControls();
     scheduleLiveVitalsPush();
     scheduleAtributosPush();
+    scheduleVidaManaPush();
   }
 
   // ---------- vitais "ao vivo" (Vida/Mana/Escudo) pro mestre ver em "Fichas de Jogador" sem
@@ -4895,6 +4954,30 @@ body{
       payload.totals = { for: totals.for, con: totals.con, des: totals.des, int: totals.int, von: totals.von, car: totals.car };
     }
     fbDb.ref('mesa40k/live/' + ownerUid).set(payload);
+    // Sentido contrário do scheduleAtributosPush()/pushAtributos() logo abaixo (mestre corrigindo a
+    // ficha de um jogador): aqui é o PRÓPRIO jogador publicando os atributos base atuais da própria
+    // ficha, pra atualizar a TELA DO MESTRE na hora, caso ele esteja com essa mesma ficha aberta
+    // (via "Ver ficha") no momento — ver syncMestreAtributosJogadorListener()/
+    // handleAtributosJogadorChange() mais abaixo, que só escuta esse caminho enquanto
+    // loadedFichaOwnerUid do mestre for exatamente este uid. Node SEPARADO de mesa40k/live de
+    // propósito: mesa40k/live é reescrito por QUALQUER pessoa com essa ficha aberta (inclusive o
+    // próprio mestre, olhando a ficha de alguém) — se os atributos base saíssem dali, uma edição do
+    // mestre em outro campo (ex: Vida) reescreveria o nó inteiro com o valor de atributo ainda
+    // desatualizado que o mestre está vendo na tela, apagando por cima a mudança que o jogador
+    // tinha acabado de fazer. Só o próprio dono grava aqui, então essa corrida não existe.
+    if(currentRole === 'jogador' && ownerUid === currentUser.uid){
+      fbDb.ref('mesa40k/atributosJogador/' + ownerUid).set({
+        for: num(els.bFor), con: num(els.bCon), des: num(els.bDes),
+        int: num(els.bInt), von: num(els.bVon), car: num(els.bCar),
+        ts: firebase.database.ServerValue.TIMESTAMP
+      });
+      // mesmo motivo/mesma proteção contra corrida do bloco de atributos logo acima, agora pra
+      // Vida/Mana atuais -- ver comentário grande junto de pushVidaMana() (perto de pushAtributos()).
+      fbDb.ref('mesa40k/vidaManaJogador/' + ownerUid).set({
+        vida: num(els.curVida), mana: num(els.curMana),
+        ts: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
   }
 
   // ---------- atributos ao vivo: mestre corrigindo a ficha de um jogador ----------
@@ -4921,6 +5004,30 @@ body{
     fbDb.ref('mesa40k/atributos/' + loadedFichaOwnerUid).set({
       for: num(els.bFor), con: num(els.bCon), des: num(els.bDes),
       int: num(els.bInt), von: num(els.bVon), car: num(els.bCar),
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+
+  // ---------- Vida/Mana atuais corrigidos pelo mestre, em tempo real pro jogador (mesmo padrão de
+  // atributos acima) ---------- mesa40k/live/{uid} (pushLiveVitals() acima) já carrega vida/mana, mas
+  // é escrito com o payload INTEIRO por QUALQUER edição na ficha (do mestre OU do jogador, ver
+  // "ownerUid" dentro de pushLiveVitals()) e só alimenta o resumo ao vivo (somente leitura) — não
+  // dá pra usar pra atualizar os campos de verdade da ficha do jogador: se o mestre mexesse só num
+  // atributo, por exemplo, pushLiveVitals() reenviaria a Vida/Mana com o valor ainda antigo em
+  // cache no navegador do mestre, sobrescrevendo por cima de uma mudança recente feita pelo próprio
+  // jogador (mesma race condition já resolvida pra atributos com mesa40k/atributosJogador). Por isso
+  // Vida/Mana ganham o mesmo par de nós dedicados: mesa40k/vidaMana/{uid} pro sentido mestre → jogador
+  // aqui, mesa40k/vidaManaJogador/{uid} pro sentido contrário (ver dentro de pushLiveVitals()).
+  let vidaManaPushTimer = null;
+  function scheduleVidaManaPush(){
+    if(!fbReady || !fbDb || currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
+    if(vidaManaPushTimer) clearTimeout(vidaManaPushTimer);
+    vidaManaPushTimer = setTimeout(pushVidaMana, 600);
+  }
+  function pushVidaMana(){
+    if(!fbReady || !fbDb || currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
+    fbDb.ref('mesa40k/vidaMana/' + loadedFichaOwnerUid).set({
+      vida: num(els.curVida), mana: num(els.curMana),
       ts: firebase.database.ServerValue.TIMESTAMP
     });
   }
@@ -4956,6 +5063,20 @@ body{
     fbDb.ref('mesa40k/deidade/' + ownerUid).set(deidade)
       .catch(err=> console.error('Não foi possível definir a divindade dessa ficha:', err));
   }
+
+  // até esta rodada, só o miniseletor de Divindade do "resumo ao vivo" (dentro de MESA, ver
+  // opts.deidadeControl em makeFichasListLoader()) empurrava a escolha do mestre pro Firebase
+  // (mesa40k/deidade/{uid}) -- se o mestre trocasse a Divindade pelo <select> de verdade, na ficha
+  // já aberta na tela (depois de "Ver ficha"), a mudança ficava só local até SALVAR: não chegava
+  // ao vivo pro jogador, nem atualizava o miniseletor do resumo ao vivo, então parecia "não
+  // sincronizado". Agora os dois caminhos empurram pro mesmo lugar. suppressDeidadePush evita
+  // reagir a mudanças disparadas por código (carregar uma ficha, ou o valor chegando do próprio
+  // Firebase) -- só uma escolha de verdade do mestre no <select> chega até aqui.
+  els.deidade.addEventListener('change', ()=>{
+    if(suppressDeidadePush) return;
+    if(currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
+    setHeroDeidade(loadedFichaOwnerUid, els.deidade.value, els.nome.value);
+  });
 
   Object.values(els).forEach(el=>{
     if(el && (el.tagName==='INPUT' || el.tagName==='SELECT')){
@@ -6346,7 +6467,11 @@ body{
     // 'VAZIO' é o padrão de toda ficha nova/sem divindade salva ainda (pedido explícito) — só o
     // mestre altera isto agora, ver opts.deidadeControl em makeFichasListLoader().
     els.deidade.value = s.deidade||'VAZIO';
+    // suprime o push em mesa40k/deidade/{uid} pra esse dispatch programático -- ver comentário em
+    // "let suppressDeidadePush" mais acima.
+    suppressDeidadePush = true;
     els.deidade.dispatchEvent(new Event('change', { bubbles:true }));
+    suppressDeidadePush = false;
     els.alinhamento.value = s.alinhamento||'EUSEBÊS';
     // avisa o seletor de setas do Alinhamento que o valor mudou por fora, pra caixinha visível
     // acompanhar (ver o listener 'change' novo dentro de wireArrowSelect).
@@ -6396,6 +6521,11 @@ body{
     // então volta a null (editável por qualquer um até ser salva pela primeira vez).
     loadedFichaOwnerUid = s.ownerUid || null;
     loadedFichaOwnerChave = s.donoChave || null;
+    // reavalia se o mestre deve "escutar" os atributos ao vivo de alguém — só depois que
+    // loadedFichaOwnerUid (linha acima) já está com o valor novo, ver
+    // syncMestreAtributosJogadorListener() perto de connectAtributosListener() no <script>.
+    syncMestreAtributosJogadorListener();
+    syncMestreVidaManaJogadorListener();
 
     // carregar/zerar uma ficha nunca deve disparar o efeito comemorativo de nível, só XP ganho organicamente
     // (e nem o aviso de morte, caso a ficha carregada já esteja com a vida zerada)
@@ -9271,9 +9401,23 @@ body{
             }
           }
           if(!readOnly){
-            card.querySelector('.mc-view').addEventListener('click', ()=>{
+            card.querySelector('.mc-view').addEventListener('click', async ()=>{
               if(confirm(`Carregar a ficha de "${data.nome}" na tela principal? Isso substitui o que está aberto agora (salve antes se precisar).`)){
-                applyState(data);
+                // a Divindade salva no arquivo (data.deidade) pode estar desatualizada em relação
+                // ao valor "ao vivo": o mestre pode ter mudado a Divindade dessa pessoa pelo
+                // miniseletor do "resumo ao vivo" (mesa/deidade/{uid}, ver setHeroDeidade()) sem
+                // ainda ter salvo a ficha de novo -- sem isso, "Ver ficha" abria mostrando a
+                // Divindade antiga até a próxima vez que alguém salvasse. Busca o valor mais
+                // recente antes de aplicar, pra a ficha já abrir sincronizada com o resto da mesa.
+                let deidadeParaAbrir = data.deidade;
+                if(fbReady && fbDb && data.ownerUid){
+                  try{
+                    const snap = await fbDb.ref('mesa40k/deidade/' + data.ownerUid).once('value');
+                    const liveVal = snap.val();
+                    if(liveVal) deidadeParaAbrir = liveVal;
+                  }catch(err){ /* sem live disponível, segue com o valor salvo no arquivo mesmo */ }
+                }
+                applyState(deidadeParaAbrir !== data.deidade ? { ...data, deidade: deidadeParaAbrir } : data);
                 // guarda de onde essa ficha veio (pasta + arquivo exatos, e o sha atual do arquivo) —
                 // assim, salvar de novo atualiza o mesmo arquivo original (preservando se é ficha de
                 // jogador ou do mestre, independente de quem estiver logado no momento em que for
@@ -10540,7 +10684,12 @@ body{
     const novaDeidade = snap.val() || 'VAZIO';
     if(els.deidade.value === novaDeidade) return;
     els.deidade.value = novaDeidade;
+    // suprime o push de volta pro Firebase (ver "let suppressDeidadePush" mais acima) -- isto já é
+    // o valor CHEGANDO do mestre, empurrar de novo seria só eco (também nunca dispararia mesmo,
+    // já que esse listener só roda pro jogador -- ver connectDeidadeListener() -- mas por segurança).
+    suppressDeidadePush = true;
     els.deidade.dispatchEvent(new Event('change', { bubbles: true }));
+    suppressDeidadePush = false;
   }
   function connectDeidadeListener(){
     if(deidadeListenerRef || !fbDb || !currentUser) return;
@@ -10583,6 +10732,114 @@ body{
     if(atributosListenerRef || !fbDb || !currentUser) return;
     atributosListenerRef = fbDb.ref('mesa40k/atributos/' + currentUser.uid);
     atributosListenerRef.on('value', handleAtributosChange);
+  }
+
+  // ---------- recebe a Vida/Mana corrigidas pelo mestre (ver pushVidaMana() lá em cima, perto de
+  // pushAtributos()) ---------- mesmo padrão de ESTADO simples usado por atributos/deidade acima
+  // (.set(), sempre sobrescreve com o valor atual). Não precisa de nenhum "guard" especial tipo o
+  // attrGuard dos atributos (a regra "só o mestre pode reduzir" é exclusiva de atributos base, não
+  // existe pra Vida/Mana atuais — qualquer um já pode subir ou descer livremente).
+  let vidaManaListenerRef = null;
+  function disconnectVidaManaListener(){
+    if(vidaManaListenerRef){
+      vidaManaListenerRef.off('value', handleVidaManaChange);
+      vidaManaListenerRef = null;
+    }
+  }
+  function handleVidaManaChange(snap){
+    const val = snap.val();
+    if(!val) return;
+    let changed = false;
+    if(typeof val.vida === 'number' && num(els.curVida) !== val.vida){ els.curVida.value = val.vida; changed = true; }
+    if(typeof val.mana === 'number' && num(els.curMana) !== val.mana){ els.curMana.value = val.mana; changed = true; }
+    if(changed) recalc();
+  }
+  function connectVidaManaListener(){
+    if(vidaManaListenerRef || !fbDb || !currentUser) return;
+    vidaManaListenerRef = fbDb.ref('mesa40k/vidaMana/' + currentUser.uid);
+    vidaManaListenerRef.on('value', handleVidaManaChange);
+  }
+
+  // ---------- recebe os atributos do PRÓPRIO jogador, do lado do mestre (ver o trecho novo dentro
+  // de pushLiveVitals(), perto de "mesa40k/atributosJogador") ---------- diferente dos listeners
+  // acima (que escutam sempre o PRÓPRIO uid, fixo a vida toda do login), este aqui muda de alvo toda
+  // vez que o mestre carrega uma ficha diferente pelo "Ver ficha" — por isso não é conectado uma vez
+  // só no login, e sim reavaliado (syncMestreAtributosJogadorListener()) toda vez que
+  // loadedFichaOwnerUid muda, dentro do fim de applyState().
+  let atributosJogadorListenerRef = null;
+  let atributosJogadorListenerUid = null;
+  function disconnectAtributosJogadorListener(){
+    if(atributosJogadorListenerRef){
+      atributosJogadorListenerRef.off('value', handleAtributosJogadorChange);
+      atributosJogadorListenerRef = null;
+      atributosJogadorListenerUid = null;
+    }
+  }
+  function handleAtributosJogadorChange(snap){
+    const val = snap.val();
+    if(!val) return;
+    const map = { for: els.bFor, con: els.bCon, des: els.bDes, int: els.bInt, von: els.bVon, car: els.bCar };
+    let changed = false;
+    Object.keys(map).forEach(key=>{
+      const el = map[key];
+      if(!el || typeof val[key] !== 'number') return;
+      if(num(el) !== val[key]){
+        el.value = val[key];
+        changed = true;
+      }
+    });
+    // Nenhum ajuste em attrGuard aqui (diferente de handleAtributosChange, do sentido contrário) —
+    // quem está vendo essa mudança é o MESTRE, e a regra "só o mestre pode reduzir" já não se aplica
+    // a ele (ver recalc(), condição "roleGateActive && currentRole !== 'mestre'"), então não tem
+    // bloqueio nenhum pra contornar aqui.
+    if(changed) recalc();
+  }
+  // Liga/desliga o listener acima conforme a ficha carregada na tela do mestre muda — chamado no
+  // fim de applyState() a cada "Ver ficha"/"Nova ficha"/autoLoadOwnFicha(). Não faz nada quando quem
+  // está logado não é mestre, ou quando a ficha carregada não tem dono (ficha em branco/NPC do
+  // próprio mestre) — nesses casos só garante que não sobra nenhum listener velho conectado.
+  function syncMestreAtributosJogadorListener(){
+    if(!fbDb || currentRole !== 'mestre' || !loadedFichaOwnerUid){
+      disconnectAtributosJogadorListener();
+      return;
+    }
+    if(atributosJogadorListenerUid === loadedFichaOwnerUid) return; // já é o alvo certo
+    disconnectAtributosJogadorListener();
+    atributosJogadorListenerUid = loadedFichaOwnerUid;
+    atributosJogadorListenerRef = fbDb.ref('mesa40k/atributosJogador/' + loadedFichaOwnerUid);
+    atributosJogadorListenerRef.on('value', handleAtributosJogadorChange);
+  }
+
+  // ---------- recebe a Vida/Mana atuais do PRÓPRIO jogador, do lado do mestre (mesmo padrão
+  // dinâmico de syncMestreAtributosJogadorListener() acima -- religa toda vez que loadedFichaOwnerUid
+  // muda, ver o fim de applyState()) ----------
+  let vidaManaJogadorListenerRef = null;
+  let vidaManaJogadorListenerUid = null;
+  function disconnectVidaManaJogadorListener(){
+    if(vidaManaJogadorListenerRef){
+      vidaManaJogadorListenerRef.off('value', handleVidaManaJogadorChange);
+      vidaManaJogadorListenerRef = null;
+      vidaManaJogadorListenerUid = null;
+    }
+  }
+  function handleVidaManaJogadorChange(snap){
+    const val = snap.val();
+    if(!val) return;
+    let changed = false;
+    if(typeof val.vida === 'number' && num(els.curVida) !== val.vida){ els.curVida.value = val.vida; changed = true; }
+    if(typeof val.mana === 'number' && num(els.curMana) !== val.mana){ els.curMana.value = val.mana; changed = true; }
+    if(changed) recalc();
+  }
+  function syncMestreVidaManaJogadorListener(){
+    if(!fbDb || currentRole !== 'mestre' || !loadedFichaOwnerUid){
+      disconnectVidaManaJogadorListener();
+      return;
+    }
+    if(vidaManaJogadorListenerUid === loadedFichaOwnerUid) return;
+    disconnectVidaManaJogadorListener();
+    vidaManaJogadorListenerUid = loadedFichaOwnerUid;
+    vidaManaJogadorListenerRef = fbDb.ref('mesa40k/vidaManaJogador/' + loadedFichaOwnerUid);
+    vidaManaJogadorListenerRef.on('value', handleVidaManaJogadorChange);
   }
 
   function removeChatMessage(snap){
@@ -10870,6 +11127,9 @@ body{
         disconnectXpGrantListener();
         disconnectDeidadeListener();
         disconnectAtributosListener();
+        disconnectAtributosJogadorListener();
+        disconnectVidaManaListener();
+        disconnectVidaManaJogadorListener();
         $('chatPanel').hidden = true;
         disconnectLiveBoard();
         $('liveBoardPanel').hidden = true;
@@ -10943,6 +11203,7 @@ body{
           connectXpGrantListener();
           connectDeidadeListener();
           connectAtributosListener();
+          connectVidaManaListener();
         });
       }
       fbDb.ref('mesa40k/config/webhook').on('value', (snap)=>{

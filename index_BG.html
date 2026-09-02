@@ -8,7 +8,7 @@
 <!-- "ROMANICA" (K-Type) pedida pelo usuário é uma fonte paga, sem versão no Google Fonts -- Marcellus/
      Marcellus SC são a alternativa gratuita mais próxima (também inspiradas em inscrição romana
      antiga/monumental), usadas aqui no lugar de Cinzel/Cinzel Decorative em toda a ficha. -->
-<link href="https://fonts.googleapis.com/css2?family=Marcellus+SC&family=Marcellus&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=Great+Vibes&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Marcellus+SC&family=Marcellus&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Cormorant+Garamond:ital,wght@0,600;1,500;1,600;1,700&family=Inter:wght@400;500;600;700&family=Great+Vibes&display=swap" rel="stylesheet">
 <style>
 :root{
   /* voltou a ser papiro/pergaminho de verdade (a fase "mármore" não ficou boa — poluída e
@@ -1247,6 +1247,47 @@ body{
 .master-card .mc-delete{border-color:var(--wax);color:var(--wax-dark);}
 .master-card .mc-delete:hover{border-color:var(--wax-bright);background:rgba(138,45,33,.1);}
 
+/* "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa -- os cards aqui eram idênticos aos das
+   listas em modal (.master-card, empilhados em coluna, letra pequena), o que deixava difícil ler
+   os valores de relance durante a sessão. Muda só ESTE painel (seletor travado no ID, igual o
+   comentário de #mesaHeroSummaryList.collapsed acima explica) pra cartões maiores, lado a lado
+   (coluna vira linha) com uma barra de rolagem horizontal quando não cabem todos na largura da
+   tela -- .master-list/.master-card seguem intocados nas outras listas (masterList/
+   masterMestreList, dentro dos modais). */
+#mesaHeroSummaryList{
+  display:flex;
+  flex-direction:row;
+  flex-wrap:nowrap;
+  align-items:stretch;
+  gap:16px;
+  overflow-x:auto;
+  overflow-y:hidden;
+  padding-bottom:12px; /* respiro pra barra de rolagem não colar nos cards */
+  scrollbar-gutter:stable;
+}
+#mesaHeroSummaryList .master-card{
+  display:flex;
+  flex-direction:column;
+  flex:0 0 280px;
+  width:280px;
+  padding:16px 18px;
+}
+#mesaHeroSummaryList .master-card .mc-name{font-size:22px;}
+#mesaHeroSummaryList .master-card .mc-meta{font-size:14px;margin-top:4px;}
+#mesaHeroSummaryList .master-card .mc-vitals{font-size:14.5px;line-height:1.6;margin-top:8px;}
+#mesaHeroSummaryList .master-card .mc-attrs{font-size:13.5px;gap:10px;margin-top:10px;}
+#mesaHeroSummaryList .master-card .mc-xp-controls{margin-top:12px;gap:8px;}
+#mesaHeroSummaryList .master-card .mc-xp-controls-label,
+#mesaHeroSummaryList .master-card .mc-deidade-control-label{font-size:13px;}
+#mesaHeroSummaryList .master-card .mc-xp-btn{font-size:13px;padding:7px 11px;min-width:38px;}
+#mesaHeroSummaryList .master-card .mc-deidade-control{margin-top:10px;gap:8px;}
+#mesaHeroSummaryList .master-card .mc-deidade-select{font-size:13px;padding:5px 7px;}
+/* telas estreitas: cards um pouco menores pra não dominar sozinhos a largura visível */
+@media (max-width: 600px){
+  #mesaHeroSummaryList .master-card{flex-basis:230px;width:230px;padding:13px 14px;}
+  #mesaHeroSummaryList .master-card .mc-name{font-size:19px;}
+}
+
 /* ---------- modal de Configurações (só mestre) ---------- */
 
 /* ---------- stage / flip card ---------- */
@@ -1285,6 +1326,23 @@ body{
      mudança de altura ao virar entre uma face mais alta e uma mais baixa. */
   transition:transform .9s cubic-bezier(.4,.2,.2,1), height .4s ease;
   text-transform:uppercase;
+}
+/* campos de formulário (input/select/textarea) NÃO herdam text-transform do ancestral por padrão
+   do navegador (diferente de texto normal em <span>/<div>/<label>, que já ficava em caixa alta só
+   por causa do .card{text-transform:uppercase} acima) -- por isso "Nome do herói", itens,
+   habilidades e a história do personagem digitados pelo jogador ficavam na caixa que a pessoa
+   digitou, quebrando o padrão "tudo maiúsculo" do resto da ficha. Corrige isso à força aqui.
+   Exceção deliberada: o campo de digitar do Chat da Mesa e do chat do Tabuleiro ao Vivo continuam
+   em caixa normal (ver .chat-panel/.live-board-panel logo abaixo) -- mensagem de chat em caixa
+   alta o tempo todo seria estranho/incômodo de digitar e ler, então essas duas caixas de texto
+   ficam de fora por id (mais forte que a regra geral por causa da ordem/especificidade). */
+#card input, #card select, #card textarea{
+  text-transform:uppercase;
+}
+/* precisa de #card na frente pra ganhar em especificidade da regra geral logo acima (mesma
+   contagem de ID, mas sem o seletor de tipo "input"/"textarea" a mais que ela tem). */
+#card #chatInput, #card #mesaMessageInput{
+  text-transform:none;
 }
 .card.flipped{transform:rotateY(180deg);}
 .face{
@@ -2815,7 +2873,7 @@ body{
      ficaram bem mais longas que o resumo de uma linha de antes -- com a caixa estreita de antes,
      quebrariam em muitas linhas curtas; mais larga, o texto respira melhor (ainda quebra em várias
      linhas normalmente, só que menos apertado). */
-  max-width:640px;
+  max-width:700px;
   margin:2px auto 0;
   text-align:center;
   position:relative;
@@ -2828,8 +2886,8 @@ body{
      achatado demais numa frase curta, e ele estica mais alto sozinho pra frases longas. Padding
      generoso nas 4 bordas mantém o texto dentro da parte "de papel" do rolo, sem invadir os
      bastões de madeira nas laterais nem as pontas rasgadas em cima/embaixo. */
-  padding:34px 78px;
-  min-height:170px;
+  padding:30px 74px;
+  min-height:155px;
   display:flex;
   flex-direction:column;
   justify-content:center;
@@ -2851,30 +2909,35 @@ body{
      título "Ficha de Herói" acima) pra soar mais grego antigo/esculpido em pedra. */
   font-family:'Marcellus SC',serif;
   font-weight:700;
-  font-size:19px;
+  font-size:23px;
   letter-spacing:.06em;
   color:#000;
   line-height:1.3;
   text-transform:uppercase;
   paint-order:stroke fill;
-  -webkit-text-stroke:0.5px var(--deity-eye-color, var(--border-brown));
+  -webkit-text-stroke:0.6px var(--deity-eye-color, var(--border-brown));
   transition:-webkit-text-stroke-color .5s ease;
 }
 .deity-lore-text{
-  /* mesma troca do nome acima: sai a caligrafia ocidental, entra um serifado clássico tipo
-     "livro antigo" (EB Garamond itálico, já usado em outros trechos de texto corrido da ficha). */
-  font-family:'EB Garamond',serif;
+  /* trocado de 'EB Garamond' (uma revival renascentista francesa, bonita mas não muito "grega")
+     pra 'Cormorant Garamond' em itálico semi-negrito -- um serifado bem mais fino e alongado,
+     com aquele ar de inscrição clássica/mediterrânea, comum em identidades visuais de tema greco-
+     romano; o peso 600 (em vez de um itálico fino de 400) ajuda a manter a leitura firme mesmo
+     com o contorno colorido por cima (ver paint-order abaixo). */
+  font-family:'Cormorant Garamond',serif;
   font-style:italic;
-  font-size:15px;
-  line-height:1.35;
+  font-weight:600;
+  font-size:18.5px;
+  letter-spacing:.015em;
+  line-height:1.4;
   color:#000;
-  text-transform:none;
+  text-transform:uppercase;
   paint-order:stroke fill;
   -webkit-text-stroke:0.4px var(--deity-eye-color, var(--border-brown));
   transition:-webkit-text-stroke-color .5s ease;
 }
 @media (max-width:760px){
-  .deity-lore{padding:28px 46px; min-height:150px;}
+  .deity-lore{padding:24px 42px; min-height:140px;}
 }
 
 /* ===================================================================================
@@ -4171,6 +4234,13 @@ body{
   // Com um dono definido, só ele (currentUser.uid igual) ou o mestre podem editar — ver
   // isFichaEditable()/applyFichaLockUI() mais abaixo.
   let loadedFichaOwnerUid = null;
+  // liga/desliga temporariamente o push de Divindade pro Firebase (ver o listener de #f_deidade
+  // logo abaixo de setHeroDeidade() e o "true"/"false" em volta dos dispatchEvent('change') de
+  // applyState() e handleDeidadeChange()) -- sem isso, TODA vez que uma ficha é carregada (troca
+  // de #f_deidade.value disparada por código, não pela pessoa) o listener acharia que foi uma
+  // escolha de verdade do mestre e tentaria empurrar de novo pro Firebase, usando o
+  // loadedFichaOwnerUid ainda do dono ANTERIOR (esse só é atualizado mais adiante em applyState()).
+  let suppressDeidadePush = false;
   // chave de dono (donoChave) — igual ao ownerUid acima, só que baseada numa CHAVE própria gerada
   // uma única vez pra cada conta cadastrada (currentUserKey, ver generateAccountKey()/
   // onAuthStateChanged() mais abaixo), em vez do uid do Firebase Auth diretamente. É essa chave que
@@ -4896,6 +4966,7 @@ body{
     updateMestreFichaControls();
     scheduleLiveVitalsPush();
     scheduleAtributosPush();
+    scheduleVidaManaPush();
   }
 
   // ---------- vitais "ao vivo" (Vida/Mana/Escudo) pro mestre ver em "Fichas de Jogador" sem
@@ -4969,6 +5040,12 @@ body{
         int: num(els.bInt), von: num(els.bVon), car: num(els.bCar),
         ts: firebase.database.ServerValue.TIMESTAMP
       });
+      // mesmo motivo/mesma proteção contra corrida do bloco de atributos logo acima, agora pra
+      // Vida/Mana atuais -- ver comentário grande junto de pushVidaMana() (perto de pushAtributos()).
+      fbDb.ref('mesa/vidaManaJogador/' + ownerUid).set({
+        vida: num(els.curVida), mana: num(els.curMana),
+        ts: firebase.database.ServerValue.TIMESTAMP
+      });
     }
   }
 
@@ -4996,6 +5073,30 @@ body{
     fbDb.ref('mesa/atributos/' + loadedFichaOwnerUid).set({
       for: num(els.bFor), con: num(els.bCon), des: num(els.bDes),
       int: num(els.bInt), von: num(els.bVon), car: num(els.bCar),
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+
+  // ---------- Vida/Mana atuais corrigidos pelo mestre, em tempo real pro jogador (mesmo padrão de
+  // atributos acima) ---------- mesa/live/{uid} (pushLiveVitals() acima) já carrega vida/mana, mas
+  // é escrito com o payload INTEIRO por QUALQUER edição na ficha (do mestre OU do jogador, ver
+  // "ownerUid" dentro de pushLiveVitals()) e só alimenta o resumo ao vivo (somente leitura) — não
+  // dá pra usar pra atualizar os campos de verdade da ficha do jogador: se o mestre mexesse só num
+  // atributo, por exemplo, pushLiveVitals() reenviaria a Vida/Mana com o valor ainda antigo em
+  // cache no navegador do mestre, sobrescrevendo por cima de uma mudança recente feita pelo próprio
+  // jogador (mesma race condition já resolvida pra atributos com mesa/atributosJogador). Por isso
+  // Vida/Mana ganham o mesmo par de nós dedicados: mesa/vidaMana/{uid} pro sentido mestre → jogador
+  // aqui, mesa/vidaManaJogador/{uid} pro sentido contrário (ver dentro de pushLiveVitals()).
+  let vidaManaPushTimer = null;
+  function scheduleVidaManaPush(){
+    if(!fbReady || !fbDb || currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
+    if(vidaManaPushTimer) clearTimeout(vidaManaPushTimer);
+    vidaManaPushTimer = setTimeout(pushVidaMana, 600);
+  }
+  function pushVidaMana(){
+    if(!fbReady || !fbDb || currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
+    fbDb.ref('mesa/vidaMana/' + loadedFichaOwnerUid).set({
+      vida: num(els.curVida), mana: num(els.curMana),
       ts: firebase.database.ServerValue.TIMESTAMP
     });
   }
@@ -5031,6 +5132,20 @@ body{
     fbDb.ref('mesa/deidade/' + ownerUid).set(deidade)
       .catch(err=> console.error('Não foi possível definir a divindade dessa ficha:', err));
   }
+
+  // até esta rodada, só o miniseletor de Divindade do "resumo ao vivo" (dentro de MESA, ver
+  // opts.deidadeControl em makeFichasListLoader()) empurrava a escolha do mestre pro Firebase
+  // (mesa/deidade/{uid}) -- se o mestre trocasse a Divindade pelo <select> de verdade, na ficha
+  // já aberta na tela (depois de "Ver ficha"), a mudança ficava só local até SALVAR: não chegava
+  // ao vivo pro jogador, nem atualizava o miniseletor do resumo ao vivo, então parecia "não
+  // sincronizado". Agora os dois caminhos empurram pro mesmo lugar. suppressDeidadePush evita
+  // reagir a mudanças disparadas por código (carregar uma ficha, ou o valor chegando do próprio
+  // Firebase) -- só uma escolha de verdade do mestre no <select> chega até aqui.
+  els.deidade.addEventListener('change', ()=>{
+    if(suppressDeidadePush) return;
+    if(currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
+    setHeroDeidade(loadedFichaOwnerUid, els.deidade.value, els.nome.value);
+  });
 
   Object.values(els).forEach(el=>{
     if(el && (el.tagName==='INPUT' || el.tagName==='SELECT')){
@@ -6466,7 +6581,11 @@ body{
     // 'VAZIO' é o padrão de toda ficha nova/sem divindade salva ainda (pedido explícito) — só o
     // mestre altera isto agora, ver opts.deidadeControl em makeFichasListLoader().
     els.deidade.value = s.deidade||'VAZIO';
+    // suprime o push em mesa/deidade/{uid} pra esse dispatch programático -- ver comentário em
+    // "let suppressDeidadePush" mais acima.
+    suppressDeidadePush = true;
     els.deidade.dispatchEvent(new Event('change', { bubbles:true }));
+    suppressDeidadePush = false;
     els.alinhamento.value = s.alinhamento||'EUSEBÊS';
     // avisa o seletor de setas do Alinhamento que o valor mudou por fora, pra caixinha visível
     // acompanhar (ver o listener 'change' novo dentro de wireArrowSelect).
@@ -6526,6 +6645,7 @@ body{
     // loadedFichaOwnerUid (linha acima) já está com o valor novo, ver
     // syncMestreAtributosJogadorListener() perto de connectAtributosListener() no <script>.
     syncMestreAtributosJogadorListener();
+    syncMestreVidaManaJogadorListener();
 
     // carregar/zerar uma ficha nunca deve disparar o efeito comemorativo de nível, só XP ganho organicamente
     // (e nem o aviso de morte, caso a ficha carregada já esteja com a vida zerada)
@@ -9424,9 +9544,23 @@ body{
             }
           }
           if(!readOnly){
-            card.querySelector('.mc-view').addEventListener('click', ()=>{
+            card.querySelector('.mc-view').addEventListener('click', async ()=>{
               if(confirm(`Carregar a ficha de "${data.nome}" na tela principal? Isso substitui o que está aberto agora (salve antes se precisar).`)){
-                applyState(data);
+                // a Divindade salva no arquivo (data.deidade) pode estar desatualizada em relação
+                // ao valor "ao vivo": o mestre pode ter mudado a Divindade dessa pessoa pelo
+                // miniseletor do "resumo ao vivo" (mesa/deidade/{uid}, ver setHeroDeidade()) sem
+                // ainda ter salvo a ficha de novo -- sem isso, "Ver ficha" abria mostrando a
+                // Divindade antiga até a próxima vez que alguém salvasse. Busca o valor mais
+                // recente antes de aplicar, pra a ficha já abrir sincronizada com o resto da mesa.
+                let deidadeParaAbrir = data.deidade;
+                if(fbReady && fbDb && data.ownerUid){
+                  try{
+                    const snap = await fbDb.ref('mesa/deidade/' + data.ownerUid).once('value');
+                    const liveVal = snap.val();
+                    if(liveVal) deidadeParaAbrir = liveVal;
+                  }catch(err){ /* sem live disponível, segue com o valor salvo no arquivo mesmo */ }
+                }
+                applyState(deidadeParaAbrir !== data.deidade ? { ...data, deidade: deidadeParaAbrir } : data);
                 // guarda de onde essa ficha veio (pasta + arquivo exatos, e o sha atual do arquivo) —
                 // assim, salvar de novo atualiza o mesmo arquivo original (preservando se é ficha de
                 // jogador ou do mestre, independente de quem estiver logado no momento em que for
@@ -10676,7 +10810,12 @@ body{
     const novaDeidade = snap.val() || 'VAZIO';
     if(els.deidade.value === novaDeidade) return;
     els.deidade.value = novaDeidade;
+    // suprime o push de volta pro Firebase (ver "let suppressDeidadePush" mais acima) -- isto já é
+    // o valor CHEGANDO do mestre, empurrar de novo seria só eco (também nunca dispararia mesmo,
+    // já que esse listener só roda pro jogador -- ver connectDeidadeListener() -- mas por segurança).
+    suppressDeidadePush = true;
     els.deidade.dispatchEvent(new Event('change', { bubbles: true }));
+    suppressDeidadePush = false;
   }
   function connectDeidadeListener(){
     if(deidadeListenerRef || !fbDb || !currentUser) return;
@@ -10719,6 +10858,32 @@ body{
     if(atributosListenerRef || !fbDb || !currentUser) return;
     atributosListenerRef = fbDb.ref('mesa/atributos/' + currentUser.uid);
     atributosListenerRef.on('value', handleAtributosChange);
+  }
+
+  // ---------- recebe a Vida/Mana corrigidas pelo mestre (ver pushVidaMana() lá em cima, perto de
+  // pushAtributos()) ---------- mesmo padrão de ESTADO simples usado por atributos/deidade acima
+  // (.set(), sempre sobrescreve com o valor atual). Não precisa de nenhum "guard" especial tipo o
+  // attrGuard dos atributos (a regra "só o mestre pode reduzir" é exclusiva de atributos base, não
+  // existe pra Vida/Mana atuais — qualquer um já pode subir ou descer livremente).
+  let vidaManaListenerRef = null;
+  function disconnectVidaManaListener(){
+    if(vidaManaListenerRef){
+      vidaManaListenerRef.off('value', handleVidaManaChange);
+      vidaManaListenerRef = null;
+    }
+  }
+  function handleVidaManaChange(snap){
+    const val = snap.val();
+    if(!val) return;
+    let changed = false;
+    if(typeof val.vida === 'number' && num(els.curVida) !== val.vida){ els.curVida.value = val.vida; changed = true; }
+    if(typeof val.mana === 'number' && num(els.curMana) !== val.mana){ els.curMana.value = val.mana; changed = true; }
+    if(changed) recalc();
+  }
+  function connectVidaManaListener(){
+    if(vidaManaListenerRef || !fbDb || !currentUser) return;
+    vidaManaListenerRef = fbDb.ref('mesa/vidaMana/' + currentUser.uid);
+    vidaManaListenerRef.on('value', handleVidaManaChange);
   }
 
   // ---------- recebe os atributos do PRÓPRIO jogador, do lado do mestre (ver o trecho novo dentro
@@ -10769,6 +10934,38 @@ body{
     atributosJogadorListenerUid = loadedFichaOwnerUid;
     atributosJogadorListenerRef = fbDb.ref('mesa/atributosJogador/' + loadedFichaOwnerUid);
     atributosJogadorListenerRef.on('value', handleAtributosJogadorChange);
+  }
+
+  // ---------- recebe a Vida/Mana atuais do PRÓPRIO jogador, do lado do mestre (mesmo padrão
+  // dinâmico de syncMestreAtributosJogadorListener() acima -- religa toda vez que loadedFichaOwnerUid
+  // muda, ver o fim de applyState()) ----------
+  let vidaManaJogadorListenerRef = null;
+  let vidaManaJogadorListenerUid = null;
+  function disconnectVidaManaJogadorListener(){
+    if(vidaManaJogadorListenerRef){
+      vidaManaJogadorListenerRef.off('value', handleVidaManaJogadorChange);
+      vidaManaJogadorListenerRef = null;
+      vidaManaJogadorListenerUid = null;
+    }
+  }
+  function handleVidaManaJogadorChange(snap){
+    const val = snap.val();
+    if(!val) return;
+    let changed = false;
+    if(typeof val.vida === 'number' && num(els.curVida) !== val.vida){ els.curVida.value = val.vida; changed = true; }
+    if(typeof val.mana === 'number' && num(els.curMana) !== val.mana){ els.curMana.value = val.mana; changed = true; }
+    if(changed) recalc();
+  }
+  function syncMestreVidaManaJogadorListener(){
+    if(!fbDb || currentRole !== 'mestre' || !loadedFichaOwnerUid){
+      disconnectVidaManaJogadorListener();
+      return;
+    }
+    if(vidaManaJogadorListenerUid === loadedFichaOwnerUid) return;
+    disconnectVidaManaJogadorListener();
+    vidaManaJogadorListenerUid = loadedFichaOwnerUid;
+    vidaManaJogadorListenerRef = fbDb.ref('mesa/vidaManaJogador/' + loadedFichaOwnerUid);
+    vidaManaJogadorListenerRef.on('value', handleVidaManaJogadorChange);
   }
 
   function removeChatMessage(snap){
@@ -11077,6 +11274,8 @@ body{
         disconnectDeidadeListener();
         disconnectAtributosListener();
         disconnectAtributosJogadorListener();
+        disconnectVidaManaListener();
+        disconnectVidaManaJogadorListener();
         $('chatPanel').hidden = true;
         disconnectLiveBoard();
         $('liveBoardPanel').hidden = true;
@@ -11150,6 +11349,7 @@ body{
           connectXpGrantListener();
           connectDeidadeListener();
           connectAtributosListener();
+          connectVidaManaListener();
         });
       }
       fbDb.ref('mesa/config/webhook').on('value', (snap)=>{
