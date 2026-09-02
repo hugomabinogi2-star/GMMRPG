@@ -9495,7 +9495,7 @@ body{
           card.innerHTML = `
             <div>
               <div class="mc-name">${escapeHtml(data.nome||'(sem nome)')} <span class="mc-live-level" style="color:var(--ink-faint);font-weight:400;">— Nv. ${level}</span>${ownerBadge}</div>
-              <div class="mc-meta">${escapeHtml(data.deidade||'')}</div>
+              <div class="mc-meta mc-deidade-name">${escapeHtml(data.deidade||'')}</div>
               <div class="mc-vitals">
                 Vida <span class="mc-live-vida">${escapeHtml(String(curVidaVal))}</span> / <span class="mc-live-vidamax">${vidaMaxCalc}</span> ·
                 Mana <span class="mc-live-mana">${escapeHtml(String(curManaVal))}</span> / <span class="mc-live-manamax">${manaMaxCalc}</span> ·
@@ -9543,7 +9543,16 @@ body{
                 const deidadeRef = fbDb.ref('mesa/deidade/' + data.ownerUid);
                 const deidadeCb = deidadeRef.on('value', (snap)=>{
                   const val = snap.val();
-                  if(val) deidadeSel.value = val;
+                  if(val){
+                    deidadeSel.value = val;
+                    // o miniseletor em si já reagia na hora (linha acima) -- mas o nome da
+                    // divindade escrito em texto solto logo abaixo do nome do herói (.mc-deidade-name,
+                    // mesma div que mostra "VAZIO"/"Zeus"/etc.) ficava parado no valor salvo até a
+                    // ficha ser recarregada, mesmo com o miniseletor já mostrando o valor certo —
+                    // agora os dois acompanham a mesma mudança ao vivo.
+                    const nameEl = card.querySelector('.mc-deidade-name');
+                    if(nameEl) nameEl.textContent = val;
+                  }
                 });
                 liveListeners.push({ ref: deidadeRef, cb: deidadeCb });
               }
