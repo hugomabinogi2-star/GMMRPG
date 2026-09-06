@@ -2084,8 +2084,9 @@ body{
 .ar-ap-grid .vital-box .vval{font-family:'EB Garamond',serif;font-size:17px;font-weight:700;color:var(--gold-text);}
 .ar-ap-tip{position:relative;display:inline-block;cursor:help;border-bottom:1px dotted var(--ink-faint);}
 .ar-ap-tip:hover .cs-tooltip{opacity:1;visibility:visible;transform:translateY(0);}
-/* variante que abre PRA CIMA em vez de pra baixo — usada no valor de "Rolamento" dos atributos,
-   pra mostrar o custo do próximo ponto bem em cima do número, sem ficar por baixo da linha. */
+/* .cs-tooltip-above virou redundante (o padrão de .cs-tooltip já abre pra cima agora, ver o
+   motivo no comentário grande junto da regra base mais abaixo) — mantida só por segurança, caso
+   algum trecho do HTML ainda dependa dela; não muda mais nada sozinha. */
 .cs-tooltip-above{top:auto;bottom:100%;margin-top:0;margin-bottom:6px;transform:translateY(4px);}
 .ar-ap-tip:hover .cs-tooltip-above{transform:translateY(0);}
 
@@ -2849,8 +2850,16 @@ body{
 .danger-row-btn:hover{border-color:var(--wax-bright);color:var(--wax-dark);background:rgba(138,45,33,.1);}
 .danger-row-btn[disabled]{opacity:.5;cursor:not-allowed;}
 
+/* Abre PRA CIMA por padrão (bottom:100%, acima do texto/label que disparou), não mais pra baixo
+   -- pedido explícito, porque o cursor customizado da ficha (updateCursorForDeity() no <script>)
+   é uma imagem de 60x99px com o hotspot (ponta que realmente clica) lá em cima, no canto
+   superior esquerdo dela — ou seja, a arte do cursor inteira "pende" pra baixo e pra direita do
+   ponto onde o mouse está de verdade. Abrindo o tooltip logo ABAIXO do texto (como era antes),
+   ele nascia bem dentro dessa área que a arte do cursor cobre por cima de tudo (cursor sempre
+   desenhado por cima da página, não tem z-index que resolva) — dava pra ver o texto sumir atrás
+   do desenho do cursor. Abrindo pra cima, o tooltip fica bem longe da área que o cursor cobre. */
 .cs-tooltip{
-  position:absolute;left:0;top:100%;margin-top:6px;
+  position:absolute;left:0;top:auto;bottom:100%;margin-top:0;margin-bottom:6px;
   width:min(280px,70vw);
   height:max-content;
   background:linear-gradient(160deg,var(--paper-l),var(--paper));
@@ -2860,7 +2869,7 @@ body{
   color:var(--ink-soft);letter-spacing:normal;text-align:left;text-transform:none;
   box-shadow:var(--shadow);
   z-index:20;
-  opacity:0;visibility:hidden;transform:translateY(-4px);
+  opacity:0;visibility:hidden;transform:translateY(4px);
   transition:opacity .15s, transform .15s;
   pointer-events:none;
 }
