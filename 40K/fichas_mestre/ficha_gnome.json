@@ -4,15 +4,15 @@
   "nome": "GNOME",
   "deidade": "TERRA",
   "publica": false,
-  "xp": "0",
+  "xp": "2660",
   "historia": "",
   "base": {
-    "for": "1",
-    "con": "1",
-    "des": "1",
-    "int": "1",
-    "von": "1",
-    "car": "1"
+    "for": "6",
+    "con": "14",
+    "des": "4",
+    "int": "4",
+    "von": "10",
+    "car": "4"
   },
   "mods": {
     "ar": "0",
