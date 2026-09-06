@@ -3034,7 +3034,7 @@ body{
   <button type="button" id="campaignSwitcherBtn" class="campaign-switcher-btn" aria-haspopup="true" aria-expanded="false">🎭 Mesas ▾</button>
   <div class="campaign-switcher-menu" id="campaignSwitcherMenu" hidden>
     <span class="campaign-switcher-item campaign-switcher-item-current">⚱️ Petricor</span>
-    <a href="index_40K.html" class="campaign-switcher-item">☠️ Warhammer 40K</a>
+    <a href="index_mag.html" class="campaign-switcher-item">🌿 Mag Mell</a>
   </div>
 </div>
 
@@ -3097,6 +3097,15 @@ body{
 </div>
 
 <div class="toolbar">
+  <!-- Botão novo, de propósito o PRIMEIRO da barra ("no topo dos seletores", a pedido) -- classe
+       .jogador-only (nova, ver applyRoleVisibility() no <script>): só aparece pro JOGADOR, o
+       mestre não vê este botão (ele já enxerga tudo, público ou não, por "🔒 Fichas do Mestre").
+       Mostra só as fichas de NPC (pasta FICHAS_MESTRE_PATH) que o mestre marcou como "Público" no
+       seletor da própria ficha (ver .mestre-ficha-only #f_publica no <field> de Nível/XP,
+       opts.npcPublicFilter em makeFichasListLoader() e npcBtn/npcModal mais abaixo no <script>) --
+       o jogador pode abrir ("Ver ficha") pra consultar, mas a ficha entra travada só-leitura
+       (mesmo cadeado de "ficha de outro jogador", ver loadedFichaIsNpc/isFichaEditable()). -->
+  <button id="npcBtn" class="jogador-only" title="Fichas de NPC que o mestre marcou como Público — você pode consultar, mas só o mestre edita">🧚 Fichas de NPC</button>
   <button id="mesaBtn" class="mestre-only mesa-btn">🖥️ Mesa</button>
   <button class="flip-btn" id="flipBtn">↺ Ver verso</button>
   <button class="cloud-btn" id="cloudSaveBtn">SALVAR</button>
@@ -3686,6 +3695,24 @@ body{
                 <button type="button" class="xp-step-btn xp-step-btn-10" id="xpMinusBtn100" aria-label="Diminuir XP em 100">−100</button>
                 <button type="button" class="xp-step-btn xp-step-btn-10" id="xpPlusBtn100" aria-label="Aumentar XP em 100">+100</button>
               </div>
+              <!-- Público/Privado: mesmo escopo do xp100Stepper acima (só em fichas CRIADAS PELO
+                   MESTRE, sem ownerUid -- .mestre-ficha-only/updateMestreFichaControls() no
+                   <script>), a pedido. Toda ficha de NPC nasce Privada (ver applyState(), que só
+                   marca "Publico" quando s.publica já vier true de uma ficha salva antes) e só o
+                   mestre vê/mexe aqui -- pro jogador, tanto a própria ficha (nunca é NPC) quanto
+                   uma ficha de NPC pública aberta pelo botão "🧚 Fichas de NPC" (travada
+                   só-leitura, ver loadedFichaIsNpc/isFichaEditable()) esse campo some junto com o
+                   resto de .mestre-ficha-only. Muda em tempo real (ver o listener de #f_publica
+                   perto de collectState() no <script>): assim que o mestre troca aqui, quem já
+                   estiver com o modal "🧚 Fichas de NPC" aberto vê a ficha aparecer/sumir da lista
+                   na hora, sem precisar dar "Atualizar lista". -->
+              <div class="field mestre-ficha-only" id="publicaField" hidden style="margin-top:10px;">
+                <label for="f_publica">Ficha de NPC</label>
+                <select id="f_publica">
+                  <option value="Privado">🔒 Privado</option>
+                  <option value="Publico">🌐 Público (aparece em "Fichas de NPC" pra qualquer um consultar)</option>
+                </select>
+              </div>
             </div>
             <div class="xp-bar-wrap">
               <div class="xp-bar-track"><div class="xp-bar-fill" id="xpBarFill"></div></div>
@@ -4075,6 +4102,24 @@ body{
   </div>
 </div>
 
+<!-- Modal da "🧚 Fichas de NPC" (botão novo, ver #npcBtn no topo da barra -- classe .jogador-only,
+     só aparece pro jogador; o mestre não precisa, "🔒 Fichas do Mestre" já mostra tudo pra ele,
+     público ou não) -- mesma estrutura/estilo dos outros dois modais de lista acima, reaproveitando
+     makeFichasListLoader() com opts.npcPublicFilter (só mostra os cards das fichas de NPC
+     marcadas como Público, ao vivo -- ver comentário completo perto de onde essa lista é criada
+     no <script>). -->
+<div class="modal-overlay" id="npcModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>🧚 Fichas de NPC</h2>
+      <button id="closeNpc" class="modal-close">✕</button>
+    </div>
+    <p class="modal-sub">Fichas de NPC que o mestre marcou como "Público" aparecem aqui pra consulta -- você pode ver, mas só o mestre pode editar.</p>
+    <button id="refreshNpc" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
+    <div id="npcList" class="master-list"></div>
+  </div>
+</div>
+
 
 <div class="modal-overlay" id="tokenModal" hidden>
   <div class="modal-box">
@@ -4165,7 +4210,7 @@ body{
   if(cornerHeroImgRight) cornerHeroImgRight.src = $('cornerHeroImgLeft').src;
 
   const els = {
-    nome:$('f_nome'), deidade:$('f_deidade'), alinhamento:$('f_alinhamento'),
+    nome:$('f_nome'), deidade:$('f_deidade'), alinhamento:$('f_alinhamento'), publica:$('f_publica'),
     xp:$('f_xp'), historia:$('f_historia'),
     bFor:$('b_for'), bCon:$('b_con'), bDes:$('b_des'), bInt:$('b_int'), bVon:$('b_von'), bCar:$('b_car'),
     mAr:$('m_ar'), mAp:$('m_ap'), mVida:$('m_vida'), mMana:$('m_mana'), mFor:$('m_for'), mCon:$('m_con'), mDes:$('m_des'), mInt:$('m_int'), mVon:$('m_von'), mCar:$('m_car'),
@@ -4225,6 +4270,17 @@ body{
   // Com um dono definido, só ele (currentUser.uid igual) ou o mestre podem editar — ver
   // isFichaEditable()/applyFichaLockUI() mais abaixo.
   let loadedFichaOwnerUid = null;
+  // true quando a ficha atualmente aberta na tela é uma ficha de NPC (criada pelo mestre, pasta
+  // FICHAS_MESTRE_PATH) carregada através de uma LISTA já salva -- "Fichas do Mestre" (o próprio
+  // mestre editando) ou "Fichas de NPC" (um jogador consultando uma marcada como Público) -- ver
+  // opts.npcFicha em makeFichasListLoader()/applyState() mais abaixo. Continua false numa ficha
+  // nova em branco (mesmo que o mestre esteja logado e ela vá virar um NPC ao ser salva pela
+  // primeira vez -- ver isMestreFicha em updateMestreFichaControls(), um conceito PARECIDO mas
+  // diferente: aquele olha só pra "sem dono", este exige ter vindo de um arquivo já salvo na
+  // pasta de NPC). Usado só em isFichaEditable(): trava a edição pra quem não é mestre mesmo numa
+  // ficha "sem dono" (as de NPC nunca têm ownerUid/donoChave), que sem essa flag cairia na regra
+  // de "ficha legada, qualquer um edita".
+  let loadedFichaIsNpc = false;
   // liga/desliga temporariamente o push de Divindade pro Firebase (ver o listener de #f_deidade
   // logo abaixo de setHeroDeidade() e o "true"/"false" em volta dos dispatchEvent('change') de
   // applyState() e handleDeidadeChange()) -- sem isso, TODA vez que uma ficha é carregada (troca
@@ -5136,6 +5192,20 @@ body{
     if(suppressDeidadePush) return;
     if(currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
     setHeroDeidade(loadedFichaOwnerUid, els.deidade.value, els.nome.value);
+  });
+
+  // Público/Privado ao vivo: só o mestre mexe neste campo (ele fica escondido pra qualquer outra
+  // pessoa, ver .mestre-ficha-only/#publicaField), então não precisa de suppress-flag igual a
+  // Divindade acima (não existe "aplicar programaticamente e disparar change sem querer" vindo de
+  // outro papel aqui). Só publica de verdade em tempo real quando a ficha JÁ tem um caminho salvo
+  // (loadedFichaPath) — numa ficha de NPC nova, ainda não salva nenhuma vez, não tem em qual chave
+  // gravar ainda; o valor escolhido aqui vai junto no arquivo assim que o mestre der SALVAR (ver
+  // collectState()), e quem estiver com "Fichas de NPC" aberto só vai ver essa ficha depois de
+  // "Atualizar lista" (mesma limitação de qualquer ficha nova ainda não salva).
+  els.publica.addEventListener('change', ()=>{
+    if(!fbReady || !fbDb || !loadedFichaPath) return;
+    fbDb.ref('mesa/npcPublica/' + sanitizeFbKey(loadedFichaPath)).set(els.publica.value === 'Publico')
+      .catch(err=> console.error('Não foi possível avisar em tempo real a mudança de Público/Privado desta ficha de NPC:', err));
   });
 
   Object.values(els).forEach(el=>{
@@ -6548,6 +6618,12 @@ body{
       // que isFichaEditable() usa de verdade pra travar a ficha pra quem não é dono nem mestre.
       donoChave: loadedFichaOwnerChave || ((currentRole === 'jogador' && currentUserKey) ? currentUserKey : null),
       nome: els.nome.value, deidade: els.deidade.value, alinhamento: els.alinhamento.value,
+      // Público/Privado: só existe de verdade em fichas de NPC (o campo fica escondido pra quem
+      // não é mestre editando uma delas, ver .mestre-ficha-only em #publicaField), mas não custa
+      // nada gravar sempre -- numa ficha de jogador comum o <select> nem aparece e fica parado no
+      // padrão "Privado" (false), sem efeito nenhum (o botão "Fichas de NPC" só lê da pasta
+      // FICHAS_MESTRE_PATH, ver opts.npcPublicFilter em makeFichasListLoader()).
+      publica: els.publica.value === 'Publico',
       xp: els.xp.dataset.total || 0, historia: els.historia.value,
       base: { for: els.bFor.value, con: els.bCon.value, des: els.bDes.value, int: els.bInt.value, von: els.bVon.value, car: els.bCar.value },
       mods: { ar: els.mAr.value, ap: els.mAp.value, vida: els.mVida.value, mana: els.mMana.value, for: els.mFor.value, con: els.mCon.value, des: els.mDes.value, int: els.mInt.value, von: els.mVon.value, car: els.mCar.value },
@@ -6596,6 +6672,11 @@ body{
     // avisa o seletor de setas do Alinhamento que o valor mudou por fora, pra caixinha visível
     // acompanhar (ver o listener 'change' novo dentro de wireArrowSelect).
     els.alinhamento.dispatchEvent(new Event('change', { bubbles:true }));
+    // Público/Privado: "Privado" é o padrão sempre que a ficha não trouxer s.publica === true --
+    // cobre tanto "Nova ficha" (s={}, nasce Privada) quanto uma ficha de NPC salva antes desse
+    // recurso existir (legada, sem o campo). Só fica "Publico" quando o mestre já marcou assim
+    // antes e a ficha foi salva de novo.
+    els.publica.value = (s.publica === true) ? 'Publico' : 'Privado';
     els.xp.dataset.total = s.xp ?? 0; // total acumulado de verdade; recalc() (chamado no fim desta função) atualiza o campo visível a partir dele
     els.historia.value = s.historia||'';
     // sempre reatribui (mesmo numa ficha nova/em branco, sem "base"/"mods" salvos) — senão "Nova
@@ -6647,6 +6728,11 @@ body{
     // então volta a null (editável por qualquer um até ser salva pela primeira vez).
     loadedFichaOwnerUid = s.ownerUid || null;
     loadedFichaOwnerChave = s.donoChave || null;
+    // __isNpcFicha é um marcador SINTÉTICO (não é salvo no arquivo, ver s.__isNpcFicha em
+    // makeFichasListLoader()/opts.npcFicha) -- vem junto com "s" só quando esta ficha foi carregada
+    // de "Fichas do Mestre" ou "Fichas de NPC", pra já valer aqui dentro de applyState() (antes de
+    // recalc()/applyFichaLockUI() logo abaixo), igual ownerUid/donoChave acima.
+    loadedFichaIsNpc = !!s.__isNpcFicha;
     // reavalia se o mestre deve "escutar" os atributos ao vivo de alguém — só depois que
     // loadedFichaOwnerUid (linha acima) já está com o valor novo, ver
     // syncMestreAtributosJogadorListener() perto de connectAtributosListener() no <script>.
@@ -6699,6 +6785,11 @@ body{
   //   3) sem os dois -> ficha nova ou bem legada, ainda sem dono nenhum, qualquer um edita.
   function isFichaEditable(){
     if(currentRole === 'mestre') return true; // mestre pode tudo, sempre
+    // ficha de NPC (criada pelo mestre) aberta a partir de uma lista já salva -- mesmo pública
+    // (consultável em "Fichas de NPC"), só o mestre edita. Precisa vir ANTES da checagem de
+    // dono/legada logo abaixo: uma ficha de NPC nunca tem ownerUid/donoChave, então cairia (sem
+    // esta linha) na regra de "sem dono, qualquer um edita".
+    if(loadedFichaIsNpc) return false;
     if(!loadedFichaOwnerChave && !loadedFichaOwnerUid) return true; // ficha nova ou legada, sem dono
     if(loadedFichaOwnerChave) return !!currentUserKey && loadedFichaOwnerChave === currentUserKey;
     return !!currentUser && loadedFichaOwnerUid === currentUser.uid;
@@ -6715,7 +6806,16 @@ body{
     const cardEl = $('card');
     if(cardEl) cardEl.classList.toggle('ficha-locked', locked);
     const banner = $('fichaLockBanner');
-    if(banner) banner.hidden = !locked;
+    if(banner){
+      banner.hidden = !locked;
+      // mensagem do cadeado muda conforme o MOTIVO (ficha de outro jogador vs. ficha de NPC do
+      // mestre aberta por "Fichas de NPC") -- só reescreve quando travada, sem custo quando não.
+      if(locked){
+        banner.textContent = loadedFichaIsNpc
+          ? '🔒 Ficha de NPC do mestre — somente consulta. Só o mestre pode editar.'
+          : '🔒 Ficha de outro jogador — somente visualização. Peça pro dono ou pro mestre editar.';
+      }
+    }
     const toolbarEl = document.querySelector('.toolbar');
     if(toolbarEl) toolbarEl.classList.toggle('ficha-locked', locked);
     if(cloudSaveBtn){
@@ -6780,6 +6880,16 @@ body{
   const GITHUB_REPO   = 'GMMRPG';
   const FICHAS_PATH   = 'fichas';
   const FICHAS_MESTRE_PATH = 'fichas_mestre'; // fichas salvas pelo mestre — pasta separada, acesso restrito
+
+  // Chave do Firebase Realtime Database pro Público/Privado de uma ficha de NPC. As fichas de NPC
+  // não têm ownerUid (ver comentário de loadedFichaIsNpc mais acima), então não dá pra reaproveitar
+  // os nós "mesa/deidade/{uid}"/"mesa/live/{uid}" de sempre -- a chave aqui é derivada do
+  // próprio caminho do arquivo no GitHub (loadedFichaPath, ex: "fichas_mestre/npc_ciclope.json"),
+  // que já é único por ficha. Chave do Realtime Database não pode ter ".", "#", "$", "/", "[" nem
+  // "]" -- todos viram "_".
+  function sanitizeFbKey(path){
+    return String(path||'').replace(/[.#$\[\]\/]/g, '_');
+  }
   const TOKEN_KEY      = 'rpg_ficha_github_token';
   const WEBHOOK_KEY     = 'rpg_ficha_discord_webhook';
 
@@ -9379,6 +9489,8 @@ body{
   const masterList = $('masterList');
   const masterMestreModal = $('masterMestreModal');
   const masterMestreList = $('masterMestreList');
+  const npcModal = $('npcModal');
+  const npcList = $('npcList');
 
   // Tira uma ficha de TUDO que ainda possa estar "amarrado" a ela na hora — peça no tabuleiro
   // (real, do mestre) e vitais ao vivo — sem esperar nenhuma resposta do GitHub, pra apagar uma
@@ -9430,6 +9542,18 @@ body{
     // hora, ver connectDeidadeListener()) e também ESCUTA esse mesmo nó (pra refletir aqui, sem
     // reabrir a lista, se outra aba/mestre alterar a mesma ficha).
     const deidadeControl = !!(opts && opts.deidadeControl);
+    // opts.npcFicha (usado por "🔒 Fichas do Mestre" e "🧚 Fichas de NPC") -- marca a ficha
+    // carregada por "Ver ficha" com um sinalizador sintético (__isNpcFicha) lido em applyState(),
+    // que alimenta loadedFichaIsNpc/isFichaEditable() (ver comentários lá): garante que uma ficha
+    // de NPC continua travada pra quem não é mestre mesmo sem ownerUid/donoChave.
+    const npcFicha = !!(opts && opts.npcFicha);
+    // opts.npcPublicFilter (usado só por "🧚 Fichas de NPC") -- em vez de mostrar todos os cards
+    // desta pasta (como "Fichas do Mestre" faz pro mestre), some com os que não estão marcados
+    // como "Publico" e mantém isso ao vivo: cada card escuta seu próprio nó
+    // "mesa/npcPublica/{chave}" (ver sanitizeFbKey()/o listener de #f_publica no <script>) e
+    // aparece/some na hora conforme o mestre alterna o seletor na ficha dele, sem precisar dar
+    // "Atualizar lista" -- é essa a parte "tempo real" pedida pra esse recurso.
+    const npcPublicFilter = !!(opts && opts.npcPublicFilter);
     // "ao vivo": enquanto a lista estiver na tela, cada ficha com dono (ownerUid) escuta
     // mesa/live/{uid} (ver pushLiveVitals() lá em cima, perto de recalc()) e atualiza Vida/Mana/
     // Escudo na hora, sem precisar que ninguém clique em SALVAR nem reabra a lista. Preciso
@@ -9575,7 +9699,12 @@ body{
                     if(liveVal) deidadeParaAbrir = liveVal;
                   }catch(err){ /* sem live disponível, segue com o valor salvo no arquivo mesmo */ }
                 }
-                applyState(deidadeParaAbrir !== data.deidade ? { ...data, deidade: deidadeParaAbrir } : data);
+                const dataParaAbrir = deidadeParaAbrir !== data.deidade ? { ...data, deidade: deidadeParaAbrir } : data;
+                // __isNpcFicha (opts.npcFicha) precisa ir DENTRO do objeto passado pra applyState()
+                // -- não dá pra atribuir loadedFichaIsNpc só depois, como loadedFichaPath/Sha logo
+                // abaixo: applyState() já chama applyFichaLockUI() lá dentro dela mesma (ver
+                // isFichaEditable()), então o sinalizador precisa estar disponível ANTES disso.
+                applyState(npcFicha ? { ...dataParaAbrir, __isNpcFicha: true } : dataParaAbrir);
                 // guarda de onde essa ficha veio (pasta + arquivo exatos, e o sha atual do arquivo) —
                 // assim, salvar de novo atualiza o mesmo arquivo original (preservando se é ficha de
                 // jogador ou do mestre, independente de quem estiver logado no momento em que for
@@ -9601,6 +9730,13 @@ body{
               // de verdade falhar lá embaixo, a ficha já não está mais visível em lugar nenhum; só
               // avisa por alert() (não dá mais pra escrever no botão, o card já foi removido).
               cascadeRemoveFichaEverywhere(data.ownerUid);
+              // limpeza best-effort do nó de Público/Privado desta ficha (só existe de verdade
+              // pra fichas de NPC, ver sanitizeFbKey() -- inofensivo tentar remover num arquivo
+              // que nunca teve esse nó escrito) pra não deixar lixo perdido no Realtime Database
+              // referenciando um arquivo que não existe mais.
+              if(fbReady && fbDb){
+                fbDb.ref('mesa/npcPublica/' + sanitizeFbKey(path)).remove().catch(()=>{});
+              }
               playEvilLaughSound(); // riso maligno de fundo — mesmo som já usado no 1 natural
               card.remove();
               if(!listEl.querySelector('.master-card')){
@@ -9615,6 +9751,25 @@ body{
             });
           }
           listEl.appendChild(card);
+
+          // "🧚 Fichas de NPC" (opts.npcPublicFilter): esconde de cara os cards que não estão
+          // marcados como "Publico" no arquivo, e liga um listener PRÓPRIO por card (não entra na
+          // lista de campos ao vivo de cima, é sempre criado aqui embaixo, ficha tendo dono ou não
+          // -- fichas de NPC nunca têm ownerUid) em "mesa/npcPublica/{chave}" pra acompanhar
+          // uma troca do seletor #f_publica feita pelo mestre DEPOIS que a lista já carregou, sem
+          // precisar de "Atualizar lista". snap.val() === null (nó nunca escrito nesta sessão,
+          // ficha salva e nunca alternada depois) cai pro valor já salvo no arquivo (data.publica).
+          if(npcPublicFilter){
+            card.hidden = !data.publica;
+            if(fbReady && fbDb){
+              const pubRef = fbDb.ref('mesa/npcPublica/' + sanitizeFbKey(path));
+              const pubCb = pubRef.on('value', (snap)=>{
+                const liveVal = snap.val();
+                card.hidden = !(liveVal === null ? !!data.publica : !!liveVal);
+              });
+              liveListeners.push({ ref: pubRef, cb: pubCb });
+            }
+          }
 
           // vitais ao vivo: só dá pra escutar quando a ficha já tem um dono conhecido (ownerUid) —
           // ficha legada/sem dono não tem em qual uid procurar, fica só com o valor salvo mesmo.
@@ -9674,7 +9829,17 @@ body{
   );
   const loadMasterMestreList = makeFichasListLoader(
     FICHAS_MESTRE_PATH, masterMestreList, masterMestreModal,
-    'Nenhuma ficha do mestre salva ainda. Use "SALVAR" logado como mestre.'
+    'Nenhuma ficha do mestre salva ainda. Use "SALVAR" logado como mestre.',
+    { npcFicha: true } // ver comentário de opts.npcFicha em makeFichasListLoader()
+  );
+  // "🧚 Fichas de NPC" -- mesma pasta de "🔒 Fichas do Mestre" acima (FICHAS_MESTRE_PATH), só que
+  // com opts.npcPublicFilter (só mostra as marcadas como "Publico", ao vivo) pra qualquer um
+  // consultar; "Ver ficha" continua funcionando (carrega na tela principal), mas
+  // opts.npcFicha trava a edição pra quem não é mestre (ver isFichaEditable()/loadedFichaIsNpc).
+  const loadNpcList = makeFichasListLoader(
+    FICHAS_MESTRE_PATH, npcList, npcModal,
+    'Nenhuma ficha de NPC pública no momento.',
+    { npcFicha: true, npcPublicFilter: true }
   );
   // painel "Fichas dos Jogadores (resumo ao vivo)" dentro da própria Mesa — mesmo card/dados ao
   // vivo da lista "📜 Fichas de Jogador", só que só de leitura (sem "Ver ficha"/"Apagar") e sem
@@ -9705,6 +9870,17 @@ body{
   $('closeMasterMestre').addEventListener('click', ()=>{ masterMestreModal.hidden = true; loadMasterMestreList.detachLiveListeners(); });
   masterMestreModal.addEventListener('click', (e)=>{ if(e.target === masterMestreModal){ masterMestreModal.hidden = true; loadMasterMestreList.detachLiveListeners(); } });
   $('refreshMasterMestre').addEventListener('click', loadMasterMestreList);
+
+  // "🧚 Fichas de NPC" -- o botão em si já fica escondido do mestre por CSS/JS (.jogador-only, ver
+  // applyRoleVisibility()); a lista já vem filtrada pra só mostrar as fichas marcadas como
+  // "Publico" (ver opts.npcPublicFilter em makeFichasListLoader()/loadNpcList()).
+  $('npcBtn').addEventListener('click', ()=>{
+    npcModal.hidden = false;
+    loadNpcList();
+  });
+  $('closeNpc').addEventListener('click', ()=>{ npcModal.hidden = true; loadNpcList.detachLiveListeners(); });
+  npcModal.addEventListener('click', (e)=>{ if(e.target === npcModal){ npcModal.hidden = true; loadNpcList.detachLiveListeners(); } });
+  $('refreshNpc').addEventListener('click', loadNpcList);
 
   // O botão "⚙️ Configurações" (e o modal que só reunia os atalhos de token/webhook) foi removido —
   // os dois agora são botões próprios direto na barra de topo (🔑 Meu token do GitHub, visível a
@@ -9802,7 +9978,7 @@ body{
   const loginResetError = $('loginResetError');
 
   // ---------- seletor de mesas/campanhas (botão "🎭 Mesas" no canto da tela de login) ----------
-  // Cada campanha é um arquivo HTML separado e independente (index_BG.html, index_40K.html, ...),
+  // Cada campanha é um arquivo HTML separado e independente (index_BG.html, index_mag.html, ...),
   // cada um com seu próprio repositório/pasta do GitHub e seu próprio "namespace" no Firebase —
   // então trocar de mesa aqui é simplesmente navegar pra outro arquivo (<a href>, sem nenhum
   // JavaScript especial pra isso). Esta wiring só cuida de abrir/fechar o menu.
@@ -10013,6 +10189,12 @@ body{
   function applyRoleVisibility(){
     document.querySelectorAll('.mestre-only').forEach(el=>{
       el.style.display = (currentRole === 'mestre') ? '' : 'none';
+    });
+    // .jogador-only é o espelho de .mestre-only -- só o botão "🧚 Fichas de NPC" usa essa classe
+    // por enquanto (o mestre não precisa dele: "🔒 Fichas do Mestre" já mostra tudo, público ou
+    // não, e sem trava de edição nenhuma).
+    document.querySelectorAll('.jogador-only').forEach(el=>{
+      el.style.display = (currentRole === 'mestre') ? 'none' : '';
     });
     updateMestreFichaControls();
   }
