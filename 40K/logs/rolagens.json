@@ -160,5 +160,14 @@
     "resultado": "coroa",
     "verdict": "acerto",
     "ts": 1787681205935
+  },
+  {
+    "nome": "UNDINE",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 8,
+    "resultado": 5,
+    "resultLabel": "Erro",
+    "ts": 1788732554988
   }
 ]
