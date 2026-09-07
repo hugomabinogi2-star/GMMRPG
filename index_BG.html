@@ -115,7 +115,18 @@ body{
   display:flex;
   flex-direction:column;
   align-items:center;
+  /* "todo texto no projeto precisa estar em caixa alta" -- em vez de espalhar
+     text-transform:uppercase regra por regra, um só aqui em cima cobre TUDO por herança
+     (text-transform é uma propriedade herdada) -- toolbar, modais, painéis, tooltips etc.
+     As exceções antigas que existiam por baixo deste ponto no arquivo (.chat-panel,
+     .live-board-panel, #chatInput/#mesaMessageInput, .cs-tooltip) foram removidas nesta rodada
+     -- não sobra mais nenhum texto em caixa normal no projeto. ::placeholder também ganha a
+     regra logo abaixo (não herda sozinho em todo navegador). Diálogos nativos do navegador
+     (alert/confirm/prompt) e o atributo title= (dica nativa ao passar o mouse) ficam de fora --
+     são UI do próprio navegador, CSS não alcança. */
+  text-transform:uppercase;
 }
+::placeholder{text-transform:uppercase;}
 
 /* guerreiro decorativo dos dois lados da página — o da esquerda e o da direita se olham, viradas
    um pro outro (o desenho original "olha" pra esquerda; o da direita fica como veio, olhando pra
@@ -359,13 +370,12 @@ body{
    abaixo do texto da divindade (.deity-lore) e antes do resto do conteúdo (.front-grid), com a
    mesma casca visual dos outros painéis (.panel, ver mais abaixo). Um chat só, global, entre todo
    mundo que está logado (mestre e jogadores) — sem separação por mesa/campanha. O estado
-   minimizado/expandido escolhido pelo usuário fica salvo em localStorage. Ao contrário do resto
-   da ficha (que fica tudo em caixa alta por causa de .card{text-transform:uppercase}), as
-   mensagens/campo de digitar aqui ficam com a caixa normal — só o título do painel continua
-   maiúsculo, como os outros <h2>. */
+   minimizado/expandido escolhido pelo usuário fica salvo em localStorage. Até uma rodada atrás
+   as mensagens/campo de digitar aqui ficavam de propósito em caixa normal (mais fácil de ler/
+   digitar um chat) -- removido a pedido ("todo texto no projeto precisa estar em caixa alta"):
+   agora herdam o text-transform:uppercase do body{} lá em cima como qualquer outro texto. */
 .chat-panel{
   display:flex;flex-direction:column;max-height:560px;
-  text-transform:none;
 }
 .chat-panel[hidden]{display:none;}
 .chat-panel h2{
@@ -480,7 +490,6 @@ body{
 */
 .panel.live-board-panel{
   display:flex;flex-direction:column;
-  text-transform:none;
 }
 .live-board-panel[hidden]{display:none;}
 .live-board-panel h2{
@@ -1436,17 +1445,11 @@ body{
    por causa do .card{text-transform:uppercase} acima) -- por isso "Nome do herói", itens,
    habilidades e a história do personagem digitados pelo jogador ficavam na caixa que a pessoa
    digitou, quebrando o padrão "tudo maiúsculo" do resto da ficha. Corrige isso à força aqui.
-   Exceção deliberada: o campo de digitar do Chat da Mesa e do chat do Tabuleiro ao Vivo continuam
-   em caixa normal (ver .chat-panel/.live-board-panel logo abaixo) -- mensagem de chat em caixa
-   alta o tempo todo seria estranho/incômodo de digitar e ler, então essas duas caixas de texto
-   ficam de fora por id (mais forte que a regra geral por causa da ordem/especificidade). */
+   Até uma rodada atrás #chatInput/#mesaMessageInput ficavam de fora de propósito (mensagem de
+   chat em caixa alta o tempo todo seria estranho de digitar/ler) -- removido a pedido ("todo
+   texto no projeto precisa estar em caixa alta"): agora seguem a regra geral abaixo também. */
 #card input, #card select, #card textarea{
   text-transform:uppercase;
-}
-/* precisa de #card na frente pra ganhar em especificidade da regra geral logo acima (mesma
-   contagem de ID, mas sem o seletor de tipo "input"/"textarea" a mais que ela tem). */
-#card #chatInput, #card #mesaMessageInput{
-  text-transform:none;
 }
 .card.flipped{transform:rotateY(180deg);}
 .face{
@@ -2930,7 +2933,7 @@ body{
   border:1px solid var(--border-brown);border-radius:4px;
   padding:10px 12px;
   font-family:'EB Garamond',serif;font-style:italic;font-weight:400;font-size:14.5px;line-height:1.4;
-  color:var(--ink-soft);letter-spacing:normal;text-align:left;text-transform:none;
+  color:var(--ink-soft);letter-spacing:normal;text-align:left;
   box-shadow:var(--shadow);
   z-index:20;
   opacity:0;visibility:hidden;transform:translateY(4px);
@@ -10103,13 +10106,24 @@ body{
           // listener de #f_publica mais acima) mesmo agora que o campo salvo virou string de 3
           // valores -- ele só existe pra essa checagem de Publico/não-Publico, então "Inimigos"
           // sempre bate como "não-Publico" ali, do jeito certo (nunca aparece em "Fichas de NPC").
+          // BUG corrigido nesta rodada: só setar card.hidden NÃO escondia nada de verdade -- o
+          // atributo "hidden" cai na regra padrão do navegador [hidden]{display:none}, que tem a
+          // MESMA especificidade de uma classe só, mas é CSS de USER-AGENT (prioridade mais baixa
+          // que qualquer CSS de autor, mesmo empatando em especificidade) -- e .master-card (a
+          // classe do próprio card) já declara "display:grid" (ver o <style>), que sempre vence.
+          // Resultado: fichas Privado/Inimigos apareciam pro jogador em "Fichas de NPC" mesmo com
+          // hidden=true. Define os dois, o atributo E style.display, toda vez que o estado muda.
+          function setNpcCardHidden(hide){
+            card.hidden = hide;
+            card.style.display = hide ? 'none' : '';
+          }
           if(npcPublicFilter){
-            card.hidden = !isPublicaValue(data.publica);
+            setNpcCardHidden(!isPublicaValue(data.publica));
             if(fbReady && fbDb){
               const pubRef = fbDb.ref('mesa/npcPublica/' + sanitizeFbKey(path));
               const pubCb = pubRef.on('value', (snap)=>{
                 const liveVal = snap.val();
-                card.hidden = !(liveVal === null ? isPublicaValue(data.publica) : !!liveVal);
+                setNpcCardHidden(!(liveVal === null ? isPublicaValue(data.publica) : !!liveVal));
               });
               liveListeners.push({ ref: pubRef, cb: pubCb });
             }
