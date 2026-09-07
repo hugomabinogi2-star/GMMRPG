@@ -1239,6 +1239,15 @@ body{
   display:flex;flex-direction:column;align-items:center;gap:8px;
   width:26%;min-width:88px;
 }
+/* BUG real encontrado nesta rodada: como a regra acima já define display:flex, o atributo
+   "hidden" (usado tanto pra 6ª bola roxa central ficar escondida do jogador quanto pra excluir
+   elementos já escolhidos num re-uso do seletor, ver opts.exclude em openElementPicker() no
+   <script>) NÃO tinha efeito nenhum -- author (esta regra) sempre vence user-agent ([hidden]) na
+   mesma propriedade, então a bola continuava visível (display:flex) mesmo com hidden=true. Mesmo
+   bug já corrigido antes em outro lugar da ficha (.master-card{display:grid} vencendo o hidden dos
+   cartões de NPC escondidos) e agora também em .weapon-card-wrap -- precisa de uma regra própria
+   depois desta pra ganhar o empate de especificidade. */
+.element-ball-wrap[hidden]{display:none;}
 /* cada bola é a própria imagem recortada (fundo já removido, ver ELEMENT_ICON_IMG) como
    background de um <button> circular -- ao passar o mouse, "acende" com um brilho na cor do
    próprio elemento (--el-color, uma por bola, escrita inline no HTML a partir de
@@ -1297,6 +1306,12 @@ body{
   display:flex;flex-wrap:wrap;justify-content:center;gap:20px;margin-top:6px;
 }
 .weapon-card-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;width:118px;}
+/* precisa vir DEPOIS da regra acima (que define display:flex) pra ganhar no empate de
+   especificidade -- CSS resolve por ordem no arquivo -- senão o atributo "hidden" (usado por
+   openWeaponPicker() pra esconder armas já escolhidas, ver opts.exclude no <script>) fica sem
+   efeito nenhum: mesmo bug já corrigido antes em outro lugar da ficha (.master-card{display:grid}
+   vencendo o hidden dos cartões de NPC escondidos). */
+.weapon-card-wrap[hidden]{display:none;}
 .weapon-card{
   width:110px;height:110px;border-radius:8px;padding:6px;cursor:pointer;
   background:linear-gradient(160deg,var(--paper-l),var(--paper));
@@ -4680,7 +4695,7 @@ body{
 <div class="modal-overlay" id="elementPickerModal" hidden>
   <div class="modal-box element-picker-box">
     <div class="modal-head">
-      <h2>Escolha seu Elemento</h2>
+      <h2 id="elementPickerTitle">Escolha seu Elemento</h2>
     </div>
     <p class="element-picker-intro" id="elementPickerIntro">Escolha o elemento da sua ficha. Depois de escolhido, não será mais possível trocar.</p>
     <div class="element-picker-pentagon" id="elementPickerPentagon">
@@ -4708,9 +4723,9 @@ body{
 <div class="modal-overlay" id="weaponPickerModal" hidden>
   <div class="modal-box weapon-picker-box">
     <div class="modal-head">
-      <h2>Escolha sua Arma</h2>
+      <h2 id="weaponPickerTitle">Escolha sua Arma</h2>
     </div>
-    <p class="element-picker-intro">Escolha a arma da sua ficha.</p>
+    <p class="element-picker-intro" id="weaponPickerIntro">Escolha a arma da sua ficha.</p>
     <div class="weapon-picker-grid" id="weaponPickerGrid"></div>
   </div>
 </div>
@@ -5408,6 +5423,11 @@ body{
     els.levelRank.textContent = rank;
     els.levelRank.className = 'cs-rank level-rank cs-rank-' + rank;
     updateFormFrameRankVisibility(rank);
+    // maybeOfferRankUpgrade() só existe de verdade mais abaixo no <script> (depois de
+    // openWeaponPicker()/openElementPicker(), que ela usa) -- é uma function declaration, então já
+    // está disponível por hoisting a essa altura (mesma lógica de renderHabilidades(), comentada
+    // logo acima).
+    maybeOfferRankUpgrade();
 
     // Garante que os pontos de atributo distribuídos fiquem sempre entre 1 e 18
     // (isso não afeta os modificadores de outras fontes da ficha, que podem ser negativos ou passar de 18)
@@ -7234,6 +7254,10 @@ body{
       const row = document.createElement('div');
       row.className = 'hab-row';
       row.dataset.habId = hab.id;
+      if(hab.__corFundo){
+        row.style.background = hexToRgba(hab.__corFundo, .22);
+        row.style.borderColor = hexToRgba(hab.__corFundo, .65);
+      }
 
       const head = document.createElement('div');
       head.className = 'hab-row-head';
@@ -7329,8 +7353,21 @@ body{
   // -- chamada sempre que qualquer um dos três muda (ver applyState()/openWeaponPicker()/o
   // listener de 'change' de els.deidade logo abaixo) e uma vez no fim do carregamento da página.
   function renderHabilidades(){
-    const armaAbilities = (typeof selectedArma !== 'undefined' && WEAPON_ABILITIES[selectedArma]) || [];
-    const elementoAbilities = ELEMENT_ABILITIES[els.deidade.value] || [];
+    // Armamento: junta a 1ª arma com a 2ª/3ª (Rank B/A, ver maybeOfferRankUpgrade()) -- todas na
+    // mesma aba, sem distinção visual entre elas (só as próprias habilidades de cada uma).
+    const armaAbilities = []
+      .concat((typeof selectedArma !== 'undefined' && WEAPON_ABILITIES[selectedArma]) || [])
+      .concat((typeof selectedArma2 !== 'undefined' && WEAPON_ABILITIES[selectedArma2]) || [])
+      .concat((typeof selectedArma3 !== 'undefined' && WEAPON_ABILITIES[selectedArma3]) || []);
+    // Elemento: o 1º elemento (els.deidade.value) continua sem marca nenhuma (linha com o fundo
+    // padrão da aba); o 2º elemento (Rank S) empresta as habilidades dele marcadas com
+    // __corFundo = cor do elemento NOVO -- renderHabilidadesTab() pinta o fundo só dessas linhas.
+    // As cores reativas da ficha inteira (--deity-eye-color etc, aba inteira inclusive) continuam
+    // presas só ao 1º elemento -- isto aqui nunca toca nelas.
+    const elemento2Cor = (typeof selectedElemento2 !== 'undefined' && selectedElemento2) ? DEITY_EYE_COLOR[selectedElemento2] : null;
+    const elemento2Abilities = ((typeof selectedElemento2 !== 'undefined' && selectedElemento2) ? (ELEMENT_ABILITIES[selectedElemento2] || []) : [])
+      .map(hab => Object.assign({}, hab, { __corFundo: elemento2Cor }));
+    const elementoAbilities = (ELEMENT_ABILITIES[els.deidade.value] || []).concat(elemento2Abilities);
     const armaEmptyMsg = (typeof selectedArma !== 'undefined' && selectedArma)
       ? 'Nenhuma habilidade definida ainda para esta arma.'
       : 'Escolha uma arma (em "Nova ficha") para ver as habilidades de Armamento.';
@@ -7389,6 +7426,13 @@ body{
       // arma escolhida pelo seletor de "Nova ficha" (ver openWeaponPicker()/selectedArma mais
       // abaixo) -- só guardada por enquanto, os efeitos de cada arma ficam pra depois.
       arma: selectedArma,
+      // 2ª/3ª arma (Rank B/A) e 2º elemento (Rank S) -- ganhos automáticos de upgrade de Rank, ver
+      // maybeOfferRankUpgrade(). '' quando a ficha ainda não alcançou o Rank correspondente (ou é
+      // de antes desse recurso existir) -- aí applyState() volta a oferecer o painel se o Rank
+      // salvo já qualificar.
+      arma2: selectedArma2,
+      arma3: selectedArma3,
+      elemento2: selectedElemento2,
       inventory: [...inventoryRows.children].map(r=>{
         const inputs = r.querySelectorAll('input');
         const descEl = r.querySelector('.item-desc');
@@ -7473,7 +7517,13 @@ body{
     // wireArrowSelect()), num try/catch: applyState() já roda bem depois de tudo carregado na
     // prática (startNewFicha()/carregar ficha só acontecem depois de login), então isto nunca
     // deveria disparar de verdade, mas não custa proteger.
-    try{ selectedArma = s.arma || ''; updateArmaBadge(); }catch(e){}
+    try{
+      selectedArma = s.arma || '';
+      selectedArma2 = s.arma2 || '';
+      selectedArma3 = s.arma3 || '';
+      selectedElemento2 = s.elemento2 || '';
+      updateArmaBadge();
+    }catch(e){}
     inventoryRows.innerHTML='';
     const invList = (s.inventory && s.inventory.length) ? s.inventory : [{},{},{}];
     invList.forEach((it, idx)=>{
@@ -7634,6 +7684,7 @@ body{
     const cor = DEITY_EYE_COLOR[nome] || '#ffd23f';
     const wrap = document.createElement('div');
     wrap.className = 'element-ball-wrap';
+    wrap.dataset.elemento = nome;
     wrap.style.left = pos.x + '%';
     wrap.style.top = pos.y + '%';
     const btn = document.createElement('button');
@@ -7663,11 +7714,9 @@ body{
       elementPickerOnPick = null;
       if(cb) cb(nome);
     });
-    const label = document.createElement('span');
-    label.className = 'element-ball-label';
-    label.textContent = nome;
+    // sem legenda de texto embaixo da bola (FOGO/TERRA/METAL/AGUA/MADEIRA) -- removida a pedido;
+    // a frase de humor da fada (showCaption() acima) já identifica o elemento ao passar o mouse.
     wrap.appendChild(btn);
-    wrap.appendChild(label);
     elementPickerPentagon.appendChild(wrap);
   });
   // 6ª opção, no CENTRO do pentagrama (x:50,y:50 -- não é uma ponta da estrela, fica no meio dela)
@@ -7678,6 +7727,7 @@ body{
   // com showCenter:true.
   const elementPickerCenterWrap = document.createElement('div');
   elementPickerCenterWrap.className = 'element-ball-wrap';
+  elementPickerCenterWrap.dataset.elemento = '-';
   elementPickerCenterWrap.style.left = '50%';
   elementPickerCenterWrap.style.top = '50%';
   elementPickerCenterWrap.hidden = true;
@@ -7718,7 +7768,17 @@ body{
     elementPickerOnPick = onPick;
     const showCenter = !!(opts && opts.showCenter);
     elementPickerCenterWrap.hidden = !showCenter;
-    elementPickerIntro.textContent = showCenter ? ELEMENT_PICKER_INTRO_MESTRE : ELEMENT_PICKER_INTRO_JOGADOR;
+    // esconde bolas já escolhidas antes (ex.: o 1º Elemento, ao reabrir esse mesmo seletor pro
+    // 2º Elemento do Rank S, ver maybeOfferRankUpgrade()) -- sem opts.exclude, nada fica escondido
+    // por aqui (fluxo normal de "Nova ficha", todas as opções sempre disponíveis).
+    const exclude = (opts && opts.exclude) || [];
+    elementPickerPentagon.querySelectorAll('.element-ball-wrap').forEach(wrap=>{
+      if(exclude.includes(wrap.dataset.elemento)) wrap.hidden = true;
+      else if(wrap !== elementPickerCenterWrap) wrap.hidden = false; // as 5 bolas normais sempre voltam a aparecer se não excluídas (só a central obedece showCenter, tratado acima)
+    });
+    const titulo = $('elementPickerTitle');
+    if(titulo) titulo.textContent = (opts && opts.title) || 'Escolha seu Elemento';
+    elementPickerIntro.textContent = (opts && opts.intro) || (showCenter ? ELEMENT_PICKER_INTRO_MESTRE : ELEMENT_PICKER_INTRO_JOGADOR);
     elementPickerModal.hidden = false;
   }
 
@@ -7735,6 +7795,7 @@ body{
   Object.keys(WEAPON_ICON_IMG).forEach(chave=>{
     const wrap = document.createElement('div');
     wrap.className = 'weapon-card-wrap';
+    wrap.dataset.arma = chave;
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'weapon-card';
@@ -7756,8 +7817,18 @@ body{
     wrap.appendChild(label);
     weaponPickerGrid.appendChild(wrap);
   });
-  function openWeaponPicker(onPick){
+  function openWeaponPicker(onPick, opts){
     weaponPickerOnPick = onPick;
+    // esconde cartas já escolhidas antes (2ª/3ª Arma dos Ranks B/A, ver maybeOfferRankUpgrade())
+    // -- sem opts.exclude, nada fica escondido (fluxo normal de "Nova ficha").
+    const exclude = (opts && opts.exclude) || [];
+    weaponPickerGrid.querySelectorAll('.weapon-card-wrap').forEach(wrap=>{
+      wrap.hidden = exclude.includes(wrap.dataset.arma);
+    });
+    const titulo = $('weaponPickerTitle');
+    const intro = $('weaponPickerIntro');
+    if(titulo) titulo.textContent = (opts && opts.title) || 'Escolha sua Arma';
+    if(intro) intro.textContent = (opts && opts.intro) || 'Escolha a arma da sua ficha.';
     weaponPickerModal.hidden = false;
   }
 
@@ -7767,6 +7838,16 @@ body{
   // seletor ainda (fichas de mestre/NPC, ou fichas de jogador salvas ANTES desta rodada). Ver
   // collectState()/applyState() pra persistência e updateArmaBadge() pro selo no retrato.
   let selectedArma = '';
+  // 2ª e 3ª arma (Rank B e Rank A) e 2º elemento (Rank S) -- ganhos automáticos de "upgrade de
+  // Rank", ver maybeOfferRankUpgrade() um pouco abaixo (depois de openWeaponPicker()/
+  // openElementPicker() já estarem declaradas). As habilidades de cada uma entram na MESMA aba
+  // (Armamento/Elemento) que já existe, junto com a da 1ª -- ver renderHabilidades(). As cores
+  // reativas da ficha inteira (--deity-eye-color etc.) continuam presas só ao 1º elemento
+  // (els.deidade.value) -- selectedElemento2 nunca mexe nisso, só tinge as próprias linhas de
+  // habilidade dele (ver __corFundo em renderHabilidades()/renderHabilidadesTab()).
+  let selectedArma2 = '';
+  let selectedArma3 = '';
+  let selectedElemento2 = '';
   const armaBadge = $('armaBadge');
   const armaBadgeImg = $('armaBadgeImg');
   function updateArmaBadge(){
@@ -7777,6 +7858,68 @@ body{
       armaBadge.hidden = false;
     }else{
       armaBadge.hidden = true;
+    }
+  }
+
+  const RANK_ORDER = { C:0, B:1, A:2, S:3 };
+  let rankUpgradePending = false;
+  function maybeOfferRankUpgrade(){
+    if(rankUpgradePending) return; // já tem um painel aberto esperando escolha -- não empilha outro
+    if(!isFichaEditable()) return; // só quem pode editar a ficha (ver isFichaEditable()) recebe o painel
+    const rank = els.levelRank.textContent;
+    const nivelRank = RANK_ORDER[rank];
+    if(nivelRank === undefined) return;
+    // Rank C -> B: 2ª arma. Só faz sentido se a ficha já tinha uma 1ª arma escolhida (selectedArma)
+    // -- fichas de NPC/mestre que nunca passaram pelo seletor de Arma continuam sem isso.
+    if(nivelRank >= 1 && selectedArma && !selectedArma2){
+      rankUpgradePending = true;
+      openWeaponPicker(arma=>{
+        selectedArma2 = arma;
+        updateArmaBadge();
+        renderHabilidades(); // habilidades da nova arma entram na mesma aba Armamento que já existia
+        rankUpgradePending = false;
+        maybeOfferRankUpgrade(); // encadeia (cobre pular direto pro Rank A ou S de uma vez)
+      }, {
+        exclude: [selectedArma, selectedArma2, selectedArma3].filter(Boolean),
+        title: 'Rank B: nova Arma!',
+        intro: 'Seu personagem alcançou o Rank B e ganhou uma nova arma. As habilidades dela entram na mesma aba de Armamento que você já tinha.',
+      });
+      return;
+    }
+    // Rank B -> A: 3ª arma.
+    if(nivelRank >= 2 && selectedArma2 && !selectedArma3){
+      rankUpgradePending = true;
+      openWeaponPicker(arma=>{
+        selectedArma3 = arma;
+        updateArmaBadge();
+        renderHabilidades();
+        rankUpgradePending = false;
+        maybeOfferRankUpgrade();
+      }, {
+        exclude: [selectedArma, selectedArma2, selectedArma3].filter(Boolean),
+        title: 'Rank A: nova Arma!',
+        intro: 'Seu personagem alcançou o Rank A e ganhou mais uma arma. As habilidades dela entram na mesma aba de Armamento que você já tinha.',
+      });
+      return;
+    }
+    // Rank A -> S: 2º elemento. As cores da ficha (--deity-eye-color etc.) continuam do 1º
+    // elemento (els.deidade.value) -- só as habilidades do 2º entram na aba Elemento, tingidas
+    // com a cor dele (ver __corFundo em renderHabilidades()). A bola roxa central ("-") segue a
+    // mesma regra de sempre: só aparece pro mestre (showCenter), nunca pro jogador.
+    if(nivelRank >= 3 && els.deidade.value && els.deidade.value !== '-' && !selectedElemento2){
+      rankUpgradePending = true;
+      openElementPicker(nome=>{
+        selectedElemento2 = nome;
+        renderHabilidades();
+        rankUpgradePending = false;
+        maybeOfferRankUpgrade();
+      }, {
+        exclude: [els.deidade.value].filter(Boolean),
+        showCenter: currentRole === 'mestre',
+        title: 'Rank S: novo Elemento!',
+        intro: 'Seu personagem alcançou o Rank S e ganhou um segundo Elemento. As cores da ficha continuam as do primeiro; as novas habilidades aparecem na aba de Elemento, marcadas com a cor do elemento novo.',
+      });
+      return;
     }
   }
 
