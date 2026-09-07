@@ -1202,7 +1202,12 @@ body{
 .board-tray-hint{font-size:11px;color:var(--ink-faint);margin:0 0 10px;line-height:1.4;}
 
 /* ---------- 🗺️ Mapa da campanha (#mapModal -- ver o <script> pra estado/lógica) ---------- */
-.map-modal-box{max-width:900px;}
+/* especificidade dupla (.modal-box.map-modal-box) de propósito -- a regra genérica .modal-box
+   (mais abaixo no arquivo, ver max-width:620px) tem a MESMA especificidade de uma classe só, e
+   como vem DEPOIS no CSS, venceria por ordem de cascata se este seletor também fosse só uma
+   classe. Combinando as duas classes aqui, a especificidade fica maior (2 classes > 1), então esta
+   regra vence de verdade, não importa a ordem. */
+.modal-box.map-modal-box{max-width:1800px;}
 .map-edit-toolbar{
   display:flex;flex-wrap:wrap;align-items:center;gap:10px;
   margin-bottom:8px;padding:10px;
@@ -1242,7 +1247,7 @@ body{
 .map-outer{
   position:relative;
   transform-origin:0 0;
-  width:100%;max-width:820px;min-width:320px;
+  width:100%;max-width:1640px;min-width:320px;
   aspect-ratio:16/10;
   border:4px solid var(--border-brown);border-radius:3px;
   box-shadow:var(--shadow);
@@ -3709,17 +3714,19 @@ body{
               <label>Nome</label>
               <div class="nome-deidade-row">
                 <input type="text" id="f_nome" placeholder="Nome do herói">
-                <!-- HUMANO (última opção do <select> logo abaixo): elemento extra só pro mestre
-                     usar (NPC/inimigo sem afinidade elemental nenhuma, um humano comum). O
-                     comentário fica AQUI FORA do <select>, não entre as <option>, porque esse
-                     <select> tem o innerHTML copiado cru pra montar o mini-seletor de elemento de
-                     dentro de MESA (ver deidadeOptionsHtml/opts.deidadeControl em
-                     makeFichasListLoader() no <script>) -- um comentário entre as opções iria
-                     junto nessa cópia à toa. data-mestre-only="1" na <option> faz o step() de
-                     wireArrowSelect() (ver <script>) pular essa opção quando quem está logado não
-                     é mestre, então o jogador nunca consegue chegar nela girando as setinhas ‹ ›
-                     do próprio herói. Também derruba a fileira de Formas (verso da ficha) pra só
-                     a Forma de fada -- ver updateFormFrameRankVisibility() no <script>. -->
+                <!-- "-" (última opção do <select> logo abaixo, valor literal "-"): elemento extra
+                     só pro mestre usar (NPC/inimigo sem afinidade elemental nenhuma, um humano
+                     comum) -- rótulo de propósito neutro (só o traço), cor roxa (ver
+                     DEITY_EYE_COLOR['-'] no <script>). O comentário fica AQUI FORA do <select>,
+                     não entre as <option>, porque esse <select> tem o innerHTML copiado cru pra
+                     montar o mini-seletor de elemento de dentro de MESA (ver deidadeOptionsHtml/
+                     opts.deidadeControl em makeFichasListLoader() no <script>) -- um comentário
+                     entre as opções iria junto nessa cópia à toa. data-mestre-only="1" na <option>
+                     faz o step() de wireArrowSelect() (ver <script>) pular essa opção quando quem
+                     está logado não é mestre, então o jogador nunca consegue chegar nela girando
+                     as setinhas ‹ › do próprio herói. Também derruba a fileira de Formas (verso da
+                     ficha) pra só a Forma de fada -- ver updateFormFrameRankVisibility() no
+                     <script>. -->
                 <div class="arrow-select deidade-arrow-select" aria-label="Elemento">
                   <button type="button" class="arrow-select-btn deidade-arrow-btn" data-dir="-1" aria-label="Elemento anterior">‹</button>
                   <div class="arrow-select-display"></div>
@@ -3730,7 +3737,7 @@ body{
                     <option>METAL</option>
                     <option>AGUA</option>
                     <option>MADEIRA</option>
-                    <option data-mestre-only="1">HUMANO</option>
+                    <option data-mestre-only="1">-</option>
                   </select>
                 </div>
               </div>
@@ -4650,7 +4657,7 @@ body{
     'METAL': 'O FIO QUE NÃO SE QUEBRA!',
     'AGUA': 'A MARÉ QUE TUDO LEVA!',
     'MADEIRA': 'A SEIVA QUE SEMPRE RENASCE!',
-    'HUMANO': 'SEM ELEMENTO NENHUM -- SÓ CARNE E OSSO!',
+    '-': 'SEM ELEMENTO NENHUM -- SÓ CARNE E OSSO!',
   };
   // o Alinhamento (EUSEBÊS/ASEBÊS) saiu da ficha nesta rodada — com "VAZIO" (nenhum elemento
   // escolhido ainda) o texto de topo agora simplesmente fica em branco, sem nenhum texto de
@@ -4684,8 +4691,8 @@ body{
     'METAL': '#c7ccd1',       // cinza claro
     'AGUA': '#8ecbff',        // azul claro
     'MADEIRA': '#8fd18f',     // verde claro
-    'HUMANO': '#c9a06a',      // marrom-pele neutro (NPC sem elemento -- só pro mestre, ver
-                               // data-mestre-only="1" na <option> de #f_deidade)
+    '-': '#9b6fd6',           // roxo (NPC sem elemento -- só pro mestre, ver data-mestre-only="1"
+                               // na <option> de #f_deidade, rotulada só com o traço "-")
   };
   // converte "#rrggbb" pra "rgba(r,g,b,alpha)", pro brilho externo (box-shadow) mais suave.
   function hexToRgba(hex, alpha){
@@ -5433,7 +5440,7 @@ body{
     function step(delta){
       const n = select.options.length;
       if(!n) return;
-      // pula opções marcadas data-mestre-only="1" (ex: HUMANO em #f_deidade) quando quem está
+      // pula opções marcadas data-mestre-only="1" (ex: "-" em #f_deidade) quando quem está
       // girando as setinhas não é o mestre -- assim essas opções nunca aparecem pro jogador
       // mesmo continuando a existir no <select> escondido (precisam continuar lá pra fichas de
       // NPC salvas pelo mestre com esse valor carregarem certinho). Tenta no máximo "n" passos
@@ -5796,16 +5803,16 @@ body{
   function updateFormFrameRankVisibility(rank){
     const rankOrder = { C:0, B:1, A:2, S:3 };
     const level = rankOrder[rank] ?? 0;
-    // Elemento HUMANO (NPC sem afinidade elemental, ver data-mestre-only="1" em #f_deidade): não
-    // se transforma em nada -- só existe a Forma de fada (o retrato normal, primeiro quadro).
-    // Some com Forma de pixie/animal/humana mesmo que o rank já desse direito a elas.
-    const isHumano = !!(els.deidade && els.deidade.value === 'HUMANO');
-    const animalUnlocked = !isHumano && level >= rankOrder.B;
-    const humanaUnlocked = !isHumano && level >= rankOrder.A;
-    if(formFramePixie) formFramePixie.hidden = isHumano;
+    // Elemento "-" (NPC sem afinidade elemental, ver data-mestre-only="1" em #f_deidade): não se
+    // transforma em nada -- só existe a Forma de fada (o retrato normal, primeiro quadro). Some
+    // com Forma de pixie/animal/humana mesmo que o rank já desse direito a elas.
+    const isElementoVazio = !!(els.deidade && els.deidade.value === '-');
+    const animalUnlocked = !isElementoVazio && level >= rankOrder.B;
+    const humanaUnlocked = !isElementoVazio && level >= rankOrder.A;
+    if(formFramePixie) formFramePixie.hidden = isElementoVazio;
     if(formFrameAnimal) formFrameAnimal.hidden = !animalUnlocked;
     if(formFrameHumana) formFrameHumana.hidden = !humanaUnlocked;
-    if(isHumano && selectedFormFrame !== 'fada'){
+    if(isElementoVazio && selectedFormFrame !== 'fada'){
       selectFormFrame('fada');
     } else if((selectedFormFrame === 'animal' && !animalUnlocked) || (selectedFormFrame === 'humana' && !humanaUnlocked)){
       selectFormFrame('fada');
@@ -6938,8 +6945,16 @@ body{
     els.nome.value = s.nome||'';
     // 'VAZIO' é o padrão de toda ficha nova/sem elemento salvo ainda — editável direto pelo
     // seletor de setas ao lado do Nome (ver .deidade-arrow-select no HTML), e também pelo mestre
-    // por fora, via opts.deidadeControl em makeFichasListLoader().
-    els.deidade.value = s.deidade||'FOGO';
+    // por fora, via opts.deidadeControl em makeFichasListLoader(). 'HUMANO' → '-': o elemento
+    // extra do mestre (NPC sem afinidade elemental) foi renomeado de "HUMANO" pra só o traço "-"
+    // -- fichas salvas ANTES dessa rodada, ainda com o valor antigo "HUMANO", continuam abrindo
+    // certinho (mapeadas pro valor novo aqui). Padrão de uma ficha SEM elemento salvo (s.deidade
+    // vazio -- "Nova ficha", ou login pela 1ª vez) agora depende de quem está criando: o MESTRE
+    // só cria NPC por aqui (nunca "a própria" ficha), e a maioria dos NPCs é gente comum sem
+    // afinidade elemental nenhuma -- nasce em "-" (o mestre escolhe um elemento de verdade só se o
+    // NPC realmente tiver um). Pro JOGADOR (que É a própria ficha) continua nascendo em FOGO, já
+    // que "-" é mestre-only e não faria sentido como padrão de uma ficha de herói de verdade.
+    els.deidade.value = (s.deidade === 'HUMANO') ? '-' : (s.deidade || (currentRole === 'mestre' ? '-' : 'FOGO'));
     // Público/Privado/Inimigos: "Privado" é o padrão sempre que a ficha não trouxer um valor
     // reconhecido -- cobre tanto "Nova ficha" (s={}, nasce Privada) quanto uma ficha de NPC salva
     // antes desse recurso existir (legada, sem o campo). s.publica pode chegar em dois formatos:
