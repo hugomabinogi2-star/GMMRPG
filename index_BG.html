@@ -1835,6 +1835,92 @@ body{
 }
 .portrait-back span{font-size:11px;}
 
+/* ---------- fileira de "formas" no verso (fada/pixie/animal/humana) ----------
+   Portado de index_mag.html (mesma mecânica, mesmas classes/ids) -- 4 quadros lado a lado, da
+   esquerda pra direita: Forma de fada (o retrato normal, mesmo id #portraitBack de antes -- só
+   ganhou companhia), Forma de pixie (uma chama acesa na cor da Divindade, gerada por JS -- ver
+   updateFormFramePixieImage()), Forma animal (só a partir do rank B) e Forma humana (só a partir
+   do rank A, ver updateFormFrameRankVisibility()). Cada quadro reaproveita a MESMA classe
+   .portrait-back de antes (mesma moldura/brilho reativo à Divindade que o retrato principal já
+   tinha) -- só encolheu de 220px pra caber os 4 juntos numa fileira, e ganhou cursor:pointer
+   (antes era cursor:default). Clicar num quadro escolhe ele como fonte de imagem das rolagens
+   (ver selectFormFrame()/getPortraitImgEl() no <script>) -- o quadro escolhido ganha um contorno
+   extra na cor da Divindade (.form-frame.selected). Forma animal/humana começam sem imagem
+   ("clique pra adicionar", igual o retrato principal) -- clicar nelas a primeira vez abre o
+   seletor de arquivo; depois de já ter uma foto, clicar só troca a seleção, e o lapisinho
+   (.form-frame-edit-btn) no canto abre o seletor de novo pra trocar a foto sem precisar desmarcar
+   a seleção primeiro. */
+.form-frames-wrap{
+  display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;
+  gap:12px;margin:2px 0 16px;
+}
+.form-frame{
+  display:flex;flex-direction:column;align-items:center;gap:6px;
+  position:relative;
+}
+.form-frame[hidden]{display:none;}
+.form-frame .portrait-back{
+  width:130px;
+  cursor:pointer;
+  transition:outline-color .2s, box-shadow .2s, border-color .2s;
+}
+.form-frame.selected .portrait-back{
+  outline-width:3px;
+  outline-color:var(--deity-eye-color, var(--gold-bright));
+  outline-offset:3px;
+  box-shadow:
+    inset 0 0 12px rgba(90,60,20,.35),
+    0 2px 6px rgba(0,0,0,.3),
+    0 0 0 2px var(--deity-eye-color, var(--gold-bright)) inset,
+    0 0 16px var(--deity-eye-glow-soft, rgba(224,182,86,.75)),
+    0 0 30px var(--deity-eye-glow-soft, rgba(224,182,86,.4));
+}
+.form-frame-caption{
+  font-family:'Marcellus',serif;
+  font-size:10.5px;
+  color:var(--ink-soft);
+  text-align:center;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+}
+.form-frame-edit-btn{
+  position:absolute;top:4px;right:4px;z-index:2;
+  width:22px;height:22px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;line-height:1;cursor:pointer;
+  background:rgba(0,0,0,.55);
+  border:1px solid var(--border-brown);border-radius:50%;
+  color:var(--ink);
+}
+.form-frame-edit-btn:hover{border-color:var(--gold-bright);}
+@media (max-width:760px){
+  .form-frames-wrap{gap:8px;}
+  .form-frame .portrait-back{width:min(22vw,104px);}
+  .form-frame-caption{font-size:9px;}
+}
+
+/* ---------- zoom ao passar o mouse numa imagem da ficha (frente ou verso) ----------
+   Clone flutuante e fixo na tela (ver #imgZoomOverlay no HTML, wireImageHoverZoom() no <script>),
+   não um transform:scale() no próprio elemento -- .face/.face-inner cortam (overflow) qualquer
+   coisa que cresça além do papiro, então ampliar no lugar quase sempre ficaria cortado. */
+.img-zoom-overlay{
+  position:fixed;
+  z-index:9999;
+  pointer-events:none;
+  opacity:0;
+  transform:translate(-50%,-50%) scale(.94);
+  transition:opacity .15s ease, transform .15s ease;
+}
+.img-zoom-overlay.visible{opacity:1;transform:translate(-50%,-50%) scale(1);}
+.img-zoom-overlay img{
+  display:block;
+  border-radius:4px;
+  border:2px solid var(--deity-eye-color, var(--gold-bright));
+  box-shadow:0 10px 34px rgba(0,0,0,.65), 0 0 10px var(--deity-eye-glow-soft, rgba(224,182,86,.55)), 0 0 26px var(--deity-eye-glow-soft, rgba(224,182,86,.35));
+  object-fit:cover;
+  filter:sepia(.25) contrast(1.02);
+}
+
 /* vela — morava colada na borda esquerda do retrato; agora fica no topo da ficha, dentro do
    .ribbon (que já é position:relative), no canto oposto ao selo de Nível (.seal fica em
    top:2px;right:10px — a vela espelha isso em top:2px;left:10px). A chama reage à cor da Deidade
@@ -4050,9 +4136,47 @@ body{
               <input type="file" id="emoteInputKiss" accept="image/*" style="display:none;">
               <div class="emote-icon-label" aria-hidden="true">😘</div>
             </div>
+            <!-- Rodada nova: o retrato sozinho do verso virou uma fileira de 4 "formas" (fada,
+                 pixie, animal, humana) -- mesma mecânica de seleção já usada em index_mag.html,
+                 portada pra cá (ver comentário grande em .form-frames-wrap no <style> e a seção
+                 "formas do personagem" no <script>, logo depois de portraitData). O <div
+                 id="portraitBack"> continua com o MESMO id de sempre, só que agora dentro do
+                 primeiro quadro (Forma de fada) -- nada que já lia/escrevia nele por fora
+                 (portraitBackBox) precisou mudar. -->
             <div class="portrait-back-wrap">
-              <div class="portrait portrait-back" id="portraitBack">
-                <span>Sem retrato</span>
+              <div class="form-frames-wrap" id="formFramesWrap">
+                <div class="form-frame selected" id="formFrameFada" data-form="fada" title="Usar esta imagem nas rolagens">
+                  <div class="portrait portrait-back" id="portraitBack">
+                    <span>Sem retrato</span>
+                  </div>
+                  <div class="form-frame-caption">Forma de fada</div>
+                </div>
+                <div class="form-frame" id="formFramePixie" data-form="pixie" title="Usar esta imagem nas rolagens">
+                  <div class="portrait portrait-back" id="formFramePixieBox">
+                    <img id="formFramePixieImg" alt="Forma de pixie">
+                  </div>
+                  <div class="form-frame-caption">Forma de pixie</div>
+                </div>
+                <!-- Forma animal: só aparece a partir do rank B -- ver updateFormFrameRankVisibility()
+                     no <script>, chamada de dentro de recalc() toda vez que o rank é recalculado. -->
+                <div class="form-frame" id="formFrameAnimal" data-form="animal" hidden title="Usar esta imagem nas rolagens">
+                  <div class="portrait portrait-back" id="formFrameAnimalBox">
+                    <span>Clique para<br>adicionar imagem</span>
+                  </div>
+                  <button type="button" class="form-frame-edit-btn" id="formFrameAnimalEditBtn" title="Trocar imagem">🖊️</button>
+                  <input type="file" id="formFrameAnimalInput" accept="image/*" style="display:none;">
+                  <div class="form-frame-caption">Forma animal</div>
+                </div>
+                <!-- Forma humana: só aparece a partir do rank A -- mesmo mecanismo da Forma animal
+                     acima, só que com o rank mais alto. -->
+                <div class="form-frame" id="formFrameHumana" data-form="humana" hidden title="Usar esta imagem nas rolagens">
+                  <div class="portrait portrait-back" id="formFrameHumanaBox">
+                    <span>Clique para<br>adicionar imagem</span>
+                  </div>
+                  <button type="button" class="form-frame-edit-btn" id="formFrameHumanaEditBtn" title="Trocar imagem">🖊️</button>
+                  <input type="file" id="formFrameHumanaInput" accept="image/*" style="display:none;">
+                  <div class="form-frame-caption">Forma humana</div>
+                </div>
               </div>
             </div>
             <div class="emote-img-slot">
@@ -4512,6 +4636,16 @@ body{
   </div>
 </div>
 
+<!-- Zoom ao passar o mouse em cima de uma imagem da ficha (retrato da frente e as 4 imagens do
+     verso -- fada/pixie/animal/humana). Fica FORA de #card de propósito: tanto .face quanto
+     .face-inner têm overflow:hidden/overflow-x:hidden (pra cortar o conteúdo certinho nas bordas
+     do papiro), então uma imagem ampliada NO PRÓPRIO LUGAR seria cortada por eles quase sempre.
+     Em vez disso, isto aqui é um "clone" flutuante (position:fixed, por cima de tudo, sem travar
+     clique nenhum -- pointer-events:none) que aparece centralizado em cima da imagem original
+     enquanto o mouse estiver por cima dela, com até o dobro do tamanho (ver
+     wireImageHoverZoom()/showImgZoom() no <script>). -->
+<div class="img-zoom-overlay" id="imgZoomOverlay" hidden><img id="imgZoomOverlayImg" alt=""></div>
+
 <!-- Firebase (login mestre/jogador, ficha ao vivo) -->
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js"></script>
@@ -4529,6 +4663,64 @@ body{
   function isBlankName(n){
     const t = (n == null ? '' : String(n)).trim();
     return !t || t === '(sem nome)';
+  }
+
+  // ---------- zoom ao passar o mouse numa imagem da ficha (retrato da frente e as imagens do
+  // verso -- fada/pixie/animal/humana), a pedido: "de um zoom na imagem com até o dobro do
+  // tamanho". Usa delegação de evento (mouseover/mouseout no document, que sobem/bubble, ao
+  // contrário de mouseenter/mouseleave) em vez de listener fixo por imagem, porque algumas dessas
+  // imagens são recriadas por innerHTML depois de um upload (ver renderFormFrameUploadedImage())
+  // -- um listener preso no elemento antigo perderia a imagem nova. O "zoom" em si é um clone
+  // flutuante (#imgZoomOverlay, position:fixed, por cima de tudo) em vez de ampliar a imagem no
+  // próprio lugar, porque .face/.face-inner têm overflow:hidden/overflow-x:hidden (cortam o
+  // conteúdo nas bordas do papiro) -- ampliar ali seria cortado quase sempre. Cobre tanto a
+  // frente (.portrait img) quanto o verso (.portrait-back img, que também é a classe de cada um
+  // dos 4 quadros de Forma) numa regra só.
+  const imgZoomOverlay = $('imgZoomOverlay');
+  const imgZoomOverlayImg = imgZoomOverlay ? $('imgZoomOverlayImg') : null;
+  const IMG_ZOOM_SELECTOR = '.portrait img, .portrait-back img';
+  function showImgZoom(imgEl){
+    if(!imgZoomOverlay || !imgEl) return;
+    const src = imgEl.currentSrc || imgEl.src;
+    if(!src) return;
+    const rect = imgEl.getBoundingClientRect();
+    if(rect.width < 1 || rect.height < 1) return;
+    // até o dobro do tamanho exibido, sem estourar a viewport (telas pequenas/imagem já grande)
+    const maxW = window.innerWidth * .8, maxH = window.innerHeight * .8;
+    const scale = Math.max(1, Math.min(2, maxW / rect.width, maxH / rect.height));
+    const w = rect.width * scale, h = rect.height * scale;
+    imgZoomOverlayImg.src = src;
+    imgZoomOverlayImg.style.width = w + 'px';
+    imgZoomOverlayImg.style.height = h + 'px';
+    // centraliza por cima da imagem original, mas sem deixar a ampliação vazar pra fora da tela
+    const margin = 8;
+    let cx = rect.left + rect.width/2;
+    let cy = rect.top + rect.height/2;
+    cx = Math.min(Math.max(cx, w/2 + margin), window.innerWidth - w/2 - margin);
+    cy = Math.min(Math.max(cy, h/2 + margin), window.innerHeight - h/2 - margin);
+    imgZoomOverlay.style.left = cx + 'px';
+    imgZoomOverlay.style.top = cy + 'px';
+    imgZoomOverlay.hidden = false;
+    requestAnimationFrame(()=>{ if(!imgZoomOverlay.hidden) imgZoomOverlay.classList.add('visible'); });
+  }
+  function hideImgZoom(){
+    if(!imgZoomOverlay) return;
+    imgZoomOverlay.classList.remove('visible');
+    imgZoomOverlay.hidden = true;
+  }
+  if(imgZoomOverlay && imgZoomOverlayImg){
+    document.addEventListener('mouseover', (e)=>{
+      const img = e.target.closest && e.target.closest(IMG_ZOOM_SELECTOR);
+      if(img) showImgZoom(img);
+    });
+    document.addEventListener('mouseout', (e)=>{
+      const img = e.target.closest && e.target.closest(IMG_ZOOM_SELECTOR);
+      if(img) hideImgZoom();
+    });
+    // esconde em qualquer clique (ex.: clicar numa Forma pra selecioná-la) e ao virar a ficha,
+    // pra nunca deixar um clone "grudado" na tela por engano
+    document.addEventListener('mousedown', hideImgZoom, true);
+    window.addEventListener('scroll', hideImgZoom, true);
   }
 
   // a imagem do guerreiro do lado direito reaproveita o mesmo retrato (data URI) já carregado na
@@ -4556,6 +4748,16 @@ body{
   };
 
   let portraitData = null;
+  // ---------- formas do personagem (verso: fada/pixie/animal/humana) ----------
+  // Portado de index_mag.html -- animalFormData/humanaFormData seguem o mesmo padrão de
+  // portraitData acima (data URL JPEG ou null); a de fada usa o retrato normal (portraitData) e a
+  // de pixie é gerada por JS (chama colorida da Divindade), nenhuma das duas precisa de variável
+  // própria pra guardar upload. selectedFormFrame guarda qual das 4 está marcada AGORA como fonte
+  // de imagem das rolagens (ver getPortraitImgEl() mais abaixo) -- persistido na ficha
+  // (collectState()/applyState()) igual qualquer outro campo, começa em 'fada' por padrão.
+  let selectedFormFrame = 'fada';
+  let animalFormData = null;
+  let humanaFormData = null;
   // imagens dos 4 campos extra do verso (banco de imagem dos botões de emote do chat, ver
   // wiring perto de portraitInput e os botões chatEmote*Btn mais abaixo).
   const emoteImages = { rage: null, kiss: null, sob: null, rofl: null };
@@ -4962,6 +5164,7 @@ body{
     document.documentElement.style.setProperty('--deity-flash-fade', hexToRgba(color, 0));
     updateCursorForDeity(color);
     updateFooterBanner(nome);
+    updateFormFramePixieImage();
   }
 
   // ---------- arte do rodapé (.footer-banner) reagindo à Divindade selecionada ----------
@@ -5157,6 +5360,7 @@ body{
     const rank = levelFloor >= 16 ? 'S' : levelFloor >= 11 ? 'A' : levelFloor >= 6 ? 'B' : 'C';
     els.levelRank.textContent = rank;
     els.levelRank.className = 'cs-rank level-rank cs-rank-' + rank;
+    updateFormFrameRankVisibility(rank);
 
     // Garante que os pontos de atributo distribuídos fiquem sempre entre 1 e 18
     // (isso não afeta os modificadores de outras fontes da ficha, que podem ser negativos ou passar de 18)
@@ -5874,6 +6078,130 @@ body{
       }
     }
   }
+
+  // ---------- formas do personagem (verso: fada/pixie/animal/humana) ----------
+  // Portado de index_mag.html -- 4 quadros clicáveis, ver comentário grande em .form-frames-wrap
+  // no <style> pro visual e a ideia geral. Escolher um quadro (selectFormFrame()) só troca QUAL
+  // IMAGEM as rolagens vão usar dali em diante (ver getPortraitImgEl() logo abaixo, único ponto de
+  // leitura reaproveitado por buildRollIconDataUrl()/buildLevelUpImageDataUrl()/
+  // buildEscudoPrintDataUrl() -- nenhuma delas precisou mudar, só getPortraitImgEl() mesmo) --
+  // não mexe no retrato "de verdade" (portraitData), que continua sendo o que aparece na frente
+  // da ficha e no formulário de fada.
+  const formFrameFada = $('formFrameFada');
+  const formFramePixie = $('formFramePixie');
+  const formFrameAnimal = $('formFrameAnimal');
+  const formFrameHumana = $('formFrameHumana');
+  const formFramePixieImg = $('formFramePixieImg');
+  const formFrameAnimalBox = $('formFrameAnimalBox');
+  const formFrameHumanaBox = $('formFrameHumanaBox');
+  const formFrameAnimalInput = $('formFrameAnimalInput');
+  const formFrameHumanaInput = $('formFrameHumanaInput');
+  const ALL_FORM_FRAMES = [formFrameFada, formFramePixie, formFrameAnimal, formFrameHumana];
+
+  function selectFormFrame(key){
+    selectedFormFrame = key;
+    ALL_FORM_FRAMES.forEach(el=>{
+      if(el) el.classList.toggle('selected', el.dataset.form === key);
+    });
+  }
+
+  function renderFormFrameUploadedImage(box, dataUrl){
+    if(!box) return;
+    box.innerHTML = dataUrl
+      ? `<img src="${dataUrl}" alt="">`
+      : '<span>Clique para<br>adicionar imagem</span>';
+  }
+
+  // gera a "chama" da Forma de pixie como um SVG colorido na cor da Divindade atual (--deity-eye-
+  // color) -- vira um <img> de verdade (data URL), não um <canvas>, de propósito: getPortraitImgEl()
+  // (mais abaixo) devolve esse elemento direto pras funções de desenho reaproveitarem, e todas elas
+  // já esperam algo com naturalWidth/naturalHeight (características de <img>, não de <canvas>).
+  // Chamada de uma vez na carga e sempre que a Divindade muda (ver els.deidade.addEventListener).
+  function updateFormFramePixieImage(){
+    if(!formFramePixieImg) return;
+    const color = getComputedStyle(document.documentElement).getPropertyValue('--deity-eye-color').trim() || '#e0b656';
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="260" viewBox="0 0 200 260">
+      <defs>
+        <radialGradient id="fc" cx="50%" cy="64%" r="60%">
+          <stop offset="0%" stop-color="#fff8e0"/>
+          <stop offset="38%" stop-color="${color}"/>
+          <stop offset="100%" stop-color="${color}" stop-opacity=".85"/>
+        </radialGradient>
+        <filter id="fg" x="-70%" y="-70%" width="240%" height="240%">
+          <feGaussianBlur stdDeviation="10" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+      <path filter="url(#fg)" fill="url(#fc)" d="M100,238 C56,238 34,199 39,163 C43,134 62,119 59,92
+        C57,66 46,50 54,22 C70,53 93,58 97,89 C100,112 82,118 88,141 C93,159 113,151 119,120
+        C132,141 144,169 133,198 C125,220 119,238 100,238 Z"/>
+    </svg>`;
+    formFramePixieImg.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  }
+
+  // Forma animal/Forma humana só existem a partir de um certo rank (ver #levelRank/recalc() mais
+  // abaixo) -- chamada de lá toda vez que o rank é recalculado. Divindade "VAZIO" (nenhuma
+  // escolhida ainda): não se transforma em nada -- só existe a Forma de fada (o retrato normal,
+  // primeiro quadro). Some com Forma de pixie/animal/humana mesmo que o rank já desse direito a
+  // elas. Se o quadro selecionado no momento ficar bloqueado (raríssimo: só rebaixando de rank, ou
+  // carregando uma ficha salva com uma seleção que já não vale mais), volta a seleção pra "fada"
+  // (sempre existe).
+  function updateFormFrameRankVisibility(rank){
+    const rankOrder = { C:0, B:1, A:2, S:3 };
+    const level = rankOrder[rank] ?? 0;
+    const isDivindadeVazia = !!(els.deidade && els.deidade.value === 'VAZIO');
+    const animalUnlocked = !isDivindadeVazia && level >= rankOrder.B;
+    const humanaUnlocked = !isDivindadeVazia && level >= rankOrder.A;
+    if(formFramePixie) formFramePixie.hidden = isDivindadeVazia;
+    if(formFrameAnimal) formFrameAnimal.hidden = !animalUnlocked;
+    if(formFrameHumana) formFrameHumana.hidden = !humanaUnlocked;
+    if(isDivindadeVazia && selectedFormFrame !== 'fada'){
+      selectFormFrame('fada');
+    } else if((selectedFormFrame === 'animal' && !animalUnlocked) || (selectedFormFrame === 'humana' && !humanaUnlocked)){
+      selectFormFrame('fada');
+    }
+  }
+
+  if(formFrameFada) formFrameFada.addEventListener('click', ()=> selectFormFrame('fada'));
+  if(formFramePixie) formFramePixie.addEventListener('click', ()=> selectFormFrame('pixie'));
+  if(formFrameAnimal) formFrameAnimal.addEventListener('click', ()=>{
+    if(!animalFormData){ formFrameAnimalInput.click(); }
+    else selectFormFrame('animal');
+  });
+  if(formFrameHumana) formFrameHumana.addEventListener('click', ()=>{
+    if(!humanaFormData){ formFrameHumanaInput.click(); }
+    else selectFormFrame('humana');
+  });
+  const formFrameAnimalEditBtn = $('formFrameAnimalEditBtn');
+  const formFrameHumanaEditBtn = $('formFrameHumanaEditBtn');
+  if(formFrameAnimalEditBtn) formFrameAnimalEditBtn.addEventListener('click', (e)=>{ e.stopPropagation(); formFrameAnimalInput.click(); });
+  if(formFrameHumanaEditBtn) formFrameHumanaEditBtn.addEventListener('click', (e)=>{ e.stopPropagation(); formFrameHumanaInput.click(); });
+  if(formFrameAnimalInput) formFrameAnimalInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    resizeImageFile(file, 480, 0.85).then(dataUrl=>{
+      animalFormData = dataUrl;
+      renderFormFrameUploadedImage(formFrameAnimalBox, animalFormData);
+      selectFormFrame('animal');
+    }).catch(err=>{
+      console.error(err);
+      alert('Não foi possível usar essa imagem como Forma animal. Tente outra foto.');
+    });
+    e.target.value = '';
+  });
+  if(formFrameHumanaInput) formFrameHumanaInput.addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    resizeImageFile(file, 480, 0.85).then(dataUrl=>{
+      humanaFormData = dataUrl;
+      renderFormFrameUploadedImage(formFrameHumanaBox, humanaFormData);
+      selectFormFrame('humana');
+    }).catch(err=>{
+      console.error(err);
+      alert('Não foi possível usar essa imagem como Forma humana. Tente outra foto.');
+    });
+    e.target.value = '';
+  });
 
   // ---------- 4 campos de imagem extra do verso (emotes) ----------
   // Mesmo padrão de upload do retrato (clique abre o seletor, resizeImageFile redimensiona pra
@@ -6970,6 +7298,12 @@ body{
       curVida: els.curVida.value, curMana: els.curMana.value,
       barreiraMax: els.barreiraMax.value, barreiraCur: els.barreiraCur.value,
       portrait: portraitData,
+      // verso da ficha: as 4 "Formas" (fada/pixie/animal/humana) -- só fada (portraitData, acima)
+      // e pixie (gerada na hora) não precisam de campo próprio pra guardar upload; as outras duas
+      // e a seleção atual precisam de campo próprio (mesmos campos de index_mag.html).
+      formaAnimal: animalFormData,
+      formaHumana: humanaFormData,
+      formaSelecionada: selectedFormFrame,
       emotes: { rage: emoteImages.rage, kiss: emoteImages.kiss, sob: emoteImages.sob, rofl: emoteImages.rofl },
       inventory: [...inventoryRows.children].map(r=>{
         const inputs = r.querySelectorAll('input');
@@ -7037,6 +7371,15 @@ body{
     els.barreiraMax.value = s.barreiraMax ?? 0; els.barreiraCur.value = s.barreiraCur ?? 0;
     portraitData = s.portrait || null;
     renderPortrait();
+    // verso da ficha: restaura as imagens de Forma animal/Forma humana (se houver) e qual quadro
+    // estava selecionado -- ANTES de recalc() logo abaixo, que é quem chama
+    // updateFormFrameRankVisibility() e pode voltar a seleção pra "fada" se o rank atual da ficha
+    // já não permitir mais o quadro salvo (ex.: rebaixou de rank, ou é uma ficha antiga sem isso).
+    animalFormData = s.formaAnimal || null;
+    humanaFormData = s.formaHumana || null;
+    renderFormFrameUploadedImage(formFrameAnimalBox, animalFormData);
+    renderFormFrameUploadedImage(formFrameHumanaBox, humanaFormData);
+    selectFormFrame(s.formaSelecionada || 'fada');
     const emotes = s.emotes || {};
     emoteImages.rage = emotes.rage || null;
     emoteImages.kiss = emotes.kiss || null;
@@ -7317,6 +7660,20 @@ body{
   // — ver renderPortrait() lá em cima), pra poder desenhar ele num <canvas> sem precisar recarregar
   // a imagem do zero. Sem retrato (ou ainda carregando, raríssimo) devolve null.
   function getPortraitImgEl(){
+    // se um dos quadros de forma (verso da ficha) estiver selecionado, os rolamentos/print
+    // usam a imagem dele em vez do retrato principal — ver selectFormFrame() mais acima.
+    if(selectedFormFrame === 'pixie'){
+      const el = formFramePixieImg;
+      return (el && el.complete && el.naturalWidth) ? el : null;
+    }
+    if(selectedFormFrame === 'animal' && animalFormData){
+      const el = formFrameAnimalBox && formFrameAnimalBox.querySelector('img');
+      return (el && el.complete && el.naturalWidth) ? el : null;
+    }
+    if(selectedFormFrame === 'humana' && humanaFormData){
+      const el = formFrameHumanaBox && formFrameHumanaBox.querySelector('img');
+      return (el && el.complete && el.naturalWidth) ? el : null;
+    }
     const el = portraitBox && portraitBox.querySelector('img');
     return (el && el.complete && el.naturalWidth) ? el : null;
   }

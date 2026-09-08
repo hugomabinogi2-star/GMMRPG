@@ -2083,6 +2083,29 @@ body{
   .form-frame-caption{font-size:9px;}
 }
 
+/* ---------- zoom ao passar o mouse numa imagem da ficha (frente ou verso) ----------
+   Clone flutuante e fixo na tela (ver #imgZoomOverlay no HTML, wireImageHoverZoom() no <script>),
+   não um transform:scale() no próprio elemento -- explicado no comentário do HTML: .face/
+   .face-inner cortam (overflow) qualquer coisa que cresça além do papiro, então ampliar no lugar
+   quase sempre ficaria cortado. */
+.img-zoom-overlay{
+  position:fixed;
+  z-index:9999;
+  pointer-events:none;
+  opacity:0;
+  transform:translate(-50%,-50%) scale(.94);
+  transition:opacity .15s ease, transform .15s ease;
+}
+.img-zoom-overlay.visible{opacity:1;transform:translate(-50%,-50%) scale(1);}
+.img-zoom-overlay img{
+  display:block;
+  border-radius:4px;
+  border:2px solid var(--deity-eye-color, var(--gold-bright));
+  box-shadow:0 10px 34px rgba(0,0,0,.65), 0 0 10px var(--deity-eye-glow-soft, rgba(224,182,86,.55)), 0 0 26px var(--deity-eye-glow-soft, rgba(224,182,86,.35));
+  object-fit:cover;
+  filter:sepia(.25) contrast(1.02); /* mesmo filtro do .portrait img/.portrait-back img, pra não trocar de cor ao ampliar */
+}
+
 /* vela — morava colada na borda esquerda do retrato; agora fica no topo da ficha, dentro do
    .ribbon (que já é position:relative), no canto oposto ao selo de Nível (.seal fica em
    top:2px;right:10px — a vela espelha isso em top:2px;left:10px). A chama reage à cor da Deidade
@@ -4432,25 +4455,30 @@ body{
               </div>
               <div class="form-frame-caption">Forma de pixie</div>
             </div>
-            <!-- Forma animal: só aparece a partir do rank B -- ver updateFormFrameRankVisibility()
-                 no <script>, chamada de dentro de recalc() toda vez que o rank é recalculado. -->
+            <!-- Forma animal: aparece a partir do rank B -- OU, numa ficha do elemento "-" (roxo,
+                 NPC sem afinidade elemental, mestre-only), sempre -- vira a "2ª imagem selecionável"
+                 dela, sem depender de rank nenhum (ver updateFormFrameRankVisibility() no <script>,
+                 chamada de dentro de recalc() toda vez que o rank é recalculado). A legenda também
+                 troca pra "Imagem 2" nesse caso (ver #formFrameAnimalCaption), já que "Forma animal"
+                 não faz sentido pra um NPC sem elemento. -->
             <div class="form-frame" id="formFrameAnimal" data-form="animal" hidden title="Usar esta imagem nas rolagens">
               <div class="portrait portrait-back" id="formFrameAnimalBox">
                 <span>Clique para<br>adicionar imagem</span>
               </div>
               <button type="button" class="form-frame-edit-btn" id="formFrameAnimalEditBtn" title="Trocar imagem">🖊️</button>
               <input type="file" id="formFrameAnimalInput" accept="image/*" style="display:none;">
-              <div class="form-frame-caption">Forma animal</div>
+              <div class="form-frame-caption" id="formFrameAnimalCaption">Forma animal</div>
             </div>
-            <!-- Forma humana: só aparece a partir do rank A -- mesmo mecanismo da Forma animal
-                 acima, só que com o rank mais alto. -->
+            <!-- Forma humana: mesma ideia da Forma animal acima, só que a partir do rank A -- numa
+                 ficha "-" vira a "3ª imagem selecionável" (legenda "Imagem 3", ver
+                 #formFrameHumanaCaption), também sempre disponível, sem rank nenhum. -->
             <div class="form-frame" id="formFrameHumana" data-form="humana" hidden title="Usar esta imagem nas rolagens">
               <div class="portrait portrait-back" id="formFrameHumanaBox">
                 <span>Clique para<br>adicionar imagem</span>
               </div>
               <button type="button" class="form-frame-edit-btn" id="formFrameHumanaEditBtn" title="Trocar imagem">🖊️</button>
               <input type="file" id="formFrameHumanaInput" accept="image/*" style="display:none;">
-              <div class="form-frame-caption">Forma humana</div>
+              <div class="form-frame-caption" id="formFrameHumanaCaption">Forma humana</div>
             </div>
           </div>
           <div class="history-wrap">
@@ -4939,6 +4967,16 @@ body{
   </div>
 </div>
 
+<!-- Zoom ao passar o mouse em cima de uma imagem da ficha (retrato da frente e as 4 imagens do
+     verso -- fada/pixie/animal/humana). Fica FORA de #card de propósito: tanto .face quanto
+     .face-inner têm overflow:hidden/overflow-x:hidden (pra cortar o conteúdo certinho nas bordas
+     do papiro), então uma imagem ampliada NO PRÓPRIO LUGAR seria cortada por eles quase sempre.
+     Em vez disso, isto aqui é um "clone" flutuante (position:fixed, por cima de tudo, sem travar
+     clique nenhum -- pointer-events:none) que aparece centralizado em cima da imagem original
+     enquanto o mouse estiver por cima dela, com até o dobro do tamanho (ver
+     wireImageHoverZoom()/showImgZoom() no <script>). -->
+<div class="img-zoom-overlay" id="imgZoomOverlay" hidden><img id="imgZoomOverlayImg" alt=""></div>
+
 <!-- Firebase (login mestre/jogador, ficha ao vivo) -->
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js"></script>
@@ -4956,6 +4994,64 @@ body{
   function isBlankName(n){
     const t = (n == null ? '' : String(n)).trim();
     return !t || t === '(sem nome)';
+  }
+
+  // ---------- zoom ao passar o mouse numa imagem da ficha (retrato da frente e as imagens do
+  // verso -- fada/pixie/animal/humana), a pedido: "de um zoom na imagem com até o dobro do
+  // tamanho". Usa delegação de evento (mouseover/mouseout no document, que sobem/bubble, ao
+  // contrário de mouseenter/mouseleave) em vez de listener fixo por imagem, porque algumas dessas
+  // imagens são recriadas por innerHTML depois de um upload (ver renderFormFrameUploadedImage())
+  // -- um listener preso no elemento antigo perderia a imagem nova. O "zoom" em si é um clone
+  // flutuante (#imgZoomOverlay, position:fixed, por cima de tudo) em vez de ampliar a imagem no
+  // próprio lugar, porque .face/.face-inner têm overflow:hidden/overflow-x:hidden (cortam o
+  // conteúdo nas bordas do papiro) -- ampliar ali seria cortado quase sempre. Cobre tanto a
+  // frente (.portrait img) quanto o verso (.portrait-back img, que também é a classe de cada um
+  // dos 4 quadros de Forma) numa regra só.
+  const imgZoomOverlay = $('imgZoomOverlay');
+  const imgZoomOverlayImg = imgZoomOverlay ? $('imgZoomOverlayImg') : null;
+  const IMG_ZOOM_SELECTOR = '.portrait img, .portrait-back img';
+  function showImgZoom(imgEl){
+    if(!imgZoomOverlay || !imgEl) return;
+    const src = imgEl.currentSrc || imgEl.src;
+    if(!src) return;
+    const rect = imgEl.getBoundingClientRect();
+    if(rect.width < 1 || rect.height < 1) return;
+    // até o dobro do tamanho exibido, sem estourar a viewport (telas pequenas/imagem já grande)
+    const maxW = window.innerWidth * .8, maxH = window.innerHeight * .8;
+    const scale = Math.max(1, Math.min(2, maxW / rect.width, maxH / rect.height));
+    const w = rect.width * scale, h = rect.height * scale;
+    imgZoomOverlayImg.src = src;
+    imgZoomOverlayImg.style.width = w + 'px';
+    imgZoomOverlayImg.style.height = h + 'px';
+    // centraliza por cima da imagem original, mas sem deixar a ampliação vazar pra fora da tela
+    const margin = 8;
+    let cx = rect.left + rect.width/2;
+    let cy = rect.top + rect.height/2;
+    cx = Math.min(Math.max(cx, w/2 + margin), window.innerWidth - w/2 - margin);
+    cy = Math.min(Math.max(cy, h/2 + margin), window.innerHeight - h/2 - margin);
+    imgZoomOverlay.style.left = cx + 'px';
+    imgZoomOverlay.style.top = cy + 'px';
+    imgZoomOverlay.hidden = false;
+    requestAnimationFrame(()=>{ if(!imgZoomOverlay.hidden) imgZoomOverlay.classList.add('visible'); });
+  }
+  function hideImgZoom(){
+    if(!imgZoomOverlay) return;
+    imgZoomOverlay.classList.remove('visible');
+    imgZoomOverlay.hidden = true;
+  }
+  if(imgZoomOverlay && imgZoomOverlayImg){
+    document.addEventListener('mouseover', (e)=>{
+      const img = e.target.closest && e.target.closest(IMG_ZOOM_SELECTOR);
+      if(img) showImgZoom(img);
+    });
+    document.addEventListener('mouseout', (e)=>{
+      const img = e.target.closest && e.target.closest(IMG_ZOOM_SELECTOR);
+      if(img) hideImgZoom();
+    });
+    // esconde em qualquer clique (ex.: clicar numa Forma pra selecioná-la) e ao virar a ficha,
+    // pra nunca deixar um clone "grudado" na tela por engano
+    document.addEventListener('mousedown', hideImgZoom, true);
+    window.addEventListener('scroll', hideImgZoom, true);
   }
 
   // as fadas dos cantos esquerdo e direito sao duas fotos diferentes, cada uma ja embutida
@@ -6400,6 +6496,8 @@ body{
   const formFrameHumanaBox = $('formFrameHumanaBox');
   const formFrameAnimalInput = $('formFrameAnimalInput');
   const formFrameHumanaInput = $('formFrameHumanaInput');
+  const formFrameAnimalCaption = $('formFrameAnimalCaption');
+  const formFrameHumanaCaption = $('formFrameHumanaCaption');
   const ALL_FORM_FRAMES = [formFrameFada, formFramePixie, formFrameAnimal, formFrameHumana];
 
   function selectFormFrame(key){
@@ -6451,17 +6549,22 @@ body{
     const rankOrder = { C:0, B:1, A:2, S:3 };
     const level = rankOrder[rank] ?? 0;
     // Elemento "-" (NPC sem afinidade elemental, ver data-mestre-only="1" em #f_deidade): não se
-    // transforma em nada -- só existe a Forma de fada (o retrato normal, primeiro quadro). Some
-    // com Forma de pixie/animal/humana mesmo que o rank já desse direito a elas.
+    // transforma em nada -- Forma de pixie (a chama na cor do elemento) continua sem sentido pra
+    // ela, então some igual sempre. Mas os dois quadros de imagem própria (Forma animal/Forma
+    // humana) viram a "2ª e 3ª imagem selecionável" dessas fichas -- sempre desbloqueados, sem
+    // depender de rank nenhum (a pedido: "as fichas roxas precisam ter uma segunda e uma terceira
+    // imagem selecionável"), com a legenda trocada pra "Imagem 2"/"Imagem 3" (não faz sentido
+    // chamar de "Forma animal"/"Forma humana" um NPC sem elemento). Pra qualquer elemento de
+    // verdade, os dois continuam do jeito de sempre: só liberam a partir do rank B/A.
     const isElementoVazio = !!(els.deidade && els.deidade.value === '-');
-    const animalUnlocked = !isElementoVazio && level >= rankOrder.B;
-    const humanaUnlocked = !isElementoVazio && level >= rankOrder.A;
+    const animalUnlocked = isElementoVazio || level >= rankOrder.B;
+    const humanaUnlocked = isElementoVazio || level >= rankOrder.A;
     if(formFramePixie) formFramePixie.hidden = isElementoVazio;
     if(formFrameAnimal) formFrameAnimal.hidden = !animalUnlocked;
     if(formFrameHumana) formFrameHumana.hidden = !humanaUnlocked;
-    if(isElementoVazio && selectedFormFrame !== 'fada'){
-      selectFormFrame('fada');
-    } else if((selectedFormFrame === 'animal' && !animalUnlocked) || (selectedFormFrame === 'humana' && !humanaUnlocked)){
+    if(formFrameAnimalCaption) formFrameAnimalCaption.textContent = isElementoVazio ? 'Imagem 2' : 'Forma animal';
+    if(formFrameHumanaCaption) formFrameHumanaCaption.textContent = isElementoVazio ? 'Imagem 3' : 'Forma humana';
+    if((selectedFormFrame === 'animal' && !animalUnlocked) || (selectedFormFrame === 'humana' && !humanaUnlocked)){
       selectFormFrame('fada');
     }
   }
