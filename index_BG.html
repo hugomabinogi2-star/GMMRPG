@@ -2134,7 +2134,7 @@ body{
   border:1px solid var(--border-brown);border-radius:50%;
   font-size:12px;
 }
-.ar-ap-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.ar-ap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
 .ar-ap-grid .vital-box .vval{font-family:'Inter',sans-serif;font-size:17px;font-weight:700;color:var(--gold-text);}
 .ar-ap-tip{position:relative;display:inline-block;cursor:help;border-bottom:1px dotted var(--ink-faint);}
 .ar-ap-tip:hover .cs-tooltip{opacity:1;visibility:visible;transform:translateY(0);}
@@ -3705,14 +3705,19 @@ body{
                 <div class="mod-row"><span class="lbl">INT</span><input type="number" id="m_int" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_int" data-dir="-1" aria-label="Diminuir modificador de INT">−</button><button type="button" class="mod-step-btn" data-target="m_int" data-dir="1" aria-label="Aumentar modificador de INT">+</button></div></div>
                 <div class="mod-row"><span class="lbl">VON</span><input type="number" id="m_von" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_von" data-dir="-1" aria-label="Diminuir modificador de VON">−</button><button type="button" class="mod-step-btn" data-target="m_von" data-dir="1" aria-label="Aumentar modificador de VON">+</button></div></div>
                 <div class="mod-row"><span class="lbl">CAR</span><input type="number" id="m_car" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_car" data-dir="-1" aria-label="Diminuir modificador de CAR">−</button><button type="button" class="mod-step-btn" data-target="m_car" data-dir="1" aria-label="Aumentar modificador de CAR">+</button></div></div>
+                <div class="mod-row"><span class="lbl ar-ap-tip">DANO<div class="cs-tooltip">Soma ao tamanho de TODO dado de dano rolado (ex.: 1d6 com +1 vira 1d7)</div></span><input type="number" id="m_dano" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_dano" data-dir="-1" aria-label="Diminuir modificador de Dano">−</button><button type="button" class="mod-step-btn" data-target="m_dano" data-dir="1" aria-label="Aumentar modificador de Dano">+</button></div></div>
               </div>
             </div>
 
             <div class="panel">
-              <h2>Armadura</h2>
+              <h2>Armamento e Armadura</h2>
               <div class="ar-ap-grid">
                 <div class="vital-box"><div class="vlabel ar-ap-tip">DEFESA<div class="cs-tooltip">Defesa Física</div></div><div class="vval" id="val_ar">2</div></div>
                 <div class="vital-box"><div class="vlabel ar-ap-tip">RESISTÊNCIA<div class="cs-tooltip">Resistência Mágica</div></div><div class="vval" id="val_ap">2</div></div>
+                <!-- ARMA: espelha o modificador de Dano (guia Modificadores, #m_dano -- soma ao
+                     tamanho de todo dado de dano rolado) -- mesmo padrão de DEFESA/RESISTÊNCIA ao
+                     lado, que já espelhavam m_ar/m_ap direto, sem nenhuma conta a mais. -->
+                <div class="vital-box"><div class="vlabel ar-ap-tip">ARMA<div class="cs-tooltip">Modificador de Dano — soma ao tamanho de todo dado de dano rolado</div></div><div class="vval" id="val_arma">0</div></div>
               </div>
             </div>
 
@@ -4536,12 +4541,12 @@ body{
     nome:$('f_nome'), deidade:$('f_deidade'), alinhamento:$('f_alinhamento'), publica:$('f_publica'),
     xp:$('f_xp'), historia:$('f_historia'),
     bFor:$('b_for'), bCon:$('b_con'), bDes:$('b_des'), bInt:$('b_int'), bVon:$('b_von'), bCar:$('b_car'),
-    mAr:$('m_ar'), mAp:$('m_ap'), mVida:$('m_vida'), mMana:$('m_mana'), mFor:$('m_for'), mCon:$('m_con'), mDes:$('m_des'), mInt:$('m_int'), mVon:$('m_von'), mCar:$('m_car'),
+    mAr:$('m_ar'), mAp:$('m_ap'), mVida:$('m_vida'), mMana:$('m_mana'), mDano:$('m_dano'), mFor:$('m_for'), mCon:$('m_con'), mDes:$('m_des'), mInt:$('m_int'), mVon:$('m_von'), mCar:$('m_car'),
     curVida:$('cur_vida'), curMana:$('cur_mana'),
     tFor:$('t_for_num'), tCon:$('t_con_num'), tDes:$('t_des_num'), tInt:$('t_int_num'), tVon:$('t_von_num'), tCar:$('t_car_num'),
     boFor:$('bo_for'), boCon:$('bo_con'), boDes:$('bo_des'), boInt:$('bo_int'), boVon:$('bo_von'), boCar:$('bo_car'),
     lvNum:$('lvNum'), levelRank:$('levelRank'), pointsMeter:$('pointsMeter'), levelSeal:$('levelSeal'), attrPointsBadge:$('attrPointsBadge'),
-    maxVida:$('max_vida'), maxMana:$('max_mana'), valAr:$('val_ar'), valAp:$('val_ap'),
+    maxVida:$('max_vida'), maxMana:$('max_mana'), valAr:$('val_ar'), valAp:$('val_ap'), valArma:$('val_arma'),
     pieVidaPct:$('pie_vida_pct'), pieManaPct:$('pie_mana_pct'),
     bottleLiquidVidaRed:$('bottleLiquidVidaRed'), bottleLiquidVidaGreen:$('bottleLiquidVidaGreen'),
     bottleGlowVidaRed:$('bottleGlowVidaRed'), bottleGlowVidaGreen:$('bottleGlowVidaGreen'), bottleSurfaceVida:$('bottleSurfaceVida'),
@@ -5270,6 +5275,10 @@ body{
     const ap = num(els.mAp);
     els.valAr.textContent = Math.floor(ar);
     els.valAp.textContent = Math.floor(ap);
+    // ARMA (painel "Armamento e Armadura", ver #val_arma no HTML) -- mesmo padrão de DEFESA/
+    // RESISTÊNCIA logo acima: só espelha o modificador de Dano (#m_dano) direto, sem nenhuma conta
+    // extra -- quem soma o modificador ao dado de verdade é o rollDanoBtn (ver mais abaixo).
+    els.valArma.textContent = Math.floor(num(els.mDano));
 
     // clamp mana ao máximo — vida pode passar do máximo (overheal, fatia verde no gráfico), mas só
     // até o dobro do máximo calculado (ex: vida calculada 10 → até 20 no total, +10 de "vida verde").
@@ -6357,6 +6366,11 @@ body{
     if(danoRollingInterval) return;
     let maxVal = parseInt(danoMax.value, 10);
     if(isNaN(maxVal) || maxVal < 1) maxVal = 1;
+    // modificador de Dano (guia Modificadores, #m_dano): soma ao TAMANHO do dado de qualquer
+    // rolagem de dano (1d6 com +1 vira 1d7) -- mesma regra de index_mag.html. Math.max(1, ...)
+    // trava num mínimo de 1 face, pro caso de um modificador bem negativo zerar ou passar do
+    // tamanho do dado.
+    maxVal = Math.max(1, maxVal + num(els.mDano));
     let qtd = parseInt(danoQtd.value, 10);
     if(isNaN(qtd) || qtd < 1) qtd = 1;
 
@@ -6952,7 +6966,7 @@ body{
       publica: els.publica.value,
       xp: els.xp.dataset.total || 0, historia: els.historia.value,
       base: { for: els.bFor.value, con: els.bCon.value, des: els.bDes.value, int: els.bInt.value, von: els.bVon.value, car: els.bCar.value },
-      mods: { ar: els.mAr.value, ap: els.mAp.value, vida: els.mVida.value, mana: els.mMana.value, for: els.mFor.value, con: els.mCon.value, des: els.mDes.value, int: els.mInt.value, von: els.mVon.value, car: els.mCar.value },
+      mods: { ar: els.mAr.value, ap: els.mAp.value, vida: els.mVida.value, mana: els.mMana.value, dano: els.mDano.value, for: els.mFor.value, con: els.mCon.value, des: els.mDes.value, int: els.mInt.value, von: els.mVon.value, car: els.mCar.value },
       curVida: els.curVida.value, curMana: els.curMana.value,
       barreiraMax: els.barreiraMax.value, barreiraCur: els.barreiraCur.value,
       portrait: portraitData,
@@ -7016,7 +7030,7 @@ body{
     els.bInt.value=base.int??1; els.bVon.value=base.von??1; els.bCar.value=base.car??1;
 
     const mods = s.mods || {};
-    els.mAr.value=mods.ar??0; els.mAp.value=mods.ap??0; els.mVida.value=mods.vida??0; els.mMana.value=mods.mana??0; els.mFor.value=mods.for??0;
+    els.mAr.value=mods.ar??0; els.mAp.value=mods.ap??0; els.mVida.value=mods.vida??0; els.mMana.value=mods.mana??0; els.mDano.value=mods.dano??0; els.mFor.value=mods.for??0;
     els.mCon.value=mods.con??0; els.mDes.value=mods.des??0; els.mInt.value=mods.int??0;
     els.mVon.value=mods.von??0; els.mCar.value=mods.car??0;
     els.curVida.value = s.curVida ?? 10; els.curMana.value = s.curMana ?? 10;

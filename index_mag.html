@@ -2402,7 +2402,7 @@ body{
   border:1px solid var(--border-brown);border-radius:50%;
   font-size:12px;
 }
-.ar-ap-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.ar-ap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
 .ar-ap-grid .vital-box .vval{font-family:'EB Garamond',serif;font-size:17px;font-weight:700;color:var(--gold-text);}
 .ar-ap-tip{position:relative;display:inline-block;cursor:help;border-bottom:1px dotted var(--ink-faint);}
 .ar-ap-tip:hover .cs-tooltip{opacity:1;visibility:visible;transform:translateY(0);}
@@ -4196,21 +4196,25 @@ body{
                 <div class="mod-row"><span class="lbl ar-ap-tip">RESISTÊNCIA<div class="cs-tooltip">Resistência Mágica</div></span><input type="number" id="m_ap" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_ap" data-dir="-1" aria-label="Diminuir modificador de Resistência">−</button><button type="button" class="mod-step-btn" data-target="m_ap" data-dir="1" aria-label="Aumentar modificador de Resistência">+</button></div></div>
                 <div class="mod-row"><span class="lbl ar-ap-tip">VIDA<div class="cs-tooltip">Soma direto ao total de Vida</div></span><input type="number" id="m_vida" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_vida" data-dir="-1" aria-label="Diminuir modificador de Vida">−</button><button type="button" class="mod-step-btn" data-target="m_vida" data-dir="1" aria-label="Aumentar modificador de Vida">+</button></div></div>
                 <div class="mod-row"><span class="lbl ar-ap-tip">MANA<div class="cs-tooltip">Soma direto ao total de Mana</div></span><input type="number" id="m_mana" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_mana" data-dir="-1" aria-label="Diminuir modificador de Mana">−</button><button type="button" class="mod-step-btn" data-target="m_mana" data-dir="1" aria-label="Aumentar modificador de Mana">+</button></div></div>
-                <div class="mod-row"><span class="lbl ar-ap-tip">DANO<div class="cs-tooltip">Soma ao tamanho de TODO dado de dano rolado (ex.: 1d3 com +1 vira 1d4)</div></span><input type="number" id="m_dano" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_dano" data-dir="-1" aria-label="Diminuir modificador de Dano">−</button><button type="button" class="mod-step-btn" data-target="m_dano" data-dir="1" aria-label="Aumentar modificador de Dano">+</button></div></div>
                 <div class="mod-row"><span class="lbl">FOR</span><input type="number" id="m_for" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_for" data-dir="-1" aria-label="Diminuir modificador de FOR">−</button><button type="button" class="mod-step-btn" data-target="m_for" data-dir="1" aria-label="Aumentar modificador de FOR">+</button></div></div>
                 <div class="mod-row"><span class="lbl">CON</span><input type="number" id="m_con" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_con" data-dir="-1" aria-label="Diminuir modificador de CON">−</button><button type="button" class="mod-step-btn" data-target="m_con" data-dir="1" aria-label="Aumentar modificador de CON">+</button></div></div>
                 <div class="mod-row"><span class="lbl">DES</span><input type="number" id="m_des" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_des" data-dir="-1" aria-label="Diminuir modificador de DES">−</button><button type="button" class="mod-step-btn" data-target="m_des" data-dir="1" aria-label="Aumentar modificador de DES">+</button></div></div>
                 <div class="mod-row"><span class="lbl">INT</span><input type="number" id="m_int" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_int" data-dir="-1" aria-label="Diminuir modificador de INT">−</button><button type="button" class="mod-step-btn" data-target="m_int" data-dir="1" aria-label="Aumentar modificador de INT">+</button></div></div>
                 <div class="mod-row"><span class="lbl">VON</span><input type="number" id="m_von" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_von" data-dir="-1" aria-label="Diminuir modificador de VON">−</button><button type="button" class="mod-step-btn" data-target="m_von" data-dir="1" aria-label="Aumentar modificador de VON">+</button></div></div>
                 <div class="mod-row"><span class="lbl">CAR</span><input type="number" id="m_car" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_car" data-dir="-1" aria-label="Diminuir modificador de CAR">−</button><button type="button" class="mod-step-btn" data-target="m_car" data-dir="1" aria-label="Aumentar modificador de CAR">+</button></div></div>
+                <div class="mod-row"><span class="lbl ar-ap-tip">DANO<div class="cs-tooltip">Soma ao tamanho de TODO dado de dano rolado (ex.: 1d3 com +1 vira 1d4)</div></span><input type="number" id="m_dano" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_dano" data-dir="-1" aria-label="Diminuir modificador de Dano">−</button><button type="button" class="mod-step-btn" data-target="m_dano" data-dir="1" aria-label="Aumentar modificador de Dano">+</button></div></div>
               </div>
             </div>
 
             <div class="panel">
-              <h2>Armadura</h2>
+              <h2>Armamento e Armadura</h2>
               <div class="ar-ap-grid">
                 <div class="vital-box"><div class="vlabel ar-ap-tip">DEFESA<div class="cs-tooltip">Defesa Física</div></div><div class="vval" id="val_ar">2</div></div>
                 <div class="vital-box"><div class="vlabel ar-ap-tip">RESISTÊNCIA<div class="cs-tooltip">Resistência Mágica</div></div><div class="vval" id="val_ap">2</div></div>
+                <!-- ARMA: espelha o modificador de Dano (guia Modificadores, #m_dano -- soma ao
+                     tamanho de todo dado de dano rolado) -- mesmo padrão de DEFESA/RESISTÊNCIA ao
+                     lado, que já espelhavam m_ar/m_ap direto, sem nenhuma conta a mais. -->
+                <div class="vital-box"><div class="vlabel ar-ap-tip">ARMA<div class="cs-tooltip">Modificador de Dano — soma ao tamanho de todo dado de dano rolado</div></div><div class="vval" id="val_arma">0</div></div>
               </div>
             </div>
 
@@ -4970,7 +4974,7 @@ body{
     tFor:$('t_for_num'), tCon:$('t_con_num'), tDes:$('t_des_num'), tInt:$('t_int_num'), tVon:$('t_von_num'), tCar:$('t_car_num'),
     boFor:$('bo_for'), boCon:$('bo_con'), boDes:$('bo_des'), boInt:$('bo_int'), boVon:$('bo_von'), boCar:$('bo_car'),
     lvNum:$('lvNum'), levelRank:$('levelRank'), pointsMeter:$('pointsMeter'), levelSeal:$('levelSeal'), attrPointsBadge:$('attrPointsBadge'),
-    maxVida:$('max_vida'), maxMana:$('max_mana'), valAr:$('val_ar'), valAp:$('val_ap'),
+    maxVida:$('max_vida'), maxMana:$('max_mana'), valAr:$('val_ar'), valAp:$('val_ap'), valArma:$('val_arma'),
     heartFillVidaRed:$('heartFillVidaRed'), heartFillVidaGreen:$('heartFillVidaGreen'), heartFillMana:$('heartFillMana'),
     xpBarFill:$('xpBarFill'), xpBarCaption:$('xpBarCaption'),
     barreiraMax:$('barreira_max'), barreiraCur:$('barreira_cur'), barreiraDisplay:$('barreira_display'),
@@ -5716,6 +5720,10 @@ body{
     const ap = num(els.mAp);
     els.valAr.textContent = Math.floor(ar);
     els.valAp.textContent = Math.floor(ap);
+    // ARMA (painel "Armamento e Armadura", ver #val_arma no HTML) -- mesmo padrão de DEFESA/
+    // RESISTÊNCIA logo acima: só espelha o modificador de Dano (#m_dano) direto, sem nenhuma conta
+    // extra -- quem soma o modificador ao dado de verdade é o rollDanoBtn (ver mais abaixo).
+    els.valArma.textContent = Math.floor(num(els.mDano));
 
     // clamp mana ao máximo — vida pode passar do máximo (overheal, fatia verde no gráfico), mas só
     // até o dobro do máximo calculado (ex: vida calculada 10 → até 20 no total, +10 de "vida verde").
@@ -7008,6 +7016,11 @@ body{
   // ser disparado programaticamente, lidos/limpos só dentro de finishDanoRoll().
   let pendingDanoBonus = 0;
   let pendingDanoHabilidade = null;
+  // sigla do Atributo (FOR/CON/DES/INT/VON/CAR) que originou a rolagem, só preenchido pelo ⚔️ de
+  // Atributo (ver rollAtributoDanoIconSelected() mais abaixo) -- null numa rolagem de Habilidade
+  // (que já cita o nome da Habilidade, não precisa repetir o Atributo) ou na rolagem "solta" antiga.
+  // Entra na mensagem do Discord/histórico como "ROLOU DANO (FOR) — ...", a pedido.
+  let pendingDanoAtributo = null;
 
   function finishDanoRoll(qtd, maxVal, dieEls){
     const rolls = [];
@@ -7040,9 +7053,11 @@ body{
     rollDanoBtn.disabled = false;
 
     const habilidadeNome = pendingDanoHabilidade;
+    const atributoNome = pendingDanoAtributo;
     pendingDanoBonus = 0;
     pendingDanoHabilidade = null;
-    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, bonus, rolls: rollsSorted, resultado: total, habilidade: habilidadeNome, ts: Date.now() });
+    pendingDanoAtributo = null;
+    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, bonus, rolls: rollsSorted, resultado: total, habilidade: habilidadeNome, atributo: atributoNome, ts: Date.now() });
   }
 
   // ---------- rolagem de sorte (moeda grega — cara ou coroa) ----------
@@ -7468,6 +7483,7 @@ body{
     if(nivel <= 0) return; // sem nenhum ponto investido ainda, não tem dado nenhum pra rolar
     pendingDanoBonus = habAttrBonus(hab.attr);
     pendingDanoHabilidade = hab.nome;
+    pendingDanoAtributo = null; // já cita o nome da Habilidade -- não repete o Atributo também
     danoQtd.value = nivel;
     danoMax.value = hab.dieSides;
     rollDanoBtn.click();
@@ -7497,6 +7513,9 @@ body{
   function rollAtributoDanoIconSelected(){
     if(danoRollingInterval) return;
     pendingDanoBonus = habAttrBonus(diceStat.value);
+    // sigla certinha (FOR/CON/DES/INT/VON/CAR) pra citar na mensagem do Discord/histórico -- o
+    // value do <select> já é a mesma sigla em minúsculo (ver <option value="for">FOR</option> etc.).
+    pendingDanoAtributo = diceStat.value.toUpperCase();
     danoQtd.value = 1;
     danoMax.value = 3;
     rollDanoBtn.click();
@@ -8771,7 +8790,12 @@ body{
       // se uma Habilidade fixa originou a rolagem (ícone ⚔️ das abas Armamento/Elemento, ver
       // rollHabilidadeDano()), o nome dela entra na mensagem; sem nenhuma, continua igual.
       const habilidadeTxt = entry.habilidade ? ` de "**${entry.habilidade}**"` : '';
-      return `🎲 "**${nome}**" ROLOU DANO${habilidadeTxt} — ${detalhe}`;
+      // entry.atributo (novo, ver rollAtributoDanoIconSelected()) -- sigla do Atributo (FOR/CON/
+      // DES/INT/VON/CAR) que originou a rolagem, só quando veio do ⚔️ de Atributo (sem Habilidade
+      // envolvida, por isso os dois nunca aparecem juntos) — a pedido, pra saber de qual Atributo
+      // veio aquele dano só de olhar a mensagem.
+      const atributoTxt = entry.atributo ? ` (${entry.atributo})` : '';
+      return `🎲 "**${nome}**" ROLOU DANO${habilidadeTxt}${atributoTxt} — ${detalhe}`;
     }
     if(entry.tipo === 'sorte'){
       const escolhaLabel = entry.escolha === 'coroa' ? 'Coroa' : 'Cara';
@@ -8946,7 +8970,8 @@ body{
         ? `${qtd}d${escapeHtml(String(entry.maxVal))}${bonusTxtLog}: [${entry.rolls.map(r=>escapeHtml(String(r))).join(', ')}]${bonusTxtLog} = ${escapeHtml(String(entry.resultado))}`
         : `1d${escapeHtml(String(entry.maxVal))}${bonusTxtLog}: resultado ${escapeHtml(String(entry.resultado))}`;
       const habilidadeTxtLog = entry.habilidade ? ` de "${escapeHtml(entry.habilidade)}"` : '';
-      texto = `"${nome}" ROLOU DANO${habilidadeTxtLog} — ${detalhe}`;
+      const atributoTxtLog = entry.atributo ? ` (${escapeHtml(entry.atributo)})` : '';
+      texto = `"${nome}" ROLOU DANO${habilidadeTxtLog}${atributoTxtLog} — ${detalhe}`;
     } else if(entry.tipo === 'sorte'){
       const escolhaLabel = entry.escolha === 'coroa' ? 'Coroa' : 'Cara';
       const resultadoLabel = entry.resultado === 'coroa' ? 'Coroa' : 'Cara';
