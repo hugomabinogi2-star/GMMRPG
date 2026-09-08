@@ -2389,7 +2389,11 @@ body{
   border-radius:4px;
   padding:8px 10px;
   text-align:center;
+  position:relative; /* ancora a camada de partículas da Poção (.dice-particle-layer), ver usePotion() */
 }
+/* estrelinhas AZUIS da Poção de Mana (spawnDiceParticles com extraClass, ver usePotion()) -- usa um
+   caractere de estrela sólida (✦), não um emoji colorido tipo ⭐ (que ignora `color` do CSS) */
+.mana-star-particle{color:#8ecbff;text-shadow:0 0 4px rgba(142,203,255,.85);}
 .vital-box .vlabel{font-family:'Cinzel Decorative',serif;font-size:10.5px;letter-spacing:.1em;color:var(--ink-soft);text-transform:uppercase;}
 .vital-box .vval{display:flex;align-items:center;justify-content:center;gap:3px;margin-top:4px;}
 .vital-box input.cur{
@@ -2429,15 +2433,25 @@ body{
    vermelho fixo pra Vida, azul fixo pra Mana (não acompanha a cor da Divindade, ao contrário do
    coração de Mana no meio da ficha -- pedido explícito de cores fixas aqui). Só funciona (ver JS,
    perto de refill_vida/refill_mana) com pelo menos uma Poção correspondente sobrando no Inventário
-   -- fica "apagado"/desabilitado (.vital-potion-btn:disabled) quando não há poção suficiente.  */
-.vital-potion-icon{width:15px;height:15px;pointer-events:none;}
-.vital-potion-cap{fill:#3d2c0f;}
-.vital-potion-shine{stroke:rgba(255,255,255,.55);stroke-width:1.2;stroke-linecap:round;fill:none;}
-.vital-potion-btn-vida .vital-potion-liquid{fill:#c22626;stroke:#5c0f0f;stroke-width:.5;}
-.vital-potion-btn-mana .vital-potion-liquid{fill:#8ecbff;stroke:#2c4854;stroke-width:.5;}
-.vital-potion-btn:hover:not(:disabled){border-color:#e0b656;}
-.vital-potion-btn:active:not(:disabled){transform:translateY(1px);}
-.vital-potion-btn:disabled{cursor:not-allowed;opacity:.4;filter:grayscale(.7);}
+   -- fica "apagado"/desabilitado (.vital-potion-btn:disabled) quando não há poção suficiente.
+   Ganhou um fundo/relevo igual aos botões −/+ ao lado (antes ficava só com a borda, sem nenhum
+   preenchimento -- meio "sumido" no fundo escuro, sem parecer clicável de verdade) e um brilho na
+   cor da poção (vermelho/azul) quando está pronto pra usar, pra convidar o clique. */
+.vital-potion-btn{
+  background:linear-gradient(180deg,#6b4f1e,#3d2c0f);
+  box-shadow:0 1px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);
+  cursor:pointer;
+}
+.vital-potion-icon{width:16px;height:16px;pointer-events:none;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6));}
+.vital-potion-cap{fill:#2a1c08;}
+.vital-potion-shine{stroke:rgba(255,255,255,.65);stroke-width:1.2;stroke-linecap:round;fill:none;}
+.vital-potion-btn-vida .vital-potion-liquid{fill:#e0453a;stroke:#5c0f0f;stroke-width:.6;}
+.vital-potion-btn-mana .vital-potion-liquid{fill:#8ecbff;stroke:#2c4854;stroke-width:.6;}
+.vital-potion-btn-vida:not(:disabled){border-color:#e0453a;box-shadow:0 1px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08), 0 0 6px rgba(226,69,58,.6);}
+.vital-potion-btn-mana:not(:disabled){border-color:#8ecbff;box-shadow:0 1px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08), 0 0 6px rgba(142,203,255,.6);}
+.vital-potion-btn:hover:not(:disabled){filter:brightness(1.2);transform:translateY(-1px);}
+.vital-potion-btn:active:not(:disabled){transform:translateY(1px);filter:brightness(.95);}
+.vital-potion-btn:disabled{cursor:not-allowed;opacity:.35;filter:grayscale(.85);box-shadow:0 1px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);border-color:var(--border-brown);}
 .ar-ap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
 .ar-ap-grid .vital-box .vval{font-family:'EB Garamond',serif;font-size:17px;font-weight:700;color:var(--gold-text);}
 .ar-ap-tip{position:relative;display:inline-block;cursor:help;border-bottom:1px dotted var(--ink-faint);}
@@ -3101,8 +3115,9 @@ body{
 .item-desc{
   width:100%;box-sizing:border-box;font-family:'EB Garamond',serif;font-size:12px;
   padding:6px 8px;border:1px solid var(--border-brown);border-radius:4px;
-  background:rgba(255,255,255,.55);color:var(--ink);resize:vertical;min-height:46px;
+  background:#0a0a0a;color:var(--magmell-gold);resize:vertical;min-height:46px;
 }
+.item-desc::placeholder{color:var(--magmell-gold);opacity:.5;}
 .list-rows input[type=text]{
   background:var(--paper-l);color:var(--ink);border:1px solid var(--border-brown);
   border-radius:3px;padding:5px 7px;font-size:12.5px;font-family:'EB Garamond',serif;
@@ -4315,6 +4330,7 @@ body{
               </div>
               <div class="vitals-grid">
                 <div class="vital-box">
+                  <div class="dice-particle-layer" id="vidaPotionParticleLayer"></div>
                   <div class="vlabel ar-ap-tip">Vida<div class="cs-tooltip">10 + FOR + CON</div></div>
                   <div class="vval"><input type="number" class="cur" id="cur_vida" value="10" readonly><span class="max">/ <span id="max_vida">10</span></span></div>
                   <div class="vital-btn-row">
@@ -4330,6 +4346,7 @@ body{
                   </div>
                 </div>
                 <div class="vital-box">
+                  <div class="dice-particle-layer" id="manaPotionParticleLayer"></div>
                   <div class="vlabel ar-ap-tip">Mana<div class="cs-tooltip">INT+VON</div></div>
                   <div class="vval"><input type="number" class="cur" id="cur_mana" value="10" readonly><span class="max">/ <span id="max_mana">10</span></span></div>
                   <div class="vital-btn-row">
@@ -6848,12 +6865,16 @@ body{
     if(btn && !btn.matches(CUSTOM_SOUND_BTN_SELECTOR)) playPlim();
   });
 
-  // cria partículas curtas (ex: ✨ ou 💀) flutuando ao redor do elemento do dado
-  function spawnDiceParticles(layer, emoji, count){
+  // cria partículas curtas (ex: ✨ ou 💀) flutuando ao redor do elemento do dado -- extraClass é
+  // opcional, só usado quando o símbolo precisa de uma cor customizada via CSS (ex: as estrelinhas
+  // AZUIS da Poção de Mana, ver .mana-star-particle/usePotion() mais abaixo -- um emoji colorido de
+  // verdade tipo ⭐ não aceita `color` do CSS, por isso ali usa um caractere de estrela "sólida" em
+  // vez de emoji).
+  function spawnDiceParticles(layer, emoji, count, extraClass){
     if(!layer) return;
     for(let i=0;i<count;i++){
       const span = document.createElement('span');
-      span.className = 'dice-particle';
+      span.className = 'dice-particle' + (extraClass ? ' ' + extraClass : '');
       span.textContent = emoji;
       const angle = Math.random()*Math.PI*2;
       const dist = 24 + Math.random()*36;
@@ -7259,25 +7280,34 @@ body{
     return el ? (parseFloat(el.value) || 0) : 0;
   }
 
-  // botões refill_vida/refill_mana (pote vermelho/pote azul, ver HTML/CSS) — a pedido, só funcionam
-  // com mais de 1 poção correspondente sobrando no Inventário (ficam desabilitados/apagados quando
-  // não há); clicar consome 1 poção (-1 na quantidade) e enche a Vida/Mana até o máximo atual.
+  // botões refill_vida/refill_mana (pote vermelho/pote azul, ver HTML/CSS) — só funcionam com PELO
+  // MENOS 1 poção correspondente sobrando no Inventário (ficam desabilitados/apagados sem nenhuma);
+  // clicar consome exatamente 1 poção (mesmo com só 1 sobrando -- ela some, some com a última) e
+  // enche a Vida/Mana até o máximo atual de uma vez, não importa o quanto estava faltando.
   function refreshPotionButtons(){
     const vidaBtn = $('refill_vida');
     const manaBtn = $('refill_mana');
-    if(vidaBtn) vidaBtn.disabled = getLockedItemQty('POÇÃO DE VIDA') <= 1;
-    if(manaBtn) manaBtn.disabled = getLockedItemQty('POÇÃO DE MANA') <= 1;
+    if(vidaBtn) vidaBtn.disabled = getLockedItemQty('POÇÃO DE VIDA') <= 0;
+    if(manaBtn) manaBtn.disabled = getLockedItemQty('POÇÃO DE MANA') <= 0;
   }
+  const vidaPotionParticleLayer = $('vidaPotionParticleLayer');
+  const manaPotionParticleLayer = $('manaPotionParticleLayer');
   function usePotion(kind){
     const nome = kind === 'vida' ? 'POÇÃO DE VIDA' : 'POÇÃO DE MANA';
     const qtyInput = getLockedItemQtyInput(nome);
     const qty = qtyInput ? (parseFloat(qtyInput.value) || 0) : 0;
-    if(qty <= 1) return; // trava de segurança -- o próprio botão já vem desabilitado nesse caso
+    if(qty <= 0) return; // trava de segurança -- o próprio botão já vem desabilitado nesse caso
     if(qtyInput) qtyInput.value = qty - 1;
     if(kind === 'vida') els.curVida.value = els.maxVida.textContent;
     else els.curMana.value = els.maxMana.textContent;
     recalc();
     refreshPotionButtons();
+    // efeito comemorativo ao usar a Poção -- vários coraçõezinhos "como fogos" (❤️, já vermelho por
+    // padrão) estourando ao redor da caixa de Vida, ou estrelinhas AZUIS ao redor da de Mana (ver
+    // spawnDiceParticles()/.mana-star-particle no <style> -- mesmo mecanismo já usado nas
+    // partículas de acerto crítico/sorte, só que aqui SEMPRE dispara, não só num resultado especial).
+    if(kind === 'vida') spawnDiceParticles(vidaPotionParticleLayer, '❤️', 16);
+    else spawnDiceParticles(manaPotionParticleLayer, '✦', 14, 'mana-star-particle');
   }
   $('refill_vida').addEventListener('click', ()=> usePotion('vida'));
   $('refill_mana').addEventListener('click', ()=> usePotion('mana'));
