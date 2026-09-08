@@ -2,13 +2,6 @@
   {
     "nome": "Pepe",
     "tipo": "movimento",
-    "de": "F3",
-    "para": "E3",
-    "ts": 1787593714399
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
     "de": "E3",
     "para": "D3",
     "ts": 1787593718020
@@ -300,5 +293,18 @@
     "resultado": 13,
     "habilidade": "Golpe de Espada",
     "ts": 1788861799373
+  },
+  {
+    "nome": "GRUPO",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 5,
+    "bonus": 3,
+    "rolls": [
+      1
+    ],
+    "resultado": 4,
+    "habilidade": null,
+    "ts": 1788861821636
   }
 ]
