@@ -2,13 +2,6 @@
   {
     "nome": "Pepe",
     "tipo": "movimento",
-    "de": "E3",
-    "para": "D3",
-    "ts": 1787593718020
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
     "de": "D3",
     "para": "D4",
     "ts": 1787593720082
@@ -306,5 +299,12 @@
     "resultado": 4,
     "habilidade": null,
     "ts": 1788861821636
+  },
+  {
+    "nome": "TE#STE",
+    "tipo": "movimento",
+    "de": "C4",
+    "para": "D4",
+    "ts": 1788862356084
   }
 ]
