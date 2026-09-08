@@ -1317,6 +1317,53 @@ body{
 .roll-log-entry .rl-text strong{color:var(--gold-text);}
 .roll-log-entry .rl-time{color:var(--ink-faint);font-size:11px;white-space:nowrap;font-family:'Inter',sans-serif;}
 
+/* ---------- ENREDO (novo recurso, vale pras duas campanhas): botão no topo, visível pro mestre e
+   pro jogador (ver #enredoBtn no HTML, igual #mapBtn) -- painel com uma lista ORDENADA de blocos de
+   texto/imagem que só o mestre adiciona (botão + sempre no fim da lista, ver .enredo-add-btn), o
+   jogador só visualiza (sem nenhum botão de + nem de remover -- ver a checagem de currentRole em
+   renderEnredoList() no <script>). Fica salvo no GitHub, no mesmo mecanismo/token já usado pra
+   salvar a ficha (ver ENREDO_PATH/loadEnredo()/saveEnredo() no <script>) -- não é "ao vivo": quem
+   está vendo só enxerga a versão mais nova ao reabrir o painel (mesma lógica de "Fichas de
+   Jogador"/"Fichas do Mestre", que também são listas do GitHub, não do Firebase). */
+.enredo-list{display:flex;flex-direction:column;gap:14px;margin-bottom:14px;max-height:52vh;overflow-y:auto;}
+.enredo-entry{
+  position:relative;
+  border:1px solid var(--ink-faint);border-radius:5px;
+  padding:12px 34px 12px 14px;
+  background:rgba(120,85,40,.06);
+}
+.enredo-entry-text{margin:0;font-size:14px;line-height:1.55;color:var(--ink);white-space:pre-line;}
+.enredo-entry-image{display:block;max-width:100%;border-radius:4px;border:1px solid var(--border-brown);}
+.enredo-entry-remove{
+  position:absolute;top:8px;right:8px;
+  background:none;border:none;color:var(--ink-faint);font-size:14px;cursor:pointer;line-height:1;
+  padding:2px 4px;
+}
+.enredo-entry-remove:hover{color:var(--wax);}
+/* botão + grandão, sempre centralizado -- some enquanto a escolha texto/imagem ou algum dos dois
+   formulários está aberto (ver resetEnredoAddUI() no <script>), reaparece assim que fecha ou salva. */
+.enredo-add-btn{
+  display:block;margin:0 auto;
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(180deg,var(--paper-l),var(--paper));
+  border:1px solid var(--border-brown);color:var(--ink);
+  font-size:22px;line-height:1;cursor:pointer;
+}
+.enredo-add-btn:hover{border-color:var(--gold-bright);color:var(--gold-text);}
+.enredo-add-choice{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;}
+.enredo-add-text,.enredo-add-image{display:flex;flex-direction:column;gap:8px;}
+.enredo-add-text textarea{
+  width:100%;min-height:90px;resize:vertical;
+  font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;
+  background:var(--paper-l);color:var(--ink);
+  border:1px solid var(--border-brown);border-radius:4px;padding:8px 10px;
+}
+.enredo-add-text textarea:focus{outline:none;border-color:var(--gold-bright);}
+.enredo-add-actions{display:flex;gap:8px;}
+.enredo-add-actions .add-row-btn{width:auto;flex:1;}
+.enredo-image-preview{display:block;max-width:100%;max-height:220px;border-radius:4px;border:1px solid var(--border-brown);object-fit:contain;background:rgba(0,0,0,.15);}
+.enredo-hint{min-height:14px;font-size:12px;color:var(--ink-faint);text-align:center;margin-top:6px;}
+
 .master-card{
   border:1px solid var(--ink-faint);border-radius:5px;
   padding:10px 12px;
@@ -3213,11 +3260,20 @@ body{
 </div>
 
 <div class="toolbar">
-  <!-- MAPA: botão novo, de propósito o PRIMEIRO de todos ("no topo", a pedido) -- ao contrário de
-       quase todo o resto da barra, NÃO tem classe mestre-only/jogador-only: aparece pros DOIS
-       papéis (o conteúdo de dentro do modal é que muda -- ver #mapModal mais abaixo e a seção
-       "Mapa" no <script>). Pro jogador é só a imagem com zoom, só-leitura; pro mestre ganha os
-       controles de edição (imagem de fundo, paleta de ícones, desenho de linha). -->
+  <!-- ENREDO: botão novo, de propósito o PRIMEIRO de todos ("primeiro da lista", a pedido) --
+       igual o Mapa (logo abaixo) não tem classe mestre-only/jogador-only, aparece pros DOIS papéis
+       (ver #enredoModal mais abaixo e a seção "ENREDO" no <script>). O mestre monta a história aos
+       poucos (texto e imagem, um bloco embaixo do outro, como um livro -- ver .enredo-add-btn
+       dentro do modal), e só grava de verdade no GitHub ao clicar no "💾 Salvar" lá no topo do
+       próprio painel; o jogador só abre e lê o que já foi salvo, sem nenhum controle de edição
+       (renderEnredoList() no <script> só desenha o "+"/"💾 Salvar"/o ✕ de cada bloco quando
+       currentRole === 'mestre'). Não usa o Firebase -- ver comentário completo em ENREDO_PATH no
+       <script>. -->
+  <button id="enredoBtn" title="Enredo da campanha — a história contada pelo mestre, em texto e imagens">📚 Enredo</button>
+  <!-- MAPA: ao contrário de quase todo o resto da barra, NÃO tem classe mestre-only/jogador-only:
+       aparece pros DOIS papéis (o conteúdo de dentro do modal é que muda -- ver #mapModal mais
+       abaixo e a seção "Mapa" no <script>). Pro jogador é só a imagem com zoom, só-leitura; pro
+       mestre ganha os controles de edição (imagem de fundo, paleta de ícones, desenho de linha). -->
   <button id="mapBtn" title="Mapa da campanha — imagem com ícones e anotações, editável pelo mestre e visível em tempo real pra todo mundo">🗺️ Mapa</button>
   <!-- Botão novo, de propósito o PRIMEIRO da barra ("no topo dos seletores", a pedido) -- classe
        .jogador-only (nova, ver applyRoleVisibility() no <script>): só aparece pro JOGADOR, o
@@ -4334,6 +4390,55 @@ body{
       <button type="button" class="board-zoom-btn" id="mapZoomOutBtn" title="Diminuir zoom" aria-label="Diminuir zoom">−</button>
       <span class="board-zoom-readout" id="mapZoomReadout">100%</span>
       <button type="button" class="board-zoom-btn" id="mapZoomInBtn" title="Aumentar zoom" aria-label="Aumentar zoom">+</button>
+    </div>
+  </div>
+</div>
+
+<!-- ENREDO: painel com a história da campanha, feito pra parecer um livro (ver #enredoBtn na
+     barra do topo e a seção "ENREDO" no <script>, perto de ENREDO_PATH). Escrever/adicionar
+     blocos (texto ou imagem, um embaixo do outro em #enredoList, mais antigo primeiro) só mexe no
+     estado LOCAL (enredoData) -- nada vai pro GitHub sozinho. Só existe UM jeito de gravar de
+     verdade: o botão "💾 Salvar" lá no topo (#enredoSaveBtn, dentro de .modal-head-actions, do
+     lado do ✕ de fechar), que grava enredoData inteiro de uma vez (mesmo mecanismo de sempre --
+     githubPutFile/getToken -- sem envolver o Firebase, então não é "ao vivo": um jogador só vê a
+     versão nova depois que o mestre salvar E ele reabrir o painel). O bloco
+     ".enredo-add-btn/.enredo-add-choice/.enredo-add-text/.enredo-add-image" inteiro, e o próprio
+     botão "💾 Salvar", são mestre-only -- o jogador só vê #enredoList e a mensagem de vazio. -->
+<div class="modal-overlay" id="enredoModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>📚 Enredo</h2>
+      <div class="modal-head-actions">
+        <button type="button" id="enredoSaveBtn" class="mini-btn mestre-only" title="Salvar o Enredo no GitHub" disabled>💾 Salvar</button>
+        <button id="closeEnredo" class="modal-close">✕</button>
+      </div>
+    </div>
+    <div class="enredo-hint" id="enredoHint"></div>
+    <div class="enredo-list" id="enredoList"></div>
+    <p class="master-empty" id="enredoEmptyMsg" hidden>O mestre ainda não escreveu nada aqui.</p>
+    <div class="enredo-add-area mestre-only" id="enredoAddArea">
+      <button type="button" class="enredo-add-btn" id="enredoAddBtn" title="Adicionar ao Enredo" aria-label="Adicionar texto ou imagem ao Enredo">+</button>
+      <div class="enredo-add-choice" id="enredoAddChoice" hidden>
+        <button type="button" class="mini-btn" id="enredoChooseTextBtn">📝 Texto</button>
+        <button type="button" class="mini-btn" id="enredoChooseImageBtn">🖼️ Imagem</button>
+        <button type="button" class="mini-btn danger-row-btn" id="enredoCancelChoiceBtn">Cancelar</button>
+      </div>
+      <div class="enredo-add-text" id="enredoAddTextBox" hidden>
+        <textarea id="enredoTextInput" rows="4" placeholder="Escreva aqui um trecho da história..."></textarea>
+        <div class="enredo-add-actions">
+          <button type="button" class="add-row-btn" id="enredoConfirmTextBtn">Adicionar</button>
+          <button type="button" class="add-row-btn danger-row-btn" id="enredoCancelTextBtn">Cancelar</button>
+        </div>
+      </div>
+      <div class="enredo-add-image" id="enredoAddImageBox" hidden>
+        <input type="file" id="enredoImageInput" accept="image/*" style="display:none;">
+        <button type="button" class="mini-btn" id="enredoChooseFileBtn">Escolher imagem</button>
+        <img id="enredoImagePreview" class="enredo-image-preview" hidden alt="">
+        <div class="enredo-add-actions">
+          <button type="button" class="add-row-btn" id="enredoConfirmImageBtn" disabled>Adicionar</button>
+          <button type="button" class="add-row-btn danger-row-btn" id="enredoCancelImageBtn">Cancelar</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -7103,6 +7208,11 @@ body{
   const GITHUB_REPO   = 'GMMRPG';
   const FICHAS_PATH   = 'fichas';
   const FICHAS_MESTRE_PATH = 'fichas_mestre'; // fichas salvas pelo mestre — pasta separada, acesso restrito
+  // ENREDO (ver #enredoBtn/#enredoModal no HTML): um ÚNICO arquivo JSON no GitHub (não uma pasta
+  // com um arquivo por entrada) -- guarda { entries:[...] }, cada entrada { type:'texto', text } ou
+  // { type:'imagem', dataUrl } na ordem em que o mestre foi adicionando. Igual FICHAS_PATH acima,
+  // sem nenhum prefixo de pasta aqui no index_BG.html (diferente do index_mag.html, que usa "40K/").
+  const ENREDO_PATH = 'enredo.json';
 
   // Chave do Firebase Realtime Database pro Público/Privado de uma ficha de NPC. As fichas de NPC
   // não têm ownerUid (ver comentário de loadedFichaIsNpc mais acima), então não dá pra reaproveitar
@@ -8618,6 +8728,11 @@ body{
     if(existingToken) existingToken.remove();
     const existingTip = cell.querySelector('.board-token-tip');
     if(existingTip) existingTip.remove();
+    // a seta (ver mais abaixo) é um elemento À PARTE do próprio token (não fica aninhada dentro
+    // dele) -- precisa ser limpa aqui também, senão fica órfã na casa quando o token se move pra
+    // outra casa, muda de direção pra "nenhuma" (facing null) ou é removido do tabuleiro.
+    const existingArrow = cell.querySelector('.board-facing-arrow');
+    if(existingArrow) existingArrow.remove();
     const token = boardTokens[boardKey(r,c)];
     // só desenha o visual na casa-âncora (canto superior-esquerdo) do token — nas demais
     // casas ocupadas por um token maior (ex: monstro 2x2) não criamos elemento nenhum,
@@ -8691,6 +8806,17 @@ body{
         hpBar.appendChild(hpFill);
         cell.appendChild(hpBar);
         applyBoardHpBar(hpBar);
+      }
+      // Seta de direção (ver FACING_ANGLES/buildFacingArrowEl() lá embaixo) -- o jogador escolhe
+      // pra onde está olhando pelo PRÓPRIO painel "Tabuleiro ao Vivo" (mini, dentro da ficha dele,
+      // ver chooseLiveBoardFacing()); aqui no tabuleiro DE VERDADE (aba Mesa) o mestre só ENXERGA a
+      // seta já escolhida, sem seletor nenhum pra mexer nela por aqui -- token.facing chega junto
+      // com o resto do token local (boardTokens) através de mergeRemoteHeroTokensIntoLocalBoard(),
+      // que mantém esse campo sincronizado a partir do que cada jogador publica no Firebase, mesmo
+      // sem o mestre ter mexido em nada. Antes desta correção, a aba Mesa nunca desenhava essa
+      // seta -- só o painel pequeno "Tabuleiro ao Vivo" (renderLiveBoardMini()) desenhava.
+      if(token.kind === 'hero' && token.facing){
+        cell.appendChild(buildFacingArrowEl(token));
       }
     }
   }
@@ -11182,6 +11308,12 @@ body{
         if(localTok.facing !== newFacing || localTok.deidade !== newDeidade){
           localTok.facing = newFacing;
           localTok.deidade = newDeidade;
+          // BUG corrigido nesta rodada: o dado (localTok.facing) já ficava certo aqui, mas essa
+          // casa nunca entrava no "affected" -- sem isso, renderBoardCell() nunca era chamado de
+          // novo pra essa casa, e a seta só aparecia na aba Mesa do mestre na PRÓXIMA vez que
+          // QUALQUER outro motivo redesenhasse aquela casa (ex.: a peça se mover de novo) -- o
+          // jogador escolher a direção, sozinho, nunca acendia a seta na tela do mestre.
+          affected.add(localKey);
         }
         return;
       }
@@ -11565,6 +11697,221 @@ body{
   });
   $('closeMap').addEventListener('click', closeMapModal);
   mapModal.addEventListener('click', (e)=>{ if(e.target === mapModal) closeMapModal(); });
+
+  // ---------- ENREDO ----------
+  // Painel com a história da campanha, feito pra parecer um livro (ver #enredoBtn/#enredoModal no
+  // HTML e ENREDO_PATH mais acima): o mestre vai empilhando blocos de texto/imagem (um embaixo do
+  // outro, em #enredoList) mexendo só no estado LOCAL em memória (enredoData, { entries:[...] }) --
+  // adicionar ou remover um bloco NÃO fala com o GitHub sozinho. Só existe UM jeito de gravar de
+  // verdade: o botão "💾 Salvar" no topo do painel (#enredoSaveBtn), que grava enredoData inteiro
+  // de uma vez (githubPutFile/githubGetFileContent, os mesmos usados pra salvar a ficha) -- sem
+  // envolver o Firebase, então não é "ao vivo": um jogador só vê a versão nova depois que o mestre
+  // salvar de verdade E ele (o jogador) reabrir o painel.
+  const enredoModal        = $('enredoModal');
+  const enredoBtn          = $('enredoBtn');
+  const enredoSaveBtn      = $('enredoSaveBtn');
+  const enredoList         = $('enredoList');
+  const enredoEmptyMsg     = $('enredoEmptyMsg');
+  const enredoAddBtn       = $('enredoAddBtn');
+  const enredoAddChoice    = $('enredoAddChoice');
+  const enredoChooseTextBtn  = $('enredoChooseTextBtn');
+  const enredoChooseImageBtn = $('enredoChooseImageBtn');
+  const enredoCancelChoiceBtn = $('enredoCancelChoiceBtn');
+  const enredoAddTextBox   = $('enredoAddTextBox');
+  const enredoTextInput    = $('enredoTextInput');
+  const enredoConfirmTextBtn = $('enredoConfirmTextBtn');
+  const enredoCancelTextBtn = $('enredoCancelTextBtn');
+  const enredoAddImageBox  = $('enredoAddImageBox');
+  const enredoImageInput   = $('enredoImageInput');
+  const enredoChooseFileBtn = $('enredoChooseFileBtn');
+  const enredoImagePreview = $('enredoImagePreview');
+  const enredoConfirmImageBtn = $('enredoConfirmImageBtn');
+  const enredoCancelImageBtn = $('enredoCancelImageBtn');
+  const enredoHint         = $('enredoHint');
+
+  let enredoData = { entries: [] };
+  let enredoSha = null; // sha do arquivo no GitHub (null = arquivo ainda não existe lá)
+  let enredoPendingImageDataUrl = null;
+  // true assim que algo muda localmente (adicionar/remover bloco) e ainda não foi gravado no
+  // GitHub -- só controla se "💾 Salvar" está habilitado/com o que dizer, nada mais.
+  let enredoDirty = false;
+
+  function updateEnredoSaveBtnState(){
+    enredoSaveBtn.disabled = !enredoDirty;
+  }
+  function markEnredoDirty(){
+    enredoDirty = true;
+    updateEnredoSaveBtnState();
+    enredoHint.textContent = 'Alterações não salvas — clique em "💾 Salvar" pra gravar de vez.';
+  }
+
+  function renderEnredoList(){
+    enredoList.innerHTML = '';
+    const entries = enredoData.entries || [];
+    enredoEmptyMsg.hidden = entries.length > 0;
+    entries.forEach((entry, idx)=>{
+      const row = document.createElement('div');
+      row.className = 'enredo-entry';
+      if(entry.type === 'imagem'){
+        const img = document.createElement('img');
+        img.className = 'enredo-entry-image';
+        img.src = entry.dataUrl;
+        img.alt = '';
+        row.appendChild(img);
+      } else {
+        // textContent (não innerHTML) -- o texto do mestre nunca vira HTML de verdade, só é
+        // exibido como texto puro, mesmo que ele digite algo parecido com uma tag.
+        const p = document.createElement('p');
+        p.className = 'enredo-entry-text';
+        p.textContent = entry.text;
+        row.appendChild(p);
+      }
+      if(currentRole === 'mestre'){
+        const rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'enredo-entry-remove';
+        rm.title = 'Remover esta entrada do Enredo';
+        rm.setAttribute('aria-label', 'Remover esta entrada do Enredo');
+        rm.textContent = '✕';
+        rm.addEventListener('click', ()=> removeEnredoEntry(idx));
+        row.appendChild(rm);
+      }
+      enredoList.appendChild(row);
+    });
+  }
+
+  // fecha qualquer formulário aberto (escolha/texto/imagem) e volta a mostrar só o botão + --
+  // chamada tanto ao abrir o painel quanto depois de "Cancelar"/"Adicionar".
+  function resetEnredoAddUI(){
+    enredoAddChoice.hidden = true;
+    enredoAddTextBox.hidden = true;
+    enredoAddImageBox.hidden = true;
+    enredoAddBtn.hidden = false;
+    enredoTextInput.value = '';
+    enredoImageInput.value = '';
+    enredoImagePreview.hidden = true;
+    enredoImagePreview.src = '';
+    enredoPendingImageDataUrl = null;
+    enredoConfirmImageBtn.disabled = true;
+  }
+
+  async function loadEnredo(){
+    enredoHint.textContent = 'Carregando...';
+    try{
+      const result = await githubGetFileContent(ENREDO_PATH);
+      if(result){
+        enredoSha = result.sha;
+        let parsed = null;
+        try{ parsed = JSON.parse(result.content); }catch(err){ parsed = null; }
+        enredoData = (parsed && Array.isArray(parsed.entries)) ? parsed : { entries: [] };
+      } else {
+        enredoSha = null;
+        enredoData = { entries: [] };
+      }
+      enredoHint.textContent = '';
+    } catch(err){
+      console.error(err);
+      enredoHint.textContent = 'Não foi possível carregar o Enredo agora — tente reabrir o painel daqui a pouco.';
+    }
+    enredoDirty = false;
+    updateEnredoSaveBtnState();
+    renderEnredoList();
+  }
+
+  // único lugar que fala com o GitHub de verdade -- grava enredoData inteiro de uma vez (chamado
+  // só pelo clique em "💾 Salvar", nunca automaticamente ao adicionar/remover um bloco).
+  enredoSaveBtn.addEventListener('click', async ()=>{
+    if(!getToken()){
+      alert('Configure seu token do GitHub primeiro para poder salvar o Enredo.');
+      tokenModal.hidden = false;
+      return;
+    }
+    enredoSaveBtn.disabled = true;
+    const original = enredoSaveBtn.textContent;
+    enredoSaveBtn.textContent = 'Salvando...';
+    enredoHint.textContent = 'Salvando...';
+    try{
+      const result = await githubPutFile(ENREDO_PATH, enredoData, 'Atualiza Enredo', enredoSha);
+      enredoSha = (result && result.content && result.content.sha) ? result.content.sha : null;
+      enredoDirty = false;
+      enredoHint.textContent = 'Salvo!';
+    } catch(err){
+      console.error(err);
+      enredoHint.textContent = 'Não foi possível salvar no GitHub agora: ' + err.message;
+      // continua "dirty" (o botão volta a ficar clicável) -- nada foi perdido localmente, só não
+      // gravou de verdade ainda, pode tentar salvar de novo.
+    }
+    enredoSaveBtn.textContent = original;
+    updateEnredoSaveBtnState();
+  });
+
+  // adicionar/remover um bloco só mexe no estado local -- fica "não salvo" (ver markEnredoDirty())
+  // até o mestre clicar em "💾 Salvar" de propósito.
+  function removeEnredoEntry(idx){
+    if(!confirm('Remover esta entrada do Enredo? A remoção só vale de vez quando você clicar em "💾 Salvar".')) return;
+    enredoData.entries.splice(idx, 1);
+    renderEnredoList();
+    markEnredoDirty();
+  }
+
+  enredoBtn.addEventListener('click', async ()=>{
+    enredoModal.hidden = false;
+    resetEnredoAddUI();
+    await loadEnredo();
+  });
+  $('closeEnredo').addEventListener('click', ()=>{ enredoModal.hidden = true; });
+  enredoModal.addEventListener('click', (e)=>{ if(e.target === enredoModal) enredoModal.hidden = true; });
+
+  enredoAddBtn.addEventListener('click', ()=>{
+    enredoAddBtn.hidden = true;
+    enredoAddChoice.hidden = false;
+  });
+  enredoCancelChoiceBtn.addEventListener('click', resetEnredoAddUI);
+
+  enredoChooseTextBtn.addEventListener('click', ()=>{
+    enredoAddChoice.hidden = true;
+    enredoAddTextBox.hidden = false;
+    enredoTextInput.focus();
+  });
+  enredoCancelTextBtn.addEventListener('click', resetEnredoAddUI);
+  enredoConfirmTextBtn.addEventListener('click', ()=>{
+    const text = enredoTextInput.value.trim();
+    if(!text){ enredoTextInput.focus(); return; }
+    enredoData.entries.push({ type:'texto', text });
+    renderEnredoList();
+    markEnredoDirty();
+    resetEnredoAddUI();
+  });
+
+  enredoChooseImageBtn.addEventListener('click', ()=>{
+    enredoAddChoice.hidden = true;
+    enredoAddImageBox.hidden = false;
+  });
+  enredoCancelImageBtn.addEventListener('click', resetEnredoAddUI);
+  enredoChooseFileBtn.addEventListener('click', ()=> enredoImageInput.click());
+  enredoImageInput.addEventListener('change', (e)=>{
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    // 1200px/0.85 -- mesma ideia do mapa (resizeImageFile()), imagem ilustrativa não precisa da
+    // resolução crua da câmera, e mantém o arquivo enredo.json num tamanho razoável pro GitHub.
+    resizeImageFile(file, 1200, 0.85).then(dataUrl=>{
+      enredoPendingImageDataUrl = dataUrl;
+      enredoImagePreview.src = dataUrl;
+      enredoImagePreview.hidden = false;
+      enredoConfirmImageBtn.disabled = false;
+    }).catch(err=>{
+      console.error(err);
+      alert('Não foi possível usar essa imagem. Tente outra.');
+    });
+    enredoImageInput.value = '';
+  });
+  enredoConfirmImageBtn.addEventListener('click', ()=>{
+    if(!enredoPendingImageDataUrl) return;
+    enredoData.entries.push({ type:'imagem', dataUrl: enredoPendingImageDataUrl });
+    renderEnredoList();
+    markEnredoDirty();
+    resetEnredoAddUI();
+  });
 
   // fundo animado do Tabuleiro ao Vivo: MESMAS partículas e MESMAS regras de prioridade do chat
   // (💀 vida crítica > ★ Escudo > + vida verde > ❤ normal — ver chatBgParticleState(), definida
