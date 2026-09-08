@@ -204,5 +204,14 @@
     "de": "B3",
     "para": "C3",
     "ts": 1788820910218
+  },
+  {
+    "nome": "GRUPO",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 5,
+    "resultLabel": "Erro",
+    "ts": 1788861560440
   }
 ]
