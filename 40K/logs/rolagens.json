@@ -3,14 +3,6 @@
     "nome": "M4NT1X",
     "tipo": "sorte",
     "escolha": "coroa",
-    "resultado": "cara",
-    "verdict": "erro",
-    "ts": 1787521117457
-  },
-  {
-    "nome": "M4NT1X",
-    "tipo": "sorte",
-    "escolha": "coroa",
     "resultado": "coroa",
     "verdict": "acerto",
     "ts": 1787521124015
@@ -227,5 +219,18 @@
       9,
       15
     ]
+  },
+  {
+    "nome": "GRUPO",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 3,
+    "bonus": 0,
+    "rolls": [
+      1
+    ],
+    "resultado": 1,
+    "habilidade": null,
+    "ts": 1788861582639
   }
 ]
