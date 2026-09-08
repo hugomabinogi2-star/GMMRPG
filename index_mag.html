@@ -2452,7 +2452,7 @@ body{
 .vital-potion-btn:hover:not(:disabled){filter:brightness(1.2);transform:translateY(-1px);}
 .vital-potion-btn:active:not(:disabled){transform:translateY(1px);filter:brightness(.95);}
 .vital-potion-btn:disabled{cursor:not-allowed;opacity:.35;filter:grayscale(.85);box-shadow:0 1px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);border-color:var(--border-brown);}
-.ar-ap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
+.ar-ap-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px;}
 .ar-ap-grid .vital-box .vval{font-family:'EB Garamond',serif;font-size:17px;font-weight:700;color:var(--gold-text);}
 .ar-ap-tip{position:relative;display:inline-block;cursor:help;border-bottom:1px dotted var(--ink-faint);}
 .ar-ap-tip:hover .cs-tooltip{opacity:1;visibility:visible;transform:translateY(0);}
@@ -4260,12 +4260,13 @@ body{
             <div class="panel">
               <h2>Armamento e Armadura</h2>
               <div class="ar-ap-grid">
+                <!-- ARMA: espelha o modificador de Dano (guia Modificadores, #m_dano -- soma ao
+                     tamanho de todo dado de dano rolado) -- mesmo padrão de DEFESA/RESISTÊNCIA
+                     abaixo, que já espelhavam m_ar/m_ap direto, sem nenhuma conta a mais. Ordem
+                     empilhada (ARMA/DEFESA/RESISTÊNCIA) a pedido do usuário. -->
+                <div class="vital-box"><div class="vlabel ar-ap-tip">ARMA<div class="cs-tooltip">Modificador de Dano — soma ao tamanho de todo dado de dano rolado</div></div><div class="vval" id="val_arma">0</div></div>
                 <div class="vital-box"><div class="vlabel ar-ap-tip">DEFESA<div class="cs-tooltip">Defesa Física</div></div><div class="vval" id="val_ar">2</div></div>
                 <div class="vital-box"><div class="vlabel ar-ap-tip">RESISTÊNCIA<div class="cs-tooltip">Resistência Mágica</div></div><div class="vval" id="val_ap">2</div></div>
-                <!-- ARMA: espelha o modificador de Dano (guia Modificadores, #m_dano -- soma ao
-                     tamanho de todo dado de dano rolado) -- mesmo padrão de DEFESA/RESISTÊNCIA ao
-                     lado, que já espelhavam m_ar/m_ap direto, sem nenhuma conta a mais. -->
-                <div class="vital-box"><div class="vlabel ar-ap-tip">ARMA<div class="cs-tooltip">Modificador de Dano — soma ao tamanho de todo dado de dano rolado</div></div><div class="vval" id="val_arma">0</div></div>
               </div>
             </div>
 
@@ -7706,8 +7707,28 @@ body{
   // atributo): troca o Atributo/Modo selecionados por trás e dispara o mesmo botão de rolar.
   // pendingHabilidadeRoll (declarado perto de finishRoll(), na seção "dice roller" mais abaixo)
   // é quem carrega o nome/descrição da Habilidade pra dentro do log/mensagem dessa rolagem.
+  // custo de Mana ao rolar uma Habilidade: debita da Mana atual o valor do nível investido nela
+  // (habNivel(hab.id)) -- se não houver Mana suficiente, barra a rolagem (nenhum dado é rolado)
+  // e avisa no chat/Discord com o nome do personagem em negrito, mesmo padrão já usado em
+  // getOuroQty()<1 na Rolagem de Sorte logo abaixo. Nível 0 (nada investido ainda) não custa
+  // nada e nunca barra -- os ícones de Atributo continuam liberados mesmo sem nível.
+  function tryConsumeHabilidadeMana(hab){
+    const nivel = habNivel(hab.id);
+    if(nivel <= 0) return true;
+    const manaAtual = num(els.curMana);
+    if(manaAtual < nivel){
+      const nome = els.nome.value.trim() || '(sem nome)';
+      if(!isBlankName(nome)) postToDiscord(`**${nome}** NÃO TEM MANA PARA UTILIZAR ${hab.nome}`, null);
+      return false;
+    }
+    els.curMana.value = manaAtual - nivel;
+    recalc();
+    return true;
+  }
+
   function rollHabilidadeAtributo(hab, modo){
     if(rollingInterval) return; // já rolando (mesma trava do botão principal), ignora clique
+    if(!tryConsumeHabilidadeMana(hab)) return;
     pendingHabilidadeRoll = { nome: hab.nome, desc: hab.desc };
     diceStat.value = habAttrCode(hab.attr);
     diceMode.value = modo;
@@ -7723,6 +7744,7 @@ body{
     if(danoRollingInterval) return;
     const nivel = habNivel(hab.id);
     if(nivel <= 0) return; // sem nenhum ponto investido ainda, não tem dado nenhum pra rolar
+    if(!tryConsumeHabilidadeMana(hab)) return;
     pendingDanoBonus = habAttrBonus(hab.attr);
     pendingDanoHabilidade = hab.nome;
     pendingDanoAtributo = null; // já cita o nome da Habilidade -- não repete o Atributo também

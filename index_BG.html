@@ -2220,7 +2220,7 @@ body{
   border:1px solid var(--border-brown);border-radius:50%;
   font-size:12px;
 }
-.ar-ap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
+.ar-ap-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px;}
 .ar-ap-grid .vital-box .vval{font-family:'Inter',sans-serif;font-size:17px;font-weight:700;color:var(--gold-text);}
 .ar-ap-tip{position:relative;display:inline-block;cursor:help;border-bottom:1px dotted var(--ink-faint);}
 .ar-ap-tip:hover .cs-tooltip{opacity:1;visibility:visible;transform:translateY(0);}
@@ -3798,12 +3798,13 @@ body{
             <div class="panel">
               <h2>Armamento e Armadura</h2>
               <div class="ar-ap-grid">
+                <!-- ARMA: espelha o modificador de Dano (guia Modificadores, #m_dano -- soma ao
+                     tamanho de todo dado de dano rolado) -- mesmo padrão de DEFESA/RESISTÊNCIA
+                     abaixo, que já espelhavam m_ar/m_ap direto, sem nenhuma conta a mais. Ordem
+                     empilhada (ARMA/DEFESA/RESISTÊNCIA) a pedido do usuário. -->
+                <div class="vital-box"><div class="vlabel ar-ap-tip">ARMA<div class="cs-tooltip">Modificador de Dano — soma ao tamanho de todo dado de dano rolado</div></div><div class="vval" id="val_arma">0</div></div>
                 <div class="vital-box"><div class="vlabel ar-ap-tip">DEFESA<div class="cs-tooltip">Defesa Física</div></div><div class="vval" id="val_ar">2</div></div>
                 <div class="vital-box"><div class="vlabel ar-ap-tip">RESISTÊNCIA<div class="cs-tooltip">Resistência Mágica</div></div><div class="vval" id="val_ap">2</div></div>
-                <!-- ARMA: espelha o modificador de Dano (guia Modificadores, #m_dano -- soma ao
-                     tamanho de todo dado de dano rolado) -- mesmo padrão de DEFESA/RESISTÊNCIA ao
-                     lado, que já espelhavam m_ar/m_ap direto, sem nenhuma conta a mais. -->
-                <div class="vital-box"><div class="vlabel ar-ap-tip">ARMA<div class="cs-tooltip">Modificador de Dano — soma ao tamanho de todo dado de dano rolado</div></div><div class="vval" id="val_arma">0</div></div>
               </div>
             </div>
 
