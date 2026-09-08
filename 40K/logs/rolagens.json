@@ -2,13 +2,6 @@
   {
     "nome": "Pepe",
     "tipo": "movimento",
-    "de": "C4",
-    "para": "B4",
-    "ts": 1787590070321
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
     "de": "B5",
     "para": "D5",
     "ts": 1787593701877
@@ -265,5 +258,21 @@
     "resultado": 11,
     "habilidade": "Golpe de Espada",
     "ts": 1788861683156
+  },
+  {
+    "nome": "GRUPO",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 18,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1788861712210,
+    "mode": "vantagem",
+    "rolls": [
+      14,
+      18
+    ],
+    "habilidade": "Golpe de Espada",
+    "habilidadeDesc": "Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível)."
   }
 ]
