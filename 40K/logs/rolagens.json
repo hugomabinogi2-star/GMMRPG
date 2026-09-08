@@ -2,13 +2,6 @@
   {
     "nome": "Pepe",
     "tipo": "movimento",
-    "de": "B4",
-    "para": "C4",
-    "ts": 1787590061643
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
     "de": "C4",
     "para": "B4",
     "ts": 1787590070321
@@ -255,5 +248,22 @@
     "resultado": 7,
     "habilidade": "Golpe de Espada",
     "ts": 1788861649208
+  },
+  {
+    "nome": "GRUPO",
+    "tipo": "dano",
+    "qtd": 5,
+    "maxVal": 3,
+    "bonus": 3,
+    "rolls": [
+      3,
+      2,
+      1,
+      1,
+      1
+    ],
+    "resultado": 11,
+    "habilidade": "Golpe de Espada",
+    "ts": 1788861683156
   }
 ]
