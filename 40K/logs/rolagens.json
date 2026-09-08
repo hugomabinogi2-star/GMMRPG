@@ -2,13 +2,6 @@
   {
     "nome": "Pepe",
     "tipo": "movimento",
-    "de": "C4",
-    "para": "A4",
-    "ts": 1787590058018
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
     "de": "A4",
     "para": "B4",
     "ts": 1787590060367
@@ -242,6 +235,17 @@
       10,
       12
     ],
+    "habilidade": "Golpe de Espada",
+    "habilidadeDesc": "Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "GRUPO",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 4,
+    "resultLabel": "Erro",
+    "ts": 1788861637735,
     "habilidade": "Golpe de Espada",
     "habilidadeDesc": "Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível)."
   }
