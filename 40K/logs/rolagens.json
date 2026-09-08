@@ -2,13 +2,6 @@
   {
     "nome": "Pepe",
     "tipo": "movimento",
-    "de": "E3",
-    "para": "F3",
-    "ts": 1787593708191
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
     "de": "F3",
     "para": "E3",
     "ts": 1787593714399
@@ -290,5 +283,22 @@
     "ts": 1788861756706,
     "habilidade": "Golpe de Espada",
     "habilidadeDesc": "Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "GRUPO",
+    "tipo": "dano",
+    "qtd": 5,
+    "maxVal": 5,
+    "bonus": 3,
+    "rolls": [
+      3,
+      2,
+      2,
+      2,
+      1
+    ],
+    "resultado": 13,
+    "habilidade": "Golpe de Espada",
+    "ts": 1788861799373
   }
 ]
