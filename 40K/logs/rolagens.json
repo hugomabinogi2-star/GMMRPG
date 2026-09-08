@@ -1,17 +1,5 @@
 [
   {
-    "nome": "M4NT1X",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 6,
-    "rolls": [
-      5
-    ],
-    "resultado": 5,
-    "habilidade": "",
-    "ts": 1787521199695
-  },
-  {
     "nome": "Pepe",
     "tipo": "movimento",
     "de": "C4",
@@ -237,6 +225,22 @@
     "rolls": [
       4,
       17
+    ],
+    "habilidade": "Golpe de Espada",
+    "habilidadeDesc": "Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "GRUPO",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 12,
+    "resultLabel": "Erro — Vantagem",
+    "ts": 1788861634369,
+    "mode": "vantagem",
+    "rolls": [
+      10,
+      12
     ],
     "habilidade": "Golpe de Espada",
     "habilidadeDesc": "Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível)."
