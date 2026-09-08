@@ -2425,6 +2425,19 @@ body{
   border:1px solid var(--border-brown);border-radius:50%;
   font-size:12px;
 }
+/* Botão de Vida/Mana virou um "pote de poção" (a pedido, no lugar do ⟳ de "Restaurar" de antes) --
+   vermelho fixo pra Vida, azul fixo pra Mana (não acompanha a cor da Divindade, ao contrário do
+   coração de Mana no meio da ficha -- pedido explícito de cores fixas aqui). Só funciona (ver JS,
+   perto de refill_vida/refill_mana) com pelo menos uma Poção correspondente sobrando no Inventário
+   -- fica "apagado"/desabilitado (.vital-potion-btn:disabled) quando não há poção suficiente.  */
+.vital-potion-icon{width:15px;height:15px;pointer-events:none;}
+.vital-potion-cap{fill:#3d2c0f;}
+.vital-potion-shine{stroke:rgba(255,255,255,.55);stroke-width:1.2;stroke-linecap:round;fill:none;}
+.vital-potion-btn-vida .vital-potion-liquid{fill:#c22626;stroke:#5c0f0f;stroke-width:.5;}
+.vital-potion-btn-mana .vital-potion-liquid{fill:#8ecbff;stroke:#2c4854;stroke-width:.5;}
+.vital-potion-btn:hover:not(:disabled){border-color:#e0b656;}
+.vital-potion-btn:active:not(:disabled){transform:translateY(1px);}
+.vital-potion-btn:disabled{cursor:not-allowed;opacity:.4;filter:grayscale(.7);}
 .ar-ap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px;}
 .ar-ap-grid .vital-box .vval{font-family:'EB Garamond',serif;font-size:17px;font-weight:700;color:var(--gold-text);}
 .ar-ap-tip{position:relative;display:inline-block;cursor:help;border-bottom:1px dotted var(--ink-faint);}
@@ -4306,7 +4319,13 @@ body{
                   <div class="vval"><input type="number" class="cur" id="cur_vida" value="10" readonly><span class="max">/ <span id="max_vida">10</span></span></div>
                   <div class="vital-btn-row">
                     <button type="button" class="vital-step-btn" id="vidaMinusBtn" aria-label="Diminuir Vida">−</button>
-                    <button type="button" class="refill vital-refill-btn" id="refill_vida" title="Restaurar" aria-label="Restaurar Vida">⟳</button>
+                    <button type="button" class="refill vital-refill-btn vital-potion-btn vital-potion-btn-vida" id="refill_vida" title="Usar Poção de Vida" aria-label="Usar Poção de Vida">
+                      <svg class="vital-potion-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <rect x="9" y="2" width="6" height="3.4" rx="1" class="vital-potion-cap"/>
+                        <path d="M8.4 5.4h7.2v3.3l3.1 6.2c1.5 3-.8 6.5-4.2 6.5H9.5c-3.4 0-5.7-3.5-4.2-6.5l3.1-6.2V5.4z" class="vital-potion-liquid"/>
+                        <path d="M6.6 14.6h10.8" class="vital-potion-shine"/>
+                      </svg>
+                    </button>
                     <button type="button" class="vital-step-btn" id="vidaPlusBtn" aria-label="Aumentar Vida">+</button>
                   </div>
                 </div>
@@ -4315,7 +4334,13 @@ body{
                   <div class="vval"><input type="number" class="cur" id="cur_mana" value="10" readonly><span class="max">/ <span id="max_mana">10</span></span></div>
                   <div class="vital-btn-row">
                     <button type="button" class="vital-step-btn" id="manaMinusBtn" aria-label="Diminuir Mana">−</button>
-                    <button type="button" class="refill vital-refill-btn" id="refill_mana" title="Restaurar" aria-label="Restaurar Mana">⟳</button>
+                    <button type="button" class="refill vital-refill-btn vital-potion-btn vital-potion-btn-mana" id="refill_mana" title="Usar Poção de Mana" aria-label="Usar Poção de Mana">
+                      <svg class="vital-potion-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <rect x="9" y="2" width="6" height="3.4" rx="1" class="vital-potion-cap"/>
+                        <path d="M8.4 5.4h7.2v3.3l3.1 6.2c1.5 3-.8 6.5-4.2 6.5H9.5c-3.4 0-5.7-3.5-4.2-6.5l3.1-6.2V5.4z" class="vital-potion-liquid"/>
+                        <path d="M6.6 14.6h10.8" class="vital-potion-shine"/>
+                      </svg>
+                    </button>
                     <button type="button" class="vital-step-btn" id="manaPlusBtn" aria-label="Aumentar Mana">+</button>
                   </div>
                 </div>
@@ -5159,6 +5184,15 @@ body{
   let lastKnownVida = null;
   let suppressDeathEffect = false;
 
+  // guarda o último Vida/Mana MÁXIMO calculado (não o atual) -- usado só pra saber se o máximo
+  // MUDOU de um recalc() pro outro (ex: distribuir pontos em FOR/CON), ver o bloco "Vida/Mana ficam
+  // sempre no valor CHEIO..." dentro de recalc() mais abaixo. Sem comparar com o valor anterior
+  // (só olhando fichaSaved), CADA recalc() reencheria vida/mana pro máximo até a ficha ser salva
+  // pela 1ª vez -- e como vidaStep()/manaStep() (os botões </> de Vida/Mana) também chamam
+  // recalc(), isso desfaria na hora qualquer dano/gasto de mana tomado ANTES do primeiro SALVAR.
+  let lastVidaMax = null;
+  let lastManaMax = null;
+
   function num(el){ const v = parseFloat(el.value); return isNaN(v)?0:v; }
 
   // sistema de custo dos atributos: cada "rank" (valor de 1 a 18) tem um custo em pontos —
@@ -5676,7 +5710,10 @@ body{
     els.lvNum.textContent = hoveringSeal ? levelFloor : romanLevel;
     els.lvNum.style.fontSize = hoveringSeal ? '' : (romanLevel.length <= 3 ? '' : romanLevel.length === 4 ? '17px' : romanLevel.length === 5 ? '15px' : romanLevel.length === 6 ? '13px' : '11px');
 
-    if(lastKnownLevel !== null && levelFloor > lastKnownLevel && !suppressLevelUpEffect){
+    // guardado numa variável (em vez de só o "if" original) porque é reaproveitado mais abaixo,
+    // depois que vidaMax/manaMax são calculados -- ver "leveledUp" perto de "clamp mana ao máximo".
+    const leveledUp = lastKnownLevel !== null && levelFloor > lastKnownLevel && !suppressLevelUpEffect;
+    if(leveledUp){
       celebrateLevelUp(levelFloor);
     }
     // pontos de Habilidade disponíveis (badge/steppers das abas Armamento/Elemento) dependem do
@@ -5820,6 +5857,29 @@ body{
     // RESISTÊNCIA logo acima: só espelha o modificador de Dano (#m_dano) direto, sem nenhuma conta
     // extra -- quem soma o modificador ao dado de verdade é o rollDanoBtn (ver mais abaixo).
     els.valArma.textContent = Math.floor(num(els.mDano));
+
+    // Vida/Mana ficam no valor CHEIO enquanto a ficha ainda está sendo criada/distribuindo pontos
+    // (fichaSaved ainda false — distribuição livre, mesma janela usada pela regra "só o mestre
+    // reduz atributo" acima) — a pedido: "ao criar a ficha e distribuir os pontos o valor de vida e
+    // mana deve ficar no valor cheio". MAS só quando o MÁXIMO de verdade muda (distribuir pontos em
+    // FOR/CON/INT/VON, ou os modificadores mVida/mMana) — comparando com lastVidaMax/lastManaMax
+    // (ver declaração lá em cima) — nunca incondicionalmente a cada recalc(): vidaStep()/manaStep()
+    // (os botões </> de Vida/Mana) também chamam recalc(), então se isso rodasse toda vez, dano/
+    // gasto de mana tomado ANTES do primeiro SALVAR seria desfeito na hora, tornando os botões </>
+    // inúteis durante a criação. Depois de salva pela 1ª vez, esse preenchimento automático só volta
+    // a acontecer no exato momento de SUBIR DE NÍVEL (leveledUp, calculado lá em cima, junto de
+    // celebrateLevelUp()) — "ganhar nível enche vida e mana", sem mexer nas poções.
+    const vidaMaxChanged = lastVidaMax === null || vidaMax !== lastVidaMax;
+    const manaMaxChanged = lastManaMax === null || manaMax !== lastManaMax;
+    if((!fichaSaved && vidaMaxChanged) || leveledUp) els.curVida.value = vidaMax;
+    if((!fichaSaved && manaMaxChanged) || leveledUp) els.curMana.value = manaMax;
+    lastVidaMax = vidaMax;
+    lastManaMax = manaMax;
+
+    // mantém os botões de pote (refill_vida/refill_mana) em dia mesmo fora de uma mudança direta no
+    // Inventário -- cobre carregar uma ficha (applyState() reconstrói o Inventário do zero e chama
+    // recalc() no fim) e o próprio preenchimento automático acima.
+    refreshPotionButtons();
 
     // clamp mana ao máximo — vida pode passar do máximo (overheal, fatia verde no gráfico), mas só
     // até o dobro do máximo calculado (ex: vida calculada 10 → até 20 no total, +10 de "vida verde").
@@ -6087,8 +6147,8 @@ body{
     }
   });
 
-  $('refill_vida').addEventListener('click', ()=>{ els.curVida.value = els.maxVida.textContent; recalc(); });
-  $('refill_mana').addEventListener('click', ()=>{ els.curMana.value = els.maxMana.textContent; recalc(); });
+  // refill_vida/refill_mana (pote de poção) agora dependem do Inventário -- o clique de verdade é
+  // wireado mais abaixo, junto de usePotion()/getLockedItemQty(), perto da seção do Inventário.
 
   // Máximo/Atual do Escudo não são digitáveis — só sobem/descem pelos botões +/− ao lado de cada
   // campo (sem teto fixo pro Máximo; o Atual já é travado entre 0 e o Máximo dentro de recalc()).
@@ -7182,6 +7242,46 @@ body{
     return row ? (parseFloat(row.value) || 0) : 0;
   }
 
+  // acha o campo de quantidade (input .item-qty) de um item TRAVADO do Inventário pelo NOME (em vez
+  // de por posição fixa) — usado pelas Poções de Vida/Mana (ver botões refill_vida/refill_mana mais
+  // abaixo). Por nome, e não por índice, porque uma ficha salva ANTES desse recurso existir pode não
+  // ter essas linhas na posição esperada (ver applyState()/"POÇÃO DE VIDA" mais abaixo).
+  function getLockedItemQtyInput(nome){
+    const rows = inventoryRows.querySelectorAll('.item-row.locked');
+    for(const row of rows){
+      const nameEl = row.querySelector('.item-name');
+      if(nameEl && nameEl.value.trim().toUpperCase() === nome) return row.querySelector('.item-qty');
+    }
+    return null;
+  }
+  function getLockedItemQty(nome){
+    const el = getLockedItemQtyInput(nome);
+    return el ? (parseFloat(el.value) || 0) : 0;
+  }
+
+  // botões refill_vida/refill_mana (pote vermelho/pote azul, ver HTML/CSS) — a pedido, só funcionam
+  // com mais de 1 poção correspondente sobrando no Inventário (ficam desabilitados/apagados quando
+  // não há); clicar consome 1 poção (-1 na quantidade) e enche a Vida/Mana até o máximo atual.
+  function refreshPotionButtons(){
+    const vidaBtn = $('refill_vida');
+    const manaBtn = $('refill_mana');
+    if(vidaBtn) vidaBtn.disabled = getLockedItemQty('POÇÃO DE VIDA') <= 1;
+    if(manaBtn) manaBtn.disabled = getLockedItemQty('POÇÃO DE MANA') <= 1;
+  }
+  function usePotion(kind){
+    const nome = kind === 'vida' ? 'POÇÃO DE VIDA' : 'POÇÃO DE MANA';
+    const qtyInput = getLockedItemQtyInput(nome);
+    const qty = qtyInput ? (parseFloat(qtyInput.value) || 0) : 0;
+    if(qty <= 1) return; // trava de segurança -- o próprio botão já vem desabilitado nesse caso
+    if(qtyInput) qtyInput.value = qty - 1;
+    if(kind === 'vida') els.curVida.value = els.maxVida.textContent;
+    else els.curMana.value = els.maxMana.textContent;
+    recalc();
+    refreshPotionButtons();
+  }
+  $('refill_vida').addEventListener('click', ()=> usePotion('vida'));
+  $('refill_mana').addEventListener('click', ()=> usePotion('mana'));
+
   rollSorteBtn.addEventListener('click', ()=>{
     if(sorteRollingInterval) return; // já rolando, ignora clique duplo
 
@@ -7419,19 +7519,21 @@ body{
   // ---------- inventory list ----------
   const inventoryRows = $('inventoryRows');
   // linha do item: nome em cima; embaixo o livro (📖, descrição — igual às Habilidades) e a
-  // quantidade, que não é mais digitável, só sobe/desce pelos botões ‹ ›. O primeiro item (OURO,
-  // "locked") já vem com a descrição preenchida como "DINHEIRO" quando ainda não tem nada salvo,
-  // e os botões dessa linha tocam um som de moedas em vez do "plim" padrão das outras linhas.
+  // quantidade, que não é mais digitável, só sobe/desce pelos botões ‹ ›. "locked" (OURO, POÇÃO DE
+  // VIDA, POÇÃO DE MANA) trava o nome (readonly, sem botão de remover) -- mas só o OURO em si (não
+  // as poções) ganha o extra de DINHEIRO/som de moedas/±10, ver "isOuro" abaixo.
   function addItemRow(name='', qty=0, locked=false, desc=''){
     const entry = document.createElement('div');
     entry.className = 'item-entry';
-    const coinCls = locked ? ' item-coin-btn' : '';
-    const descValue = desc || (locked ? 'DINHEIRO' : '');
-    // só o OURO (linha travada) ganha os botões extras de -10/+10 — os outros itens continuam só
-    // com -1/+1. Usam a mesma classe .item-qty-btn (só com data-dir=-10/10), então o wiring de
-    // clique/segurar logo abaixo já pega os dois automaticamente, sem precisar de código novo.
-    const bigMinusHtml = locked ? `<button type="button" class="item-qty-btn item-qty-btn-10${coinCls}" data-dir="-10" aria-label="Diminuir quantidade em 10">−10</button>` : '';
-    const bigPlusHtml = locked ? `<button type="button" class="item-qty-btn item-qty-btn-10${coinCls}" data-dir="10" aria-label="Aumentar quantidade em 10">+10</button>` : '';
+    const isOuro = name === 'OURO'; // só o OURO ganha o tratamento especial (moedas/±10/"DINHEIRO")
+    const isPotion = name === 'POÇÃO DE VIDA' || name === 'POÇÃO DE MANA'; // ver refreshPotionButtons()
+    const coinCls = isOuro ? ' item-coin-btn' : '';
+    const descValue = desc || (isOuro ? 'DINHEIRO' : '');
+    // só o OURO (linha travada) ganha os botões extras de -10/+10 — os outros itens (incluindo as
+    // Poções, também travadas) continuam só com -1/+1. Usam a mesma classe .item-qty-btn (só com
+    // data-dir=-10/10), então o wiring de clique/segurar logo abaixo já pega os dois automaticamente.
+    const bigMinusHtml = isOuro ? `<button type="button" class="item-qty-btn item-qty-btn-10${coinCls}" data-dir="-10" aria-label="Diminuir quantidade em 10">−10</button>` : '';
+    const bigPlusHtml = isOuro ? `<button type="button" class="item-qty-btn item-qty-btn-10${coinCls}" data-dir="10" aria-label="Aumentar quantidade em 10">+10</button>` : '';
     entry.innerHTML = `
       <div class="item-row${locked ? ' locked' : ''}">
         <input type="text" class="item-name" placeholder="Nome do item" value="${escapeHtml(name)}"${locked ? ' readonly' : ''}>
@@ -7459,16 +7561,19 @@ body{
     bookBtn.addEventListener('click', ()=>{
       panelEl.hidden = !panelEl.hidden;
       if(!panelEl.hidden) descEl.focus();
-      if(locked) playCoinsSound();
+      if(isOuro) playCoinsSound();
     });
     descEl.addEventListener('input', refreshHasDesc);
     function qtyStep(delta){
       qtyEl.value = Math.max(0, num(qtyEl) + delta);
+      // mantém os botões de pote (refill_vida/refill_mana) em dia assim que a quantidade de uma das
+      // Poções muda pelos botões do próprio Inventário (não só quando usePotion() consome uma).
+      if(isPotion) refreshPotionButtons();
     }
     entry.querySelectorAll('.item-qty-btn').forEach(btn=>{
       const dir = parseInt(btn.dataset.dir, 10);
-      btn.addEventListener('click', ()=>{ qtyStep(dir); if(locked) playCoinsSound(); });
-      wireHoldRepeat(btn, ()=> qtyStep(dir), locked ? playCoinsSound : undefined);
+      btn.addEventListener('click', ()=>{ qtyStep(dir); if(isOuro) playCoinsSound(); });
+      wireHoldRepeat(btn, ()=> qtyStep(dir), isOuro ? playCoinsSound : undefined);
     });
     if(!locked) entry.querySelector('.remove-btn').addEventListener('click', ()=> entry.remove());
     inventoryRows.appendChild(entry);
@@ -7480,7 +7585,11 @@ body{
   }
 
   // ---------- starting rows ----------
+  // OURO, POÇÃO DE VIDA e POÇÃO DE MANA são as 3 linhas fixas/travadas, sempre nessa ordem, antes
+  // de qualquer item livre -- ver getLockedItemQty()/os botões refill_vida/refill_mana mais abaixo.
   addItemRow('OURO', 0, true);
+  addItemRow('POÇÃO DE VIDA', 0, true);
+  addItemRow('POÇÃO DE MANA', 0, true);
   for(let i=0;i<2;i++) addItemRow();
 
   // ---------- Habilidades fixas (abas Armamento/Elemento) ----------
@@ -7911,11 +8020,25 @@ body{
       updateArmaBadge();
     }catch(e){}
     inventoryRows.innerHTML='';
-    const invList = (s.inventory && s.inventory.length) ? s.inventory : [{},{},{}];
-    invList.forEach((it, idx)=>{
-      if(idx === 0) addItemRow('OURO', it.qtd || 0, true, it.desc || '');
-      else addItemRow(it.nome||'', it.qtd||0, false, it.desc || '');
-    });
+    // OURO continua sempre o item 0 (como já era antes desse recurso). POÇÃO DE VIDA/POÇÃO DE MANA
+    // são procuradas pelo NOME em qualquer posição do inventário salvo, e removidas da lista antes
+    // do resto virar itens livres — assim, numa ficha salva ANTES desse recurso existir (onde os
+    // itens 1/2 eram itens livres quaisquer, escolhidos pelo jogador), eles continuam abrindo como
+    // itens livres normais, sem serem "roubados"/renomeados à força; só numa ficha salva DEPOIS
+    // desse recurso (onde as poções sempre ficam nas posições 1 e 2, ver "starting rows"/
+    // collectState() acima) é que a quantidade/descrição salva de cada poção é reaproveitada.
+    const invList = (s.inventory && s.inventory.length) ? s.inventory.slice() : [{},{},{}];
+    const ouroEntry = invList.shift() || {};
+    addItemRow('OURO', ouroEntry.qtd || 0, true, ouroEntry.desc || '');
+    function takeLockedByName(nome){
+      const idx = invList.findIndex(it => String((it && it.nome) || '').trim().toUpperCase() === nome);
+      return idx === -1 ? {} : invList.splice(idx, 1)[0];
+    }
+    const vidaEntry = takeLockedByName('POÇÃO DE VIDA');
+    const manaEntry = takeLockedByName('POÇÃO DE MANA');
+    addItemRow('POÇÃO DE VIDA', vidaEntry.qtd || 0, true, vidaEntry.desc || '');
+    addItemRow('POÇÃO DE MANA', manaEntry.qtd || 0, true, manaEntry.desc || '');
+    invList.forEach(it=> addItemRow((it && it.nome) || '', (it && it.qtd) || 0, false, (it && it.desc) || ''));
     // níveis das Habilidades fixas (ver collectState() acima/renderHabilidades() na seção
     // "Habilidades fixas" mais acima) -- objeto vazio numa ficha nova/sem nada salvo ainda.
     // renderHabilidades() só depois de selectedArma já estar atualizado (linha acima) -- é dela
@@ -7928,6 +8051,11 @@ body{
     // carregar uma ficha nova reinicia a referência de "pontos já distribuídos" (senão os valores
     // do personagem anterior/carregado seriam comparados com os daquele que acabou de ser aberto)
     resetAttrGuard();
+    // idem pra lastVidaMax/lastManaMax (ver declaração/uso em recalc()) -- sem isto, trocar de ficha
+    // logo depois de outra com o MESMO máximo calculado por coincidência não contaria como "mudou",
+    // e uma ficha nova/não salva deixaria de encher vida/mana no primeiro recalc() desta ficha.
+    lastVidaMax = null;
+    lastManaMax = null;
 
     // "Nova ficha" (s={}) sempre volta pra distribuição livre; carregar uma ficha que já tem
     // atributos salvos (veio do GitHub/ficha ao vivo) já entra direto na regra de só-mestre-reduz.
@@ -12816,6 +12944,59 @@ body{
     if(mapContentRef){ mapContentRef.off('value', mapContentCb); mapContentRef = null; mapContentCb = null; }
   }
 
+  // ---- carregamento único do mapa salvo, pros DOIS papéis, logo no login -- bug real corrigido
+  // nesta rodada ("o mapa precisa ficar salvo pra sempre... já tem que vir carregado em todos os
+  // acessos"). O mestre só ESCREVE no Firebase daqui em diante (ver comentário lá em cima, mapState
+  // é a fonte de verdade dele, sem listener AO VIVO ligado, pra evitar eco no meio do debounce de
+  // 500ms sobrescrevendo uma edição que ele acabou de fazer) -- mas isso deixava mapState SEMPRE
+  // começando vazio (o valor inicial `{background:null,icons:{},...}` lá em cima) a cada
+  // login/recarregar a página, porque nada nunca lia de volta o que já tinha sido salvo antes.
+  // Resultado: o modal abria em branco pro mestre, e a primeira coisa que ele mexesse mandava um
+  // `.set()` desse estado vazio+1 mudança pro Firebase, APAGANDO tudo que tinha sido salvo antes --
+  // pra sempre, já que o jogador também só vê o que está gravado ali. Corrigido com uma leitura
+  // ÚNICA (`.once('value')`, não um `.on()` ao vivo -- não reabre a mesma corrida que a arquitetura
+  // write-only evita) chamada assim que o login termina (ver connectLiveBoard() logo abaixo, no
+  // handler de onAuthStateChanged), pros dois papéis -- não só quando alguém abre o modal do Mapa:
+  // o mapa já chega carregado em mapState desde o primeiro instante da sessão, mestre e jogador.
+  // Pro JOGADOR, que é sempre só-leitura (nunca escreve nada aqui -- os cliques de colocar
+  // ícone/desenhar linha em mapOuterEl checam `currentRole !== 'mestre'` e saem na hora, e as
+  // regras do Firebase barram escrita em mesa(40k)/mapa/* pra quem não tem role "mestre" mesmo que
+  // alguém tentasse contornar o navegador), isso só adianta a leitura que connectLiveMap() já fazia
+  // ao abrir o modal (que continua ligado só enquanto o modal está aberto, pra atualização ao vivo
+  // enquanto o mestre edita com o jogador olhando).
+  let mapHydrated = false;
+  function hydrateMapOnce(){
+    if(mapHydrated) return;
+    mapHydrated = true; // marca já de cara, pra nunca disparar 2 leituras mesmo chamando de novo
+    let ready = false;
+    try{ ready = !!(fbReady && fbDb); }catch(err){ ready = false; }
+    if(!ready) return;
+    Promise.all([
+      fbDb.ref('mesa40k/mapa/meta').once('value'),
+      fbDb.ref('mesa40k/mapa/content').once('value'),
+    ]).then(([metaSnap, contentSnap])=>{
+      const meta = metaSnap.val() || {};
+      const content = contentSnap.val() || {};
+      mapState.background = meta.background || null;
+      mapState.lineColor = content.lineColor || 'white';
+      mapState.icons = content.icons || {};
+      mapState.lines = content.lines || {};
+      // os contadores de id (mapIconIdCounter/mapLineIdCounter) também começam do 1 a cada sessão --
+      // sem isso, o próximo ícone/linha NOVO que o mestre colocar reusaria um id ("icon1"/"line1")
+      // que já existe no que acabou de ser carregado, e SOBRESCREVERIA silenciosamente o antigo no
+      // próximo push. Adianta os contadores pra depois do maior id numérico já em uso.
+      Object.keys(mapState.icons).forEach(id=>{
+        const m = /^icon(\d+)$/.exec(id);
+        if(m) mapIconIdCounter = Math.max(mapIconIdCounter, parseInt(m[1], 10) + 1);
+      });
+      Object.keys(mapState.lines).forEach(id=>{
+        const m = /^line(\d+)$/.exec(id);
+        if(m) mapLineIdCounter = Math.max(mapLineIdCounter, parseInt(m[1], 10) + 1);
+      });
+      renderMapView(); // já atualiza a tela se o modal estiver aberto na hora que a leitura terminar
+    }).catch(err=> console.error('Não foi possível carregar o mapa salvo:', err));
+  }
+
   const applyMapZoom = setupBoardZoom(mapZoomSpacerEl, mapOuterEl, $('mapZoomReadout'), $('mapZoomOutBtn'), $('mapZoomInBtn'), 'rpg_ficha_map_zoom');
 
   function closeMapModal(){
@@ -12827,6 +13008,10 @@ body{
     mapModal.hidden = false;
     renderMapPalette();
     applyMapLineColorSwatchSelection();
+    // rede de segurança: normalmente já rodou no login (ver hydrateMapOnce() acima), mas se por
+    // algum motivo isso ainda não tiver terminado (login lento, por exemplo), garante aqui também
+    // -- hydrateMapOnce() já se protege sozinha contra rodar 2 vezes.
+    hydrateMapOnce();
     if(currentRole !== 'mestre') connectLiveMap();
     renderMapView();
     applyMapZoom();
@@ -13731,6 +13916,10 @@ body{
       // lá em cima, ver o comentário grande dentro de setupBoardZoom() no <script>).
       applyLiveBoardZoom();
       connectLiveBoard();
+      // carrega o Mapa salvo (imagem de fundo + ícones/linhas do mestre) já aqui, pros dois
+      // papéis, ANTES mesmo de alguém abrir o modal "🗺️ Mapa" -- ver hydrateMapOnce() mais abaixo
+      // (na seção do Mapa) pro motivo completo.
+      hydrateMapOnce();
       // boardFogMode/boardDarkMode/boardRevealMode são só variáveis de sessão (sempre recomeçam com
       // o padrão a cada carregamento de página — Fog LIGADO e Revelar DESLIGADO, "let boardFogMode =
       // true"/"let boardRevealMode = false" mais acima) — mas os campos publicados em

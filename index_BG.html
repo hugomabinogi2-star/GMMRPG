@@ -12051,6 +12051,59 @@ body{
     if(mapContentRef){ mapContentRef.off('value', mapContentCb); mapContentRef = null; mapContentCb = null; }
   }
 
+  // ---- carregamento único do mapa salvo, pros DOIS papéis, logo no login -- bug real corrigido
+  // nesta rodada ("o mapa precisa ficar salvo pra sempre... já tem que vir carregado em todos os
+  // acessos"). O mestre só ESCREVE no Firebase daqui em diante (ver comentário lá em cima, mapState
+  // é a fonte de verdade dele, sem listener AO VIVO ligado, pra evitar eco no meio do debounce de
+  // 500ms sobrescrevendo uma edição que ele acabou de fazer) -- mas isso deixava mapState SEMPRE
+  // começando vazio (o valor inicial `{background:null,icons:{},...}` lá em cima) a cada
+  // login/recarregar a página, porque nada nunca lia de volta o que já tinha sido salvo antes.
+  // Resultado: o modal abria em branco pro mestre, e a primeira coisa que ele mexesse mandava um
+  // `.set()` desse estado vazio+1 mudança pro Firebase, APAGANDO tudo que tinha sido salvo antes --
+  // pra sempre, já que o jogador também só vê o que está gravado ali. Corrigido com uma leitura
+  // ÚNICA (`.once('value')`, não um `.on()` ao vivo -- não reabre a mesma corrida que a arquitetura
+  // write-only evita) chamada assim que o login termina (ver connectLiveBoard() logo abaixo, no
+  // handler de onAuthStateChanged), pros dois papéis -- não só quando alguém abre o modal do Mapa:
+  // o mapa já chega carregado em mapState desde o primeiro instante da sessão, mestre e jogador.
+  // Pro JOGADOR, que é sempre só-leitura (nunca escreve nada aqui -- os cliques de colocar
+  // ícone/desenhar linha em mapOuterEl checam `currentRole !== 'mestre'` e saem na hora, e as
+  // regras do Firebase barram escrita em mesa(40k)/mapa/* pra quem não tem role "mestre" mesmo que
+  // alguém tentasse contornar o navegador), isso só adianta a leitura que connectLiveMap() já fazia
+  // ao abrir o modal (que continua ligado só enquanto o modal está aberto, pra atualização ao vivo
+  // enquanto o mestre edita com o jogador olhando).
+  let mapHydrated = false;
+  function hydrateMapOnce(){
+    if(mapHydrated) return;
+    mapHydrated = true; // marca já de cara, pra nunca disparar 2 leituras mesmo chamando de novo
+    let ready = false;
+    try{ ready = !!(fbReady && fbDb); }catch(err){ ready = false; }
+    if(!ready) return;
+    Promise.all([
+      fbDb.ref('mesa/mapa/meta').once('value'),
+      fbDb.ref('mesa/mapa/content').once('value'),
+    ]).then(([metaSnap, contentSnap])=>{
+      const meta = metaSnap.val() || {};
+      const content = contentSnap.val() || {};
+      mapState.background = meta.background || null;
+      mapState.lineColor = content.lineColor || 'white';
+      mapState.icons = content.icons || {};
+      mapState.lines = content.lines || {};
+      // os contadores de id (mapIconIdCounter/mapLineIdCounter) também começam do 1 a cada sessão --
+      // sem isso, o próximo ícone/linha NOVO que o mestre colocar reusaria um id ("icon1"/"line1")
+      // que já existe no que acabou de ser carregado, e SOBRESCREVERIA silenciosamente o antigo no
+      // próximo push. Adianta os contadores pra depois do maior id numérico já em uso.
+      Object.keys(mapState.icons).forEach(id=>{
+        const m = /^icon(\d+)$/.exec(id);
+        if(m) mapIconIdCounter = Math.max(mapIconIdCounter, parseInt(m[1], 10) + 1);
+      });
+      Object.keys(mapState.lines).forEach(id=>{
+        const m = /^line(\d+)$/.exec(id);
+        if(m) mapLineIdCounter = Math.max(mapLineIdCounter, parseInt(m[1], 10) + 1);
+      });
+      renderMapView(); // já atualiza a tela se o modal estiver aberto na hora que a leitura terminar
+    }).catch(err=> console.error('Não foi possível carregar o mapa salvo:', err));
+  }
+
   const applyMapZoom = setupBoardZoom(mapZoomSpacerEl, mapOuterEl, $('mapZoomReadout'), $('mapZoomOutBtn'), $('mapZoomInBtn'), 'rpg_ficha_map_zoom');
 
   function closeMapModal(){
@@ -12062,6 +12115,10 @@ body{
     mapModal.hidden = false;
     renderMapPalette();
     applyMapLineColorSwatchSelection();
+    // rede de segurança: normalmente já rodou no login (ver hydrateMapOnce() acima), mas se por
+    // algum motivo isso ainda não tiver terminado (login lento, por exemplo), garante aqui também
+    // -- hydrateMapOnce() já se protege sozinha contra rodar 2 vezes.
+    hydrateMapOnce();
     if(currentRole !== 'mestre') connectLiveMap();
     renderMapView();
     applyMapZoom();
@@ -12972,6 +13029,10 @@ body{
       // lá em cima, ver o comentário grande dentro de setupBoardZoom() no <script>).
       applyLiveBoardZoom();
       connectLiveBoard();
+      // carrega o Mapa salvo (imagem de fundo + ícones/linhas do mestre) já aqui, pros dois
+      // papéis, ANTES mesmo de alguém abrir o modal "🗺️ Mapa" -- ver hydrateMapOnce() mais abaixo
+      // (na seção do Mapa) pro motivo completo.
+      hydrateMapOnce();
       // boardFogMode/boardDarkMode/boardRevealMode são só variáveis de sessão (sempre recomeçam com
       // o padrão a cada carregamento de página — Fog LIGADO e Revelar DESLIGADO, "let boardFogMode =
       // true"/"let boardRevealMode = false" mais acima) — mas os campos publicados em
