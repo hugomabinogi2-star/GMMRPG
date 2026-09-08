@@ -1,14 +1,6 @@
 [
   {
     "nome": "M4NT1X",
-    "tipo": "sorte",
-    "escolha": "coroa",
-    "resultado": "coroa",
-    "verdict": "acerto",
-    "ts": 1787521124015
-  },
-  {
-    "nome": "M4NT1X",
     "tipo": "dano",
     "qtd": 1,
     "maxVal": 6,
@@ -232,5 +224,21 @@
     "resultado": 1,
     "habilidade": null,
     "ts": 1788861582639
+  },
+  {
+    "nome": "GRUPO",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 17,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1788861596097,
+    "mode": "vantagem",
+    "rolls": [
+      4,
+      17
+    ],
+    "habilidade": "Golpe de Espada",
+    "habilidadeDesc": "Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível)."
   }
 ]
