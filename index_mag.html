@@ -9614,24 +9614,20 @@ body{
     // nada na mensagem.
     const gritoPrefixo = entry.grito ? `# ${String(entry.grito).toUpperCase()}\n` : '';
     if(entry.tipo === 'dano'){
-      const qtd = entry.qtd || 1;
-      // entry.bonus (novo, ver rollHabilidadeDano()/finishDanoRoll()) -- bônus fixo do atributo da
-      // Habilidade somado aos dados, ex. "1d3 + 2 = 5". 0/ausente numa rolagem "solta" do painel
-      // de sempre, sem nenhuma Habilidade envolvida -- continua exatamente como já era.
+      // pedido explícito (Rodada 5): a mensagem de Rolagem de Dano pro chat/Discord agora leva SÓ
+      // o nome do jogador e o detalhe dos dados, um por um, do MAIOR pro MENOR -- sem nome de
+      // Habilidade/Atributo/grito (isso deixou a mensagem grande demais e não era o que tinha sido
+      // pedido). O Histórico de Rolagens na tela continua com todo o detalhe de sempre (Habilidade,
+      // Atributo, grito) -- ver buildRollLogRow() mais abaixo, só a mensagem do chat/Discord mudou.
       const bonus = entry.bonus || 0;
       const bonusTxt = bonus ? ` + ${bonus}` : '';
-      const detalhe = (Array.isArray(entry.rolls) && qtd > 1)
-        ? `${qtd}d${entry.maxVal}${bonusTxt}: [${entry.rolls.join(', ')}]${bonusTxt} = **${entry.resultado}**`
-        : `1d${entry.maxVal}${bonusTxt}: resultado **${entry.resultado}**`;
-      // se uma Habilidade fixa originou a rolagem (ícone ⚔️ das abas Armamento/Elemento, ver
-      // rollHabilidadeDano()), o nome dela entra na mensagem; sem nenhuma, continua igual.
-      const habilidadeTxt = entry.habilidade ? ` de "**${entry.habilidade}**"` : '';
-      // entry.atributo (novo, ver rollAtributoDanoIconSelected()) -- sigla do Atributo (FOR/CON/
-      // DES/INT/VON/CAR) que originou a rolagem, só quando veio do ⚔️ de Atributo (sem Habilidade
-      // envolvida, por isso os dois nunca aparecem juntos) — a pedido, pra saber de qual Atributo
-      // veio aquele dano só de olhar a mensagem.
-      const atributoTxt = entry.atributo ? ` (${entry.atributo})` : '';
-      return `${gritoPrefixo}🎲 "**${nome}**" ROLOU DANO${habilidadeTxt}${atributoTxt} — ${detalhe}`;
+      const rollsOrdenados = (Array.isArray(entry.rolls) && entry.rolls.length)
+        ? [...entry.rolls].sort((a, b) => b - a)
+        : [entry.resultado];
+      const dadosTxt = rollsOrdenados.length > 1
+        ? `dados (do maior pro menor): ${rollsOrdenados.join(', ')}${bonusTxt}`
+        : `dado: ${rollsOrdenados[0]}${bonusTxt}`;
+      return `🎲 **${nome}** ROLOU DANO — ${dadosTxt} = **${entry.resultado}**`;
     }
     if(entry.tipo === 'sorte'){
       const escolhaLabel = entry.escolha === 'coroa' ? 'Coroa' : 'Cara';
@@ -9649,7 +9645,15 @@ body{
     // atributo, e a descrição (se tiver uma escrita) vai numa linha de citação embaixo.
     const habilidadeAtributoTxt = entry.habilidade ? `**${entry.habilidade}** ` : '';
     const habilidadeDescTxt = entry.habilidadeDesc ? `\n> ${entry.habilidadeDesc}` : '';
-    return `${gritoPrefixo}🎲 "**${nome}**" ROLOU ${habilidadeAtributoTxt}"${statNome}${statValorTxt}" — RESULTADO **${entry.resultado}**${label}${rollsDetalhe}${habilidadeDescTxt}`;
+    // "fórmula" da rolagem (pedido explícito, Rodada 5): 1d20 (ou 2d20 em Vantagem/Desvantagem,
+    // que fica só com o maior/menor dos dois) contra o limiar de acerto daquele Atributo -- entra
+    // numa linha própria, separada do resultado, pra ficar claro o que decidiu Acerto/Erro.
+    const modeFormulaTxt = entry.mode === 'vantagem' ? '2d20 em Vantagem (fica o maior dos dois)'
+      : entry.mode === 'desvantagem' ? '2d20 em Desvantagem (fica o menor dos dois)'
+      : '1d20';
+    const threshold = (entry.statValor !== undefined && entry.statValor !== null) ? Math.max(2, 20 - entry.statValor) : null;
+    const formulaTxt = threshold !== null ? `\nFórmula: ${modeFormulaTxt} — acerto a partir de **${threshold}** (${statNome}${statValorTxt})` : '';
+    return `${gritoPrefixo}🎲 "**${nome}**" ROLOU ${habilidadeAtributoTxt}"${statNome}${statValorTxt}"${formulaTxt}\nRESULTADO: **${entry.resultado}**${label}${rollsDetalhe}${habilidadeDescTxt}`;
   }
 
   // Espelha a entrada no Firebase (mesa40k/rollLogFeed) só pra empurrar a ATUALIZAÇÃO EM TEMPO REAL
@@ -9678,14 +9682,34 @@ body{
     if(isSilenceActive()) return;
     // cada rolagem manda um dos 9 ícones fixos (ver ROLL_ICON_SOURCES/rollIconKeyFor lá em cima),
     // não mais o retrato do personagem — o retrato agora é só pra mensagem de subida de nível.
-    const iconKey = rollIconKeyFor(entry);
-    const imagemParaDiscord = iconKey ? buildRollIconDataUrl(iconKey) : null;
+    // Rodada 5 -- pedido: "ao rolar uma habilidade não esta sendo enviado a mensagem pro
+    // chat/discord". Montar essa imagem usa um <canvas> por trás (buildRollIconDataUrl() lá em
+    // cima); se isso lançar uma exceção síncrona por qualquer motivo (navegador/estado incomum),
+    // ela NÃO PODE mais travar o envio da mensagem em si -- por isso agora fica isolada no seu
+    // próprio try/catch, e a rolagem só perde a imagem dessa vez, nunca a mensagem inteira.
+    let imagemParaDiscord = null;
+    try{
+      const iconKey = rollIconKeyFor(entry);
+      imagemParaDiscord = iconKey ? buildRollIconDataUrl(iconKey) : null;
+    }catch(err){
+      console.warn('Não foi possível montar o ícone de rolagem pro Discord (a mensagem é enviada mesmo assim, só sem imagem):', err);
+    }
     // entry.habilidadeImagem era da antiga lista livre de habilidades (imagem de alcance/área
     // escolhida à mão, removida nesta rodada -- ver "Habilidades fixas" no <script>); nenhuma
     // Habilidade fixa de hoje seta esse campo, então isto fica sempre null por enquanto. Mantido
     // por segurança (uma ficha salva ANTES desta rodada ainda pode ter o campo gravado).
     const imagemHabilidade = entry.habilidadeImagem || null;
-    postToDiscord(formatRollMessage(entry), imagemParaDiscord, imagemHabilidade); // independe do token do GitHub
+    // mesma blindagem pro TEXTO da mensagem -- formatRollMessage() nunca deveria lançar exceção,
+    // mas se algum dado inesperado (ficha antiga/incompleta) fizer isso acontecer, ainda assim
+    // sai uma mensagem simples em vez de nenhuma mensagem.
+    let mensagemDiscord;
+    try{
+      mensagemDiscord = formatRollMessage(entry);
+    }catch(err){
+      console.warn('Não foi possível montar o texto da mensagem de rolagem (enviando uma versão simples):', err);
+      mensagemDiscord = `🎲 **${entry.nome || '(sem nome)'}** rolou.`;
+    }
+    postToDiscord(mensagemDiscord, imagemParaDiscord, imagemHabilidade); // independe do token do GitHub
 
     if(!getToken()) return;
     try{
