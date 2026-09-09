@@ -1409,7 +1409,7 @@ body{
 .map-icon-marker{
   position:absolute;
   transform:translate(-50%,-50%);
-  width:56px;height:56px;
+  width:80px;height:80px;
   cursor:pointer;
 }
 .map-icon-marker img{
@@ -3014,6 +3014,14 @@ body{
   18%{opacity:1;}
   100%{opacity:0;transform:translate(var(--dx,0px), var(--dy,-60px)) scale(1.15) rotate(var(--rot,20deg));}
 }
+/* "explosão" de dados ao clicar no ícone de rolagem (ver spawnDiceExplosion() no <script>) --
+   um pouco maior que as partículas de resultado (✨/💀) pra ficar mais chamativo. */
+.dice-particle-explosion{font-size:22px;}
+/* variante ANCORADA em cima de um ícone de verdade (ver spawnDiceExplosionAtElement() no
+   <script>) -- position:fixed com left/top em px absolutos de tela (setados via JS), não
+   relativos a nenhuma layer/container; z-index alto pra sempre aparecer por cima de qualquer
+   painel/modal. */
+.dice-particle-fixed{position:fixed;z-index:9999;font-size:16px;}
 
 /* moeda grega antiga — rolagem de sorte (cara ou coroa) */
 .coin-result{
@@ -3234,8 +3242,14 @@ body{
   transition:background .15s ease,color .15s ease;
 }
 .hab-tab-btn:hover{border-color:var(--gold-bright);}
+/* pedido explícito: a guia selecionada (Armamento OU Elemento) fica amarela com texto preto --
+   cor fixa (não usa var(--gold-bright), que já é usada de outros jeitos noutros cantos da ficha),
+   igual ao amarelo já usado noutros lugares da ficha (ex.: DEITY_EYE_COLOR/#ffd23f no <script>).
+   Tem prioridade sobre a cor reativa do Elemento (ver #habTabs .hab-tab-btn[data-hab-tab=elemento]
+   mais abaixo) por causa da ordem no <style> (esta regra vem depois) -- quando a guia Elemento
+   está ativa, o texto preto daqui "vence" a cor do elemento. */
 .hab-tab-btn.active{
-  background:linear-gradient(180deg,var(--gold-bright),var(--gold-text));color:#fff;border-color:var(--gold-bright);
+  background:#ffd23f;color:#000;border-color:#ffd23f;
 }
 .hab-tab-body[hidden]{display:none;}
 /* fundo das DUAS abas (Armamento E Elemento) e do quadro/campo de cada Habilidade: preto com
@@ -3339,22 +3353,17 @@ body{
 .add-row-btn:hover{border-color:var(--ink);color:var(--ink);}
 /* ---------- Talentos (nova guia abaixo de Rolamentos -- lista livre "à moda antiga", ver
    addTalentoRow()/talentosRows no <script>) ---------- */
-.talento-entry{border:1px solid var(--border-brown);border-radius:6px;padding:8px 10px;margin-bottom:8px;background:rgba(255,255,255,.1);}
-.talento-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
-.talento-nome{
-  flex:1 1 auto;min-width:0;font-family:'EB Garamond',serif;font-size:12.5px;color:var(--ink);
-  background:rgba(255,255,255,.55);border:1px solid var(--border-brown);border-radius:4px;padding:4px 6px;
-}
-.talento-attr{
-  flex:0 0 auto;font-family:'EB Garamond',serif;font-size:12px;color:var(--ink);
-  background:rgba(255,255,255,.55);border:1px solid var(--border-brown);border-radius:4px;padding:4px 2px;
-}
-.talento-icons{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
-.talento-texto{
-  width:100%;box-sizing:border-box;font-family:'EB Garamond',serif;font-size:12px;color:var(--ink-soft);
-  background:rgba(255,255,255,.4);border:1px solid var(--border-brown);border-radius:4px;padding:6px 8px;
-  min-height:36px;resize:vertical;
-}
+/* pedido explícito: "precisa ser um campo de texto igual ao inventário, mas sem o seletor de
+   quantidade, apenas com o livrinho" -- cada linha de Talento REAPROVEITA literalmente as mesmas
+   classes do Inventário (.item-entry/.item-row/.item-name/.item-actions/.item-book-btn/
+   .item-desc-panel/.item-desc, ver addItemRow() no <script>) -- mesmo campo de nome, mesma
+   caixinha de descrição atrás do livrinho (já preto com texto dourado, ver .item-desc no
+   <style>), só SEM nenhum botão de quantidade. Pedido explícito (rodada seguinte): também sem
+   seletor de Atributo e sem os 3 dados de rolagem (🎲/🎲+/🎲−) que existiam antes -- Talento virou
+   só nome + descrição, igual a um item comum, sem nenhuma ação de rolar embutida.
+   .talento-actions não precisa de nenhum ajuste próprio mais (só o livrinho + o "✕" agora, cabe
+   numa linha só), mas o seletor fica aqui pra facilitar um ajuste futuro se precisar. */
+.talento-actions{flex-wrap:wrap;row-gap:6px;}
 /* linha com "Atualizar histórico" e "Limpar histórico" lado a lado, no modal de Histórico de
    Rolagens — o de limpar usa o mesmo tom de vermelho já usado em outras ações destrutivas
    (apagar ficha/tabuleiro, botão Sair). */
@@ -4179,13 +4188,15 @@ body{
                  "nível" (0 em diante) comprado com pontos ganhos por nível de personagem (1 ponto
                  por nível, ver habPointsPool()) -- é isso que multiplica os dados de dano. -->
             <div class="panel">
-              <h2>Habilidades <span class="attr-points-badge" id="habPointsBadge" title="Pontos de habilidade acumulados ainda não distribuídos">0</span></h2>
+              <h2>Habilidades <span class="attr-points-badge" id="habPointsBadge" title="Pontos de habilidade acumulados ainda não distribuídos">0</span> <button type="button" class="panel-toggle-btn" id="habilidadesToggleBtn" aria-label="Minimizar Habilidades" title="Minimizar/expandir Habilidades">▾</button></h2>
+              <div class="dice-panel-body" id="habilidadesBody">
               <div class="hab-tabs" id="habTabs">
                 <button type="button" class="hab-tab-btn active" data-hab-tab="armamento">Armamento</button>
                 <button type="button" class="hab-tab-btn" data-hab-tab="elemento">Elemento</button>
               </div>
               <div class="hab-tab-body" id="habTabArmamento"></div>
               <div class="hab-tab-body" id="habTabElemento" hidden></div>
+              </div>
             </div>
             <div class="panel">
               <h2>Inventário</h2>
@@ -6496,6 +6507,7 @@ body{
   wirePanelToggle('sorteToggleBtn', 'sorteBody', 'Rolagem de Sorte');
   wirePanelToggle('rollLogToggleBtn', 'rollLogBody', 'Histórico de Rolagens');
   wirePanelToggle('mesaHeroSummaryToggleBtn', 'mesaHeroSummaryList', 'Fichas dos Jogadores');
+  wirePanelToggle('habilidadesToggleBtn', 'habilidadesBody', 'Habilidades');
 
   // painel "Rolamentos" abre sozinho toda vez que QUALQUER dado é rolado (atributo OU dano,
   // incluindo pelos ícones das Habilidades/Talentos) enquanto estiver minimizado -- pedido
@@ -7025,6 +7037,38 @@ body{
       playTone(freq, 0.22, { type:'sine', gain:0.07, delay:0.01 + i*0.01, freqEnd: freq*0.92 });
     });
   }
+  // som de "corte" (lâmina cortando o ar) — tocado na hora do CLIQUE em qualquer ícone de Rolagem
+  // de Dano (⚔️/🛡️/🏹/🪄/😈/🥾 das Habilidades/Talentos, e também o ⚔️ "solto" de Atributo/painel
+  // "Rolagem de Dano"), pedido explícito — não depende do resultado, que só sai depois da
+  // animação de "rolando" (mesma ideia do efeito de clique do rollBtn, ver spawnDiceExplosion()).
+  // Ruído filtrado com um "swoosh" (frequência do filtro DESCENDO rápido) seguido de um "thonk"
+  // grave curto simulando o impacto no final do corte.
+  function playCutSound(){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    const t0 = ctx.currentTime;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.16);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2 - 1) * (1 - i/bufferSize);
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 1.3;
+    filter.frequency.setValueAtTime(3400, t0);
+    filter.frequency.exponentialRampToValueAtTime(500, t0 + 0.14);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.24, t0);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.16);
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start(t0);
+    noise.stop(t0 + 0.17);
+    // "thonk" de impacto, logo depois do assobio da lâmina
+    playTone(110, 0.12, { type:'sine', gain:0.14, delay:0.1, freqEnd:70 });
+  }
   // som "épico" (acorde grave crescendo, tipo um "oooooh" de coro) — só nos botões ‹/› de troca
   // de divindade, pra se diferenciar do plim genérico dos outros botões.
   function playDeityOohSound(){
@@ -7078,6 +7122,79 @@ body{
   // AZUIS da Poção de Mana, ver .mana-star-particle/usePotion() mais abaixo -- um emoji colorido de
   // verdade tipo ⭐ não aceita `color` do CSS, por isso ali usa um caractere de estrela "sólida" em
   // vez de emoji).
+  // efeito de "dados explodindo" ao CLICAR no ícone de rolagem (pedido explícito, diferente do
+  // spawnDiceParticles() acima que só dispara no RESULTADO do 20/1 natural) -- pedido: fogos de
+  // artifício pra todos os lados no modo Normal, todos os dados "sobem" na Vantagem, todos "descem"
+  // na Desvantagem. Reaproveita a mesma layer/CSS (.dice-particle, ver diceParticleFloat no
+  // <style>) só com um leque de ângulos diferente por modo e uma classe extra (.dice-particle-
+  // explosion) pra ficar um pouco maior/mais chamativo que as partículas de resultado.
+  // ângulo (em radianos) de uma partícula da explosão, sorteado dentro do leque certo pro modo --
+  // compartilhado pelas duas variantes abaixo (no painel "Rolamentos" E em cima do ícone real que
+  // foi clicado).
+  function diceExplosionAngle(mode){
+    if(mode === 'vantagem'){
+      // leque de ~120° apontando pra CIMA (ângulo em tela: -90° é "pra cima")
+      return (-Math.PI*5/6) + Math.random()*(Math.PI*4/6);
+    }
+    if(mode === 'desvantagem'){
+      // leque de ~120° apontando pra BAIXO
+      return (Math.PI/6) + Math.random()*(Math.PI*4/6);
+    }
+    // Normal: todas as direções, 360° completo (fogos de artifício)
+    return Math.random()*Math.PI*2;
+  }
+  function spawnDiceExplosion(layer, mode){
+    if(!layer) return;
+    const count = 16;
+    for(let i=0;i<count;i++){
+      const span = document.createElement('span');
+      span.className = 'dice-particle dice-particle-explosion';
+      span.textContent = '🎲';
+      const angle = diceExplosionAngle(mode);
+      const dist = 30 + Math.random()*55;
+      const dx = Math.cos(angle)*dist;
+      const dy = Math.sin(angle)*dist;
+      span.style.left = `calc(50% + ${(Math.random()*16-8).toFixed(1)}px)`;
+      span.style.top = `calc(50% + ${(Math.random()*10-5).toFixed(1)}px)`;
+      span.style.setProperty('--dx', dx.toFixed(1)+'px');
+      span.style.setProperty('--dy', dy.toFixed(1)+'px');
+      span.style.setProperty('--rot', (Math.random()*180-90).toFixed(1)+'deg');
+      span.style.animationDelay = Math.floor(Math.random()*80)+'ms';
+      layer.appendChild(span);
+      setTimeout(()=> span.remove(), 1200);
+    }
+  }
+  // mesma explosão acima, só que ANCORADA em cima de um elemento de verdade (ex.: o ícone 🎲 de
+  // uma Habilidade ou de um Talento que foi clicado, ver pendingRollSourceIcon) -- pedido
+  // explícito: o efeito precisa aparecer TAMBÉM ali, ao mesmo tempo que no painel "Rolamentos".
+  // Usa position:fixed (coordenadas de tela via getBoundingClientRect(), não relativas a nenhum
+  // container) porque esses ícones ficam espalhados em vários lugares da ficha, sem uma "layer"
+  // própria como #diceParticleLayer.
+  function spawnDiceExplosionAtElement(el, mode){
+    if(!el) return;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    const count = 10;
+    for(let i=0;i<count;i++){
+      const span = document.createElement('span');
+      span.className = 'dice-particle dice-particle-explosion dice-particle-fixed';
+      span.textContent = '🎲';
+      const angle = diceExplosionAngle(mode);
+      const dist = 22 + Math.random()*38;
+      const dx = Math.cos(angle)*dist;
+      const dy = Math.sin(angle)*dist;
+      span.style.left = cx.toFixed(1)+'px';
+      span.style.top = cy.toFixed(1)+'px';
+      span.style.setProperty('--dx', dx.toFixed(1)+'px');
+      span.style.setProperty('--dy', dy.toFixed(1)+'px');
+      span.style.setProperty('--rot', (Math.random()*180-90).toFixed(1)+'deg');
+      span.style.animationDelay = Math.floor(Math.random()*80)+'ms';
+      document.body.appendChild(span);
+      setTimeout(()=> span.remove(), 1200);
+    }
+  }
+
   function spawnDiceParticles(layer, emoji, count, extraClass){
     if(!layer) return;
     for(let i=0;i<count;i++){
@@ -7163,6 +7280,14 @@ body{
   // "solta" do painel de sempre, sem nenhuma Habilidade envolvida. Setado bem antes de
   // rollBtn.click() ser disparado programaticamente, lido/limpo só dentro de finishRoll().
   let pendingHabilidadeRoll = null;
+  // ícone (🎲/🎲+/🎲−) que foi CLICADO de verdade quando a rolagem veio de uma Habilidade ou de um
+  // Talento (ver rollHabilidadeAtributo()/rollTalento()) -- null numa rolagem "solta" do painel de
+  // sempre (ícones de Atributo já ficam perto do próprio painel "Rolamentos", não precisam do
+  // efeito duplicado). Pedido explícito: o efeito de "dados explodindo" (ver spawnDiceExplosion())
+  // precisa aparecer TAMBÉM em cima do ícone de verdade que foi clicado, além do de sempre no
+  // painel "Rolamentos" -- setado bem antes de rollBtn.click(), lido/limpo dentro do próprio
+  // handler de clique do rollBtn (ver spawnDiceExplosionAtElement() logo abaixo).
+  let pendingRollSourceIcon = null;
 
   // Atributo e Dano dividem o mesmo painel "Rolamentos" (ver comentário grande em
   // #atributoDiceArea no HTML) -- só uma área de dado fica visível de cada vez, a do tipo que
@@ -7200,6 +7325,25 @@ body{
     diceResult2.hidden = !twoDice;
     if(twoDice) diceResult2.classList.add('rolling');
     if(diceParticleLayer) diceParticleLayer.innerHTML = '';
+
+    // efeito de "dados explodindo" + som, disparados na hora do CLIQUE (pedido explícito) --
+    // independem do resultado, que só sai depois da animação de "rolando" (ver finishRoll(), que
+    // tem seu PRÓPRIO efeito de partículas/som pra 20/1 natural, sem relação com este aqui).
+    // Direção do leque segue o modo: Normal = todos os lados, Vantagem = todos pra cima,
+    // Desvantagem = todos pra baixo (ver spawnDiceExplosion() acima).
+    spawnDiceExplosion(diceParticleLayer, mode);
+    // pedido explícito: a MESMA explosão precisa aparecer também em cima do ícone de verdade que
+    // foi clicado, quando a rolagem veio de uma Habilidade ou de um Talento (ver
+    // pendingRollSourceIcon/rollHabilidadeAtributo()/rollTalento()) -- uma rolagem "solta" do
+    // painel de Atributo (attrRollBtn/attrAdvBtn/attrDisBtn) não passa por aqui, já fica perto do
+    // próprio painel "Rolamentos".
+    if(pendingRollSourceIcon){
+      spawnDiceExplosionAtElement(pendingRollSourceIcon, mode);
+      pendingRollSourceIcon = null;
+    }
+    if(mode === 'vantagem') playChiimSound(); // som alegre (reaproveita o mesmo tom de "+1 atributo")
+    else if(mode === 'desvantagem') playAttrSadSound(); // som triste (reaproveita o mesmo tom de "-1 atributo")
+    else playOohSound(); // som de "ooh" no rolamento normal
 
     let ticks = 0;
     const totalTicks = 10 + Math.floor(Math.random()*4);
@@ -7366,6 +7510,7 @@ body{
     if(danoRollingInterval) return;
     expandDicePanelIfCollapsed();
     showDanoDiceArea();
+    playCutSound(); // som de corte ao CLICAR em Rolar Dano (pedido explícito), na hora, sem depender do resultado
     let maxVal = parseInt(danoMax.value, 10);
     if(isNaN(maxVal) || maxVal < 1) maxVal = 1;
     // modificador de Dano (guia Modificadores, #m_dano): soma ao TAMANHO do dado de qualquer
@@ -7866,6 +8011,22 @@ body{
   const habTabArmamento = $('habTabArmamento');
   const habTabElemento = $('habTabElemento');
   const habPointsBadge = $('habPointsBadge');
+  // botão da guia "Elemento" -- ver updateHabTabElementoColor() logo abaixo (pedido explícito: o
+  // TEXTO dessa guia muda de cor de acordo com o 1º elemento escolhido, quando ela não está
+  // selecionada; quando está selecionada, vira preto igual à guia Armamento, ver .hab-tab-btn.active
+  // no <style>).
+  const habTabElementoBtn = habTabsEl.querySelector('.hab-tab-btn[data-hab-tab="elemento"]');
+  function updateHabTabElementoColor(){
+    if(!habTabElementoBtn) return;
+    // só aplica a cor reativa quando a guia NÃO está selecionada -- selecionada, o CSS de
+    // .hab-tab-btn.active (fundo amarelo + texto preto) precisa "vencer", e um style inline
+    // sempre venceria uma classe CSS por especificidade, então limpa o inline nesse caso.
+    if(habTabElementoBtn.classList.contains('active')){
+      habTabElementoBtn.style.color = '';
+    } else {
+      habTabElementoBtn.style.color = DEITY_EYE_COLOR[els.deidade.value] || '';
+    }
+  }
   // nível máximo de qualquer Habilidade, não importa quantos pontos sobrem pra investir (pedido
   // explícito -- antes só existia o teto "natural" dos pontos disponíveis, sem nenhum limite por
   // Habilidade).
@@ -7875,7 +8036,9 @@ body{
   // já com 1 disponível desde o nível 1 -- ver els.lvNum.dataset.level, mantido em dia por
   // recalc() toda vez que o XP muda).
   function habPointsTotal(){
-    return Math.max(1, Number(els.lvNum && els.lvNum.dataset.level) || 1);
+    // Nível 1 = 3 pontos de habilidade, +1 ponto a cada nível seguinte (nível 2 = 4, nível 3 = 5...)
+    const nivel = Math.max(1, Number(els.lvNum && els.lvNum.dataset.level) || 1);
+    return nivel + 2;
   }
   function habPointsUsedTotal(){
     return Object.keys(habNiveis).reduce((soma, id)=> soma + (Number(habNiveis[id]) || 0), 0);
@@ -7954,7 +8117,13 @@ body{
     const vidaAtual = num(els.curVida);
     if(manaAtual < custoMana || vidaAtual < custoVida){
       const nome = els.nome.value.trim() || '(sem nome)';
-      if(!isBlankName(nome)) postToDiscord(`**${nome}** NÃO TEM MANA PARA UTILIZAR ${hab.nome}`, null);
+      if(!isBlankName(nome)){
+        if(manaAtual < custoMana){
+          postToDiscord(`**${nome}** tentou usar **${hab.nome}**, mas não tinha mana suficiente!`, null);
+        } else {
+          postToDiscord(`**${nome}** tentou usar **${hab.nome}**, mas não tinha vida suficiente!`, null);
+        }
+      }
       return false;
     }
     if(custoMana > 0) els.curMana.value = manaAtual - custoMana;
@@ -7963,10 +8132,11 @@ body{
     return true;
   }
 
-  function rollHabilidadeAtributo(hab, modo){
+  function rollHabilidadeAtributo(hab, modo, iconEl){
     if(rollingInterval) return; // já rolando (mesma trava do botão principal), ignora clique
     if(!tryConsumeHabilidadeRecursos(hab)) return;
     pendingHabilidadeRoll = { nome: hab.nome, desc: hab.desc, grito: habGritos[hab.id] || '' };
+    pendingRollSourceIcon = iconEl || null; // ver spawnDiceExplosionAtElement() no rollBtn
     diceStat.value = habAttrCode(hab.attr);
     diceMode.value = modo;
     rollBtn.click();
@@ -8111,7 +8281,7 @@ body{
       const rollIcon = document.createElement('button');
       rollIcon.type = 'button'; rollIcon.className = 'hab-icon hab-icon-roll'; rollIcon.title = 'Rolamento'; rollIcon.textContent = '🎲';
       rollIcon.setAttribute('aria-label', `Rolar ${hab.attr} de ${hab.nome}`);
-      rollIcon.addEventListener('click', ()=> rollHabilidadeAtributo(hab, 'normal'));
+      rollIcon.addEventListener('click', ()=> rollHabilidadeAtributo(hab, 'normal', rollIcon));
       // 🎲+ / 🎲− -- o sinal fica num <span> à parte pra poder colorir só ele (verde/vermelho,
       // pedido explícito), sem tingir o dado inteiro.
       const advIcon = document.createElement('button');
@@ -8120,14 +8290,14 @@ body{
       const advSign = document.createElement('span'); advSign.className = 'hab-icon-sign plus'; advSign.textContent = '+';
       advIcon.appendChild(advSign);
       advIcon.setAttribute('aria-label', `Rolar ${hab.attr} de ${hab.nome} em vantagem`);
-      advIcon.addEventListener('click', ()=> rollHabilidadeAtributo(hab, 'vantagem'));
+      advIcon.addEventListener('click', ()=> rollHabilidadeAtributo(hab, 'vantagem', advIcon));
       const disIcon = document.createElement('button');
       disIcon.type = 'button'; disIcon.className = 'hab-icon hab-icon-dis'; disIcon.title = 'Rolamento em Desvantagem';
       disIcon.append(document.createTextNode('🎲'));
       const disSign = document.createElement('span'); disSign.className = 'hab-icon-sign minus'; disSign.textContent = '−';
       disIcon.appendChild(disSign);
       disIcon.setAttribute('aria-label', `Rolar ${hab.attr} de ${hab.nome} em desvantagem`);
-      disIcon.addEventListener('click', ()=> rollHabilidadeAtributo(hab, 'desvantagem'));
+      disIcon.addEventListener('click', ()=> rollHabilidadeAtributo(hab, 'desvantagem', disIcon));
       const danoIcon = document.createElement('button');
       danoIcon.type = 'button'; danoIcon.className = 'hab-icon hab-icon-dano'; danoIcon.title = 'Rolar Dano'; danoIcon.textContent = hab.danoIcone || '⚔️';
       danoIcon.setAttribute('aria-label', `Rolar dano de ${hab.nome}`);
@@ -8221,6 +8391,7 @@ body{
     renderHabilidadesTab(habTabArmamento, armaAbilities, armaEmptyMsg);
     renderHabilidadesTab(habTabElemento, elementoAbilities, 'Nenhuma habilidade definida ainda para este elemento.');
     if(habPointsBadge) habPointsBadge.textContent = String(Math.max(0, habPointsTotal() - habPointsUsedTotal()));
+    updateHabTabElementoColor();
   }
   habTabsEl.addEventListener('click', (e)=>{
     const btn = e.target.closest('.hab-tab-btn');
@@ -8229,6 +8400,7 @@ body{
     const tab = btn.dataset.habTab;
     habTabArmamento.hidden = tab !== 'armamento';
     habTabElemento.hidden = tab !== 'elemento';
+    updateHabTabElementoColor();
   });
   // o Elemento pode mudar de vários jeitos além do painel de "Nova ficha" (setinhas do mestre,
   // troca ao vivo pelo resumo da Mesa, listener do Firebase em handleDeidadeChange()...) -- todos
@@ -8252,45 +8424,43 @@ body{
   // lê o DOM direto em collectState(), sem nenhum array JS à parte). Cada linha reaproveita o
   // mesmo painel "Rolamentos" de sempre pra rolar o Atributo escolhido (🎲/🎲+/🎲−) -- sem custo de
   // Mana/Vida nenhum (é um espaço livre, não uma Habilidade fixa com fórmula própria).
+  // Pedido explícito (correção de uma rodada anterior): "precisa ser um campo de texto igual ao
+  // inventário, mas sem o seletor de quantidade, apenas com o livrinho" -- por isso o HTML abaixo
+  // reaproveita literalmente as mesmas classes de addItemRow() (.item-entry/.item-row/.item-name/
+  // .item-actions/.item-book-btn/.item-desc-panel/.item-desc), sem nenhum botão de quantidade;
+  // as classes .talento-* continuam JUNTO (como segunda classe em cada elemento) só pros seletores
+  // que já dependiam delas (testes automatizados, collectState()/applyState() abaixo) continuarem
+  // funcionando -- não carregam mais nenhum CSS próprio (ver comentário no <style>).
+  // Pedido explícito, rodada seguinte: nem os dados de rolagem (🎲/🎲+/🎲−) nem o seletor de
+  // Atributo fazem falta aqui -- Talento virou puramente nome + descrição (livrinho), igual a um
+  // item do Inventário mesmo, sem nenhuma ação de rolar embutida.
   const talentosRows = $('talentosRows');
-  function addTalentoRow(nome='', attr='FOR', texto=''){
+  function addTalentoRow(nome='', texto=''){
     const entry = document.createElement('div');
-    entry.className = 'talento-entry';
+    entry.className = 'item-entry talento-entry';
     entry.innerHTML = `
-      <div class="talento-row">
-        <input type="text" class="talento-nome" placeholder="Nome do talento" value="${escapeHtml(nome)}">
-        <select class="talento-attr">
-          <option value="FOR">FOR</option>
-          <option value="CON">CON</option>
-          <option value="DES">DES</option>
-          <option value="INT">INT</option>
-          <option value="VON">VON</option>
-          <option value="CAR">CAR</option>
-        </select>
-        <div class="talento-icons">
-          <button type="button" class="hab-icon hab-icon-roll" title="Rolamento">🎲</button>
-          <button type="button" class="hab-icon hab-icon-adv" title="Rolamento em Vantagem">🎲<span class="hab-icon-sign plus">+</span></button>
-          <button type="button" class="hab-icon hab-icon-dis" title="Rolamento em Desvantagem">🎲<span class="hab-icon-sign minus">−</span></button>
+      <div class="item-row">
+        <input type="text" class="item-name talento-nome" placeholder="Nome do talento" value="${escapeHtml(nome)}">
+        <div class="item-actions talento-actions">
+          <button type="button" class="skill-book-btn item-book-btn" title="Descrição do talento">📖</button>
           <button type="button" class="remove-btn talento-remove" title="Remover">✕</button>
         </div>
       </div>
-      <textarea class="talento-texto" placeholder="Descrição/anotações livres deste talento...">${escapeHtml(texto)}</textarea>`;
-    const attrSel = entry.querySelector('.talento-attr');
-    attrSel.value = attr || 'FOR';
-    const nomeEl = entry.querySelector('.talento-nome');
-    function rollTalento(modo){
-      if(rollingInterval) return;
-      // sem custo de Mana/Vida (Talento livre, não é Habilidade fixa) -- só troca Atributo/Modo
-      // por trás e reaproveita o mesmo botão de rolar de sempre, citando o nome do talento.
-      const nomeTalento = nomeEl.value.trim() || '(talento sem nome)';
-      pendingHabilidadeRoll = { nome: nomeTalento, desc: entry.querySelector('.talento-texto').value || '' };
-      diceStat.value = habAttrCode(attrSel.value);
-      diceMode.value = modo;
-      rollBtn.click();
+      <div class="item-desc-panel talento-desc-panel" hidden>
+        <textarea class="item-desc talento-texto" placeholder="Descrição/anotações livres deste talento...">${escapeHtml(texto)}</textarea>
+      </div>`;
+    const bookBtn = entry.querySelector('.item-book-btn');
+    const panelEl = entry.querySelector('.talento-desc-panel');
+    const descEl = entry.querySelector('.talento-texto');
+    function refreshHasDesc(){
+      bookBtn.classList.toggle('has-desc', !!descEl.value.trim());
     }
-    entry.querySelector('.hab-icon-roll').addEventListener('click', ()=> rollTalento('normal'));
-    entry.querySelector('.hab-icon-adv').addEventListener('click', ()=> rollTalento('vantagem'));
-    entry.querySelector('.hab-icon-dis').addEventListener('click', ()=> rollTalento('desvantagem'));
+    refreshHasDesc();
+    bookBtn.addEventListener('click', ()=>{
+      panelEl.hidden = !panelEl.hidden;
+      if(!panelEl.hidden) descEl.focus();
+    });
+    descEl.addEventListener('input', refreshHasDesc);
     entry.querySelector('.talento-remove').addEventListener('click', ()=> entry.remove());
     talentosRows.appendChild(entry);
   }
@@ -8360,7 +8530,6 @@ body{
       // JS à parte, ver addTalentoRow() na seção "Habilidades fixas"/TALENTOS mais abaixo.
       talentos: [...talentosRows.children].map(r=>({
         nome: r.querySelector('.talento-nome').value,
-        attr: r.querySelector('.talento-attr').value,
         texto: r.querySelector('.talento-texto').value,
       })),
     };
@@ -8476,7 +8645,7 @@ body{
     // TALENTOS -- reconstrói as linhas salvas (vazio numa ficha nova/sem nada salvo ainda), mesmo
     // padrão do Inventário logo acima (addItemRow/invList).
     talentosRows.innerHTML = '';
-    (Array.isArray(s.talentos) ? s.talentos : []).forEach(t=> addTalentoRow(t.nome, t.attr, t.texto));
+    (Array.isArray(s.talentos) ? s.talentos : []).forEach(t=> addTalentoRow(t.nome, t.texto));
 
     // carregar uma ficha nova reinicia a referência de "pontos já distribuídos" (senão os valores
     // do personagem anterior/carregado seriam comparados com os daquele que acabou de ser aberto)
