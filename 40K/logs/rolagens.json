@@ -3,13 +3,6 @@
     "nome": "Pepe",
     "tipo": "movimento",
     "de": "E3",
-    "para": "F3",
-    "ts": 1787593725070
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
-    "de": "E3",
     "para": "D3",
     "ts": 1787593726984
   },
@@ -319,5 +312,16 @@
     "atributo": null,
     "grito": "po",
     "ts": 1788991704441
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 19,
+    "resultLabel": "Acerto",
+    "ts": 1788991712832,
+    "habilidade": "Golpe de Escudo",
+    "habilidadeDesc": "Ataca com o escudo e empurra o inimigo uma casa.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
   }
 ]
