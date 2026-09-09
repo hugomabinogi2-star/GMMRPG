@@ -2,13 +2,6 @@
   {
     "nome": "Pepe",
     "tipo": "movimento",
-    "de": "D4",
-    "para": "D3",
-    "ts": 1787593762255
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
     "de": "D3",
     "para": "E3",
     "ts": 1787593764143
@@ -331,6 +324,20 @@
     "rolls": [
       19,
       16
+    ]
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 11,
+    "resultLabel": "Erro — Vantagem",
+    "ts": 1788994454693,
+    "mode": "vantagem",
+    "rolls": [
+      4,
+      11
     ]
   }
 ]
