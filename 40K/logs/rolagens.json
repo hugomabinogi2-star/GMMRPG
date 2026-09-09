@@ -3,13 +3,6 @@
     "nome": "Pepe",
     "tipo": "movimento",
     "de": "D3",
-    "para": "D4",
-    "ts": 1787593720082
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
-    "de": "D3",
     "para": "E3",
     "ts": 1787593723870
   },
@@ -306,5 +299,17 @@
     "de": "C4",
     "para": "D4",
     "ts": 1788862356084
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 5,
+    "resultLabel": "Erro",
+    "ts": 1788991677245,
+    "habilidade": "Golpe de Espada",
+    "habilidadeDesc": "Ataca com a espada.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).",
+    "grito": "po"
   }
 ]
