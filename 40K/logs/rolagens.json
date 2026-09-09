@@ -2,13 +2,6 @@
   {
     "nome": "Pepe",
     "tipo": "movimento",
-    "de": "D3",
-    "para": "E3",
-    "ts": 1787593723870
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
     "de": "E3",
     "para": "F3",
     "ts": 1787593725070
@@ -311,5 +304,20 @@
     "habilidade": "Golpe de Espada",
     "habilidadeDesc": "Ataca com a espada.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).",
     "grito": "po"
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 3,
+    "bonus": 3,
+    "rolls": [
+      3
+    ],
+    "resultado": 6,
+    "habilidade": "Golpe de Espada",
+    "atributo": null,
+    "grito": "po",
+    "ts": 1788991704441
   }
 ]
