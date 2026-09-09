@@ -2,13 +2,6 @@
   {
     "nome": "Pepe",
     "tipo": "movimento",
-    "de": "D3",
-    "para": "D4",
-    "ts": 1787593760270
-  },
-  {
-    "nome": "Pepe",
-    "tipo": "movimento",
     "de": "D4",
     "para": "D3",
     "ts": 1787593762255
@@ -325,5 +318,19 @@
     "resultado": 11,
     "resultLabel": "Erro",
     "ts": 1788994445487
+  },
+  {
+    "nome": "Sexus",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 16,
+    "resultLabel": "Acerto — Desvantagem",
+    "ts": 1788994452706,
+    "mode": "desvantagem",
+    "rolls": [
+      19,
+      16
+    ]
   }
 ]
