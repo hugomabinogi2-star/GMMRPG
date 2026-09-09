@@ -1409,7 +1409,7 @@ body{
 .map-icon-marker{
   position:absolute;
   transform:translate(-50%,-50%);
-  width:38px;height:38px;
+  width:56px;height:56px;
   cursor:pointer;
 }
 .map-icon-marker img{
@@ -3238,35 +3238,39 @@ body{
   background:linear-gradient(180deg,var(--gold-bright),var(--gold-text));color:#fff;border-color:var(--gold-bright);
 }
 .hab-tab-body[hidden]{display:none;}
-/* fundo da aba Armamento: sempre preto (pedido explícito, independe do elemento/arma escolhida). */
-#habTabArmamento{background:#000;border-radius:6px;padding:10px;}
-/* fundo da aba Elemento: acompanha a cor do Elemento escolhido -- reaproveita a MESMA variável CSS
-   reativa que o resto da ficha já usa pra "seguir" o elemento (--deity-eye-color, atualizada em
-   updateDeityEyeGlow() toda vez que els.deidade muda, inclusive pro '-' do mestre) -- não precisa de
-   nenhum JS extra aqui, só ler a variável; troca sozinha assim que o elemento muda. color-mix() só
-   mistura uma fatia da cor do elemento com preto, pra continuar lendo o texto claro por cima. */
-#habTabElemento{
-  background:color-mix(in srgb, var(--deity-eye-color,#000) 22%, #000 78%);
-  border-radius:6px;padding:10px;transition:background .3s ease;
-}
-.hab-empty-msg{font-size:12px;color:var(--ink-faint);font-style:italic;padding:6px 2px;}
+/* fundo das DUAS abas (Armamento E Elemento) e do quadro/campo de cada Habilidade: preto com
+   texto dourado (pedido explícito, em CAIXA ALTA no pedido original -- "O RESUMO DAS HABILIDADES
+   E O CAMPO DAS HABILIDADES PRECISAM SER PRETO COM TEXTO DOURADO"), independe do elemento/arma
+   escolhida -- a aba Elemento deixou de acompanhar a cor do Elemento (color-mix antigo) por causa
+   deste pedido. */
+#habTabArmamento, #habTabElemento{background:#000;border-radius:6px;padding:10px;}
+.hab-empty-msg{font-size:12px;color:var(--gold-bright);opacity:.75;font-style:italic;padding:6px 2px;}
 .hab-row{
-  border:1px solid var(--border-brown);border-radius:6px;padding:8px 10px;margin-bottom:8px;
-  background:rgba(255,255,255,.1);
+  border:1px solid var(--gold-text);border-radius:6px;padding:8px 10px;margin-bottom:8px;
+  background:rgba(255,255,255,.06);
 }
 .hab-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
-.hab-nome{font-family:'Cinzel Decorative',serif;font-size:12.5px;letter-spacing:.02em;color:var(--ink);}
-.hab-nome-attr{color:var(--ink-faint);font-size:10.5px;margin-left:4px;}
+.hab-nome{font-family:'Cinzel Decorative',serif;font-size:12.5px;letter-spacing:.02em;color:var(--gold-bright);}
+.hab-nome-attr{color:var(--gold-bright);opacity:.65;font-size:10.5px;margin-left:4px;}
 .hab-nivel-stepper{display:flex;align-items:center;gap:6px;flex:0 0 auto;}
-.hab-nivel-label{font-size:10px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.04em;}
+.hab-nivel-label{font-size:10px;color:var(--gold-bright);opacity:.75;text-transform:uppercase;letter-spacing:.04em;}
 .hab-nivel-btn{
   width:20px;height:20px;line-height:18px;padding:0;border-radius:50%;
   font-family:'EB Garamond',serif;font-size:14px;font-weight:700;cursor:pointer;
-  background:linear-gradient(180deg,var(--paper-l),var(--paper));border:1px solid var(--border-brown);color:var(--ink);
+  background:linear-gradient(180deg,#2a2210,#000);border:1px solid var(--gold-text);color:var(--gold-bright);
 }
-.hab-nivel-btn:hover:not(:disabled){background:linear-gradient(180deg,var(--gold-bright),var(--gold-text));color:#fff;}
+.hab-nivel-btn:hover:not(:disabled){background:linear-gradient(180deg,var(--gold-bright),var(--gold-text));color:#000;}
 .hab-nivel-btn:disabled{opacity:.3;cursor:not-allowed;}
-.hab-nivel-val{min-width:16px;text-align:center;font-weight:700;color:var(--ink);}
+.hab-nivel-val{min-width:16px;text-align:center;font-weight:700;color:var(--gold-bright);}
+/* custo + faixa mín/máx de dano, logo abaixo do nível (pedido explícito) -- "apagado" no nível 0
+   (hab-nivel-extra-empty), já que aí a Habilidade nem custa nem tem dado nenhum pra rolar ainda,
+   mesmo espírito do ícone de dano desabilitado (.hab-icon-dano:disabled) logo abaixo. */
+.hab-nivel-extra{
+  display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--gold-bright);
+  opacity:.85;margin-bottom:6px;padding-bottom:6px;border-bottom:1px dashed var(--gold-text);
+}
+.hab-nivel-extra-empty{opacity:.4;font-style:italic;justify-content:flex-start;}
+.hab-nivel-custo, .hab-nivel-faixa{white-space:nowrap;}
 .hab-row-icons{display:flex;align-items:center;gap:10px;}
 .hab-icon{
   background:none;border:none;cursor:pointer;font-size:17px;line-height:1;padding:2px;
@@ -3285,20 +3289,30 @@ body{
    agora "minimiza"/expande logo ABAIXO da própria linha da Habilidade, como um sanfonado -- clicar
    de novo no livro fecha de novo (ver renderHabilidadesTab() no <script>). */
 .hab-desc-inline{
-  display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--border-brown);
+  display:flex;flex-direction:column;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--gold-text);
 }
 .hab-desc-inline[hidden]{display:none;}
+.hab-desc-top-row{display:flex;gap:10px;}
 /* espaço reservado pra imagem/informação visual de cada Habilidade (pedido explícito) -- fica À
    ESQUERDA do texto. Nem toda Habilidade tem uma imagem definida ainda (só as 3 de Espada e Escudo
    por enquanto, ver WEAPON_ABILITIES/HAB_IMG_* no <script>) -- sem uma, mostra uma moldura vazia
    tracejada reservando o espaço, em vez de sumir e deslocar o texto. */
 .hab-desc-img-wrap{
   flex:0 0 auto;width:64px;height:64px;border-radius:6px;overflow:hidden;
-  border:1px solid var(--border-brown);background:rgba(255,255,255,.06);
+  border:1px solid var(--gold-text);background:rgba(255,255,255,.06);
 }
 .hab-desc-img-wrap.hab-desc-img-empty{border-style:dashed;}
 .hab-desc-img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;}
-.hab-desc-text-inline{flex:1 1 auto;min-width:0;font-size:12.5px;line-height:1.5;color:var(--ink-soft);white-space:pre-line;}
+.hab-desc-text-inline{flex:1 1 auto;min-width:0;font-size:12.5px;line-height:1.5;color:var(--gold-bright);white-space:pre-line;}
+/* campo de texto livre do jogador ("grito" ao rolar a Habilidade, pedido explícito) -- fundo/borda
+   seguem o mesmo preto+dourado do resto do resumo. */
+.hab-grito-wrap{display:flex;flex-direction:column;gap:4px;}
+.hab-grito-label{font-size:10.5px;color:var(--gold-bright);opacity:.75;text-transform:uppercase;letter-spacing:.03em;}
+.hab-grito-input{
+  background:rgba(255,255,255,.06);color:var(--gold-bright);border:1px solid var(--gold-text);
+  border-radius:4px;padding:6px 8px;font-family:'EB Garamond',serif;font-size:12.5px;min-height:40px;resize:vertical;
+}
+.hab-grito-input::placeholder{color:var(--gold-bright);opacity:.4;}
 /* pré-visualização em zoom (dobro do tamanho da imagem original) ao passar o mouse por cima da
    miniatura -- nasce ACIMA do ponto real do cursor (mesmo motivo do cursor customizado grande, que
    "pende" pra baixo/direita do clique de verdade -- ver o comentário de .cs-tooltip mais acima):
@@ -3323,6 +3337,24 @@ body{
   border-radius:4px;padding:6px 10px;cursor:pointer;width:100%;
 }
 .add-row-btn:hover{border-color:var(--ink);color:var(--ink);}
+/* ---------- Talentos (nova guia abaixo de Rolamentos -- lista livre "à moda antiga", ver
+   addTalentoRow()/talentosRows no <script>) ---------- */
+.talento-entry{border:1px solid var(--border-brown);border-radius:6px;padding:8px 10px;margin-bottom:8px;background:rgba(255,255,255,.1);}
+.talento-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.talento-nome{
+  flex:1 1 auto;min-width:0;font-family:'EB Garamond',serif;font-size:12.5px;color:var(--ink);
+  background:rgba(255,255,255,.55);border:1px solid var(--border-brown);border-radius:4px;padding:4px 6px;
+}
+.talento-attr{
+  flex:0 0 auto;font-family:'EB Garamond',serif;font-size:12px;color:var(--ink);
+  background:rgba(255,255,255,.55);border:1px solid var(--border-brown);border-radius:4px;padding:4px 2px;
+}
+.talento-icons{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+.talento-texto{
+  width:100%;box-sizing:border-box;font-family:'EB Garamond',serif;font-size:12px;color:var(--ink-soft);
+  background:rgba(255,255,255,.4);border:1px solid var(--border-brown);border-radius:4px;padding:6px 8px;
+  min-height:36px;resize:vertical;
+}
 /* linha com "Atualizar histórico" e "Limpar histórico" lado a lado, no modal de Histórico de
    Rolagens — o de limpar usa o mesmo tom de vermelho já usado em outras ações destrutivas
    (apagar ficha/tabuleiro, botão Sair). */
@@ -4463,6 +4495,20 @@ body{
               <button id="rollDanoBtn" type="button" class="dice-roll-btn" hidden>🎲 Rolar</button>
               </div>
             </div>
+
+            <!-- TALENTOS: nova guia abaixo de Rolamentos (pedido explícito) -- funciona como a
+                 antiga lista livre de Habilidades funcionava ANTES das Habilidades fixas por Arma/
+                 Elemento (nome/atributo/texto digitados à mão pelo jogador, sem nível/custo/dado de
+                 dano fixo nenhum -- só um espaço livre pra qualquer talento que não se encaixe nas
+                 Habilidades fixas). Cada linha tem seu próprio ícone de rolamento (🎲/🎲+/🎲−, mesmo
+                 painel "Rolamentos" reaproveitado, ver addTalentoRow() no <script>). -->
+            <div class="panel talentos-panel">
+              <h2>Talentos <button type="button" class="panel-toggle-btn" id="talentosToggleBtn" aria-label="Minimizar Talentos" title="Minimizar/expandir Talentos">▾</button></h2>
+              <div class="dice-panel-body" id="talentosBody">
+                <div class="list-rows" id="talentosRows"></div>
+                <button type="button" id="addTalentoBtn" class="add-row-btn">+ Adicionar Talento</button>
+              </div>
+            </div>
           </div>
 
         </div>
@@ -5394,29 +5440,177 @@ body{
   // abaixo) -- 3 por arma, mudam sozinhas conforme WEAPON_LABEL/selectedArma escolhida no painel
   // de "Nova ficha". Cada uma: nome, atributo associado (usado tanto pro Rolamento quanto pro
   // bônus somado na Rolagem de Dano), dieSides (o "d" da rolagem de dano -- 1 dado desse tipo POR
-  // NÍVEL da habilidade), desc (texto do ícone 📖), imagem (opcional, ver acima) e danoIcone
-  // (opcional -- ícone do botão de dano; padrão ⚔️ quando ausente, ver renderHabilidadesTab()
-  // mais abaixo; Muralha usa 🛡️ no lugar, a pedido, por ser uma habilidade defensiva). Só
-  // ESPADA_ESCUDO tem conteúdo definido por enquanto (a pedido, "monto a estrutura agora só com
-  // Espada e Escudo") -- as outras 6 armas ficam de propósito com a lista vazia, e a aba mostra um
-  // aviso em vez de travar/quebrar (ver renderHabilidades()); é só me mandar as habilidades de
-  // cada uma quando quiser que eu preencha.
+  // NÍVEL da habilidade), desc (texto do ícone 📖), imagem (opcional, ver acima), danoIcone
+  // (opcional -- ícone do botão de dano; padrão ⚔️ quando ausente, ver renderHabilidadesTab() mais
+  // abaixo) e o CUSTO de cada uma (rodada grande de "atualização quanto às habilidades" -- cada
+  // habilidade agora tem sua própria fórmula de custo, em vez do antigo custo fixo "nível x1 de
+  // Mana" que valia pra todas): custoManaBase + custoManaPorNivel*nível de Mana, e (só a
+  // Guilhotina, por enquanto) custoVidaBase + custoVidaPorNivel*nível de Vida também -- ver
+  // habCustoMana()/habCustoVida()/tryConsumeHabilidadeRecursos() mais abaixo. Nível 0 nunca custa
+  // nada (fórmula só roda a partir do nível 1). "MANOPLA" nunca existiu entre as opções de arma
+  // desta ficha (ver WEAPON_ICON_IMG/WEAPON_LABEL acima) -- pedido de remoção já estava satisfeito.
   const WEAPON_ABILITIES = {
     'ESPADA_ESCUDO': [
       { id:'golpe_espada', nome:'Golpe de Espada', attr:'FOR', dieSides:3, imagem:HAB_IMG_GOLPE_ESPADA,
-        desc:'Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível).' },
-      { id:'golpe_escudo', nome:'Golpe de Escudo', attr:'DES', dieSides:3, imagem:HAB_IMG_GOLPE_ESCUDO,
-        desc:'Corre e ataca o inimigo até o seu limite de movimento.\nDano: 1d3 + bônus de DES (aumenta 1 dado por nível).' },
-      { id:'muralha', nome:'Muralha', attr:'CON', dieSides:5, imagem:HAB_IMG_MURALHA, danoIcone:'🛡️',
-        desc:'Ao custo de um turno, uma vez por combate.\nDano: 1d5 + bônus de CON (aumenta 1 dado por nível).' },
+        custoManaBase:0, custoManaPorNivel:0,
+        desc:'Ataca com a espada.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).' },
+      { id:'golpe_escudo', nome:'Golpe de Escudo', attr:'FOR', dieSides:3, imagem:HAB_IMG_GOLPE_ESCUDO,
+        custoManaBase:1, custoManaPorNivel:1,
+        desc:'Ataca com o escudo e empurra o inimigo uma casa.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).' },
+      { id:'levantar_escudo', nome:'Levantar Escudo', attr:'CON', dieSides:2, imagem:HAB_IMG_MURALHA,
+        custoManaBase:3, custoManaPorNivel:1,
+        desc:'Adiciona uma barreira ao personagem (o valor da barreira não é acumulativo).\nDano: 1d2 + Modificador de Arma + bônus de CON (aumenta 1 dado por nível).' },
     ],
-    'ARCO': [], 'LANCA': [], 'CAJADO': [], 'ESPADA': [], 'ESPADAS_GEMEAS': [], 'OMBREIRA': [],
+    'ESPADA': [
+      { id:'ataque_espada_pesada', nome:'Ataque de Espada Pesada', attr:'FOR', dieSides:3,
+        custoManaBase:0, custoManaPorNivel:0,
+        desc:'Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).' },
+      { id:'ciclone_aco', nome:'Ciclone de Aço', attr:'FOR', dieSides:3,
+        custoManaBase:1, custoManaPorNivel:1,
+        desc:'Ataca todas as casas ao seu redor, incluindo os aliados.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).' },
+      { id:'guilhotina', nome:'Guilhotina', attr:'FOR', dieSides:3, danoIcone:'😈',
+        custoManaBase:3, custoManaPorNivel:0, custoVidaBase:1, custoVidaPorNivel:1,
+        desc:'Ataca uma única casa à frente do personagem com dano massivo; se o ataque matar o inimigo, o jogador ganha um novo turno.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).' },
+    ],
+    'ESPADAS_GEMEAS': [
+      { id:'ataque_duplo', nome:'Ataque Duplo', attr:'DES', dieSides:3,
+        custoManaBase:0, custoManaPorNivel:0,
+        desc:'Realiza dois ataques em um mesmo inimigo.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
+      { id:'ciclone_aco_rapido', nome:'Ciclone de Aço Rápido', attr:'DES', dieSides:3,
+        custoManaBase:2, custoManaPorNivel:1,
+        desc:'Ataca todas as casas ao seu redor duas vezes, incluindo os aliados.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
+      { id:'salto', nome:'Salto', attr:'DES', dieSides:3, danoIcone:'🥾',
+        custoManaBase:4, custoManaPorNivel:1,
+        desc:'Ataca todos os inimigos em uma linha se movendo para trás do último inimigo.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
+    ],
+    'LANCA': [
+      { id:'estocada', nome:'Estocada', attr:'DES', dieSides:3,
+        custoManaBase:0, custoManaPorNivel:0,
+        desc:'Acerta até dois inimigos em linha.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
+      { id:'lancamento_olimpico', nome:'Lançamento Olímpico', attr:'DES', dieSides:3,
+        custoManaBase:3, custoManaPorNivel:1,
+        desc:'Arremessa a arma em um ataque em linha de até 5 casas.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
+      { id:'ciclone_aco_defensivo', nome:'Ciclone de Aço Defensivo', attr:'DES', dieSides:3, danoIcone:'🛡️',
+        custoManaBase:4, custoManaPorNivel:1,
+        desc:'Gira a arma ao redor do personagem afastando todos os inimigos e aliados em um bloco.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
+    ],
+    'ARCO': [
+      { id:'disparo', nome:'Disparo', attr:'DES', dieSides:3, danoIcone:'🏹',
+        custoManaBase:0, custoManaPorNivel:0,
+        desc:'Dispara uma flecha a uma casa de distância.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
+      { id:'disparo_concentrado', nome:'Disparo Concentrado', attr:'DES', dieSides:3, danoIcone:'🏹',
+        custoManaBase:1, custoManaPorNivel:1,
+        desc:'Dispara uma flecha em um arco percorrendo uma distância maior.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
+      { id:'chuva_flechas', nome:'Chuva de Flechas', attr:'DES', dieSides:3, danoIcone:'🏹',
+        custoManaBase:3, custoManaPorNivel:1,
+        desc:'Dispara uma salva de flechas em um arco, acertando todos os inimigos e aliados em uma área.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
+    ],
+    'CAJADO': [
+      { id:'missil_magico', nome:'Míssil Mágico', attr:'INT', dieSides:3, danoIcone:'🪄',
+        custoManaBase:1, custoManaPorNivel:0,
+        desc:'Dispara uma bala de mana.\nDano: 1d3 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível).' },
+      { id:'disparo_explosivo', nome:'Disparo Explosivo', attr:'INT', dieSides:3, danoIcone:'🪄',
+        custoManaBase:4, custoManaPorNivel:1,
+        desc:'Dispara uma bala de mana concentrada que explode ao impacto, afetando inimigos e aliados dentro da área de efeito.\nDano: 1d3 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível).' },
+      { id:'escudo_mana', nome:'Escudo de Mana', attr:'INT', dieSides:3, danoIcone:'🪄',
+        custoManaBase:4, custoManaPorNivel:1,
+        desc:'Gera um escudo de mana em si ou em um aliado.\nDano: 1d3 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível).' },
+    ],
+    'OMBREIRA': [],
   };
-  // Mesma ideia da aba "Elemento" -- 3 habilidades por elemento (FOGO/TERRA/METAL/AGUA/MADEIRA),
-  // ainda sem conteúdo nenhum definido (nenhuma foi mandada ainda) -- todas de propósito vazias.
+  // Mesma ideia da aba "Elemento" -- 3 habilidades por elemento (FOGO/TERRA/METAL/AGUA/MADEIRA,
+  // "MADEIRA" continua sendo a CHAVE interna do elemento "Floresta" -- mesma chave usada em
+  // els.deidade/DEITY_EYE_COLOR/DEITY_LORE em todo o resto do <script>, só o rótulo mostrado pro
+  // jogador é "Floresta"). elemental:true em cada uma marca pro tryConsumeHabilidadeRecursos()/
+  // rollHabilidadeDano() que essa Habilidade NÃO é afetada pelo Modificador de Arma (#m_dano) --
+  // a fórmula usa o NÍVEL da própria habilidade no lugar dele (pedido explícito), ver
+  // rollHabilidadeDano() mais abaixo.
   const ELEMENT_ABILITIES = {
-    'FOGO': [], 'TERRA': [], 'METAL': [], 'AGUA': [], 'MADEIRA': [], '-': [],
+    'FOGO': [
+      { id:'raio_fogo', nome:'Raio de Fogo', attr:'VON', dieSides:3, danoIcone:'🪄', elemental:true,
+        custoManaBase:2, custoManaPorNivel:1,
+        desc:'Dispara uma seta de fogo.\nDano: 1d3 + nível da habilidade + bônus de VON (aumenta 1 dado por nível).' },
+      { id:'bola_fogo', nome:'Bola de Fogo', attr:'VON', dieSides:5, danoIcone:'🪄', elemental:true,
+        custoManaBase:5, custoManaPorNivel:1,
+        desc:'Dispara uma bola de fogo afetando todos os inimigos e aliados em uma área.\nDano: 1d5 + nível da habilidade + bônus de VON (aumenta 1 dado por nível).' },
+      { id:'tempestade_fogo', nome:'Tempestade de Fogo', attr:'VON', dieSides:10, danoIcone:'🪄', elemental:true,
+        custoManaBase:6, custoManaPorNivel:1,
+        desc:'Dispara uma forte rajada de chamas em uma direção.\nDano: 1d10 + nível da habilidade + bônus de VON (aumenta 1 dado por nível).' },
+    ],
+    'TERRA': [
+      { id:'pedrada', nome:'Pedrada', attr:'CON', dieSides:3, danoIcone:'🪄', elemental:true,
+        custoManaBase:2, custoManaPorNivel:1,
+        desc:'Dispara uma pedra.\nDano: 1d3 + nível da habilidade + bônus de CON (aumenta 1 dado por nível).' },
+      { id:'muro_rocha', nome:'Muro de Rocha', attr:'CON', dieSides:5, danoIcone:'🪄', elemental:true,
+        custoManaBase:2, custoManaPorNivel:1,
+        desc:'Cria um bloco de pedra no mapa (o valor rolado como dano é a vida da pedra).\nDano: 1d5 + nível da habilidade + bônus de CON (aumenta 1 dado por nível).' },
+      { id:'tremor', nome:'Tremor', attr:'CON', dieSides:10, danoIcone:'🪄', elemental:true,
+        custoManaBase:6, custoManaPorNivel:1,
+        desc:'Golpeia o chão causando um terremoto, afetando todos os aliados e inimigos visíveis no mapa.\nDano: 1d10 + nível da habilidade + bônus de CON (aumenta 1 dado por nível).' },
+    ],
+    'METAL': [
+      { id:'disparar_agulhas', nome:'Disparar Agulhas', attr:'INT', dieSides:3, danoIcone:'🪄', elemental:true,
+        custoManaBase:3, custoManaPorNivel:1,
+        desc:'Dispara uma salva de agulhas em um leque, aplicando dano em todos na área.\nDano: 1d3 + nível da habilidade + bônus de INT (aumenta 1 dado por nível).' },
+      { id:'armadura_espinhos', nome:'Armadura de Espinhos', attr:'INT', dieSides:3, danoIcone:'🪄', elemental:true,
+        custoManaBase:4, custoManaPorNivel:1,
+        desc:'Cria um escudo que quebra automaticamente ao receber o próximo ataque; o escudo não reduz o dano recebido, mas aplica dano ao atacante.\nDano: 1d3 + nível da habilidade + bônus de INT (aumenta 1 dado por nível).' },
+      { id:'endurecer_metal', nome:'Endurecer Metal', attr:'INT', dieSides:2, danoIcone:'🪄', elemental:true,
+        custoManaBase:5, custoManaPorNivel:1,
+        desc:'Aumenta a defesa até o próximo ataque recebido.\nDano: 1d2 + nível da habilidade + bônus de INT (aumenta 1 dado por nível).' },
+    ],
+    'AGUA': [
+      { id:'raio_agua', nome:'Raio de Água', attr:'INT', dieSides:3, danoIcone:'🪄', elemental:true,
+        custoManaBase:2, custoManaPorNivel:1,
+        desc:'Ataca com um raio de água atravessando inimigos e aliados em uma linha.\nDano: 1d3 + nível da habilidade + bônus de INT (aumenta 1 dado por nível).' },
+      { id:'nova_gelo', nome:'Nova de Gelo', attr:'INT', dieSides:3, danoIcone:'🪄', elemental:true,
+        custoManaBase:3, custoManaPorNivel:1,
+        desc:'Resfria a área ao redor do personagem, aplicando dano em aliados e inimigos.\nDano: 1d3 + nível da habilidade + bônus de INT (aumenta 1 dado por nível).' },
+      { id:'escudo_agua', nome:'Escudo de Água', attr:'INT', dieSides:2, danoIcone:'🪄', elemental:true,
+        custoManaBase:5, custoManaPorNivel:1,
+        desc:'Aumenta a resistência até o próximo ataque recebido.\nDano: 1d2 + nível da habilidade + bônus de INT (aumenta 1 dado por nível).' },
+    ],
+    'MADEIRA': [
+      { id:'lufada_vento', nome:'Lufada de Vento', attr:'INT', dieSides:3, danoIcone:'🪄', elemental:true,
+        custoManaBase:3, custoManaPorNivel:1,
+        desc:'Dispara uma onda de vento em uma direção, empurrando todos os aliados e inimigos para trás.\nDano: 1d3 + nível da habilidade + bônus de INT (aumenta 1 dado por nível).' },
+      { id:'chicote_vinhas', nome:'Chicote de Vinhas', attr:'INT', dieSides:3, danoIcone:'🪄', elemental:true,
+        custoManaBase:2, custoManaPorNivel:1,
+        desc:'Ataca com um chicote de vinhas.\nDano: 1d3 + nível da habilidade + bônus de INT (aumenta 1 dado por nível).' },
+      { id:'cura', nome:'Cura', attr:'INT', dieSides:3, danoIcone:'🪄', elemental:true,
+        custoManaBase:4, custoManaPorNivel:1,
+        desc:'Cura a si mesmo ou a um aliado.\nDano: 1d3 + nível da habilidade + bônus de INT (aumenta 1 dado por nível).' },
+    ],
+    '-': [],
   };
+  // custo de Mana/Vida de uma Habilidade num nível específico -- fórmula própria de cada uma
+  // (custoManaBase/custoManaPorNivel/custoVidaBase/custoVidaPorNivel, ver WEAPON_ABILITIES/
+  // ELEMENT_ABILITIES acima), sempre 0 no nível 0 (nada investido ainda nunca custa nada). Usadas
+  // tanto pra debitar de verdade (tryConsumeHabilidadeRecursos() mais abaixo) quanto só pra
+  // MOSTRAR o custo no quadro da Habilidade (renderHabilidadesTab()), sem precisar duplicar a conta.
+  function habCustoMana(hab, nivel){
+    if(nivel <= 0) return 0;
+    return (hab.custoManaBase || 0) + (hab.custoManaPorNivel || 0) * nivel;
+  }
+  function habCustoVida(hab, nivel){
+    if(nivel <= 0) return 0;
+    return (hab.custoVidaBase || 0) + (hab.custoVidaPorNivel || 0) * nivel;
+  }
+  // menor/maior valor possível da rolagem de Dano de uma Habilidade no nível atual -- usado só pra
+  // MOSTRAR a faixa no quadro (renderHabilidadesTab()), a rolagem de verdade continua rolando os
+  // dados um por um (rollHabilidadeDano()/rollDanoBtn). "armaMod" é o Modificador de Arma atual
+  // (#m_dano) somado ao tamanho de CADA dado -- só entra na conta pra Habilidades de Armamento;
+  // Habilidades Elementais (hab.elemental) usam o NÍVEL da própria habilidade como bônus fixo no
+  // lugar do Modificador de Arma, e não têm o tamanho do dado alterado por ele (pedido explícito:
+  // "Habilidades elementais não são afetadas pelo modificador de ARMA").
+  function habDanoFaixa(hab, nivel){
+    if(nivel <= 0) return null;
+    const bonusAtributo = habAttrBonus(hab.attr);
+    const armaMod = hab.elemental ? 0 : num(els.mDano);
+    const faceEfetiva = Math.max(1, (hab.dieSides || 1) + armaMod);
+    const bonusFixo = bonusAtributo + (hab.elemental ? nivel : 0);
+    return { min: nivel * 1 + bonusFixo, max: nivel * faceEfetiva + bonusFixo };
+  }
   // converte "#rrggbb" pra "rgba(r,g,b,alpha)", pro brilho externo (box-shadow) mais suave.
   function hexToRgba(hex, alpha){
     const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -6303,6 +6497,19 @@ body{
   wirePanelToggle('rollLogToggleBtn', 'rollLogBody', 'Histórico de Rolagens');
   wirePanelToggle('mesaHeroSummaryToggleBtn', 'mesaHeroSummaryList', 'Fichas dos Jogadores');
 
+  // painel "Rolamentos" abre sozinho toda vez que QUALQUER dado é rolado (atributo OU dano,
+  // incluindo pelos ícones das Habilidades/Talentos) enquanto estiver minimizado -- pedido
+  // explícito ("caso ROLAMENTO esteja minimisado e seja rolado algum dado ele tem que abrir").
+  // Chamada logo no início dos handlers de clique de rollBtn/rollDanoBtn, antes de qualquer outra
+  // coisa, pra área do dado já nascer visível desde o primeiro tick da animação.
+  function expandDicePanelIfCollapsed(){
+    const body = $('diceBody'), btn = $('diceToggleBtn');
+    if(!body || !btn || !body.classList.contains('collapsed')) return;
+    body.classList.remove('collapsed');
+    btn.classList.remove('is-collapsed');
+    btn.setAttribute('aria-label', 'Minimizar Rolamentos');
+  }
+
   // joia de Nível: sem tooltip nativo (não tem mais "title") — em vez disso, passar o mouse
   // por cima troca o numeral romano por número normal (ex: "XIV" vira "14"), e volta pro
   // romano quando o mouse sai. Os valores certos ficam guardados em data-attributes por
@@ -6972,6 +7179,7 @@ body{
 
   rollBtn.addEventListener('click', ()=>{
     if(rollingInterval) return; // já rolando, ignora clique duplo
+    expandDicePanelIfCollapsed();
 
     const stat = diceStat.value;
     const statVal = baseAttrs[stat] ?? 0;
@@ -7106,6 +7314,7 @@ body{
     if(pendingHabilidadeRoll){
       logEntry.habilidade = pendingHabilidadeRoll.nome;
       if(pendingHabilidadeRoll.desc) logEntry.habilidadeDesc = pendingHabilidadeRoll.desc;
+      if(pendingHabilidadeRoll.grito) logEntry.grito = pendingHabilidadeRoll.grito;
       pendingHabilidadeRoll = null;
     }
     pushRollLog(logEntry);
@@ -7155,14 +7364,19 @@ body{
 
   rollDanoBtn.addEventListener('click', ()=>{
     if(danoRollingInterval) return;
+    expandDicePanelIfCollapsed();
     showDanoDiceArea();
     let maxVal = parseInt(danoMax.value, 10);
     if(isNaN(maxVal) || maxVal < 1) maxVal = 1;
     // modificador de Dano (guia Modificadores, #m_dano): soma ao TAMANHO do dado de qualquer
     // rolagem de dano (1d3 com +1 vira 1d4) -- vale tanto pro dano de Habilidade quanto pro ⚔️ de
     // Atributo (1d3 + bônus, mudou de 1d5 a pedido). Math.max(1, ...) trava num mínimo de 1 face,
-    // pro caso de um modificador bem negativo zerar ou passar do tamanho do dado.
-    maxVal = Math.max(1, maxVal + num(els.mDano));
+    // pro caso de um modificador bem negativo zerar ou passar do tamanho do dado. EXCETO
+    // Habilidades Elementais (pendingDanoSkipArma=true, ver rollHabilidadeDano()) -- "Habilidades
+    // elementais não são afetadas pelo modificador de ARMA" (pedido explícito): o nível da própria
+    // habilidade já entra como bônus fixo (pendingDanoBonus) no lugar dele, sem alterar o tamanho
+    // do dado.
+    if(!pendingDanoSkipArma) maxVal = Math.max(1, maxVal + num(els.mDano));
     let qtd = parseInt(danoQtd.value, 10);
     if(isNaN(qtd) || qtd < 1) qtd = 1;
 
@@ -7206,6 +7420,12 @@ body{
   // (que já cita o nome da Habilidade, não precisa repetir o Atributo) ou na rolagem "solta" antiga.
   // Entra na mensagem do Discord/histórico como "ROLOU DANO (FOR) — ...", a pedido.
   let pendingDanoAtributo = null;
+  // true só numa rolagem de Dano de Habilidade Elemental (ver rollHabilidadeDano()) -- faz o
+  // handler de rollDanoBtn acima PULAR a soma do Modificador de Arma (#m_dano) no tamanho do dado.
+  let pendingDanoSkipArma = false;
+  // texto do "grito" (ver habGritos, declarado perto de habNiveis) da Habilidade que originou esta
+  // rolagem de Dano -- vazio/null numa rolagem sem Habilidade envolvida ou sem texto escrito.
+  let pendingDanoGrito = '';
 
   function finishDanoRoll(qtd, maxVal, dieEls){
     const rolls = [];
@@ -7239,10 +7459,13 @@ body{
 
     const habilidadeNome = pendingDanoHabilidade;
     const atributoNome = pendingDanoAtributo;
+    const gritoTxt = pendingDanoGrito;
     pendingDanoBonus = 0;
     pendingDanoHabilidade = null;
     pendingDanoAtributo = null;
-    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, bonus, rolls: rollsSorted, resultado: total, habilidade: habilidadeNome, atributo: atributoNome, ts: Date.now() });
+    pendingDanoSkipArma = false;
+    pendingDanoGrito = '';
+    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, bonus, rolls: rollsSorted, resultado: total, habilidade: habilidadeNome, atributo: atributoNome, grito: gritoTxt || null, ts: Date.now() });
   }
 
   // ---------- rolagem de sorte (moeda grega — cara ou coroa) ----------
@@ -7632,6 +7855,13 @@ body{
   // Nível da ficha, ver els.lvNum/recalc() lá em cima), sendo 1 ponto já disponível no nível 1 —
   // e é esse nível que multiplica os dados de dano (ver rollHabilidadeDano() mais abaixo).
   let habNiveis = {}; // { idDaHabilidade: nivel } -- ver collectState()/applyState()
+  // texto livre escrito pelo jogador dentro do resumo (📖) de cada Habilidade -- quando a
+  // Habilidade é rolada (atributo OU dano), esse texto vai pro TOPO da mensagem do Discord/
+  // histórico em caixa alta e em "letras grandes" (cabeçalho "# " do Markdown do Discord), como se
+  // o personagem estivesse gritando (pedido explícito). Vazio/ausente não adiciona nada na
+  // mensagem. Mesmo formato de habNiveis: { idDaHabilidade: texto } -- ver collectState()/
+  // applyState()/renderHabilidadesTab() mais abaixo.
+  let habGritos = {};
   const habTabsEl = $('habTabs');
   const habTabArmamento = $('habTabArmamento');
   const habTabElemento = $('habTabElemento');
@@ -7707,47 +7937,62 @@ body{
   // atributo): troca o Atributo/Modo selecionados por trás e dispara o mesmo botão de rolar.
   // pendingHabilidadeRoll (declarado perto de finishRoll(), na seção "dice roller" mais abaixo)
   // é quem carrega o nome/descrição da Habilidade pra dentro do log/mensagem dessa rolagem.
-  // custo de Mana ao rolar uma Habilidade: debita da Mana atual o valor do nível investido nela
-  // (habNivel(hab.id)) -- se não houver Mana suficiente, barra a rolagem (nenhum dado é rolado)
-  // e avisa no chat/Discord com o nome do personagem em negrito, mesmo padrão já usado em
-  // getOuroQty()<1 na Rolagem de Sorte logo abaixo. Nível 0 (nada investido ainda) não custa
-  // nada e nunca barra -- os ícones de Atributo continuam liberados mesmo sem nível.
-  function tryConsumeHabilidadeMana(hab){
+  // custo de Mana/Vida ao rolar uma Habilidade: debita da Mana e (se a Habilidade tiver custo de
+  // Vida, ex. Guilhotina) da Vida atual, cada uma pela PRÓPRIA fórmula da habilidade (ver
+  // habCustoMana()/habCustoVida(), lá na seção de dados WEAPON_ABILITIES/ELEMENT_ABILITIES acima
+  // -- substituiu o antigo custo fixo "nível x1 de Mana" que valia igual pra todas). Se faltar
+  // Mana OU Vida suficiente, barra a rolagem inteira (nenhum dado é rolado, nada é debitado) e
+  // avisa no chat/Discord com o nome do personagem em negrito, mesmo padrão já usado em
+  // getOuroQty()<1 na Rolagem de Sorte logo abaixo. Nível 0 (nada investido ainda) não custa nada
+  // e nunca barra -- os ícones de Atributo continuam liberados mesmo sem nível.
+  function tryConsumeHabilidadeRecursos(hab){
     const nivel = habNivel(hab.id);
     if(nivel <= 0) return true;
+    const custoMana = habCustoMana(hab, nivel);
+    const custoVida = habCustoVida(hab, nivel);
     const manaAtual = num(els.curMana);
-    if(manaAtual < nivel){
+    const vidaAtual = num(els.curVida);
+    if(manaAtual < custoMana || vidaAtual < custoVida){
       const nome = els.nome.value.trim() || '(sem nome)';
       if(!isBlankName(nome)) postToDiscord(`**${nome}** NÃO TEM MANA PARA UTILIZAR ${hab.nome}`, null);
       return false;
     }
-    els.curMana.value = manaAtual - nivel;
+    if(custoMana > 0) els.curMana.value = manaAtual - custoMana;
+    if(custoVida > 0) els.curVida.value = vidaAtual - custoVida;
     recalc();
     return true;
   }
 
   function rollHabilidadeAtributo(hab, modo){
     if(rollingInterval) return; // já rolando (mesma trava do botão principal), ignora clique
-    if(!tryConsumeHabilidadeMana(hab)) return;
-    pendingHabilidadeRoll = { nome: hab.nome, desc: hab.desc };
+    if(!tryConsumeHabilidadeRecursos(hab)) return;
+    pendingHabilidadeRoll = { nome: hab.nome, desc: hab.desc, grito: habGritos[hab.id] || '' };
     diceStat.value = habAttrCode(hab.attr);
     diceMode.value = modo;
     rollBtn.click();
   }
 
-  // ícone ⚔️ (ou 🛡️, ver hab.danoIcone) de cada Habilidade -- dano = (nível da habilidade) dados
-  // de (hab.dieSides) faces + bônus do atributo associado (ver habAttrBonus()). Reaproveita o
-  // painel "Rolagem de Dano" de sempre (mesma animação/histórico), só troca quantidade/faces por
-  // trás e soma o bônus fixo (ver pendingDanoBonus/pendingDanoHabilidade, declarados perto de
-  // finishDanoRoll()).
+  // ícone ⚔️ (ou 🛡️/😈/🏹/🪄/🥾, ver hab.danoIcone) de cada Habilidade -- dano = (nível da
+  // habilidade) dados de (hab.dieSides) faces + bônus fixo. Reaproveita o painel "Rolagem de
+  // Dano" de sempre (mesma animação/histórico), só troca quantidade/faces por trás e soma o bônus
+  // fixo (ver pendingDanoBonus/pendingDanoHabilidade, declarados perto de finishDanoRoll()).
+  // Habilidades de Armamento continuam exatamente como antes: bônus = bônus do Atributo, e o
+  // Modificador de Arma (#m_dano) soma ao TAMANHO do dado automaticamente dentro do handler de
+  // rollDanoBtn (ver pendingDanoSkipArma=false). Habilidades Elementais (hab.elemental) NÃO são
+  // afetadas pelo Modificador de Arma (pedido explícito) -- pendingDanoSkipArma=true faz o handler
+  // de rollDanoBtn pular a soma do #m_dano no tamanho do dado, e o bônus fixo passa a incluir
+  // também o NÍVEL da própria habilidade (no lugar do Modificador de Arma), além do bônus do
+  // Atributo -- ver habDanoFaixa() acima, mesma fórmula usada só pra EXIBIR a faixa min/máx.
   function rollHabilidadeDano(hab){
     if(danoRollingInterval) return;
     const nivel = habNivel(hab.id);
     if(nivel <= 0) return; // sem nenhum ponto investido ainda, não tem dado nenhum pra rolar
-    if(!tryConsumeHabilidadeMana(hab)) return;
-    pendingDanoBonus = habAttrBonus(hab.attr);
+    if(!tryConsumeHabilidadeRecursos(hab)) return;
+    pendingDanoBonus = habAttrBonus(hab.attr) + (hab.elemental ? nivel : 0);
+    pendingDanoSkipArma = !!hab.elemental;
     pendingDanoHabilidade = hab.nome;
     pendingDanoAtributo = null; // já cita o nome da Habilidade -- não repete o Atributo também
+    pendingDanoGrito = habGritos[hab.id] || '';
     danoQtd.value = nivel;
     danoMax.value = hab.dieSides;
     rollDanoBtn.click();
@@ -7785,6 +8030,10 @@ body{
     rollDanoBtn.click();
   }
 
+  // ids das Habilidades com o resumo (📖) aberto no momento -- precisa sobreviver a um
+  // renderHabilidadesTab() (reconstrói o DOM inteiro da aba, ex. toda vez que o Modificador de
+  // Arma muda, ver recalc() mais abaixo) sem fechar a caixa que a pessoa já tinha aberto.
+  const habDescOpenIds = new Set();
   function renderHabilidadesTab(container, abilities, emptyMsg){
     container.innerHTML = '';
     if(!abilities || !abilities.length){
@@ -7834,6 +8083,29 @@ body{
 
       head.append(nomeEl, stepper);
 
+      // logo ABAIXO do nível: custo (Mana, e Vida quando a Habilidade também cobrar Vida, ex.
+      // Guilhotina) e a faixa mín/máx calculada do dano (pedido explícito) -- "apagado" (classe
+      // .hab-nivel-extra-empty) no nível 0, já que aí nem custa nem tem dado nenhum pra rolar
+      // ainda (mesmo espírito do ícone de dano desabilitado logo abaixo).
+      const extra = document.createElement('div');
+      extra.className = 'hab-nivel-extra';
+      if(nivel <= 0){
+        extra.classList.add('hab-nivel-extra-empty');
+        extra.textContent = 'Sem custo — invista um nível para calcular o dano.';
+      } else {
+        const custoMana = habCustoMana(hab, nivel);
+        const custoVida = habCustoVida(hab, nivel);
+        const faixa = habDanoFaixa(hab, nivel);
+        const custoPartes = [];
+        if(custoMana > 0) custoPartes.push(`${custoMana} de Mana`);
+        if(custoVida > 0) custoPartes.push(`${custoVida} de Vida`);
+        const custoTxt = custoPartes.length ? custoPartes.join(' + ') : 'Grátis';
+        const custoEl = document.createElement('span'); custoEl.className = 'hab-nivel-custo'; custoEl.textContent = `Custo: ${custoTxt}`;
+        const faixaEl = document.createElement('span'); faixaEl.className = 'hab-nivel-faixa';
+        faixaEl.textContent = faixa ? `Dano: ${faixa.min} a ${faixa.max}` : 'Dano: —';
+        extra.append(custoEl, faixaEl);
+      }
+
       const icons = document.createElement('div');
       icons.className = 'hab-row-icons';
       const rollIcon = document.createElement('button');
@@ -7872,7 +8144,13 @@ body{
       // texto (descrição + fórmula de dano) à direita.
       const descBox = document.createElement('div');
       descBox.className = 'hab-desc-inline';
-      descBox.hidden = true;
+      // reabre sozinho se essa Habilidade já estava com o resumo aberto ANTES deste re-render
+      // (ver habDescOpenIds acima -- sem isso, qualquer coisa que force um re-render da aba, ex.
+      // o Modificador de Arma mudando, fecharia o resumo de volta sem o jogador ter clicado em
+      // nada).
+      descBox.hidden = !habDescOpenIds.has(hab.id);
+      const topRow = document.createElement('div');
+      topRow.className = 'hab-desc-top-row';
       const imgWrap = document.createElement('div');
       imgWrap.className = 'hab-desc-img-wrap';
       if(hab.imagem){
@@ -7888,10 +8166,32 @@ body{
       const textWrap = document.createElement('div');
       textWrap.className = 'hab-desc-text-inline';
       textWrap.textContent = hab.desc || '(sem descrição)';
-      descBox.append(imgWrap, textWrap);
-      descIcon.addEventListener('click', ()=>{ descBox.hidden = !descBox.hidden; });
+      topRow.append(imgWrap, textWrap);
 
-      row.append(head, icons, descBox);
+      // campo de texto livre do jogador (pedido explícito) -- quando a Habilidade é rolada
+      // (atributo OU dano), esse texto vai pro topo da mensagem do Discord/histórico em caixa
+      // alta e "letras grandes", como se o personagem estivesse gritando (ver habGritos/
+      // formatRollMessage() no <script>). Atualiza habGritos a cada tecla -- não precisa de
+      // nenhum botão de salvar à parte, entra no próximo collectState() (Salvar) normalmente.
+      const gritoWrap = document.createElement('div');
+      gritoWrap.className = 'hab-grito-wrap';
+      const gritoLbl = document.createElement('span');
+      gritoLbl.className = 'hab-grito-label';
+      gritoLbl.textContent = 'Grito ao usar (vai pro topo da mensagem, em caixa alta):';
+      const gritoInput = document.createElement('textarea');
+      gritoInput.className = 'hab-grito-input';
+      gritoInput.placeholder = 'Ex.: POR MAG MELL!';
+      gritoInput.value = habGritos[hab.id] || '';
+      gritoInput.addEventListener('input', ()=>{ habGritos[hab.id] = gritoInput.value; });
+      gritoWrap.append(gritoLbl, gritoInput);
+
+      descBox.append(topRow, gritoWrap);
+      descIcon.addEventListener('click', ()=>{
+        descBox.hidden = !descBox.hidden;
+        if(descBox.hidden) habDescOpenIds.delete(hab.id); else habDescOpenIds.add(hab.id);
+      });
+
+      row.append(head, extra, icons, descBox);
       container.appendChild(row);
     });
   }
@@ -7935,6 +8235,67 @@ body{
   // eles já disparam um 'change' em els.deidade (ver os vários dispatchEvent(new Event('change'))
   // espalhados pelo <script>), então um listener aqui cobre a aba Elemento em qualquer caso.
   els.deidade.addEventListener('change', renderHabilidades);
+  // Modificador de Arma (#m_dano, guia Modificadores) entra na faixa mín/máx de dano MOSTRADA no
+  // quadro de cada Habilidade de Armamento (ver habDanoFaixa() acima) -- reagem ao vivo assim que
+  // ele muda, sem precisar trocar de aba/nível pra atualizar o número na tela. Habilidades
+  // Elementais não usam esse modificador (ver habDanoFaixa()), mas o re-render é o mesmo pras duas
+  // abas -- inofensivo.
+  if(els.mDano){
+    els.mDano.addEventListener('input', renderHabilidades);
+    els.mDano.addEventListener('change', renderHabilidades);
+  }
+
+  // ---------- Talentos (nova guia abaixo de Rolamentos) ----------
+  // Funciona como a antiga lista livre de Habilidades funcionava ANTES das Habilidades fixas por
+  // Arma/Elemento (pedido explícito) -- nome/atributo/texto digitados à mão pelo jogador, sem
+  // nível/custo/dado de dano fixo nenhum (mesmo padrão de addItemRow() do Inventário logo acima:
+  // lê o DOM direto em collectState(), sem nenhum array JS à parte). Cada linha reaproveita o
+  // mesmo painel "Rolamentos" de sempre pra rolar o Atributo escolhido (🎲/🎲+/🎲−) -- sem custo de
+  // Mana/Vida nenhum (é um espaço livre, não uma Habilidade fixa com fórmula própria).
+  const talentosRows = $('talentosRows');
+  function addTalentoRow(nome='', attr='FOR', texto=''){
+    const entry = document.createElement('div');
+    entry.className = 'talento-entry';
+    entry.innerHTML = `
+      <div class="talento-row">
+        <input type="text" class="talento-nome" placeholder="Nome do talento" value="${escapeHtml(nome)}">
+        <select class="talento-attr">
+          <option value="FOR">FOR</option>
+          <option value="CON">CON</option>
+          <option value="DES">DES</option>
+          <option value="INT">INT</option>
+          <option value="VON">VON</option>
+          <option value="CAR">CAR</option>
+        </select>
+        <div class="talento-icons">
+          <button type="button" class="hab-icon hab-icon-roll" title="Rolamento">🎲</button>
+          <button type="button" class="hab-icon hab-icon-adv" title="Rolamento em Vantagem">🎲<span class="hab-icon-sign plus">+</span></button>
+          <button type="button" class="hab-icon hab-icon-dis" title="Rolamento em Desvantagem">🎲<span class="hab-icon-sign minus">−</span></button>
+          <button type="button" class="remove-btn talento-remove" title="Remover">✕</button>
+        </div>
+      </div>
+      <textarea class="talento-texto" placeholder="Descrição/anotações livres deste talento...">${escapeHtml(texto)}</textarea>`;
+    const attrSel = entry.querySelector('.talento-attr');
+    attrSel.value = attr || 'FOR';
+    const nomeEl = entry.querySelector('.talento-nome');
+    function rollTalento(modo){
+      if(rollingInterval) return;
+      // sem custo de Mana/Vida (Talento livre, não é Habilidade fixa) -- só troca Atributo/Modo
+      // por trás e reaproveita o mesmo botão de rolar de sempre, citando o nome do talento.
+      const nomeTalento = nomeEl.value.trim() || '(talento sem nome)';
+      pendingHabilidadeRoll = { nome: nomeTalento, desc: entry.querySelector('.talento-texto').value || '' };
+      diceStat.value = habAttrCode(attrSel.value);
+      diceMode.value = modo;
+      rollBtn.click();
+    }
+    entry.querySelector('.hab-icon-roll').addEventListener('click', ()=> rollTalento('normal'));
+    entry.querySelector('.hab-icon-adv').addEventListener('click', ()=> rollTalento('vantagem'));
+    entry.querySelector('.hab-icon-dis').addEventListener('click', ()=> rollTalento('desvantagem'));
+    entry.querySelector('.talento-remove').addEventListener('click', ()=> entry.remove());
+    talentosRows.appendChild(entry);
+  }
+  $('addTalentoBtn').addEventListener('click', ()=> addTalentoRow());
+  wirePanelToggle('talentosToggleBtn', 'talentosBody', 'Talentos');
 
   // ---------- save / load ----------
   function collectState(){
@@ -7990,6 +8351,18 @@ body{
       // simples { idDaHabilidade: nivel }, uma chave por habilidade (únicas entre todas as armas/
       // elementos, então não precisa nada além do id pra identificar qual é qual).
       habNiveis: Object.assign({}, habNiveis),
+      // texto do "grito" de cada Habilidade fixa (ver habGritos, declarado perto de habNiveis) --
+      // mesmo formato { idDaHabilidade: texto }, só entra na mensagem quando não vazio.
+      habGritos: Object.assign({}, habGritos),
+      // TALENTOS (nova aba abaixo de Rolamentos -- funciona como a antiga lista livre de
+      // habilidades, de antes das Habilidades fixas por Arma/Elemento) -- mesmo padrão do
+      // Inventário logo acima: lê o DOM direto (talentosRows.children) em vez de manter um array
+      // JS à parte, ver addTalentoRow() na seção "Habilidades fixas"/TALENTOS mais abaixo.
+      talentos: [...talentosRows.children].map(r=>({
+        nome: r.querySelector('.talento-nome').value,
+        attr: r.querySelector('.talento-attr').value,
+        texto: r.querySelector('.talento-texto').value,
+      })),
     };
   }
 
@@ -8098,7 +8471,12 @@ body{
     // els.deidade lá em cima (chega a rodar renderHabilidades() de novo aqui embaixo, com
     // selectedArma agora certo -- redundante mas inofensivo, garante as duas abas sempre corretas).
     habNiveis = Object.assign({}, s.habNiveis || {});
+    habGritos = Object.assign({}, s.habGritos || {});
     renderHabilidades();
+    // TALENTOS -- reconstrói as linhas salvas (vazio numa ficha nova/sem nada salvo ainda), mesmo
+    // padrão do Inventário logo acima (addItemRow/invList).
+    talentosRows.innerHTML = '';
+    (Array.isArray(s.talentos) ? s.talentos : []).forEach(t=> addTalentoRow(t.nome, t.attr, t.texto));
 
     // carregar uma ficha nova reinicia a referência de "pontos já distribuídos" (senão os valores
     // do personagem anterior/carregado seriam comparados com os daquele que acabou de ser aberto)
@@ -8153,6 +8531,7 @@ body{
       [modToggleBtn, modsGrid, 'Modificadores'],
       [$('diceToggleBtn'), $('diceBody'), 'Rolamentos'],
       [$('sorteToggleBtn'), $('sorteBody'), 'Rolagem de Sorte'],
+      [$('talentosToggleBtn'), $('talentosBody'), 'Talentos'],
       [$('rollLogToggleBtn'), $('rollLogBody'), 'Histórico de Rolagens'],
       [$('mesaHeroSummaryToggleBtn'), $('mesaHeroSummaryList'), 'Fichas dos Jogadores'],
     ].forEach(([btn, body, titulo])=>{
@@ -9060,6 +9439,11 @@ body{
   // se não houver token configurado ou se der algum erro de rede/conflito.
   function formatRollMessage(entry){
     const nome = entry.nome || '(sem nome)';
+    // "grito" da Habilidade (texto livre escrito no resumo 📖, ver habGritos) -- vai pro TOPO da
+    // mensagem, em caixa alta e em "letras grandes" (cabeçalho "# " do Markdown do Discord), como
+    // se o personagem estivesse gritando aquele texto (pedido explícito). Vazio/ausente não muda
+    // nada na mensagem.
+    const gritoPrefixo = entry.grito ? `# ${String(entry.grito).toUpperCase()}\n` : '';
     if(entry.tipo === 'dano'){
       const qtd = entry.qtd || 1;
       // entry.bonus (novo, ver rollHabilidadeDano()/finishDanoRoll()) -- bônus fixo do atributo da
@@ -9078,7 +9462,7 @@ body{
       // envolvida, por isso os dois nunca aparecem juntos) — a pedido, pra saber de qual Atributo
       // veio aquele dano só de olhar a mensagem.
       const atributoTxt = entry.atributo ? ` (${entry.atributo})` : '';
-      return `🎲 "**${nome}**" ROLOU DANO${habilidadeTxt}${atributoTxt} — ${detalhe}`;
+      return `${gritoPrefixo}🎲 "**${nome}**" ROLOU DANO${habilidadeTxt}${atributoTxt} — ${detalhe}`;
     }
     if(entry.tipo === 'sorte'){
       const escolhaLabel = entry.escolha === 'coroa' ? 'Coroa' : 'Cara';
@@ -9096,7 +9480,7 @@ body{
     // atributo, e a descrição (se tiver uma escrita) vai numa linha de citação embaixo.
     const habilidadeAtributoTxt = entry.habilidade ? `**${entry.habilidade}** ` : '';
     const habilidadeDescTxt = entry.habilidadeDesc ? `\n> ${entry.habilidadeDesc}` : '';
-    return `🎲 "**${nome}**" ROLOU ${habilidadeAtributoTxt}"${statNome}${statValorTxt}" — RESULTADO **${entry.resultado}**${label}${rollsDetalhe}${habilidadeDescTxt}`;
+    return `${gritoPrefixo}🎲 "**${nome}**" ROLOU ${habilidadeAtributoTxt}"${statNome}${statValorTxt}" — RESULTADO **${entry.resultado}**${label}${rollsDetalhe}${habilidadeDescTxt}`;
   }
 
   // Espelha a entrada no Firebase (mesa40k/rollLogFeed) só pra empurrar a ATUALIZAÇÃO EM TEMPO REAL
