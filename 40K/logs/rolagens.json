@@ -2,15 +2,6 @@
   {
     "nome": "GRUPO",
     "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 6,
-    "resultado": 5,
-    "resultLabel": "Erro",
-    "ts": 1788861560440
-  },
-  {
-    "nome": "GRUPO",
-    "tipo": "atributo",
     "statKey": "car",
     "statValor": 1,
     "resultado": 9,
@@ -384,6 +375,17 @@
     "resultado": 11,
     "resultLabel": "Erro",
     "ts": 1789054822136,
+    "habilidade": "Ataque Duplo",
+    "habilidadeDesc": "Realiza dois ataques em um mesmo inimigo.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 19,
+    "resultLabel": "Acerto",
+    "ts": 1789054825511,
     "habilidade": "Ataque Duplo",
     "habilidadeDesc": "Realiza dois ataques em um mesmo inimigo.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
   }
