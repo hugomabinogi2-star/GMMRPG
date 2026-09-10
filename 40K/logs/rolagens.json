@@ -89,5 +89,16 @@
     "atributo": null,
     "grito": null,
     "ts": 1789070217997
+  },
+  {
+    "nome": "anna",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 8,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1789070223085,
+    "habilidade": "Ataque de Espada Pesada",
+    "habilidadeDesc": "Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
   }
 ]
