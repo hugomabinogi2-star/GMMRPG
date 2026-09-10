@@ -1,17 +1,6 @@
 [
   {
     "nome": "GRUPO",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 6,
-    "resultado": 13,
-    "resultLabel": "Erro",
-    "ts": 1788861756706,
-    "habilidade": "Golpe de Espada",
-    "habilidadeDesc": "Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível)."
-  },
-  {
-    "nome": "GRUPO",
     "tipo": "dano",
     "qtd": 5,
     "maxVal": 5,
@@ -392,5 +381,19 @@
     "resultado": 8,
     "resultLabel": "Erro",
     "ts": 1789063871737
+  },
+  {
+    "nome": "efreet",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 10,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico — Desvantagem",
+    "ts": 1789063874440,
+    "mode": "desvantagem",
+    "rolls": [
+      1,
+      12
+    ]
   }
 ]
