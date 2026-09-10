@@ -189,5 +189,14 @@
     "resultado": 7,
     "resultLabel": "Erro",
     "ts": 1789073469864
+  },
+  {
+    "nome": "efreet",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 10,
+    "resultado": 11,
+    "resultLabel": "Acerto",
+    "ts": 1789073501167
   }
 ]
