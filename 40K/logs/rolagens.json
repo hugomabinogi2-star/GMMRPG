@@ -1,23 +1,6 @@
 [
   {
     "nome": "GRUPO",
-    "tipo": "dano",
-    "qtd": 5,
-    "maxVal": 3,
-    "bonus": 3,
-    "rolls": [
-      3,
-      2,
-      1,
-      1,
-      1
-    ],
-    "resultado": 11,
-    "habilidade": "Golpe de Espada",
-    "ts": 1788861683156
-  },
-  {
-    "nome": "GRUPO",
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 6,
@@ -408,5 +391,14 @@
     "atributo": null,
     "grito": null,
     "ts": 1789054900058
+  },
+  {
+    "nome": "SILPHIDE",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 12,
+    "resultado": 7,
+    "resultLabel": "Erro",
+    "ts": 1789057512033
   }
 ]
