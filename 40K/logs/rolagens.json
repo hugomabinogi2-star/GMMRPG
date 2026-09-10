@@ -1,13 +1,5 @@
 [
   {
-    "nome": "(sem nome)",
-    "tipo": "sorte",
-    "escolha": "coroa",
-    "resultado": "coroa",
-    "verdict": "acerto",
-    "ts": 1787681205935
-  },
-  {
     "nome": "UNDINE",
     "tipo": "atributo",
     "statKey": "for",
@@ -343,5 +335,20 @@
     "ts": 1789033867750,
     "habilidade": "Ataque Duplo",
     "habilidadeDesc": "Realiza dois ataques em um mesmo inimigo.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "oi",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 8,
+    "bonus": 0,
+    "rolls": [
+      2
+    ],
+    "resultado": 2,
+    "habilidade": "Ataque Duplo",
+    "atributo": null,
+    "grito": null,
+    "ts": 1789033870565
   }
 ]
