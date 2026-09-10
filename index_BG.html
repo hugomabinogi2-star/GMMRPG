@@ -2871,6 +2871,33 @@ body{
   z-index:50;
 }
 
+/* pedido explícito: som de "pack" + fumaça toda vez que um dado bate num canto do painel de
+   rolagem OU esbarra em outro dado durante o ricochete (ver diceImpactEffect()/playDicePack()/
+   spawnDiceSmoke() no <script>). A camada (.dice-smoke-layer) é única, fixa na tela inteira e por
+   cima de tudo -- os dados voam com coordenadas de tela absolutas durante o ricochete
+   (position:fixed teria o mesmo efeito de "flutuar por cima"), então a fumaça nasce também em
+   coordenadas de tela absolutas pra acompanhar certinho onde o impacto aconteceu. */
+.dice-smoke-layer{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:9999;
+}
+.dice-smoke-puff{
+  position:fixed;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(225,222,215,.85) 0%, rgba(180,176,168,.55) 45%, rgba(180,176,168,0) 75%);
+  pointer-events:none;
+  animation:diceSmokePuff .65s ease-out forwards;
+}
+@keyframes diceSmokePuff{
+  0%{ opacity:.85; transform:scale(.35) translateY(0); }
+  100%{ opacity:0; transform:scale(1.9) translateY(-16px); }
+}
+@media (prefers-reduced-motion: reduce){
+  .dice-smoke-puff{ animation:none; opacity:0; }
+}
+
 /* ---------- cubo 3D da rolagem de dados (Atributo/Dano) ----------
    Pedido explícito: trocar o número plano que girava em 2D (.dice-result.rolling/.settle, ainda
    usados só pela moeda de Sorte -- ver .coin-result.rolling acima) por um cubo de verdade
@@ -6469,6 +6496,87 @@ body{
     noise.stop(t0 + 0.04);
   }
 
+  // pedido explícito: som de "pack" toda vez que um dado bate num canto do painel de rolagem OU
+  // esbarra em outro dado durante o ricochete (ver animateDiceRicochet() mais abaixo) -- mistura
+  // um "corpo" de ruído filtrado em passa-baixa (grave, dá a sensação de baque/impacto surdo) com
+  // um tom curto que despenca de frequência por cima (dá o estalo seco, tipo duas peças de madeira
+  // se batendo). Guarda quando foi a última vez que tocou (lastDicePackAt) e ignora chamadas
+  // rápidas demais em seguida -- sem isso, 3+ dados colidindo quase ao mesmo tempo (comum numa
+  // rolagem de Dano grande) viraria uma bagunça de sons por cima uns dos outros.
+  let lastDicePackAt = 0;
+  function playDicePack(){
+    const nowMs = performance.now();
+    if(nowMs - lastDicePackAt < 45) return;
+    lastDicePackAt = nowMs;
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    const t0 = ctx.currentTime;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.07);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2 - 1) * Math.pow(1 - i/bufferSize, 2);
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 850 + Math.random()*200;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.22, t0);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.09);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start(t0);
+    noise.stop(t0 + 0.1);
+    playTone(170 + Math.random()*30, 0.07, { type:'square', freqEnd:65, gain:0.09 });
+  }
+
+  // camada única, fixa na tela inteira e por cima de tudo, só pra fumacinha dos impactos do
+  // ricochete (ver diceImpactEffect() logo abaixo) -- criada preguiçosamente na primeira vez que
+  // precisa (não existe nenhum elemento fixo dela no HTML). Os dados voam com coordenadas de tela
+  // ABSOLUTAS durante o ricochete (ver animateDiceRicochet()), então a fumaça nasce também em
+  // coordenadas de tela absolutas, pra acompanhar certinho onde o impacto realmente aconteceu,
+  // independente de qual painel/guia está por baixo.
+  let diceSmokeLayerEl = null;
+  function getDiceSmokeLayer(){
+    if(!diceSmokeLayerEl || !diceSmokeLayerEl.isConnected){
+      diceSmokeLayerEl = document.createElement('div');
+      diceSmokeLayerEl.className = 'dice-smoke-layer';
+      document.body.appendChild(diceSmokeLayerEl);
+    }
+    return diceSmokeLayerEl;
+  }
+  // solta uma pequena baforada de fumaça (2-3 bolhas, cada uma com posição/tamanho/atraso levemente
+  // sorteados) no ponto (x,y) em coordenadas de tela -- cada bolha soma sozinha (ver @keyframes
+  // diceSmokePuff no <style>) e se remove do DOM depois de crescer/desaparecer.
+  function spawnDiceSmoke(x, y){
+    const layer = getDiceSmokeLayer();
+    const n = 2 + Math.floor(Math.random()*2);
+    for(let i=0;i<n;i++){
+      const puff = document.createElement('div');
+      puff.className = 'dice-smoke-puff';
+      const ox = (Math.random()-0.5) * 14;
+      const oy = (Math.random()-0.5) * 14;
+      const size = 16 + Math.random()*14;
+      puff.style.left = (x+ox).toFixed(1) + 'px';
+      puff.style.top = (y+oy).toFixed(1) + 'px';
+      puff.style.width = size + 'px';
+      puff.style.height = size + 'px';
+      puff.style.marginLeft = (-size/2) + 'px';
+      puff.style.marginTop = (-size/2) + 'px';
+      puff.style.animationDelay = (Math.random()*0.05).toFixed(3) + 's';
+      layer.appendChild(puff);
+      setTimeout(()=> puff.remove(), 700);
+    }
+  }
+  // dispara os dois efeitos juntos (som "pack" + fumaça) no ponto (x,y, em coordenadas de tela) de
+  // um impacto do ricochete -- ver animateDiceRicochet() mais abaixo, chamada tanto quando um dado
+  // bate num canto do painel quanto quando esbarra em outro dado.
+  function diceImpactEffect(x, y){
+    playDicePack();
+    spawnDiceSmoke(x, y);
+  }
+
   // som triste "ooh" para erros
   function playOohSound(){
     playTone(300, 0.5, { type:'triangle', freqEnd:170, gain:0.16 });
@@ -6698,16 +6806,29 @@ body{
   // até pararem no centro, se chocando quando forem mais de um dado antes de apresentarem o
   // resultado" -- animateDiceRicochet() move cada .dice-result passado (por CIMA do giro 3D que o
   // .cube interno de cada um já faz sozinho via a classe "rolling", sem mexer nisso) até bater em
-  // 3 cantos aleatórios do container "arenaEl" (o painel "Rolamentos" inteiro, #diceBody, ver
-  // const diceBody logo abaixo), depois convergir todos pro meio do painel -- que, por acaso, já é
-  // exatamente a posição de repouso normal de cada um deles, já que .dice-pair/.dice-display já
-  // são center-justified (ver CSS) -- e SE forem 2 ou mais dados ao mesmo tempo, dar um pequeno
-  // solavanco (um "esbarrão") antes de pousar de vez. É uma animação ROTEIRIZADA (um caminho de
-  // pontos pré-calculado a partir do tamanho real do painel, interpolado com easing) — não uma
-  // física de colisão de verdade (não checa se os dados realmente se tocam no meio do caminho),
-  // mas o resultado visual é o pedido: cantos → convergência → esbarrão (se >1) → pouso → só
-  // DEPOIS disso a Promise resolve, e é só aí que finishRoll()/finishDanoRoll() são chamadas (ver
-  // rollBtn/rollDanoBtn mais abaixo), revelando o resultado depois que os dados já pousaram.
+  // 3 cantos aleatórios do container "arenaEl", depois convergir todos pro meio -- que, por acaso,
+  // já é exatamente a posição de repouso normal de cada um deles, já que .dice-pair/.dice-display
+  // já são center-justified (ver CSS).
+  //
+  // Rodada nova, em cima da rodada anterior: o CAMINHO até cada canto continua sendo ROTEIRIZADO
+  // (pontos pré-calculados a partir do tamanho real do painel, interpolados com easing -- não uma
+  // simulação de física completa, decisão já explicada antes: o site não tem controle de versão, e
+  // uma física de verdade seria bem mais arriscada de acertar de primeira direto no arquivo final).
+  // MAS agora, por cima desse roteiro, corre uma checagem de COLISÃO DE VERDADE quadro a quadro
+  // entre os dados de uma mesma rolagem (quando há 2+): cada dado é tratado como um círculo do
+  // tamanho dele mesmo, a distância entre cada par é medida a cada quadro, e se dois dados
+  // estiverem mais perto um do outro do que a soma dos dois raios, eles são empurrados pra fora um
+  // do outro na hora (nunca mais se sobrepõem de verdade) e ganham um pequeno "quique" de
+  // velocidade pra longe um do outro (uma camada extra de deslocamento por cima do roteiro, que
+  // desacelera sozinha, tipo uma mola) -- é esse quique que dá a sensação de ricochete real entre
+  // eles. Essa camada extra esmaece sozinha nos ~18% finais da animação, garantindo que todo mundo
+  // sempre pousa exatamente na posição de repouso certa no final, mesmo que ainda estivesse "se
+  // afastando" de um esbarrão recente. Cada choque desses -- e cada vez que um dado chega de fato
+  // num dos 3 cantos do roteiro -- dispara diceImpactEffect() (som de "pack" + fumaça, ver
+  // playDicePack()/spawnDiceSmoke() mais acima), pedido explícito desta rodada. Só DEPOIS de tudo
+  // isso (cantos + esbarrões + convergência + pouso) a Promise resolve, e é só aí que
+  // finishRoll()/finishDanoRoll() são chamadas (ver rollBtn/rollDanoBtn mais abaixo), revelando o
+  // resultado depois que os dados já pousaram de vez.
   function easeInOutCubic(t){
     return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
   }
@@ -6727,31 +6848,45 @@ body{
       const avgCx = dies.reduce((s,d)=>s+d.cx,0)/dies.length;
       const avgCy = dies.reduce((s,d)=>s+d.cy,0)/dies.length;
       const collide = dies.length > 1;
+      // "raio" de cada dado pra colisão círculo-com-círculo -- um pouco menor que a metade da
+      // caixa (que é meio quadrada), pra sentir mais como os CANTOS/faces do cubo realmente se
+      // tocando do que como uma bolha invisível bem maior que o dado.
+      const radii = dies.map(d => (d.hw + d.hh) / 2 * 0.86);
 
       // caminho de cada dado em coordenadas ABSOLUTAS de tela, depois convertido (mais abaixo)
       // pra offset relativo à posição de repouso -- 3 cantos embaralhados + o meio compartilhado
-      // + (se colide) um pequeno chute em direção aleatória + volta ao repouso de verdade.
+      // + volta ao repouso de verdade (o "esbarrão" entre dados, antes um chute só de enfeite sem
+      // checagem nenhuma, agora é a colisão de verdade tratada no frame() logo abaixo).
       const dieWaypoints = dies.map(d=>{
         const shuffled = [...corners].sort(()=> Math.random()-0.5);
-        const pts = [ [d.cx,d.cy], shuffled[0], shuffled[1], shuffled[2], [avgCx,avgCy] ];
-        if(collide){
-          const kickAngle = Math.random()*Math.PI*2;
-          const kickDist = 14 + Math.random()*10;
-          pts.push([avgCx + Math.cos(kickAngle)*kickDist, avgCy + Math.sin(kickAngle)*kickDist]);
-        }
-        pts.push([d.cx, d.cy]); // pouso final = posição de repouso de verdade
+        const pts = [ [d.cx,d.cy], shuffled[0], shuffled[1], shuffled[2], [avgCx,avgCy], [d.cx,d.cy] ];
         return pts.map(([x,y])=> [x-d.cx, y-d.cy]);
       });
-      const segFracs = collide
-        ? [0.15, 0.15, 0.15, 0.15, 0.10, 0.30]   // 4 trechos até o meio + chute + pouso calmo
-        : [0.20, 0.20, 0.20, 0.20, 0.20];         // 3 trechos até o meio + pouso (sem chute)
+      const segFracs = [0.20, 0.20, 0.20, 0.20, 0.20]; // 3 cantos + convergência + pouso
       const segStarts = [0];
       segFracs.forEach(f=> segStarts.push(segStarts[segStarts.length-1]+f));
 
+      // "cornersHit[i][c]" marca se o dado i já disparou o efeito de impacto do canto c (0,1,2 --
+      // os 3 cantos do roteiro, waypoints de índice 1/2/3) nesta rolagem, pra disparar só uma vez
+      // cada. "pert[i]" é o empurrão extra (posição+velocidade) por cima do roteiro, só usado pela
+      // colisão dado-com-dado. "pairCooldown" evita reprocessar o mesmo par de dados "grudados"
+      // como uma nova colisão a cada quadro enquanto ainda estão de fato se tocando.
+      const cornersHit = dies.map(()=> [false,false,false]);
+      const pert = dies.map(()=> ({ x:0, y:0, vx:0, vy:0 }));
+      const pairCooldown = {};
+      const fadeStart = 0.82; // últimos ~18% da animação: o empurrão de colisão esmaece até 0
+
       const t0 = performance.now();
+      let lastNow = t0;
       function frame(now){
+        const dt = Math.min(0.05, Math.max(0, (now - lastNow) / 1000)); // segundos, com teto
+        lastNow = now;
         const t = Math.min(1, (now - t0) / duration);
-        dieWaypoints.forEach((wp, i)=>{
+        const fade = t <= fadeStart ? 1 : Math.max(0, 1 - (t-fadeStart)/(1-fadeStart));
+
+        // 1) posição roteirizada de cada dado neste instante (cantos → centro → repouso), e
+        //    detecta chegada em cada canto pra disparar o efeito de impacto.
+        const scripted = dieWaypoints.map((wp, i)=>{
           let segIdx = segFracs.length - 1;
           for(let s=0;s<segFracs.length;s++){
             if(t <= segStarts[s+1]){ segIdx = s; break; }
@@ -6760,9 +6895,60 @@ body{
           const localT = segEnd > segStart ? Math.min(1,(t-segStart)/(segEnd-segStart)) : 1;
           const eased = easeInOutCubic(localT);
           const [x0,y0] = wp[segIdx], [x1,y1] = wp[segIdx+1];
-          const x = x0 + (x1-x0)*eased, y = y0 + (y1-y0)*eased;
-          dies[i].el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+          for(let c=0;c<3;c++){
+            if(!cornersHit[i][c] && segIdx > c){
+              cornersHit[i][c] = true;
+              const [ccx,ccy] = wp[c+1];
+              diceImpactEffect(dies[i].cx + ccx, dies[i].cy + ccy);
+            }
+          }
+          return { x: x0 + (x1-x0)*eased, y: y0 + (y1-y0)*eased };
         });
+
+        // 2) integra o empurrão extra de colisão (desacelera sozinho, tipo mola) de cada dado.
+        pert.forEach(p=>{
+          p.x += p.vx * dt; p.y += p.vy * dt;
+          p.vx *= 0.90; p.vy *= 0.90;
+        });
+
+        // 3) colisão de verdade entre pares de dados -- empurra pra fora + dá um quique de
+        //    velocidade nos dois, só entra em ação com 2+ dados na mesma rolagem.
+        if(collide){
+          for(let i=0;i<dies.length;i++){
+            for(let j=i+1;j<dies.length;j++){
+              const axi = dies[i].cx + scripted[i].x + pert[i].x*fade;
+              const ayi = dies[i].cy + scripted[i].y + pert[i].y*fade;
+              const axj = dies[j].cx + scripted[j].x + pert[j].x*fade;
+              const ayj = dies[j].cy + scripted[j].y + pert[j].y*fade;
+              let dx = axj - axi, dy = ayj - ayi;
+              let dist = Math.hypot(dx, dy);
+              const minDist = radii[i] + radii[j];
+              if(dist < minDist){
+                if(dist < 0.01){ dx = 1; dy = 0; dist = 1; }
+                const nx = dx/dist, ny = dy/dist;
+                const overlap = minDist - dist;
+                pert[i].x -= nx*overlap*0.5; pert[i].y -= ny*overlap*0.5;
+                pert[j].x += nx*overlap*0.5; pert[j].y += ny*overlap*0.5;
+                const kick = 70;
+                pert[i].vx -= nx*kick; pert[i].vy -= ny*kick;
+                pert[j].vx += nx*kick; pert[j].vy += ny*kick;
+                const key = i+'_'+j;
+                if(!pairCooldown[key] || now - pairCooldown[key] > 180){
+                  pairCooldown[key] = now;
+                  diceImpactEffect((axi+axj)/2, (ayi+ayj)/2);
+                }
+              }
+            }
+          }
+        }
+
+        // 4) aplica de vez (roteiro + empurrão de colisão já corrigido acima, esmaecendo no fim).
+        dies.forEach((d,i)=>{
+          const x = scripted[i].x + pert[i].x*fade;
+          const y = scripted[i].y + pert[i].y*fade;
+          d.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+        });
+
         if(t < 1){
           requestAnimationFrame(frame);
         } else {
@@ -6778,9 +6964,11 @@ body{
   const diceHint = $('diceHint');
   const diceParticleLayer = $('diceParticleLayer');
   const rollBtn = $('rollDiceBtn');
-  const diceBody = $('diceBody'); // "painel de rolagem" (Atributo + Dano dividem o mesmo painel)
-                                   // -- usado como área/arena do ricochete acima, pros dois tipos
-                                   // de rolagem.
+  // painel "Rolagem de Atributo" -- usado como área/arena do ricochete acima, só pro dado de
+  // Atributo (o dado de Dano tem seu PRÓPRIO painel separado aqui em index_BG.html, "Rolagem de
+  // Dano" -- ver const danoBody, mais abaixo, usada como arena dele; correção de um bug real desta
+  // rodada, ver comentário grande perto de "const danoBody").
+  const diceBody = $('diceBody');
   const statLabels = { for:'FOR', int:'INT', con:'CON', von:'VON', des:'DES', car:'CAR', passivas:'Passivas' };
   let rollingInterval = null;
 
@@ -6963,6 +7151,16 @@ body{
   const danoHint = $('danoHint');
   const danoTotalValue = $('danoTotalValue');
   const rollDanoBtn = $('rollDanoBtn');
+  // pedido explícito: "os dados de rolamento precisam usar o efeito em sua própria guia, eles
+  // estão escapando para a guia de rolamento de atributo" -- bug real: ao contrário de
+  // index_mag.html (onde Atributo e Dano dividem o MESMO painel "Rolamentos", #diceBody), aqui em
+  // index_BG.html os dois são painéis SEPARADOS ("Rolagem de Atributo" = #diceBody, "Rolagem de
+  // Dano" = #danoBody/#danoDiceDisplay) -- mas o ricochete do dado de Dano (mais abaixo) estava
+  // usando "diceBody" (o painel de ATRIBUTO) como arena por engano, então os cantos calculados
+  // pra ele ficavam nos cantos do painel ERRADO, fazendo o dado de Dano "voar" pra cima do painel
+  // de Atributo em vez de ficar dentro do seu próprio painel. Usa danoBody (o corpo do painel
+  // "Rolagem de Dano" de verdade) como arena daqui pra frente.
+  const danoBody = $('danoBody');
   let danoRollingInterval = null;
 
   function buildDiceDisplay(qtd){
@@ -7021,7 +7219,7 @@ body{
       playDiceTick();
     }, 65);
 
-    animateDiceRicochet(diceBody, dieEls, 1150).then(()=>{
+    animateDiceRicochet(danoBody, dieEls, 1150).then(()=>{
       clearInterval(danoRollingInterval);
       danoRollingInterval = null;
       dieEls.forEach(d => d.classList.remove('ricochet'));
