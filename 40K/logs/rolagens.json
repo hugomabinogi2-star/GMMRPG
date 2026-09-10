@@ -1,19 +1,6 @@
 [
   {
     "nome": "GRUPO",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 3,
-    "bonus": 0,
-    "rolls": [
-      1
-    ],
-    "resultado": 1,
-    "habilidade": null,
-    "ts": 1788861582639
-  },
-  {
-    "nome": "GRUPO",
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 6,
@@ -391,5 +378,16 @@
     "atributo": null,
     "grito": null,
     "ts": 1789054830097
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 20,
+    "resultLabel": "Acerto Garantido",
+    "ts": 1789054890711,
+    "habilidade": "Ataque Duplo",
+    "habilidadeDesc": "Realiza dois ataques em um mesmo inimigo.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
   }
 ]
