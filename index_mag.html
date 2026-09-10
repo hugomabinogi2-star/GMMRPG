@@ -3123,6 +3123,14 @@ body{
   opacity:.65;
   box-shadow:inset 0 0 12px rgba(0,0,0,.6), 0 2px 4px rgba(0,0,0,.3);
 }
+/* pedido explícito: dados ricocheteando pelos cantos do painel "Rolamentos" antes do resultado
+   (ver animateDiceRicochet() no <script>) -- essa classe só garante que o dado fique por CIMA dos
+   outros controles do painel (seletor de modo, botão "Rolar" etc.) enquanto estiver voando por
+   aí com transform:translate(), já que ela é ligada/desligada pelo JS durante o próprio ricochete. */
+.dice-result.ricochet{
+  position:relative;
+  z-index:50;
+}
 
 /* ---------- cubo 3D da rolagem de dados (Atributo/Dano) ----------
    Pedido explícito: trocar o número plano que girava em 2D (.dice-result.rolling/.settle, ainda
@@ -7670,6 +7678,28 @@ body{
     }
   }
 
+  // pedido explícito: "a chuva de confetes do ganho de nível precisa ser contínua até se dar OK
+  // na mensagem" -- em vez de um punhado só (spawnConfetti() de uma vez) que acaba num tempo
+  // fixo, esta função solta uma nova leva a cada poucos instantes (setTimeout se rechamando)
+  // até chamar .stop() de fora (ver celebrateLevelUp() logo abaixo, que chama .stop() só quando
+  // postToDiscord() termina de verdade -- sucesso OU erro, não fica esperando pra sempre se o
+  // Discord falhar). O "token" evita que a chuva de uma subida de nível ANTERIOR (ainda esperando
+  // o Discord responder) apague por engano a chuva de uma subida NOVA que começou por cima dela
+  // (celebrateLevelUp() incrementa levelUpCelebrationToken a cada chamada; esta função só some de
+  // fato se o token que ela guarda ainda for o mais atual quando for chamada).
+  let levelUpCelebrationToken = 0;
+  function startConfettiRain(layer, token){
+    if(!layer) return { stop(){} };
+    let active = true;
+    function tick(){
+      if(!active || token !== levelUpCelebrationToken) return;
+      spawnConfetti(layer, 20);
+      setTimeout(tick, 500);
+    }
+    tick();
+    return { stop(){ active = false; } };
+  }
+
   // efeito comemorativo de subida de nível: brilho na página inteira + arco-íris + confete +
   // estrelinhas na barra de XP + musiquinha feliz (pedido explícito de "aumentar bastante o
   // efeito de quando ganha nível" -- ver .level-up-flash/.level-up-celebration no <style> e
@@ -7700,30 +7730,49 @@ body{
       particleLayer.innerHTML = '';
       spawnDiceParticles(particleLayer, '✨', 34); // pedido explícito: "aumente bastante o efeito" (era 18)
     }
-    // arco-íris + confete (pedido explícito) -- classe "celebrate" liga a animação do arco-íris
-    // (ver .level-up-celebration.celebrate .level-up-rainbow no <style>); removida sozinha depois
-    // dos 2.6s da festa, com o mesmo padrão de remove/reflow/add das outras animações repetíveis
-    // desta ficha, pra poder tocar de novo do zero numa subida de nível seguinte.
+    // arco-íris (some sozinho depois de 2.6s, ver @keyframes levelUpRainbowShow no <style>) +
+    // confete -- classe "celebrate" liga a animação do arco-íris (ver
+    // .level-up-celebration.celebrate .level-up-rainbow no <style>). O CONFETE, diferente do
+    // arco-íris/brilho, não tem mais um tempo fixo: pedido explícito foi "a chuva de confetes
+    // precisa ser contínua até se dar OK na mensagem" -- startConfettiRain() (ver função grande
+    // logo acima) fica soltando levas novas sozinho até ser mandado parar, o que só acontece lá
+    // embaixo, quando postToDiscord() termina de verdade (deu certo OU deu erro -- não fica
+    // esperando pra sempre se o Discord estiver fora do ar). Sem nome na ficha não existe
+    // mensagem nenhuma pra esperar (ver isBlankName() logo abaixo), então nesse caso a chuva usa
+    // um tempo padrão de sempre.
+    levelUpCelebrationToken++;
+    const myToken = levelUpCelebrationToken;
     const celebrationEl = $('levelUpCelebration');
     const confettiLayer = $('levelUpConfetti');
     if(confettiLayer) confettiLayer.innerHTML = '';
+    let confettiRain = null;
     if(celebrationEl){
       celebrationEl.classList.remove('celebrate');
       void celebrationEl.offsetWidth;
       celebrationEl.classList.add('celebrate');
-      spawnConfetti(confettiLayer, 70);
-      setTimeout(()=> celebrationEl.classList.remove('celebrate'), 2700);
+      confettiRain = startConfettiRain(confettiLayer, myToken);
+    }
+    function stopConfettiRain(){
+      if(myToken !== levelUpCelebrationToken) return; // já veio uma subida de nível mais nova
+      if(confettiRain) confettiRain.stop();
+      if(celebrationEl) celebrationEl.classList.remove('celebrate');
     }
     playLevelUpTune();
-    // avisa no Discord que o personagem subiu de nível, com o nome em negrito e o retrato da
-    // ficha dentro da mesma bolinha com anel da Deidade usada nos ícones de rolagem (se houver
-    // um retrato) — igual ao resto das mensagens, independe do token do GitHub.
+    // avisa no Discord que o personagem subiu de nível -- mensagem enxuta a pedido explícito
+    // ("apenas NOME DO PERSONAGEM PASSOU PARA O NÍVEL TAL"), sem emoji e sem a menção de bênção
+    // da Divindade que tinha antes. O retrato da ficha continua indo junto (mesma bolinha com
+    // anel da Deidade usada nos ícones de rolagem, se houver retrato), só o TEXTO que ficou só o
+    // essencial.
     const nome = (els.nome.value || '').trim() || '(sem nome)';
-    const deidadeNome = (els.deidade.value && els.deidade.value !== 'VAZIO') ? els.deidade.value.trim() : '';
-    const bencaoTxt = deidadeNome ? ` POR UMA BENÇÃO DE **${deidadeNome}**` : '';
     // ficha sem nome não avisa ninguém (ver isBlankName()) -- a festa visual (brilho/partículas/
-    // som) já rolou acima, só o aviso pra mesa/Discord fica de fora.
-    if(!isBlankName(nome)) postToDiscord(`🎉 **${nome}** PASSA PARA O NÍVEL ${newLevel}${bencaoTxt}!`, buildLevelUpImageDataUrl());
+    // som) já rolou acima, só o aviso pra mesa/Discord fica de fora; sem mensagem pra esperar, a
+    // chuva de confete usa um tempo padrão em vez de esperar por sempre.
+    if(!isBlankName(nome)){
+      postToDiscord(`**${nome}** PASSOU PARA O NÍVEL ${newLevel}`, buildLevelUpImageDataUrl())
+        .then(stopConfettiRain, stopConfettiRain);
+    } else {
+      setTimeout(stopConfettiRain, 2700);
+    }
   }
 
   // avisa no Discord quando a vida da ficha chega a zero, com um ícone de caveira na mesma
@@ -7768,11 +7817,94 @@ body{
     return front;
   }
 
+  // pedido explícito: "é possível fazer os dados ricochetearem pelos cantos do painel de rolagem?
+  // até pararem no centro, se chocando quando forem mais de um dado antes de apresentarem o
+  // resultado" -- animateDiceRicochet() move cada .dice-result passado (por CIMA do giro 3D que o
+  // .cube interno de cada um já faz sozinho via a classe "rolling", sem mexer nisso) até bater em
+  // 3 cantos aleatórios do container "arenaEl" (o painel "Rolamentos" inteiro, #diceBody, ver
+  // const diceBody logo abaixo), depois convergir todos pro meio do painel -- que, por acaso, já é
+  // exatamente a posição de repouso normal de cada um deles, já que .dice-pair/.dice-display já
+  // são center-justified (ver CSS) -- e SE forem 2 ou mais dados ao mesmo tempo, dar um pequeno
+  // solavanco (um "esbarrão") antes de pousar de vez. É uma animação ROTEIRIZADA (um caminho de
+  // pontos pré-calculado a partir do tamanho real do painel, interpolado com easing) — não uma
+  // física de colisão de verdade (não checa se os dados realmente se tocam no meio do caminho),
+  // mas o resultado visual é o pedido: cantos → convergência → esbarrão (se >1) → pouso → só
+  // DEPOIS disso a Promise resolve, e é só aí que finishRoll()/finishDanoRoll() são chamadas (ver
+  // rollBtn/rollDanoBtn mais abaixo), revelando o resultado depois que os dados já pousaram.
+  function easeInOutCubic(t){
+    return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
+  }
+  function animateDiceRicochet(arenaEl, dieEls, duration){
+    return new Promise(resolve=>{
+      if(!arenaEl || !dieEls || !dieEls.length){ resolve(); return; }
+      const arenaRect = arenaEl.getBoundingClientRect();
+      const dies = dieEls.map(el=>{
+        const r = el.getBoundingClientRect();
+        return { el, cx: r.left + r.width/2, cy: r.top + r.height/2, hw: r.width/2, hh: r.height/2 };
+      });
+      const marginX = Math.max(...dies.map(d=>d.hw)) + 4;
+      const marginY = Math.max(...dies.map(d=>d.hh)) + 4;
+      const left = arenaRect.left + marginX, right = Math.max(left+1, arenaRect.right - marginX);
+      const top = arenaRect.top + marginY, bottom = Math.max(top+1, arenaRect.bottom - marginY);
+      const corners = [ [left,top], [right,top], [right,bottom], [left,bottom] ];
+      const avgCx = dies.reduce((s,d)=>s+d.cx,0)/dies.length;
+      const avgCy = dies.reduce((s,d)=>s+d.cy,0)/dies.length;
+      const collide = dies.length > 1;
+
+      // caminho de cada dado em coordenadas ABSOLUTAS de tela, depois convertido (mais abaixo)
+      // pra offset relativo à posição de repouso -- 3 cantos embaralhados + o meio compartilhado
+      // + (se colide) um pequeno chute em direção aleatória + volta ao repouso de verdade.
+      const dieWaypoints = dies.map(d=>{
+        const shuffled = [...corners].sort(()=> Math.random()-0.5);
+        const pts = [ [d.cx,d.cy], shuffled[0], shuffled[1], shuffled[2], [avgCx,avgCy] ];
+        if(collide){
+          const kickAngle = Math.random()*Math.PI*2;
+          const kickDist = 14 + Math.random()*10;
+          pts.push([avgCx + Math.cos(kickAngle)*kickDist, avgCy + Math.sin(kickAngle)*kickDist]);
+        }
+        pts.push([d.cx, d.cy]); // pouso final = posição de repouso de verdade
+        return pts.map(([x,y])=> [x-d.cx, y-d.cy]);
+      });
+      const segFracs = collide
+        ? [0.15, 0.15, 0.15, 0.15, 0.10, 0.30]   // 4 trechos até o meio + chute + pouso calmo
+        : [0.20, 0.20, 0.20, 0.20, 0.20];         // 3 trechos até o meio + pouso (sem chute)
+      const segStarts = [0];
+      segFracs.forEach(f=> segStarts.push(segStarts[segStarts.length-1]+f));
+
+      const t0 = performance.now();
+      function frame(now){
+        const t = Math.min(1, (now - t0) / duration);
+        dieWaypoints.forEach((wp, i)=>{
+          let segIdx = segFracs.length - 1;
+          for(let s=0;s<segFracs.length;s++){
+            if(t <= segStarts[s+1]){ segIdx = s; break; }
+          }
+          const segStart = segStarts[segIdx], segEnd = segStarts[segIdx+1];
+          const localT = segEnd > segStart ? Math.min(1,(t-segStart)/(segEnd-segStart)) : 1;
+          const eased = easeInOutCubic(localT);
+          const [x0,y0] = wp[segIdx], [x1,y1] = wp[segIdx+1];
+          const x = x0 + (x1-x0)*eased, y = y0 + (y1-y0)*eased;
+          dies[i].el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+        });
+        if(t < 1){
+          requestAnimationFrame(frame);
+        } else {
+          dies.forEach(d=> d.el.style.transform = '');
+          resolve();
+        }
+      }
+      requestAnimationFrame(frame);
+    });
+  }
+
   const diceVerdict = $('diceVerdict');
   const diceHint = $('diceHint');
   const diceParticleLayer = $('diceParticleLayer');
   const rollBtn = $('rollDiceBtn');
   const atributoDiceArea = $('atributoDiceArea');
+  const diceBody = $('diceBody'); // "painel de rolagem" (Atributo + Dano dividem o mesmo painel,
+                                   // ver comentário grande em #atributoDiceArea no HTML) -- usado
+                                   // como área/arena do ricochete acima, pros dois tipos de rolagem.
   const statLabels = { for:'FOR', int:'INT', con:'CON', von:'VON', des:'DES', car:'CAR', passivas:'Passivas' };
   let rollingInterval = null;
   // nome/descrição da Habilidade fixa que originou esta rolagem de atributo (ver
@@ -7817,9 +7949,11 @@ body{
     diceVerdict.className = 'dice-verdict';
     diceHint.textContent = 'Rolando...';
     diceResult.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow','discarded');
+    diceResult.classList.add('ricochet');
     cubeOf(diceResult).classList.remove('settle');
     cubeOf(diceResult).classList.add('rolling');
     diceResult2.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow','discarded');
+    diceResult2.classList.add('ricochet');
     cubeOf(diceResult2).classList.remove('settle');
     // Vantagem/Desvantagem mostram os DOIS dados (como era antes de uma rodada passada que tinha
     // deixado só 1 visível por engano) -- diceResult2 só aparece quando twoDice; em modo Normal
@@ -7847,19 +7981,25 @@ body{
     else if(mode === 'desvantagem') playAttrSadSound(); // som triste (reaproveita o mesmo tom de "-1 atributo")
     else playOohSound(); // som de "ooh" no rolamento normal
 
-    let ticks = 0;
-    const totalTicks = 10 + Math.floor(Math.random()*4);
+    // o número de cada face continua trocando no mesmo relógio de sempre (65ms, com o mesmo som
+    // de tique a cada troca) -- só QUEM MANDA PARAR mudou: antes era uma contagem fixa de ticks,
+    // agora é o ricochete (animateDiceRicochet() acima) terminar de verdade, incluindo o esbarrão
+    // entre os dois dados quando for Vantagem/Desvantagem (ver pedido explícito no comentário
+    // grande de animateDiceRicochet()).
     rollingInterval = setInterval(()=>{
       randomizeCubeFaces(diceResult, 20);
       if(twoDice) randomizeCubeFaces(diceResult2, 20);
       playDiceTick();
-      ticks++;
-      if(ticks >= totalTicks){
-        clearInterval(rollingInterval);
-        rollingInterval = null;
-        finishRoll(stat, statVal, mode);
-      }
     }, 65);
+
+    const ricochetDice = twoDice ? [diceResult, diceResult2] : [diceResult];
+    animateDiceRicochet(diceBody, ricochetDice, 1150).then(()=>{
+      clearInterval(rollingInterval);
+      rollingInterval = null;
+      diceResult.classList.remove('ricochet');
+      diceResult2.classList.remove('ricochet');
+      finishRoll(stat, statVal, mode);
+    });
   });
 
   function finishRoll(stat, statVal, mode){
@@ -8039,10 +8179,14 @@ body{
     danoTotalValue.classList.remove('settle');
 
     const dieEls = buildDiceDisplay(qtd);
-    dieEls.forEach(d => cubeOf(d).classList.add('rolling'));
+    dieEls.forEach(d => {
+      d.classList.add('ricochet');
+      cubeOf(d).classList.add('rolling');
+    });
 
-    let ticks = 0;
-    const totalTicks = 10 + Math.floor(Math.random()*4);
+    // mesmo esquema do rollBtn de Atributo (ver comentário grande lá) -- o número de cada face
+    // continua trocando no relógio de sempre até o ricochete (animateDiceRicochet(), com TODOS os
+    // dados de Dano de uma vez, se esbarrando no meio quando qtd > 1) terminar de verdade.
     danoRollingInterval = setInterval(()=>{
       let sum = 0;
       dieEls.forEach(d=>{
@@ -8050,13 +8194,14 @@ body{
       });
       danoTotalValue.textContent = sum + pendingDanoBonus;
       playDiceTick();
-      ticks++;
-      if(ticks >= totalTicks){
-        clearInterval(danoRollingInterval);
-        danoRollingInterval = null;
-        finishDanoRoll(qtd, maxVal, dieEls);
-      }
     }, 65);
+
+    animateDiceRicochet(diceBody, dieEls, 1150).then(()=>{
+      clearInterval(danoRollingInterval);
+      danoRollingInterval = null;
+      dieEls.forEach(d => d.classList.remove('ricochet'));
+      finishDanoRoll(qtd, maxVal, dieEls);
+    });
   });
 
   // bônus fixo somado ao total (ver rollHabilidadeDano() mais abaixo -- bônus do atributo da
