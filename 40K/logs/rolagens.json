@@ -21,5 +21,19 @@
       13,
       15
     ]
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 9,
+    "resultLabel": "Erro — Vantagem",
+    "ts": 1789066131896,
+    "mode": "vantagem",
+    "rolls": [
+      1,
+      9
+    ]
   }
 ]
