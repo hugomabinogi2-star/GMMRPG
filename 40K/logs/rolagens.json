@@ -198,5 +198,16 @@
     "resultado": 11,
     "resultLabel": "Acerto",
     "ts": 1789073501167
+  },
+  {
+    "nome": "efreet",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 10,
+    "resultado": 5,
+    "resultLabel": "Erro",
+    "ts": 1789073505813,
+    "habilidade": "Ataque de Espada Pesada",
+    "habilidadeDesc": "Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
   }
 ]
