@@ -1,18 +1,5 @@
 [
   {
-    "nome": "GRUPO",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 5,
-    "bonus": 3,
-    "rolls": [
-      1
-    ],
-    "resultado": 4,
-    "habilidade": null,
-    "ts": 1788861821636
-  },
-  {
     "nome": "TE#STE",
     "tipo": "movimento",
     "de": "C4",
@@ -392,5 +379,20 @@
       6,
       14
     ]
+  },
+  {
+    "nome": "efreet",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 3,
+    "bonus": 5,
+    "rolls": [
+      1
+    ],
+    "resultado": 6,
+    "habilidade": null,
+    "atributo": "FOR",
+    "grito": null,
+    "ts": 1789063882735
   }
 ]
