@@ -180,5 +180,14 @@
     "atributo": null,
     "grito": null,
     "ts": 1789073462598
+  },
+  {
+    "nome": "efreet",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 10,
+    "resultado": 7,
+    "resultLabel": "Erro",
+    "ts": 1789073469864
   }
 ]
