@@ -4,13 +4,6 @@
     "tipo": "movimento",
     "de": "D3",
     "para": "C3",
-    "ts": 1788819816307
-  },
-  {
-    "nome": "TESTE",
-    "tipo": "movimento",
-    "de": "D3",
-    "para": "C3",
     "ts": 1788819830313
   },
   {
@@ -374,5 +367,16 @@
     "atributo": null,
     "grito": null,
     "ts": 1789034187263
+  },
+  {
+    "nome": "Oi",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 1,
+    "resultado": 14,
+    "resultLabel": "Erro",
+    "ts": 1789040850507,
+    "habilidade": "Ataque Duplo",
+    "habilidadeDesc": "Realiza dois ataques em um mesmo inimigo.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
   }
 ]
