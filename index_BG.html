@@ -2776,7 +2776,8 @@ body{
 }
 .dice-roll-btn:hover{border-color:#e0b656;background:linear-gradient(180deg,#8a6a2e,#54401a);}
 .dice-roll-btn:active{transform:translateY(1px);}
-.dano-die{width:38px;height:38px;font-size:16px;border-radius:6px;}
+.dano-die{width:38px;height:38px;font-size:16px;border-radius:6px;--cube-half:19px;}
+.dano-die .cube-face{border-radius:6px;}
 .dano-eq{font-family:'Marcellus',serif;font-size:16px;color:var(--ink-faint);}
 .dano-total-box{
   display:flex;align-items:center;justify-content:space-between;
@@ -2796,11 +2797,16 @@ body{
   width:56px;height:56px;
   display:flex;align-items:center;justify-content:center;
   font-family:'Marcellus SC',serif;font-size:24px;color:var(--ink);
-  background:var(--paper-l);
-  border:2px solid var(--border-brown);
-  border-radius:8px;
-  transform:rotate(-3deg);
-  box-shadow:inset 0 0 8px rgba(90,60,20,.25), 0 2px 4px rgba(0,0,0,.25);
+  /* a "cara" plana em papel (fundo/borda/sombra/leve giro) que existia aqui até a rodada do cubo
+     3D agora mora só no #coinResult (ver .coin-result logo abaixo, que reafirma tudo isso pra si
+     mesma) -- os dados de verdade (#diceResult/#diceResult2/.dano-die) passaram a ser um cubo 3D
+     (.cube-scene/.cube/.cube-face, ver bloco grande logo abaixo de .dano-die) que preenche este
+     elemento por completo; ele virou só a "caixa de perspectiva" (perspective) + contexto de
+     tamanho (--cube-half, usado pelas 6 faces do cubo pra saber quão longe da câmera ficar) --
+     ainda concentra [hidden]/.discarded/.hit-glow/.miss-shadow/.crit-hit/.crit-miss (ver mais
+     abaixo), que continuam sendo um brilho/sombra em VOLTA do cubo, exatamente como antes. */
+  --cube-half:28px;
+  perspective:calc(var(--cube-half) * 13);
 }
 .dice-verdict{
   font-family:'Marcellus',serif;font-size:15px;letter-spacing:.06em;text-transform:uppercase;
@@ -2857,6 +2863,67 @@ body{
   box-shadow:inset 0 0 12px rgba(0,0,0,.6), 0 2px 4px rgba(0,0,0,.3);
 }
 
+/* ---------- cubo 3D da rolagem de dados (Atributo/Dano) ----------
+   Pedido explícito: trocar o número plano que girava em 2D (.dice-result.rolling/.settle, ainda
+   usados só pela moeda de Sorte -- ver .coin-result.rolling acima) por um cubo de verdade
+   (perspective + transform-style:preserve-3d), com uma face por lado, cada uma mostrando um
+   número aleatório diferente enquanto gira, até estacionar mostrando o resultado final na face da
+   FRENTE (.cube-face.f) -- sem nenhuma sombra/carimbo separado embaixo. A cor do cubo (borda +
+   brilho) acompanha a cor reativa de elemento/divindade já usada em toda a ficha
+   (--deity-eye-color/--deity-eye-glow-soft, setadas em updateDeityEyeGlow() -- ver comentário
+   grande no <script>), então NENHUM JS novo de cor foi necessário aqui: é só var(...) direto no
+   CSS, igual o .portrait/.deidade-arrow-btn/etc. já fazem. A cor do NÚMERO em si fica de fora
+   dessa reatividade (fica em var(--ink), sempre legível) -- só a borda/brilho reage, do jeito que
+   "-"/VAZIO (nenhum elemento escolhido) já cai pra uma cor quase preta nesse mesmo mecanismo em
+   outros lugares da ficha, o que deixaria o NÚMERO ilegível se ele também acompanhasse a cor.
+   O truque de girar sem precisar calcular fisicamente "qual face fica pra cima": os ângulos finais
+   do keyframe (738deg/1108deg no meio, 702deg/1108deg no fim) são a mesma orientação de repouso
+   (rotateX(-18deg) rotateY(28deg)) mais várias voltas completas (múltiplos de 360°) -- ou seja, a
+   MESMA face (.cube-face.f) que já estava de frente antes de girar volta a ficar de frente depois,
+   então o JS só precisa escrever o resultado verdadeiro nela ANTES/DURANTE o giro (ela fica
+   escondida enquanto o cubo gira) -- as outras 5 faces só recebem números aleatórios "decorativos"
+   a cada tick do setInterval já existente (mesmo mecanismo/tempo de sempre, só passou a escrever
+   em 6 faces por dado em vez de 1 texto solto -- ver randomizeCubeFaces()/setCubeFront() no
+   <script>). --cube-half (setado em .dice-result/.dano-die acima) informa às 6 faces + ao
+   perspective/tumble o "raio" do cubo (metade da largura/altura), pra funcionar tanto no dado de
+   Atributo (56px) quanto nos dados de Dano, menores (.dano-die, 38px), sem duplicar nenhuma regra. */
+.cube-scene{width:100%;height:100%;position:relative;}
+.cube{
+  width:100%;height:100%;position:relative;
+  transform-style:preserve-3d;
+  transform:rotateX(-18deg) rotateY(28deg);
+}
+@keyframes cubeTumble{
+  0%{transform:rotateX(-18deg) rotateY(28deg);}
+  70%{transform:rotateX(738deg) rotateY(1108deg);}
+  100%{transform:rotateX(702deg) rotateY(1108deg);}
+}
+.cube.rolling{animation:cubeTumble .72s cubic-bezier(.22,.61,.36,1);}
+@keyframes cubeSettlePop{
+  0%{transform:rotateX(-18deg) rotateY(28deg) scale(1.4);}
+  60%{transform:rotateX(-18deg) rotateY(28deg) scale(.9);}
+  100%{transform:rotateX(-18deg) rotateY(28deg) scale(1);}
+}
+.cube.settle{animation:cubeSettlePop .4s cubic-bezier(.3,1.4,.4,1);}
+.cube-face{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Marcellus SC',serif;
+  font-size:calc(var(--cube-half) * .82);
+  color:var(--ink);
+  font-variant-numeric:tabular-nums;
+  background:var(--paper-l);
+  border:2px solid var(--deity-eye-color, var(--border-brown));
+  border-radius:8px;
+  box-shadow:inset 0 0 8px rgba(90,60,20,.25), 0 0 10px var(--deity-eye-glow-soft, transparent);
+}
+.cube-face.f{transform:translateZ(var(--cube-half));}
+.cube-face.b{transform:rotateY(180deg) translateZ(var(--cube-half));}
+.cube-face.r{transform:rotateY(90deg) translateZ(var(--cube-half));}
+.cube-face.l{transform:rotateY(-90deg) translateZ(var(--cube-half));}
+.cube-face.t{transform:rotateX(90deg) translateZ(var(--cube-half));}
+.cube-face.d{transform:rotateX(-90deg) translateZ(var(--cube-half));}
+
 .dice-particle-layer{
   position:absolute;inset:0;
   pointer-events:none;overflow:visible;
@@ -2883,6 +2950,10 @@ body{
   background:#c99a3e;
   border:2px solid #8a6a2e;
   box-shadow:inset 0 0 0 3px rgba(122,90,30,.55), inset 0 0 8px rgba(60,40,10,.45), 0 2px 4px rgba(0,0,0,.25);
+  /* a moeda continua sendo uma imagem plana (não virou cubo -- ver comentário grande em
+     .dice-result acima), então reafirma aqui o pequeno giro que antes vinha "de graça" do
+     .dice-result base (removido de lá na rodada do cubo 3D, já que atrapalharia o cubo). */
+  transform:rotate(-3deg);
 }
 @keyframes coinFlipSpin{
   0%{transform:rotate(-3deg) scaleX(1);}
@@ -4086,8 +4157,14 @@ body{
               </div>
               <div class="dice-display">
                 <div class="dice-pair" id="dicePair">
-                  <div class="dice-result" id="diceResult">—</div>
-                  <div class="dice-result" id="diceResult2" hidden>—</div>
+                  <div class="dice-result" id="diceResult"><div class="cube-scene"><div class="cube">
+                    <div class="cube-face f">–</div><div class="cube-face b">–</div><div class="cube-face r">–</div>
+                    <div class="cube-face l">–</div><div class="cube-face t">–</div><div class="cube-face d">–</div>
+                  </div></div></div>
+                  <div class="dice-result" id="diceResult2" hidden><div class="cube-scene"><div class="cube">
+                    <div class="cube-face f">–</div><div class="cube-face b">–</div><div class="cube-face r">–</div>
+                    <div class="cube-face l">–</div><div class="cube-face t">–</div><div class="cube-face d">–</div>
+                  </div></div></div>
                 </div>
                 <div class="dice-verdict" id="diceVerdict"></div>
                 <div class="dice-particle-layer" id="diceParticleLayer"></div>
@@ -6580,6 +6657,35 @@ body{
   const diceMode = $('diceMode');
   const diceResult = $('diceResult');
   const diceResult2 = $('diceResult2');
+
+  // helpers do cubo 3D (ver comentário grande em .cube-scene/.cube/.cube-face no <style>) --
+  // usados tanto pela rolagem de Atributo (diceResult/diceResult2) quanto pela de Dano
+  // (.dano-die, construído em buildDiceDisplay()). cubeOf() busca o <div class="cube"> de dentro
+  // de um .dice-result (é nele que .rolling/.settle são ligados agora, não mais no .dice-result
+  // em si -- ver comentário no <style>). randomizeCubeFaces() escreve um número aleatório
+  // DIFERENTE em cada uma das 6 faces (chamada a cada tick do setInterval de "rolando", pro efeito
+  // de "cada lado mostra um número diferente" pedido). setCubeFront() escreve só na face da FRENTE
+  // (.cube-face.f) -- é ela que vai ficar visível quando o cubo parar de girar (ver o comentário
+  // grande no <style> sobre o motivo disso funcionar sem cálculo físico nenhum).
+  function cubeOf(dieEl){ return dieEl.querySelector('.cube'); }
+  function randomizeCubeFaces(dieEl, maxVal){
+    dieEl.querySelectorAll('.cube-face').forEach(f=>{ f.textContent = 1 + Math.floor(Math.random()*maxVal); });
+  }
+  function setCubeFront(dieEl, value){
+    const front = dieEl.querySelector('.cube-face.f');
+    if(front) front.textContent = value;
+  }
+  // igual a randomizeCubeFaces(), mas devolve o número sorteado pra face da FRENTE -- usado só
+  // pela rolagem de Dano, que precisa desse valor pra somar no total "rolando" que já aparecia
+  // embaixo antes (ver danoTotalValue no rollDanoBtn.addEventListener() mais abaixo).
+  function tickCubeFaces(dieEl, maxVal){
+    const front = 1 + Math.floor(Math.random()*maxVal);
+    dieEl.querySelectorAll('.cube-face').forEach(f=>{
+      f.textContent = f.classList.contains('f') ? front : (1 + Math.floor(Math.random()*maxVal));
+    });
+    return front;
+  }
+
   const diceVerdict = $('diceVerdict');
   const diceHint = $('diceHint');
   const diceParticleLayer = $('diceParticleLayer');
@@ -6617,16 +6723,18 @@ body{
     diceHint.textContent = 'Rolando...';
     diceResult.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow','discarded');
     diceResult2.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow','discarded');
-    diceResult.classList.add('rolling');
+    cubeOf(diceResult).classList.remove('settle');
+    cubeOf(diceResult).classList.add('rolling');
     diceResult2.hidden = !twoDice;
-    diceResult2.classList.toggle('rolling', twoDice);
+    cubeOf(diceResult2).classList.remove('settle');
+    cubeOf(diceResult2).classList.toggle('rolling', twoDice);
     if(diceParticleLayer) diceParticleLayer.innerHTML = '';
 
     let ticks = 0;
     const totalTicks = 10 + Math.floor(Math.random()*4);
     rollingInterval = setInterval(()=>{
-      diceResult.textContent = 1 + Math.floor(Math.random()*20);
-      if(twoDice) diceResult2.textContent = 1 + Math.floor(Math.random()*20);
+      randomizeCubeFaces(diceResult, 20);
+      if(twoDice) randomizeCubeFaces(diceResult2, 20);
       playDiceTick();
       ticks++;
       if(ticks >= totalTicks){
@@ -6664,19 +6772,19 @@ body{
     const consideredEl = consideredIsFirst ? diceResult : diceResult2;
     const discardedEl = consideredIsFirst ? diceResult2 : diceResult;
 
-    diceResult.classList.remove('rolling');
-    diceResult2.classList.remove('rolling');
-    diceResult.textContent = die1;
-    if(twoDice) diceResult2.textContent = die2;
+    cubeOf(diceResult).classList.remove('rolling');
+    cubeOf(diceResult2).classList.remove('rolling');
+    setCubeFront(diceResult, die1);
+    if(twoDice) setCubeFront(diceResult2, die2);
 
     // força reflow para poder repetir a animação em rolagens seguintes
-    diceResult.classList.remove('settle');
-    diceResult2.classList.remove('settle');
+    cubeOf(diceResult).classList.remove('settle');
+    cubeOf(diceResult2).classList.remove('settle');
     void diceResult.offsetWidth;
-    diceResult.classList.add('settle');
+    cubeOf(diceResult).classList.add('settle');
     if(twoDice){
       void diceResult2.offsetWidth;
-      diceResult2.classList.add('settle');
+      cubeOf(diceResult2).classList.add('settle');
     }
 
     consideredEl.classList.toggle('hit-glow', verdict === 'acerto');
@@ -6764,7 +6872,13 @@ body{
     for(let i=0;i<qtd;i++){
       const die = document.createElement('div');
       die.className = 'dice-result dano-result dano-die';
-      die.textContent = '—';
+      // mesmo cubo 3D do dado de Atributo (ver diceResult/diceResult2 no HTML e o comentário
+      // grande em .cube-scene/.cube/.cube-face no <style>) -- só que construído por JS aqui,
+      // porque a quantidade de dados de Dano muda a cada rolagem (1d6, 3d6 etc.).
+      die.innerHTML = '<div class="cube-scene"><div class="cube">'
+        + '<div class="cube-face f">–</div><div class="cube-face b">–</div><div class="cube-face r">–</div>'
+        + '<div class="cube-face l">–</div><div class="cube-face t">–</div><div class="cube-face d">–</div>'
+        + '</div></div>';
       danoDiceDisplay.appendChild(die);
       dieEls.push(die);
     }
@@ -6791,16 +6905,14 @@ body{
     danoTotalValue.classList.remove('settle');
 
     const dieEls = buildDiceDisplay(qtd);
-    dieEls.forEach(d => d.classList.add('rolling'));
+    dieEls.forEach(d => cubeOf(d).classList.add('rolling'));
 
     let ticks = 0;
     const totalTicks = 10 + Math.floor(Math.random()*4);
     danoRollingInterval = setInterval(()=>{
       let sum = 0;
       dieEls.forEach(d=>{
-        const v = 1 + Math.floor(Math.random()*maxVal);
-        d.textContent = v;
-        sum += v;
+        sum += tickCubeFaces(d, maxVal);
       });
       danoTotalValue.textContent = sum;
       playDiceTick();
@@ -6819,11 +6931,11 @@ body{
     const total = rolls.reduce((a,b)=>a+b, 0);
 
     dieEls.forEach((d, i)=>{
-      d.classList.remove('rolling');
-      d.textContent = rolls[i];
-      d.classList.remove('settle');
+      cubeOf(d).classList.remove('rolling');
+      setCubeFront(d, rolls[i]);
+      cubeOf(d).classList.remove('settle');
       void d.offsetWidth;
-      d.classList.add('settle');
+      cubeOf(d).classList.add('settle');
     });
 
     danoTotalValue.textContent = total;
