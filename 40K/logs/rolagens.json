@@ -116,5 +116,21 @@
     ],
     "habilidade": "Ataque de Espada Pesada",
     "habilidadeDesc": "Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "anna",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 8,
+    "resultado": 4,
+    "resultLabel": "Erro — Desvantagem",
+    "ts": 1789070228715,
+    "mode": "desvantagem",
+    "rolls": [
+      17,
+      4
+    ],
+    "habilidade": "Ataque de Espada Pesada",
+    "habilidadeDesc": "Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
   }
 ]
