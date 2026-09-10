@@ -1,17 +1,6 @@
 [
   {
     "nome": "GRUPO",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 6,
-    "resultado": 4,
-    "resultLabel": "Erro",
-    "ts": 1788861637735,
-    "habilidade": "Golpe de Espada",
-    "habilidadeDesc": "Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível)."
-  },
-  {
-    "nome": "GRUPO",
     "tipo": "dano",
     "qtd": 2,
     "maxVal": 3,
@@ -395,5 +384,24 @@
     "atributo": null,
     "grito": null,
     "ts": 1789054895675
+  },
+  {
+    "nome": "oi",
+    "tipo": "dano",
+    "qtd": 5,
+    "maxVal": 3,
+    "bonus": 3,
+    "rolls": [
+      3,
+      3,
+      2,
+      1,
+      1
+    ],
+    "resultado": 13,
+    "habilidade": "Ataque Duplo",
+    "atributo": null,
+    "grito": null,
+    "ts": 1789054898131
   }
 ]
