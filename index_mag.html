@@ -1549,6 +1549,44 @@ body{
   z-index:50;
 }
 .modal-overlay[hidden]{display:none;}
+/* #introVideoModal (ver comentário grande no HTML, perto do <div> dele) reaproveita .modal-overlay
+   de base (fixed/inset/centralizado) mas precisa de um fundo mais escuro/opaco (pra não competir
+   com a ficha por baixo enquanto o vídeo toca) e de um z-index bem mais alto que o normal (50) --
+   maior até que o brilho de subir de nível (99999) e o das partículas de dado (9999), pra nunca
+   ficar tapado por engano se algum desses efeitos disparar por coincidência logo no login. */
+#introVideoModal{background:rgba(4,2,1,.94);z-index:100000;}
+.intro-video-box{
+  position:relative;width:100%;max-width:720px;
+  display:flex;align-items:center;justify-content:center;
+}
+.intro-video-player{width:100%;max-height:82vh;border-radius:6px;background:#000;display:block;}
+.intro-video-player[hidden]{display:none;}
+/* tela "Toque para assistir" -- precisa de um clique do jogador ANTES do <video> começar de
+   verdade (ver maybeShowIntroVideo() no <script>) porque o vídeo tem som, e navegador nenhum deixa
+   um <video> começar sozinho já com som sem alguma interação da pessoa antes. */
+.intro-video-click-prompt{
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  color:#f0e6d2;cursor:pointer;user-select:none;
+  padding:70px 50px;
+}
+.intro-video-click-prompt[hidden]{display:none;}
+.intro-video-click-icon{
+  width:72px;height:72px;border-radius:50%;
+  background:rgba(224,182,86,.18);border:2px solid var(--gold-text);
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;color:#e0b656;padding-left:4px;
+  transition:transform .15s ease, background .15s ease;
+}
+.intro-video-click-prompt:hover .intro-video-click-icon{transform:scale(1.08);background:rgba(224,182,86,.28);}
+.intro-video-click-prompt p{font-family:'Cinzel Decorative',serif;font-size:16px;letter-spacing:.03em;margin:0;}
+/* botão "Pular" -- pedido explícito: SEMPRE visível (tanto na tela "Toque para assistir" quanto já
+   com o vídeo tocando), nunca só depois de alguns segundos. */
+.intro-video-skip-btn{
+  position:absolute;top:10px;right:10px;z-index:2;
+  background:rgba(20,14,8,.75);border:1px solid var(--border-brown);
+  color:#f0e6d2;font-size:13px;padding:8px 14px;border-radius:5px;cursor:pointer;
+}
+.intro-video-skip-btn:hover{background:rgba(40,28,16,.9);border-color:#e0b656;}
 .modal-box{
   width:100%;max-width:620px;max-height:82vh;
   overflow-y:auto;
@@ -5341,6 +5379,31 @@ body{
         <li>Gere o token e cole aqui. Ele fica salvo só neste navegador (nunca é enviado a ninguém além do GitHub) — trate-o como uma senha e não o compartilhe no Discord.</li>
       </ol>
     </div>
+  </div>
+</div>
+
+<!-- Vídeo de abertura (só JOGADOR, ver maybeShowIntroVideo() no <script>, perto do login) -- pedido
+     explícito: assim que o jogador loga, ANTES da ficha "aparecer" pra valer, mostra esse vídeo por
+     cima de tudo (a ficha carrega normalmente por baixo, só fica coberta até o vídeo terminar ou
+     ser pulado). O arquivo em si (`40K/intro.mp4`) não fica dentro do HTML (ficaria enorme
+     embutido) -- é um arquivo à parte, subido direto pela interface do GitHub dentro da mesma
+     pasta "40K/" que já guarda as fichas/enredo desta campanha, e lido pelo <video> pelo mesmo
+     mecanismo (Contents API) que já busca qualquer outro arquivo do repositório. Toca TODA vez que
+     o jogador loga (sem lembrar "já vi" -- pedido explícito), com um botão "Pular" sempre visível.
+     Como o vídeo tem som, o navegador bloqueia ele começando sozinho com som sem nenhum clique
+     antes -- por isso a primeira tela pede um toque ("Toque para assistir"), e só depois desse
+     clique o <video> começa de verdade, já liberado a tocar com som normalmente. Se o arquivo
+     ainda não tiver sido subido (ou der qualquer erro ao buscar), maybeShowIntroVideo() não mostra
+     nada e a ficha aparece na hora, do jeito de sempre -- nunca trava ninguém esperando um vídeo
+     que não existe. -->
+<div class="modal-overlay" id="introVideoModal" hidden>
+  <div class="intro-video-box">
+    <button type="button" class="intro-video-skip-btn" id="introVideoSkipBtn">Pular ⏭</button>
+    <div class="intro-video-click-prompt" id="introVideoClickPrompt">
+      <div class="intro-video-click-icon">▶</div>
+      <p>Toque para assistir</p>
+    </div>
+    <video id="introVideoPlayer" class="intro-video-player" playsinline hidden></video>
   </div>
 </div>
 
@@ -10148,6 +10211,71 @@ body{
   // { type:'imagem', dataUrl } na ordem em que o mestre foi adicionando. Mesmo padrão de
   // isolamento por campanha do FICHAS_PATH acima ("40K/" só existe aqui no index_mag.html).
   const ENREDO_PATH = '40K/enredo.json';
+  // Vídeo de abertura (ver #introVideoModal no HTML/maybeShowIntroVideo() mais abaixo, perto do
+  // login) -- pedido explícito: assim que o JOGADOR loga, antes da ficha aparecer automaticamente,
+  // toca esse vídeo (com um clique antes, pra liberar o som -- ver comentário grande em
+  // maybeShowIntroVideo()). Mesmo padrão de isolamento por campanha do FICHAS_PATH acima: fica
+  // dentro da pasta "40K/" só deste index -- pra usar em index_BG.html seria preciso um caminho
+  // próprio lá, não é este. NÃO é buscado/gravado como os outros arquivos desta seção (JSON) --
+  // é só um caminho fixo de onde o vídeo (arquivo binário, subido direto pela interface do GitHub,
+  // fora daqui) é lido via githubGetFileMeta() (Contents API), que devolve um download_url pronto
+  // pro <video> usar, sem precisar saber o nome do branch nem montar a URL bruta na mão.
+  const INTRO_VIDEO_PATH = '40K/intro.mp4';
+  // ---------- vídeo de abertura (ver #introVideoModal no HTML, comentário grande lá com o "porquê"
+  // de cada peça) ---------- chamada uma vez por login (ver onAuthStateChanged() mais abaixo, logo
+  // depois de currentRole virar 'jogador') -- NUNCA é await'ada por quem chama: é só um overlay
+  // visual por cima da ficha, que já pode continuar carregando por baixo (startNewFicha()/
+  // autoLoadOwnFicha() seguem rodando normalmente, sem esperar o vídeo terminar). githubGetFileMeta()
+  // (função de baixo, mesma usada pra ler o sha/conteúdo de qualquer arquivo do repositório) devolve
+  // um download_url pronto pro <video> usar -- se o arquivo ainda não tiver sido subido (404) ou der
+  // qualquer outro erro (rede, limite de leitura do GitHub etc.), a função simplesmente desiste sem
+  // mostrar nada: nunca é aceitável travar alguém numa tela preta esperando um vídeo que não existe
+  // ou não carregou.
+  const introVideoModal = $('introVideoModal');
+  const introVideoPlayer = $('introVideoPlayer');
+  const introVideoClickPrompt = $('introVideoClickPrompt');
+  const introVideoSkipBtn = $('introVideoSkipBtn');
+  function maybeShowIntroVideo(){
+    (async () => {
+      let meta = null;
+      try{
+        meta = await githubGetFileMeta(INTRO_VIDEO_PATH);
+      }catch(err){
+        console.error('Não foi possível carregar o vídeo de abertura:', err);
+      }
+      if(!meta || !meta.download_url) return; // arquivo ainda não subido, ou erro -- ficha aparece normal, sem vídeo nenhum
+      let finished = false;
+      function finish(){
+        if(finished) return; // onended + o clique em Pular podem disparar quase juntos -- só a 1ª chamada conta
+        finished = true;
+        introVideoModal.hidden = true;
+        introVideoPlayer.pause();
+        introVideoPlayer.removeAttribute('src');
+        introVideoPlayer.load(); // libera o download/buffer do navegador -- não faz sentido continuar baixando um vídeo já fechado
+        introVideoPlayer.onended = null;
+      }
+      introVideoSkipBtn.onclick = finish;
+      introVideoPlayer.onended = finish;
+      // reseta pro estado inicial (tela "Toque para assistir") -- cobre o caso de dois logins
+      // seguidos na mesma aba (ex: Sair e entrar de novo) sem os elementos ficarem presos no
+      // estado "já tocando" do login anterior.
+      introVideoPlayer.hidden = true;
+      introVideoPlayer.currentTime = 0;
+      introVideoClickPrompt.hidden = false;
+      introVideoClickPrompt.onclick = ()=>{
+        introVideoClickPrompt.hidden = true;
+        introVideoPlayer.src = meta.download_url;
+        introVideoPlayer.hidden = false;
+        introVideoPlayer.play().catch(err=>{
+          // navegador recusou tocar mesmo depois do clique (raríssimo, mas por segurança) --
+          // melhor deixar a ficha aparecer do que travar numa tela preta sem vídeo nenhum.
+          console.error('Não foi possível tocar o vídeo de abertura:', err);
+          finish();
+        });
+      };
+      introVideoModal.hidden = false;
+    })();
+  }
 
   // Chave do Firebase Realtime Database pro Público/Privado de uma ficha de NPC. As fichas de NPC
   // não têm ownerUid (ver comentário de loadedFichaIsNpc mais acima), então não dá pra reaproveitar
@@ -15712,6 +15840,12 @@ body{
       currentRole = role;
       setLoginGateHidden(true);
       applyRoleVisibility();
+      // pedido explícito, só pro JOGADOR: vídeo de abertura por cima de tudo, assim que loga, antes
+      // da ficha "aparecer" de verdade pra ele -- ver comentário grande de maybeShowIntroVideo() lá
+      // em cima (perto de INTRO_VIDEO_PATH). Não é await'ado de propósito: é só um overlay visual,
+      // a ficha carrega por baixo normalmente (linhas logo abaixo) e só fica coberta até o vídeo
+      // terminar ou ser pulado.
+      if(currentRole === 'jogador') maybeShowIntroVideo();
       // sempre que alguém acessa (login novo ou sessão já logada retomando ao abrir a página), a
       // tela começa em branco (startNewFicha()) — e, se for jogador, autoLoadOwnFicha() tenta logo
       // depois substituir esse branco pela ficha salva dele automaticamente (ver comentário lá).
