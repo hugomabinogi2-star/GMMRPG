@@ -2,23 +2,6 @@
   {
     "nome": "GRUPO",
     "tipo": "dano",
-    "qtd": 5,
-    "maxVal": 5,
-    "bonus": 3,
-    "rolls": [
-      3,
-      2,
-      2,
-      2,
-      1
-    ],
-    "resultado": 13,
-    "habilidade": "Golpe de Espada",
-    "ts": 1788861799373
-  },
-  {
-    "nome": "GRUPO",
-    "tipo": "dano",
     "qtd": 1,
     "maxVal": 5,
     "bonus": 3,
@@ -394,6 +377,20 @@
     "rolls": [
       1,
       12
+    ]
+  },
+  {
+    "nome": "efreet",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 10,
+    "resultado": 14,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1789063877807,
+    "mode": "vantagem",
+    "rolls": [
+      6,
+      14
     ]
   }
 ]
