@@ -5647,6 +5647,29 @@ body{
   // escolha de verdade do mestre e tentaria empurrar de novo pro Firebase, usando o
   // loadedFichaOwnerUid ainda do dono ANTERIOR (esse só é atualizado mais adiante em applyState()).
   let suppressDeidadePush = false;
+  // BUG real corrigido nesta rodada ("elemento sempre sobe como METAL, não importa o escolhido"):
+  // mesa40k/deidade/{uid} é escrito tanto pelo MESTRE (setHeroDeidade(), pra reatribuir de longe)
+  // quanto pelo PRÓPRIO jogador (pushLiveVitals(), só pra manter esse nó sincronizado com a ficha
+  // atual dele) -- e handleDeidadeChange() (o listener que fica plugado nesse nó a sessão INTEIRA,
+  // ver connectDeidadeListener()) aplica QUALQUER valor que chegar por ali, sem distinguir "o
+  // mestre mudou de verdade" de "eco de um valor antigo, de uma ficha anterior dessa mesma conta,
+  // que o Firebase reenviou de novo" (acontece em reconexões, mesmo sem ninguém ter escrito nada
+  // novo). Enquanto o jogador está criando uma ficha NOVA (painel de bolas, ver handler de
+  // #newBtn), o valor local já vira o elemento escolhido, mas o nó no Firebase só é corrigido de
+  // verdade um instante depois (o próprio handler já publica na hora, sem esperar o debounce de
+  // 600ms de pushLiveVitals(), mas ainda é uma viagem assíncrona até o Firebase) -- nessa janela,
+  // se o listener reemitir o valor VELHO ainda gravado lá (de uma ficha ANTERIOR dessa mesma
+  // conta), ele sobrescrevia a escolha por cima, sempre "voltando" pro elemento antigo, não importa
+  // qual bolinha o jogador clicasse -- inclusive antes de clicar em qualquer uma, só de o painel
+  // estar aberto (o tempo que o jogador demora decidindo é imprevisível, então não dá pra usar só
+  // um prazo fixo aqui). deidadeStaleValueToIgnore guarda EXATAMENTE esse valor antigo (capturado
+  // no instante em que "Nova ficha" é clicado, antes do reset) -- handleDeidadeChange() (ver mais
+  // abaixo) ignora só esse valor específico, nunca qualquer valor novo de verdade (ex.: o mestre
+  // trocando o elemento por fora logo em seguida continua funcionando normal, mesmo durante essa
+  // janela) -- e se some sozinho depois de um tempo (setTimeout, ver handler de #newBtn) pra nunca
+  // travar de vez um caso raro (o mestre reatribuir de propósito esse mesmo valor antigo bem mais
+  // tarde, na mesma sessão).
+  let deidadeStaleValueToIgnore = null;
   // chave de dono (donoChave) — igual ao ownerUid acima, só que baseada numa CHAVE própria gerada
   // uma única vez pra cada conta cadastrada (currentUserKey, ver generateAccountKey()/
   // onAuthStateChanged() mais abaixo), em vez do uid do Firebase Auth diretamente. É essa chave que
@@ -10036,6 +10059,18 @@ body{
 
   $('newBtn').addEventListener('click', ()=>{
     if(confirm('Isso vai limpar todos os campos da ficha atual. Deseja continuar?')){
+      // captura o elemento ANTIGO (da ficha que está sendo substituída) ANTES do reset -- ver
+      // comentário grande de "let deidadeStaleValueToIgnore" lá em cima. Some sozinho depois de um
+      // tempo generoso (60s -- cobre com folga o tempo de decidir no pentagrama mais a
+      // ida-e-volta da publicação no Firebase), pra não ficar bloqueando pra sempre um caso raro
+      // (o mestre reatribuir de propósito esse mesmo elemento antigo bem mais tarde, na mesma
+      // sessão) -- só limpa se ninguém tiver criado outra ficha nova (e portanto outro valor a
+      // ignorar) nesse meio-tempo.
+      const deidadeAntiga = els.deidade.value || null;
+      if(deidadeAntiga){
+        deidadeStaleValueToIgnore = deidadeAntiga;
+        setTimeout(()=>{ if(deidadeStaleValueToIgnore === deidadeAntiga) deidadeStaleValueToIgnore = null; }, 60000);
+      }
       startNewFicha();
       // jogador e mestre passam pelos dois mesmos painéis (Elemento em pentagrama, depois Arma em
       // cartões) -- pro mestre, o pentagrama ganha uma 6ª opção roxa bem no centro (ver
@@ -10047,6 +10082,14 @@ body{
       openElementPicker(nome=>{
         els.deidade.value = nome;
         els.deidade.dispatchEvent(new Event('change', { bubbles:true }));
+        // publica na hora (sem esperar o debounce de 600ms de pushLiveVitals()) -- corrige
+        // mesa40k/deidade/{uid} o quanto antes, encurtando ainda mais a janela em que o valor
+        // antigo (deidadeStaleValueToIgnore, ignorado acima em handleDeidadeChange()) poderia
+        // aparecer de novo por aí.
+        if(fbReady && fbDb && currentUser && currentRole === 'jogador'){
+          fbDb.ref('mesa40k/deidade/' + currentUser.uid).set(nome)
+            .catch(err=> console.error('Não foi possível publicar o elemento escolhido:', err));
+        }
         openWeaponPicker(arma=>{
           selectedArma = arma;
           updateArmaBadge();
@@ -15127,6 +15170,11 @@ body{
     // vem um valor de verdade do Firebase.
     const novaDeidade = snap.val();
     if(!novaDeidade) return;
+    // ver o comentário grande de "let deidadeStaleValueToIgnore" lá em cima (perto de
+    // "suppressDeidadePush") -- ignora especificamente o valor ANTIGO capturado ao clicar "Nova
+    // ficha" (bug "sempre volta pro METAL, não importa o escolhido"); qualquer OUTRO valor
+    // (inclusive um novo valor de verdade vindo do mestre) continua aplicando normalmente.
+    if(deidadeStaleValueToIgnore !== null && novaDeidade === deidadeStaleValueToIgnore) return;
     if(els.deidade.value === novaDeidade) return;
     els.deidade.value = novaDeidade;
     // suprime o push de volta pro Firebase (ver "let suppressDeidadePush" mais acima) -- isto já é
