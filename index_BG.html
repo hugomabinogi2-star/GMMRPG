@@ -1156,6 +1156,23 @@ body{
   border-color:var(--gold-bright);
   box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45), 0 0 0 2.5px rgba(224,182,86,.6);
 }
+/* botões de grossura/traço da linha (pedido explícito, Rodada 7) -- mesmo espírito visual dos
+   swatches de cor acima (grupo de botões pequenos, .selected destaca o escolhido), só que
+   retangulares (mostram o próprio caractere ▬/───/╌╌╌ como preview em vez de uma cor). */
+.map-line-width-swatches, .map-line-dash-swatches{display:flex;gap:6px;}
+.map-line-width-swatch, .map-line-dash-swatch{
+  min-width:30px;padding:3px 6px;border-radius:4px;
+  border:2px solid var(--border-brown);
+  background:var(--paper-l);color:var(--ink-soft);
+  font-size:13px;line-height:1;cursor:pointer;
+  transition:transform .12s ease, border-color .15s ease, box-shadow .15s ease, color .15s ease;
+}
+.map-line-width-swatch[data-width="grossa"]{font-size:18px;font-weight:900;}
+.map-line-width-swatch:hover, .map-line-dash-swatch:hover{transform:scale(1.08);}
+.map-line-width-swatch.selected, .map-line-dash-swatch.selected{
+  border-color:var(--gold-bright);color:var(--ink);
+  box-shadow:0 0 0 2.5px rgba(224,182,86,.6);
+}
 .map-wrap{overflow:auto;margin:6px 0 0;}
 .map-zoom-spacer{margin:0 auto;}
 .map-outer{
@@ -1168,6 +1185,14 @@ body{
   background:#0a0a0a;
   overflow:hidden;
   user-select:none;
+  /* pedido explícito: os ícones do mapa (.map-icon-marker abaixo) precisam "respeitar a resolução
+     do mapa" -- antes tinham um tamanho em px FIXO, então quando a tela/#map-outer encolhe (é
+     responsivo, width:100% até o min-width:320px acima) o ícone continua do mesmo tamanho de
+     sempre e passa a parecer gigante perto do mapa. container-type:inline-size transforma este
+     elemento num "container query container": o filho pode usar unidades cqw (% da LARGURA deste
+     container) que acompanham esse encolhimento/crescimento na hora, sem precisar de nenhum JS de
+     resize -- ver o clamp(...cqw...) em .map-icon-marker logo abaixo. */
+  container-type: inline-size;
 }
 /* cursor de mira quando o mestre tem um ícone da paleta armado, ou o modo "Desenhar linha" ligado
    -- os dois deixam claro que o próximo clique/arrasto no mapa em si faz alguma coisa. */
@@ -1184,7 +1209,17 @@ body{
 .map-icon-marker{
   position:absolute;
   transform:translate(-50%,-50%);
+  /* pedido explícito: tamanho relativo à LARGURA do mapa (.map-outer, ver container-type acima),
+     não mais um px fixo -- 56px era o tamanho "bom" no tamanho de referência do mapa (~1640px de
+     largura, 56/1640 ≈ 3.4%), então usa 3.4cqw pra manter essa MESMA proporção em qualquer
+     resolução; o clamp() trava entre 18px (não sumir de tão pequeno num mapa bem encolhido) e 56px
+     (não passar do tamanho original em telas bem largas). Navegador sem suporte a container
+     queries simplesmente ignora a linha do clamp() e fica com os 56px fixos de antes (fallback,
+     por isso a ordem das duas linhas importa: px primeiro, clamp(cqw) depois).
+     Ver 'container-type: inline-size' em .map-outer.
+  */
   width:56px;height:56px;
+  width:clamp(18px, 3.4cqw, 56px);height:clamp(18px, 3.4cqw, 56px);
   cursor:pointer;
 }
 .map-icon-marker img{
@@ -1333,7 +1368,24 @@ body{
   background:rgba(120,85,40,.06);
 }
 .enredo-entry-text{margin:0;font-size:14px;line-height:1.55;color:var(--ink);white-space:pre-line;}
+.enredo-entry-text strong{color:var(--ink);font-weight:700;}
+.enredo-entry-text em{font-style:italic;}
+.enredo-entry-text u{text-decoration:underline;}
+.enredo-titulo{display:block;font-family:'Cinzel Decorative',serif;font-size:19px;font-weight:700;letter-spacing:.03em;color:var(--gold-text);margin:2px 0 6px;}
 .enredo-entry-image{display:block;max-width:100%;border-radius:4px;border:1px solid var(--border-brown);}
+/* barra de formatação (Rodada 7) acima do textarea de texto do Enredo -- envolve a seleção atual
+   com marcadores (** / * / __ / [titulo].../[cor=#..]...) que renderEnredoMarkup() depois converte
+   em HTML de verdade na hora de exibir (ver renderEnredoList() no <script>). */
+.enredo-format-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:6px;}
+.enredo-fmt-btn{min-width:28px;font-size:12px;}
+.enredo-fmt-sep{width:1px;align-self:stretch;background:var(--border-brown);margin:0 2px;}
+.enredo-fmt-color-swatches{display:flex;gap:5px;}
+.enredo-fmt-color-swatch{
+  width:20px;height:20px;border-radius:50%;
+  border:1px solid var(--border-brown);cursor:pointer;padding:0;
+}
+.enredo-fmt-color-swatch:hover{border-color:var(--ink);transform:scale(1.1);}
+.enredo-format-hint{margin:2px 0 8px;font-size:11px;color:var(--ink-faint);}
 .enredo-entry-remove{
   position:absolute;top:8px;right:8px;
   background:none;border:none;color:var(--ink-faint);font-size:14px;cursor:pointer;line-height:1;
@@ -4497,6 +4549,22 @@ body{
       <div class="map-line-color-swatches" id="mapLineColorSwatches">
         <button type="button" class="map-line-color-swatch" data-color="white" style="background:#ffffff" title="Linha branca" aria-label="Linha branca"></button>
         <button type="button" class="map-line-color-swatch" data-color="black" style="background:#000000" title="Linha preta" aria-label="Linha preta"></button>
+        <!-- pedido explícito ("adicione a cor vermelha as linhas"): 3ª cor, mesmo padrão dos 2
+             swatches de sempre -- ver MAP_LINE_COLORS/applyMapLineColorSwatchSelection() no <script>. -->
+        <button type="button" class="map-line-color-swatch" data-color="red" style="background:#c43026" title="Linha vermelha" aria-label="Linha vermelha"></button>
+      </div>
+      <!-- pedido explícito ("a opção pra deixar ela mais grossa"): grossura da linha, mesmo padrão
+           de botão-grupo com classe .selected alternando -- ver mapState.lineWidth/
+           MAP_LINE_WIDTHS/applyMapLineWidthSelection() no <script>. -->
+      <div class="map-line-width-swatches" id="mapLineWidthSwatches">
+        <button type="button" class="map-line-width-swatch" data-width="fina" title="Linha fina" aria-label="Linha fina">▬</button>
+        <button type="button" class="map-line-width-swatch" data-width="grossa" title="Linha grossa" aria-label="Linha grossa">▬</button>
+      </div>
+      <!-- pedido explícito ("reta ou talhada tipo -------"): traço sólido vs tracejado -- mesmo
+           padrão de botão-grupo, ver mapState.lineDash/applyMapLineDashSelection() no <script>. -->
+      <div class="map-line-dash-swatches" id="mapLineDashSwatches">
+        <button type="button" class="map-line-dash-swatch" data-dash="solida" title="Linha reta (sólida)" aria-label="Linha reta">───</button>
+        <button type="button" class="map-line-dash-swatch" data-dash="tracejada" title="Linha talhada (tracejada)" aria-label="Linha tracejada">╌╌╌</button>
       </div>
       <button type="button" id="mapDrawModeBtn" class="board-mode-toggle" aria-pressed="false">
         <span class="board-mode-toggle-name">✏️ Desenhar linha</span>
@@ -4554,7 +4622,21 @@ body{
         <button type="button" class="mini-btn danger-row-btn" id="enredoCancelChoiceBtn">Cancelar</button>
       </div>
       <div class="enredo-add-text" id="enredoAddTextBox" hidden>
+        <div class="enredo-format-toolbar" id="enredoFormatToolbar">
+          <button type="button" class="mini-btn enredo-fmt-btn" id="enredoFmtBoldBtn" title="Negrito (envolve **assim**)" aria-label="Negrito"><b>N</b></button>
+          <button type="button" class="mini-btn enredo-fmt-btn" id="enredoFmtItalicBtn" title="Itálico (envolve *assim*)" aria-label="Itálico"><i>I</i></button>
+          <button type="button" class="mini-btn enredo-fmt-btn" id="enredoFmtUnderlineBtn" title="Sublinhado (envolve __assim__)" aria-label="Sublinhado"><u>S</u></button>
+          <button type="button" class="mini-btn enredo-fmt-btn" id="enredoFmtTituloBtn" title="Título (texto maior, pra cabeçalhos)" aria-label="Título">Título</button>
+          <span class="enredo-fmt-sep"></span>
+          <div class="enredo-fmt-color-swatches" id="enredoFmtColorSwatches">
+            <button type="button" class="enredo-fmt-color-swatch" data-color="#e0b656" style="background:#e0b656" title="Cor: dourado" aria-label="Cor dourada"></button>
+            <button type="button" class="enredo-fmt-color-swatch" data-color="#c43026" style="background:#c43026" title="Cor: vermelho" aria-label="Cor vermelha"></button>
+            <button type="button" class="enredo-fmt-color-swatch" data-color="#3a7fc4" style="background:#3a7fc4" title="Cor: azul" aria-label="Cor azul"></button>
+            <button type="button" class="enredo-fmt-color-swatch" data-color="#4a9e5c" style="background:#4a9e5c" title="Cor: verde" aria-label="Cor verde"></button>
+          </div>
+        </div>
         <textarea id="enredoTextInput" rows="4" placeholder="Escreva aqui um trecho da história..."></textarea>
+        <p class="enredo-format-hint">Selecione um trecho do texto acima e clique num botão pra formatar (ou digite os símbolos direto: **negrito**, *itálico*, __sublinhado__).</p>
         <div class="enredo-add-actions">
           <button type="button" class="add-row-btn" id="enredoConfirmTextBtn">Adicionar</button>
           <button type="button" class="add-row-btn danger-row-btn" id="enredoCancelTextBtn">Cancelar</button>
@@ -11784,6 +11866,11 @@ body{
   const mapBgChooseBtn  = $('mapBgChooseBtn');
   const mapIconPalette  = $('mapIconPalette');
   const mapLineColorSwatches = document.querySelectorAll('.map-line-color-swatch');
+  // pedido explícito, Rodada 7: grossura/traço da linha do mapa (ver MAP_LINE_WIDTHS/MAP_LINE_DASHES
+  // e applyMapLineWidthSelection()/applyMapLineDashSelection() mais abaixo) -- mesmo padrão de
+  // botão-grupo dos swatches de cor logo acima.
+  const mapLineWidthSwatches = document.querySelectorAll('.map-line-width-swatch');
+  const mapLineDashSwatches = document.querySelectorAll('.map-line-dash-swatch');
   const mapDrawModeBtn  = $('mapDrawModeBtn');
   const mapClearLinesBtn = $('mapClearLinesBtn');
   const mapOuterEl      = $('mapOuter');
@@ -11793,7 +11880,20 @@ body{
   const mapLinesSvgEl   = $('mapLinesSvg');
   const mapIconsLayerEl = $('mapIconsLayer');
 
-  let mapState = { background: null, lineColor: 'white', icons: {}, lines: {} };
+  // cor/grossura/traço de cada linha são gravados por NOME (ex. 'red'/'grossa'/'tracejada') dentro
+  // de cada mapState.lines[id], nunca o valor CSS/SVG final -- essas 3 tabelas fazem a tradução na
+  // hora de desenhar (ver renderMapView() mais abaixo), then igual já era feito pro branco/preto
+  // antes (ternário inline, agora virou lookup pra caber a cor nova). Uma linha salva ANTES desta
+  // rodada não tem width/dash gravado nenhum -- cai no padrão ('fina'/'solida') pelos `|| 'fina'`/
+  // `|| 'solida'` na leitura, mantendo o visual de sempre pra qualquer mapa já salvo.
+  const MAP_LINE_COLORS = { white:'#ffffff', black:'#000000', red:'#c43026' };
+  const MAP_LINE_WIDTHS = { fina:'0.6', grossa:'1.6' };
+  // dasharray em unidades do viewBox 0-100 (mesma escala dos pontos da linha, ver pointerdown mais
+  // abaixo) -- combinado com vector-effect="non-scaling-stroke" (já existia, mantido) o traço fica
+  // com a MESMA densidade visual em qualquer zoom/tamanho de mapa, igual a grossura.
+  const MAP_LINE_DASHES = { solida:null, tracejada:'2.4,1.8' };
+
+  let mapState = { background: null, lineColor: 'white', lineWidth: 'fina', lineDash: 'solida', icons: {}, lines: {} };
   let mapArmedIconKind = null; // kind da paleta "armado", esperando um clique no mapa pra colocar (só mestre)
   let mapDrawMode = false;     // "Desenhar linha" ligado (só mestre)
   let mapDrawingLine = null;   // {id, points:[...]} enquanto o mouse está sendo arrastado
@@ -11847,8 +11947,14 @@ body{
       const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
       poly.setAttribute('points', pts);
       poly.setAttribute('fill', 'none');
-      poly.setAttribute('stroke', line.color === 'black' ? '#000' : '#fff');
-      poly.setAttribute('stroke-width', '0.6');
+      // pedido explícito, Rodada 7: cor (agora com vermelho)/grossura/traço lidos das 3 tabelas de
+      // tradução (MAP_LINE_COLORS/MAP_LINE_WIDTHS/MAP_LINE_DASHES, logo no início da seção Mapa) --
+      // os `|| 'fina'`/`|| 'solida'` cobrem linhas salvas ANTES desta rodada, sem width/dash
+      // gravado (mantém o visual fino/sólido de sempre pra elas).
+      poly.setAttribute('stroke', MAP_LINE_COLORS[line.color] || '#fff');
+      poly.setAttribute('stroke-width', MAP_LINE_WIDTHS[line.width || 'fina'] || MAP_LINE_WIDTHS.fina);
+      const dashArray = MAP_LINE_DASHES[line.dash || 'solida'];
+      if(dashArray) poly.setAttribute('stroke-dasharray', dashArray);
       poly.setAttribute('stroke-linecap', 'round');
       poly.setAttribute('stroke-linejoin', 'round');
       poly.setAttribute('vector-effect', 'non-scaling-stroke');
@@ -11923,7 +12029,7 @@ body{
     const { x, y } = mapClientToPercent(e.clientX, e.clientY);
     const id = 'line' + (mapLineIdCounter++);
     mapDrawingLine = { id: id, points: [{x:x, y:y}] };
-    mapState.lines[id] = { points: mapDrawingLine.points, color: mapState.lineColor };
+    mapState.lines[id] = { points: mapDrawingLine.points, color: mapState.lineColor, width: mapState.lineWidth, dash: mapState.lineDash };
     renderMapView();
   });
   mapOuterEl.addEventListener('pointermove', (e)=>{
@@ -11977,6 +12083,31 @@ body{
     });
   });
   applyMapLineColorSwatchSelection();
+
+  // pedido explícito, Rodada 7: grossura/traço da PRÓXIMA linha a ser desenhada -- mesmo padrão
+  // de botão-grupo/estado do color swatch logo acima (mapState.lineWidth/lineDash já ficam
+  // gravados junto com cada linha no pointerdown, ver mapOuterEl.addEventListener('pointerdown',...)).
+  function applyMapLineWidthSelection(){
+    mapLineWidthSwatches.forEach(s=> s.classList.toggle('selected', s.dataset.width === mapState.lineWidth));
+  }
+  mapLineWidthSwatches.forEach(sw=>{
+    sw.addEventListener('click', ()=>{
+      mapState.lineWidth = sw.dataset.width;
+      applyMapLineWidthSelection();
+    });
+  });
+  applyMapLineWidthSelection();
+
+  function applyMapLineDashSelection(){
+    mapLineDashSwatches.forEach(s=> s.classList.toggle('selected', s.dataset.dash === mapState.lineDash));
+  }
+  mapLineDashSwatches.forEach(sw=>{
+    sw.addEventListener('click', ()=>{
+      mapState.lineDash = sw.dataset.dash;
+      applyMapLineDashSelection();
+    });
+  });
+  applyMapLineDashSelection();
 
   mapBgChooseBtn.addEventListener('click', ()=> mapBgInput.click());
   mapBgInput.addEventListener('change', (e)=>{
@@ -12116,6 +12247,8 @@ body{
     mapModal.hidden = false;
     renderMapPalette();
     applyMapLineColorSwatchSelection();
+    applyMapLineWidthSelection();
+    applyMapLineDashSelection();
     // rede de segurança: normalmente já rodou no login (ver hydrateMapOnce() acima), mas se por
     // algum motivo isso ainda não tiver terminado (login lento, por exemplo), garante aqui também
     // -- hydrateMapOnce() já se protege sozinha contra rodar 2 vezes.
@@ -12157,6 +12290,11 @@ body{
   const enredoConfirmImageBtn = $('enredoConfirmImageBtn');
   const enredoCancelImageBtn = $('enredoCancelImageBtn');
   const enredoHint         = $('enredoHint');
+  const enredoFmtBoldBtn      = $('enredoFmtBoldBtn');
+  const enredoFmtItalicBtn    = $('enredoFmtItalicBtn');
+  const enredoFmtUnderlineBtn = $('enredoFmtUnderlineBtn');
+  const enredoFmtTituloBtn    = $('enredoFmtTituloBtn');
+  const enredoFmtColorSwatches = $('enredoFmtColorSwatches');
 
   let enredoData = { entries: [] };
   let enredoSha = null; // sha do arquivo no GitHub (null = arquivo ainda não existe lá)
@@ -12174,6 +12312,22 @@ body{
     enredoHint.textContent = 'Alterações não salvas — clique em "💾 Salvar" pra gravar de vez.';
   }
 
+  // Rodada 7: formatação de texto no Enredo. O texto digitado pelo mestre é escapado primeiro
+  // (escapeHtml(), a mesma função usada no resto do app) -- então NENHUM HTML de verdade digitado
+  // por ele jamais passa puro. Só DEPOIS de escapado é que aplicamos uma lista fixa (whitelist) de
+  // substituições por regex pra virar marcação segura: **negrito**, *itálico*, __sublinhado__,
+  // [titulo]...[/titulo] (cabeçalho maior) e [cor=#RRGGBB]...[/cor] (a cor só aceita um hex de 3 ou
+  // 6 dígitos -- nunca um valor de CSS arbitrário, então não dá pra injetar nada além de cor).
+  function renderEnredoMarkup(text){
+    let html = escapeHtml(text);
+    html = html.replace(/\*\*([\s\S]+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*([\s\S]+?)\*/g, '<em>$1</em>');
+    html = html.replace(/__([\s\S]+?)__/g, '<u>$1</u>');
+    html = html.replace(/\[cor=(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6})\]([\s\S]+?)\[\/cor\]/g, '<span style="color:$1">$2</span>');
+    html = html.replace(/\[titulo\]([\s\S]+?)\[\/titulo\]/g, '<span class="enredo-titulo">$1</span>');
+    return html;
+  }
+
   function renderEnredoList(){
     enredoList.innerHTML = '';
     const entries = enredoData.entries || [];
@@ -12188,11 +12342,12 @@ body{
         img.alt = '';
         row.appendChild(img);
       } else {
-        // textContent (não innerHTML) -- o texto do mestre nunca vira HTML de verdade, só é
-        // exibido como texto puro, mesmo que ele digite algo parecido com uma tag.
+        // innerHTML (Rodada 7) -- mas passando SEMPRE por renderEnredoMarkup() acima, que escapa
+        // o texto original antes de aplicar a whitelist de formatação, então continua impossível o
+        // mestre injetar HTML de verdade digitando algo parecido com uma tag.
         const p = document.createElement('p');
         p.className = 'enredo-entry-text';
-        p.textContent = entry.text;
+        p.innerHTML = renderEnredoMarkup(entry.text);
         row.appendChild(p);
       }
       if(currentRole === 'mestre'){
@@ -12310,6 +12465,29 @@ body{
     renderEnredoList();
     markEnredoDirty();
     resetEnredoAddUI();
+  });
+
+  // envolve o trecho selecionado no textarea com os marcadores de formatação (ou, sem nada
+  // selecionado, insere um "texto" de exemplo já envolvido e selecionado, pra digitar por cima) --
+  // mesma ideia de qualquer editor com botões de B/I/U, só que os marcadores aqui são texto puro
+  // (**assim**) que renderEnredoMarkup() converte em HTML de verdade na hora de exibir.
+  function wrapEnredoSelection(before, after){
+    const start = enredoTextInput.selectionStart;
+    const end = enredoTextInput.selectionEnd;
+    const val = enredoTextInput.value;
+    const selected = val.slice(start, end);
+    const miolo = selected || 'texto';
+    enredoTextInput.value = val.slice(0, start) + before + miolo + after + val.slice(end);
+    const novoInicio = start + before.length;
+    enredoTextInput.focus();
+    enredoTextInput.setSelectionRange(novoInicio, novoInicio + miolo.length);
+  }
+  enredoFmtBoldBtn.addEventListener('click', ()=> wrapEnredoSelection('**', '**'));
+  enredoFmtItalicBtn.addEventListener('click', ()=> wrapEnredoSelection('*', '*'));
+  enredoFmtUnderlineBtn.addEventListener('click', ()=> wrapEnredoSelection('__', '__'));
+  enredoFmtTituloBtn.addEventListener('click', ()=> wrapEnredoSelection('[titulo]', '[/titulo]'));
+  enredoFmtColorSwatches.querySelectorAll('.enredo-fmt-color-swatch').forEach(swatch=>{
+    swatch.addEventListener('click', ()=> wrapEnredoSelection(`[cor=${swatch.dataset.color}]`, '[/cor]'));
   });
 
   enredoChooseImageBtn.addEventListener('click', ()=>{
