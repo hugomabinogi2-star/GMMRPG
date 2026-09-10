@@ -58,5 +58,19 @@
       18,
       18
     ]
+  },
+  {
+    "nome": "anna",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 8,
+    "resultado": 17,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1789070212984,
+    "mode": "vantagem",
+    "rolls": [
+      17,
+      1
+    ]
   }
 ]
