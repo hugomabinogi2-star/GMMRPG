@@ -2,13 +2,6 @@
   {
     "nome": "TESTE",
     "tipo": "movimento",
-    "de": "B3",
-    "para": "C3",
-    "ts": 1788810520353
-  },
-  {
-    "nome": "TESTE",
-    "tipo": "movimento",
     "de": "C3",
     "para": "D3",
     "ts": 1788819764019
@@ -356,5 +349,21 @@
     "atributo": null,
     "grito": null,
     "ts": 1789033899635
+  },
+  {
+    "nome": "oi",
+    "tipo": "dano",
+    "qtd": 2,
+    "maxVal": 8,
+    "bonus": 0,
+    "rolls": [
+      8,
+      7
+    ],
+    "resultado": 15,
+    "habilidade": "Ataque Duplo",
+    "atributo": null,
+    "grito": null,
+    "ts": 1789033911715
   }
 ]
