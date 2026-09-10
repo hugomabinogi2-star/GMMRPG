@@ -44,5 +44,19 @@
     "resultado": 10,
     "resultLabel": "Erro",
     "ts": 1789070206530
+  },
+  {
+    "nome": "anna",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 8,
+    "resultado": 18,
+    "resultLabel": "Acerto — Desvantagem",
+    "ts": 1789070209734,
+    "mode": "desvantagem",
+    "rolls": [
+      18,
+      18
+    ]
   }
 ]
