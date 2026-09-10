@@ -1,12 +1,5 @@
 [
   {
-    "nome": "TESTE",
-    "tipo": "movimento",
-    "de": "B3",
-    "para": "C3",
-    "ts": 1788820910218
-  },
-  {
     "nome": "GRUPO",
     "tipo": "atributo",
     "statKey": "for",
@@ -380,6 +373,17 @@
     "resultado": 10,
     "resultLabel": "Erro",
     "ts": 1789054815510,
+    "habilidade": "Ataque Duplo",
+    "habilidadeDesc": "Realiza dois ataques em um mesmo inimigo.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 11,
+    "resultLabel": "Erro",
+    "ts": 1789054822136,
     "habilidade": "Ataque Duplo",
     "habilidadeDesc": "Realiza dois ataques em um mesmo inimigo.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
   }
