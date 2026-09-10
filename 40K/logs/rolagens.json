@@ -225,5 +225,24 @@
     ],
     "habilidade": "Ataque de Espada Pesada",
     "habilidadeDesc": "Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "efreet",
+    "tipo": "dano",
+    "qtd": 5,
+    "maxVal": 3,
+    "bonus": 5,
+    "rolls": [
+      3,
+      2,
+      2,
+      1,
+      1
+    ],
+    "resultado": 14,
+    "habilidade": "Ataque de Espada Pesada",
+    "atributo": null,
+    "grito": null,
+    "ts": 1789073512264
   }
 ]
