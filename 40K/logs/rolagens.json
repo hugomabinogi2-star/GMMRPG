@@ -4,22 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 6,
-    "resultado": 18,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1788861712210,
-    "mode": "vantagem",
-    "rolls": [
-      14,
-      18
-    ],
-    "habilidade": "Golpe de Espada",
-    "habilidadeDesc": "Ataca o quadro imediatamente à sua frente.\nDano: 1d3 + bônus de FOR (aumenta 1 dado por nível)."
-  },
-  {
-    "nome": "GRUPO",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 6,
     "resultado": 2,
     "resultLabel": "Erro",
     "ts": 1788861716405,
@@ -400,5 +384,19 @@
     "resultado": 7,
     "resultLabel": "Erro",
     "ts": 1789057512033
+  },
+  {
+    "nome": "SILPHIDE",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 12,
+    "resultado": 7,
+    "resultLabel": "Erro — Desvantagem",
+    "ts": 1789057597915,
+    "mode": "desvantagem",
+    "rolls": [
+      10,
+      7
+    ]
   }
 ]
