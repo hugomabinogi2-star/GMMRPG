@@ -35,5 +35,14 @@
       1,
       9
     ]
+  },
+  {
+    "nome": "anna",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 8,
+    "resultado": 10,
+    "resultLabel": "Erro",
+    "ts": 1789070206530
   }
 ]
