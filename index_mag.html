@@ -3333,11 +3333,31 @@ body{
   margin:4px 0 16px;padding-right:4px;
 }
 .hab-levelup-card{
+  display:flex;align-items:flex-start;gap:10px;
   border:1px solid var(--gold-text);border-radius:6px;padding:8px 10px;
   background:#000;cursor:pointer;text-align:left;
   transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
 }
 .hab-levelup-card:hover{border-color:#e0b656;box-shadow:0 0 8px rgba(224,182,86,.4);}
+/* ícone da arma/elemento associado (Rodada nova, pedido explícito) -- WEAPON_ICON_IMG ou
+   ELEMENT_ICON_IMG, ver __iconImg em getAllHabAbilitiesForFicha()/openHabLevelUpPanel() no
+   <script>; nunca some (flex-shrink:0), mesmo com texto/descrição longos ao lado. */
+.hab-levelup-card-icon{
+  width:40px;height:40px;flex:0 0 40px;
+  border-radius:6px;object-fit:cover;
+  border:1px solid var(--border-brown);background:#111;
+}
+.hab-levelup-card-body{flex:1 1 auto;min-width:0;}
+/* habilidade elemental ganha o mesmo contorno iluminado na cor do elemento que já existe na aba
+   Elemento (ver .hab-row-elemento-glow acima) -- aqui no painel "Escolha uma Habilidade" também
+   (pedido explícito). Cor/sombra chegam por variável CSS (setadas no <script>, uma por card) em
+   vez de direto no style, assim a classe de "selecionada" abaixo (mesma especificidade, declarada
+   depois) continua vencendo o brilho elemental quando o card estiver marcado. */
+.hab-levelup-card.hab-levelup-card-elemento-glow{
+  border-width:2px;
+  border-color:var(--levelup-glow-color, var(--gold-text));
+  box-shadow:var(--levelup-glow-shadow, none);
+}
 .hab-levelup-card.hab-levelup-card-selected{
   border-color:#e0b656;border-width:2px;
   box-shadow:0 0 12px rgba(224,182,86,.75), inset 0 0 8px rgba(224,182,86,.25);
@@ -8640,24 +8660,37 @@ body{
   // escolha de subida de nível (openHabLevelUpPanel() mais abaixo, que precisa da MESMA lista
   // completa, nível 0 incluso, pra oferecer como opção) -- extraído pra função própria só pra não
   // duplicar essa montagem nos dois lugares.
+  // junta as habilidades de uma arma específica já marcando __iconImg (o ícone da PRÓPRIA arma,
+  // WEAPON_ICON_IMG -- não confundir com hab.imagem, a ilustração de alcance/área de cada
+  // habilidade) -- usado pelo painel "Escolha uma Habilidade" (openHabLevelUpPanel()) pra mostrar
+  // de qual arma cada opção vem.
+  function tagArmaAbilities(weaponKey){
+    if(!weaponKey || !WEAPON_ABILITIES[weaponKey]) return [];
+    const icon = WEAPON_ICON_IMG[weaponKey] || null;
+    return WEAPON_ABILITIES[weaponKey].map(hab => Object.assign({}, hab, { __iconImg: icon }));
+  }
   function getAllHabAbilitiesForFicha(){
     // Armamento: junta a 1ª arma com a 2ª/3ª (Rank B/A, ver maybeOfferRankUpgrade()) -- todas na
     // mesma aba, sem distinção visual entre elas (só as próprias habilidades de cada uma).
     const armaAbilities = []
-      .concat((typeof selectedArma !== 'undefined' && WEAPON_ABILITIES[selectedArma]) || [])
-      .concat((typeof selectedArma2 !== 'undefined' && WEAPON_ABILITIES[selectedArma2]) || [])
-      .concat((typeof selectedArma3 !== 'undefined' && WEAPON_ABILITIES[selectedArma3]) || []);
+      .concat(tagArmaAbilities(typeof selectedArma !== 'undefined' ? selectedArma : null))
+      .concat(tagArmaAbilities(typeof selectedArma2 !== 'undefined' ? selectedArma2 : null))
+      .concat(tagArmaAbilities(typeof selectedArma3 !== 'undefined' ? selectedArma3 : null));
     // Elemento: TODAS as linhas (1º elemento E 2º elemento, Rank S) ganham __corFundo = cor do
     // respectivo elemento -- renderHabilidadesTab() usa isso pra desenhar um contorno iluminado
     // (borda + brilho) na cor de cada uma, por cima do fundo preto padrão (pedido explícito,
     // Rodada 7). As cores reativas da ficha inteira (--deity-eye-color etc, aba inteira inclusive)
-    // continuam presas só ao 1º elemento -- isto aqui nunca toca nelas, só pinta o contorno.
+    // continuam presas só ao 1º elemento -- isto aqui nunca toca nelas, só pinta o contorno. Cada
+    // linha também ganha __iconImg (ELEMENT_ICON_IMG do respectivo elemento) pelo mesmo motivo do
+    // __iconImg de Armamento acima.
     const elemento1Cor = DEITY_EYE_COLOR[els.deidade.value] || null;
+    const elemento1Icon = ELEMENT_ICON_IMG[els.deidade.value] || null;
     const elemento1Abilities = (ELEMENT_ABILITIES[els.deidade.value] || [])
-      .map(hab => Object.assign({}, hab, { __corFundo: elemento1Cor }));
+      .map(hab => Object.assign({}, hab, { __corFundo: elemento1Cor, __iconImg: elemento1Icon }));
     const elemento2Cor = (typeof selectedElemento2 !== 'undefined' && selectedElemento2) ? DEITY_EYE_COLOR[selectedElemento2] : null;
+    const elemento2Icon = (typeof selectedElemento2 !== 'undefined' && selectedElemento2) ? (ELEMENT_ICON_IMG[selectedElemento2] || null) : null;
     const elemento2Abilities = ((typeof selectedElemento2 !== 'undefined' && selectedElemento2) ? (ELEMENT_ABILITIES[selectedElemento2] || []) : [])
-      .map(hab => Object.assign({}, hab, { __corFundo: elemento2Cor }));
+      .map(hab => Object.assign({}, hab, { __corFundo: elemento2Cor, __iconImg: elemento2Icon }));
     const elementoAbilities = elemento1Abilities.concat(elemento2Abilities);
     const armaEmptyMsg = (typeof selectedArma !== 'undefined' && selectedArma)
       ? 'Nenhuma habilidade definida ainda para esta arma.'
@@ -8733,6 +8766,28 @@ body{
       card.type = 'button';
       card.className = 'hab-levelup-card';
       card.dataset.habId = hab.id;
+      // ícone da arma (Armamento) ou do elemento (Elemento) associado a esta opção, à esquerda do
+      // texto -- __iconImg vem de getAllHabAbilitiesForFicha() (WEAPON_ICON_IMG/ELEMENT_ICON_IMG),
+      // pedido explícito pra identificar de relance de onde vem cada habilidade da lista.
+      if(hab.__iconImg){
+        const iconEl = document.createElement('img');
+        iconEl.className = 'hab-levelup-card-icon';
+        iconEl.src = hab.__iconImg;
+        iconEl.alt = '';
+        card.appendChild(iconEl);
+      }
+      // habilidade elemental (__corFundo, mesmo cálculo da aba Elemento -- ver renderHabilidadesTab
+      // acima) ganha o mesmo contorno iluminado na cor do elemento aqui no painel também (pedido
+      // explícito) -- usa variáveis CSS em vez de border-color/box-shadow direto no style pra não
+      // atropelar o destaque dourado de "selecionada" (.hab-levelup-card-selected), que tem
+      // prioridade normal de cascata sobre a classe de brilho (ver <style>).
+      if(hab.__corFundo){
+        card.classList.add('hab-levelup-card-elemento-glow');
+        card.style.setProperty('--levelup-glow-color', hab.__corFundo);
+        card.style.setProperty('--levelup-glow-shadow', `0 0 9px ${hexToRgba(hab.__corFundo, .8)}, inset 0 0 7px ${hexToRgba(hab.__corFundo, .3)}`);
+      }
+      const body = document.createElement('div');
+      body.className = 'hab-levelup-card-body';
       const head = document.createElement('div');
       head.className = 'hab-levelup-card-head';
       const nomeEl = document.createElement('span');
@@ -8745,7 +8800,8 @@ body{
       const descEl = document.createElement('div');
       descEl.className = 'hab-levelup-card-desc';
       descEl.textContent = hab.desc || '(sem descrição)';
-      card.append(head, descEl);
+      body.append(head, descEl);
+      card.appendChild(body);
       card.addEventListener('click', ()=>{
         habLevelUpSelectedId = hab.id;
         habLevelUpList.querySelectorAll('.hab-levelup-card').forEach(c=> c.classList.toggle('hab-levelup-card-selected', c === card));
