@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 10,
-    "resultado": 11,
-    "resultLabel": "Acerto",
-    "ts": 1789073451283
-  },
-  {
-    "nome": "efreet",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 10,
     "resultado": 4,
     "resultLabel": "Erro",
     "ts": 1789073453931
@@ -306,5 +297,12 @@
     "de": "I2",
     "para": "C2",
     "ts": 1789163280505
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "C2",
+    "para": "I2",
+    "ts": 1789163332782
   }
 ]
