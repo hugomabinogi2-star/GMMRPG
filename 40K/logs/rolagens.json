@@ -1,22 +1,5 @@
 [
   {
-    "nome": "anna",
-    "tipo": "dano",
-    "qtd": 3,
-    "maxVal": 3,
-    "bonus": 4,
-    "rolls": [
-      2,
-      2,
-      1
-    ],
-    "resultado": 9,
-    "habilidade": "Ataque de Espada Pesada",
-    "atributo": null,
-    "grito": null,
-    "ts": 1789122608956
-  },
-  {
     "nome": "efreet",
     "tipo": "atributo",
     "statKey": "des",
@@ -261,6 +244,20 @@
     "rolls": [
       17,
       12
+    ]
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico — Desvantagem",
+    "ts": 1789166898547,
+    "mode": "desvantagem",
+    "rolls": [
+      1,
+      4
     ]
   }
 ]
