@@ -3950,6 +3950,7 @@ body{
                 <div class="mod-row"><span class="lbl">VON</span><input type="number" id="m_von" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_von" data-dir="-1" aria-label="Diminuir modificador de VON">−</button><button type="button" class="mod-step-btn" data-target="m_von" data-dir="1" aria-label="Aumentar modificador de VON">+</button></div></div>
                 <div class="mod-row"><span class="lbl">CAR</span><input type="number" id="m_car" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_car" data-dir="-1" aria-label="Diminuir modificador de CAR">−</button><button type="button" class="mod-step-btn" data-target="m_car" data-dir="1" aria-label="Aumentar modificador de CAR">+</button></div></div>
                 <div class="mod-row"><span class="lbl ar-ap-tip">DANO<div class="cs-tooltip">Soma ao tamanho de TODO dado de dano rolado (ex.: 1d6 com +1 vira 1d7)</div></span><input type="number" id="m_dano" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_dano" data-dir="-1" aria-label="Diminuir modificador de Dano">−</button><button type="button" class="mod-step-btn" data-target="m_dano" data-dir="1" aria-label="Aumentar modificador de Dano">+</button></div></div>
+                <div class="mod-row"><span class="lbl ar-ap-tip">MOVIMENTO<div class="cs-tooltip">Soma/subtrai casas de verdade no alcance de movimento do Tabuleiro ao Vivo — não muda o alcance de visão</div></span><input type="number" id="m_mov" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_mov" data-dir="-1" aria-label="Diminuir modificador de Movimento">−</button><button type="button" class="mod-step-btn" data-target="m_mov" data-dir="1" aria-label="Aumentar modificador de Movimento">+</button></div></div>
               </div>
             </div>
 
@@ -4928,7 +4929,7 @@ body{
     nome:$('f_nome'), deidade:$('f_deidade'), alinhamento:$('f_alinhamento'), publica:$('f_publica'),
     xp:$('f_xp'), historia:$('f_historia'),
     bFor:$('b_for'), bCon:$('b_con'), bDes:$('b_des'), bInt:$('b_int'), bVon:$('b_von'), bCar:$('b_car'),
-    mAr:$('m_ar'), mAp:$('m_ap'), mVida:$('m_vida'), mMana:$('m_mana'), mDano:$('m_dano'), mFor:$('m_for'), mCon:$('m_con'), mDes:$('m_des'), mInt:$('m_int'), mVon:$('m_von'), mCar:$('m_car'),
+    mAr:$('m_ar'), mAp:$('m_ap'), mVida:$('m_vida'), mMana:$('m_mana'), mDano:$('m_dano'), mMov:$('m_mov'), mFor:$('m_for'), mCon:$('m_con'), mDes:$('m_des'), mInt:$('m_int'), mVon:$('m_von'), mCar:$('m_car'),
     curVida:$('cur_vida'), curMana:$('cur_mana'),
     tFor:$('t_for_num'), tCon:$('t_con_num'), tDes:$('t_des_num'), tInt:$('t_int_num'), tVon:$('t_von_num'), tCar:$('t_car_num'),
     boFor:$('bo_for'), boCon:$('bo_con'), boDes:$('bo_des'), boInt:$('bo_int'), boVon:$('bo_von'), boCar:$('bo_car'),
@@ -5785,6 +5786,15 @@ body{
       // abaixo) não teria como o mini-tabuleiro ao vivo saber o limite de movimento dela até a
       // primeira vez que for salva de verdade.
       payload.bonusDes = Math.floor((totals.des || 0) / 2);
+      // Modificador de Movimento (#m_mov, guia Modificadores) — pedido explícito: "funcional, soma/
+      // subtrai quadros de verdade no tabuleiro". Ao contrário do bonusDes acima (calculado a partir
+      // do Atributo DES), este é um valor livre, direto do modificador (mesmo esquema de #m_dano,
+      // que soma direto ao tamanho do dado de dano) — soma-se por CIMA de bonusDes só no cálculo do
+      // ALCANCE DE MOVIMENTO (ver highlightLiveBoardReachable()/handleLiveBoardDrop() no <script>),
+      // nunca no alcance de VISÃO/Fog (computeFogReachableKeys() continua usando só bonusDes puro,
+      // sem nenhuma referência a bonusMov) — pedido explícito: mexer no Movimento não pode mudar a
+      // visão.
+      payload.bonusMov = num(els.mMov) || 0;
       // divindade atual da ficha — mesmo motivo do bonusDes acima: sem isto, uma ficha nunca salva
       // (liveOnlyRosterEntries()) não teria como a seta de direção do tabuleiro ao vivo saber a cor.
       payload.deidade = els.deidade ? (els.deidade.value || '') : '';
@@ -7791,7 +7801,7 @@ body{
       publica: els.publica.value,
       xp: els.xp.dataset.total || 0, historia: els.historia.value,
       base: { for: els.bFor.value, con: els.bCon.value, des: els.bDes.value, int: els.bInt.value, von: els.bVon.value, car: els.bCar.value },
-      mods: { ar: els.mAr.value, ap: els.mAp.value, vida: els.mVida.value, mana: els.mMana.value, dano: els.mDano.value, for: els.mFor.value, con: els.mCon.value, des: els.mDes.value, int: els.mInt.value, von: els.mVon.value, car: els.mCar.value },
+      mods: { ar: els.mAr.value, ap: els.mAp.value, vida: els.mVida.value, mana: els.mMana.value, dano: els.mDano.value, mov: els.mMov.value, for: els.mFor.value, con: els.mCon.value, des: els.mDes.value, int: els.mInt.value, von: els.mVon.value, car: els.mCar.value },
       curVida: els.curVida.value, curMana: els.curMana.value,
       barreiraMax: els.barreiraMax.value, barreiraCur: els.barreiraCur.value,
       portrait: portraitData,
@@ -7861,7 +7871,7 @@ body{
     els.bInt.value=base.int??1; els.bVon.value=base.von??1; els.bCar.value=base.car??1;
 
     const mods = s.mods || {};
-    els.mAr.value=mods.ar??0; els.mAp.value=mods.ap??0; els.mVida.value=mods.vida??0; els.mMana.value=mods.mana??0; els.mDano.value=mods.dano??0; els.mFor.value=mods.for??0;
+    els.mAr.value=mods.ar??0; els.mAp.value=mods.ap??0; els.mVida.value=mods.vida??0; els.mMana.value=mods.mana??0; els.mDano.value=mods.dano??0; els.mMov.value=mods.mov??0; els.mFor.value=mods.for??0;
     els.mCon.value=mods.con??0; els.mDes.value=mods.des??0; els.mInt.value=mods.int??0;
     els.mVon.value=mods.von??0; els.mCar.value=mods.car??0;
     els.curVida.value = s.curVida ?? 10; els.curMana.value = s.curMana ?? 10;
@@ -9399,7 +9409,7 @@ body{
       const t = boardTokens[key];
       tokensOut[key] = {
         id:t.id, kind:t.kind, name:t.name, size:t.size||1, sizeC:t.sizeC||t.size||1, anchorR:t.anchorR, anchorC:t.anchorC, seq:t.seq || null,
-        donoChave: t.donoChave || null, ownerUid: t.ownerUid || null, bonusDes: t.bonusDes || 0, pvp: !!t.pvp,
+        donoChave: t.donoChave || null, ownerUid: t.ownerUid || null, bonusDes: t.bonusDes || 0, bonusMov: t.bonusMov || 0, pvp: !!t.pvp,
         // facing/deidade: precisam sobreviver a este overwrite cheio (ver comentário grande logo
         // abaixo sobre o debounce) senão a seta de direção e a cor dela somem toda vez que o mestre
         // mexe em qualquer outra coisa do tabuleiro — ver FACING_ANGLES/DEITY_EYE_COLOR no <script>.
@@ -9851,7 +9861,7 @@ body{
           // aqui é só a segunda trava, direto no drop.
           if(prevToken) return;
           if(!canPlace(r, c, heroSize, heroSize, null)) return;
-          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, deidade: hero.deidade || '', pvp: true};
+          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, deidade: hero.deidade || '', pvp: true};
           placeToken(r, c, token);
           footprintCells(r, c, heroSize).forEach(([fr,fc]) => renderBoardCell(fr,fc));
           renderHeroTray();
@@ -9860,7 +9870,7 @@ body{
           if(!canPlace(r, c, heroSize, heroSize, prevToken ? prevToken.id : null)) return;
           let prevCells = [];
           if(prevToken){ const [pSizeR, pSizeC] = tokenFootprintSize(prevToken); prevCells = footprintCells(prevToken.anchorR, prevToken.anchorC, pSizeR, pSizeC); clearTokenFootprint(prevToken); }
-          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, deidade: hero.deidade || ''};
+          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, deidade: hero.deidade || ''};
           placeToken(r, c, token);
           prevCells.forEach(([pr,pc]) => renderBoardCell(pr,pc));
           footprintCells(r, c, heroSize).forEach(([fr,fc]) => renderBoardCell(fr,fc));
@@ -9882,7 +9892,7 @@ body{
         const token = {
           id: 'inimigo_ficha:' + hero.id + '-' + (spawnCounter++), kind: 'inimigo_ficha',
           name: hero.name, portrait: hero.portrait, size: 1,
-          heroId: hero.id, bonusDes: hero.bonusDes || 0, deidade: hero.deidade || '',
+          heroId: hero.id, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, deidade: hero.deidade || '',
         };
         // numera igual aliado/inimigo/monstro/boss (ex: "Goblin Batedor 1", "Goblin Batedor 2"),
         // agrupado pelo NOME da ficha (não por "Inimigo" genérico) -- ver tokenTooltipText().
@@ -9950,7 +9960,7 @@ body{
       .filter(({live})=> live && live.nome)
       .map(({uid, live})=> ({
         id: idPrefix + slugify(live.nome), name: live.nome, portrait: null,
-        donoChave: null, ownerUid: uid, bonusDes: live.bonusDes || 0, deidade: live.deidade || '', liveOnly: true,
+        donoChave: null, ownerUid: uid, bonusDes: live.bonusDes || 0, bonusMov: live.bonusMov || 0, deidade: live.deidade || '', liveOnly: true,
       }));
   }
 
@@ -9974,6 +9984,46 @@ body{
     renderLiveBoardMini(); // caveira de Vida 0 no mini-tabuleiro — no-op se o painel nem estiver montado
     if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens)
     refreshBoardHpBars(); // barrinha de Vida + caveira embaixo dos ícones — ver renderBoardCell()
+    syncBoardTokenBonusFromLiveVitals(); // bônus de DES/Movimento de peça JÁ colocada — ver função abaixo
+  }
+
+  // Bug relatado: mudar o Modificador de Movimento (#m_mov, ou o próprio Atributo DES) de uma
+  // ficha que JÁ está colocada no tabuleiro não tinha NENHUM jeito de chegar até o alcance de
+  // movimento de verdade — handleBoardDrop() e mergeRemoteHeroTokensIntoLocalBoard() só gravam
+  // bonusDes/bonusMov no momento em que a peça É CRIADA (arrastada pro tabuleiro pela primeira vez,
+  // ou reconciliada a partir de um movimento remoto), então o valor ficava "congelado" ali até a
+  // peça ser removida/recolocada ou o tabuleiro inteiro ser salvo/recarregado — mesmo a ficha
+  // publicando o valor novo certinho em mesa/live/{uid} a cada mudança (ver pushLiveVitals()).
+  // Corrigido aqui: sempre que mesa/live muda — o que já acontece a cada tecla/clique na ficha
+  // de QUALQUER jogador logado, incluindo Vida/Mana, então esta função roda com frequência mas só
+  // GRAVA/REENVIA quando realmente encontra uma diferença — confere se o bonusDes/bonusMov de cada
+  // ficha de jogador já em campo bate com o valor mais recente publicado por ela; se não bater,
+  // atualiza a peça local (boardTokens, a fonte de verdade do mestre) e reenvia o tabuleiro
+  // (scheduleBoardTokensPush(), que já tem seu próprio debounce de 500ms) — assim a MESMA peça já
+  // em campo passa a refletir o modificador novo sozinha, sem precisar remover/recolocar nem
+  // salvar/recarregar o tabuleiro. Só roda pro mestre (só ele tem boardTokens de verdade — ver o
+  // guard de currentRole logo acima) — precisa do mestre estar com a página aberta pra propagar,
+  // mesma limitação que qualquer outra mudança do tabuleiro já tem (é sempre o mestre quem publica
+  // mesa/liveBoard/tokens por inteiro).
+  function syncBoardTokenBonusFromLiveVitals(){
+    let changed = false;
+    Object.keys(boardTokens).forEach(key=>{
+      const t = boardTokens[key];
+      if(!t || t.kind !== 'hero' || !t.ownerUid) return;
+      const live = liveVitalsAll[t.ownerUid];
+      // bonusDes só vem junto quando a ficha tem nome preenchido (ver "if(nome)" em
+      // pushLiveVitals()) — sem isso, null/undefined aqui só quer dizer "essa conta ainda não
+      // publicou nada de verdade", não "o bônus dela é zero".
+      if(!live || live.bonusDes == null) return;
+      const freshDes = live.bonusDes || 0;
+      const freshMov = live.bonusMov || 0;
+      if((t.bonusDes || 0) !== freshDes || (t.bonusMov || 0) !== freshMov){
+        t.bonusDes = freshDes;
+        t.bonusMov = freshMov;
+        changed = true;
+      }
+    });
+    if(changed) scheduleBoardTokensPush();
   }
 
   // Gera a função que desenha uma bandeja de moedas de personagem (jogador ou mestre) —
@@ -10191,6 +10241,11 @@ body{
             // sempre o DES da FICHA dona da peça, não o de qualquer ficha que esteja aberta no navegador
             // no momento (o login sempre abre uma ficha em branco — ver startNewFicha()).
             bonusDes: Math.floor(((parseFloat(data.base && data.base.des) || 0) + (parseFloat(data.mods && data.mods.des) || 0)) / 2),
+            // Modificador de Movimento (#m_mov) salvo na ficha — mesmo raciocínio do bonusDes acima,
+            // só que sem nenhuma conta com Atributo (é um valor livre, direto do modificador). Ver
+            // comentário grande em pushLiveVitals()/payload.bonusMov sobre por que soma só no
+            // ALCANCE DE MOVIMENTO, nunca no de visão.
+            bonusMov: parseFloat(data.mods && data.mods.mov) || 0,
             // divindade salva na ficha — fonte da cor da seta de direção no tabuleiro ao vivo (ver
             // DEITY_EYE_COLOR/buildFacingArrowEl() no <script>).
             deidade: data.deidade || '',
@@ -10396,7 +10451,7 @@ body{
         // existir cai no fallback rt.size (quadrado, igual sempre foi).
         sizeC: rt.sizeC || rt.size || 1,
         portrait: isBlockKind(rt.kind) ? null : resolveTokenPortrait(rt),
-        donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0,
+        donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0, bonusMov: rt.bonusMov || 0,
       };
       if(rt.pvp) token.pvp = true;
       if(rt.seq) token.seq = rt.seq;
@@ -12096,7 +12151,10 @@ body{
   function highlightLiveBoardReachable(tok){
     if(!liveBoardGridEl || !tok) return;
     const cols = liveBoardState.cols || 24;
-    const limit = 1 + (tok.bonusDes || 0);
+    // Modificador de Movimento (#m_mov/bonusMov — ver pushLiveVitals()) soma/subtrai por CIMA do
+    // bônus de DES só aqui, no alcance de MOVIMENTO — nunca no de visão (computeFogReachableKeys(),
+    // mais acima, continua usando só bonusDes puro, sem bonusMov).
+    const limit = Math.max(0, 1 + (tok.bonusDes || 0) + (tok.bonusMov || 0));
     computeLiveBoardReachable(tok.anchorR, tok.anchorC, limit).forEach((dist, key)=>{
       const occupant = liveBoardState.tokens[key];
       if(occupant && occupant.id !== tok.id) return; // casa ocupada por outra peça, não alcançável de verdade
@@ -12128,13 +12186,19 @@ body{
     // DES da ficha DONA da peça, não o de qualquer ficha aberta no navegador nesse momento (o login
     // sempre abre uma ficha em branco, ver startNewFicha()).
     const bonusDes = tok.bonusDes || 0;
-    const limit = 1 + bonusDes;
+    // Modificador de Movimento (#m_mov/bonusMov — ver pushLiveVitals()) soma/subtrai por CIMA do
+    // bônus de DES só aqui, no cálculo real do ALCANCE DE MOVIMENTO usado pra aceitar/recusar o
+    // drop — nunca no de visão (computeFogReachableKeys(), mais acima, continua usando só bonusDes
+    // puro, sem bonusMov). Mesmo raciocínio e mesma fórmula de highlightLiveBoardReachable() (que só
+    // desenha a prévia azul durante o arrasto) — aqui é a validação de verdade.
+    const bonusMov = tok.bonusMov || 0;
+    const limit = Math.max(0, 1 + bonusDes + bonusMov);
     // computeLiveBoardReachable() já leva bloco em conta (ver comentário na definição dela, lá em
     // cima) — uma casa que só dava pra alcançar "pulando" por cima de um bloco simplesmente não
     // aparece nesse Map, então o movimento é recusado igual a "longe demais", mesmo estando perto
     // em linha reta.
     if(!computeLiveBoardReachable(payload.r, payload.c, limit).has(newKey)){
-      liveBoardHintEl.textContent = `Muito longe (ou bloqueado por um bloco no caminho)! Seu limite agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES).`;
+      liveBoardHintEl.textContent = `Muito longe (ou bloqueado por um bloco no caminho)! Seu limite agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES${bonusMov ? (bonusMov > 0 ? ' + ' : ' - ') + Math.abs(bonusMov) + ' de Movimento' : ''}).`;
       return;
     }
     liveBoardHintEl.textContent = '';
@@ -12207,7 +12271,7 @@ body{
       }
       const token = {
         id: rt.id, kind: 'hero', name: rt.name, size: 1,
-        portrait: resolveTokenPortrait(rt), donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0,
+        portrait: resolveTokenPortrait(rt), donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0, bonusMov: rt.bonusMov || 0,
         facing: rt.facing || null, deidade: rt.deidade || '',
       };
       if(rt.pvp) token.pvp = true;
