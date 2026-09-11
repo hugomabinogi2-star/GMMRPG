@@ -3323,6 +3323,17 @@ body{
    ID, não a classe .dice-panel-body inteira) ganha essa altura mínima extra; Sorte/Talentos etc.
    continuam do tamanho de sempre, ditado só pelo próprio conteúdo. */
 #diceBody{min-height:210px;}
+/* Pedido explícito: "alinhar os dados mais pro meio na posição inicial e final dentro do seletor"
+   -- como #diceBody ganhou altura mínima extra (comentário logo acima), mas o conteúdo dele (o
+   dado, ou o par de dados em Vantagem/Desvantagem) continua em fluxo normal de bloco, ele ficava
+   grudado no TOPO do painel, sobrando um vão vazio embaixo (bem visível com o painel maior).
+   #diceBody vira um flex column centralizado nos dois eixos, então tanto a posição de REPOUSO
+   (antes de rolar) quanto a posição FINAL (depois que animateDiceRicochet() limpa o transform e
+   o dado volta pro fluxo normal -- ver o comentário ali) ficam no meio do painel, não só no topo.
+   Não muda em nada a animação do ricochete em si (ela já calculava os 3 cantos a partir do
+   próprio arenaRect de #diceBody, então os cantos visitados continuam os mesmos) -- só a posição
+   de descanso do dado antes/depois de voar. */
+#diceBody{display:flex;flex-direction:column;align-items:center;justify-content:center;}
 /* "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa -- mesmo mecanismo de minimizar do
    Histórico de Rolagens logo abaixo, só que aplicado direto na lista (.master-list é reaproveitada
    por outras listas fora da Mesa, então o seletor fica travado no ID pra não afetar as outras). */
