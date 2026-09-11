@@ -4,20 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 6,
-    "resultado": 15,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1789066130148,
-    "mode": "vantagem",
-    "rolls": [
-      13,
-      15
-    ]
-  },
-  {
-    "nome": "oi",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 6,
     "resultado": 9,
     "resultLabel": "Erro — Vantagem",
     "ts": 1789066131896,
@@ -368,5 +354,12 @@
     "de": "Q7",
     "para": "O7",
     "ts": 1789155707002
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "O7",
+    "para": "M7",
+    "ts": 1789155714878
   }
 ]
