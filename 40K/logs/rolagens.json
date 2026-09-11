@@ -4,17 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 8,
-    "resultado": 1,
-    "resultLabel": "Erro Crítico",
-    "ts": 1789070223085,
-    "habilidade": "Ataque de Espada Pesada",
-    "habilidadeDesc": "Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
-  },
-  {
-    "nome": "anna",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 8,
     "resultado": 19,
     "resultLabel": "Acerto — Vantagem",
     "ts": 1789070225834,
@@ -328,5 +317,12 @@
     "de": "H7",
     "para": "J7",
     "ts": 1789162612901
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "B1",
+    "para": "C2",
+    "ts": 1789163125389
   }
 ]
