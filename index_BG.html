@@ -8416,6 +8416,16 @@ body{
   // da mesa, que agora também vai pro Discord — ver postChatToDiscord() logo abaixo). Não mexe no
   // chat nem checa SILENCIAR: isso é responsabilidade de quem chama.
   async function sendToDiscordWebhook(content, imageDataUrl, imageDataUrl2){
+    // Pedido explícito: "todo texto precisa sempre estar em caixa alta... nas mensagens geradas
+    // para o chat/discord" -- o CSS (text-transform:uppercase) só pinta o texto em caixa alta
+    // DENTRO do navegador; o Discord não enxerga nenhum CSS da ficha, então a mensagem de verdade
+    // (o texto que sai no POST) precisa estar em caixa alta já no próprio conteúdo enviado. Esta
+    // função é o ÚNICO lugar por onde toda mensagem de verdade passa antes de sair pro Discord
+    // (tanto vindo de postToDiscord() quanto de postChatToDiscord(), ver os dois logo abaixo) --
+    // forçar aqui, uma vez só, garante 100% das mensagens sem precisar caçar cada `${variável}`
+    // interpolada em cada chamador (nome do personagem, nome de Habilidade, descrição, texto
+    // livre do chat, tudo vira maiúscula igual, automaticamente).
+    content = String(content == null ? '' : content).toUpperCase();
     const webhookUrl = getWebhook();
     if(!webhookUrl) return 'no-webhook';
     try{
@@ -8452,6 +8462,11 @@ body{
     // sai pro Discord, seja qual for a origem (rolagem, subida de nível, morte, guia MESA etc.),
     // não importa a ficha — mas nunca se aplica a uma sessão de jogador (ver isSilenceActive()).
     if(isSilenceActive()) return 'silenced';
+    // Pedido explícito: mensagem sempre em caixa alta -- força aqui TAMBÉM (além de dentro de
+    // sendToDiscordWebhook() acima), já que este mesmo `content` vai pro espelho no chat da mesa
+    // (postToChatEvent(), linha logo abaixo) ANTES de chegar no Discord -- sem isto, o chat da
+    // mesa guardaria o texto original (minúsculo/misto) mesmo o Discord recebendo a versão certa.
+    content = String(content == null ? '' : content).toUpperCase();
     // espelha a mesma mensagem (e imagens) no chat da mesa, igual ao Discord — roda independente
     // do webhook do Discord estar configurado (esse canal não depende do Discord), só depende do
     // Firebase e de estar logado (ver postToChatEvent()). Não espera terminar (fire-and-forget),
@@ -13302,9 +13317,13 @@ body{
   // igual ao postToDiscord de uma rolagem).
   function postToChatEvent(content, imageDataUrl, imageDataUrl2){
     if(!fbReady || !fbDb || !currentUser) return;
-    const nome = (els.nome && els.nome.value ? els.nome.value.trim() : '')
+    // Pedido explícito: texto sempre em caixa alta também no NOME de quem mandou (content já
+    // chega em caixa alta -- foi forçado em postToDiscord(), única chamadora desta função --
+    // mas o nome é uma variável separada, calculada aqui de novo, então precisa do próprio
+    // .toUpperCase()).
+    const nome = ((els.nome && els.nome.value ? els.nome.value.trim() : '')
       || (currentUser.email ? currentUser.email.split('@')[0] : '')
-      || (currentRole === 'mestre' ? 'Mestre' : 'Jogador');
+      || (currentRole === 'mestre' ? 'Mestre' : 'Jogador')).toUpperCase();
     fbDb.ref('mesa/chat').push({
       kind: 'evento', nome, role: currentRole, uid: currentUser.uid, texto: content,
       imagem: imageDataUrl || null, imagem2: imageDataUrl2 || null,
@@ -13319,10 +13338,13 @@ body{
     // histórico de rolagens); em branco, cai no início do e-mail da conta, e só em último caso
     // no papel genérico — agora que cada jogador tem sua própria conta, isso já basta pra
     // distinguir quem é quem sem precisar de mais um campo de cadastro.
-    const nome = (els.nome && els.nome.value ? els.nome.value.trim() : '')
+    // Pedido explícito: texto sempre em caixa alta -- inclusive a mensagem digitada de verdade
+    // (não só o visual via CSS), já que o Discord recebe uma cópia deste MESMO texto (ver
+    // postChatToDiscord() logo abaixo) e não enxerga nenhum CSS da ficha.
+    const nome = ((els.nome && els.nome.value ? els.nome.value.trim() : '')
       || (currentUser.email ? currentUser.email.split('@')[0] : '')
-      || (currentRole === 'mestre' ? 'Mestre' : 'Jogador');
-    const textoFinal = texto.slice(0, 500);
+      || (currentRole === 'mestre' ? 'Mestre' : 'Jogador')).toUpperCase();
+    const textoFinal = texto.slice(0, 500).toUpperCase();
     fbDb.ref('mesa/chat').push({
       kind: 'texto', nome, role: currentRole, uid: currentUser.uid, texto: textoFinal, ts: firebase.database.ServerValue.TIMESTAMP
     });
@@ -13357,9 +13379,9 @@ body{
   }
 
   function sendChatImageMessage(dataUrl){
-    const nome = (els.nome && els.nome.value ? els.nome.value.trim() : '')
+    const nome = ((els.nome && els.nome.value ? els.nome.value.trim() : '')
       || (currentUser.email ? currentUser.email.split('@')[0] : '')
-      || (currentRole === 'mestre' ? 'Mestre' : 'Jogador');
+      || (currentRole === 'mestre' ? 'Mestre' : 'Jogador')).toUpperCase();
     fbDb.ref('mesa/chat').push({
       kind: 'texto', nome, role: currentRole, uid: currentUser.uid, texto: '', imagem: dataUrl,
       ts: firebase.database.ServerValue.TIMESTAMP
