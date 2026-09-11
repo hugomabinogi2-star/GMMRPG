@@ -326,5 +326,20 @@
     "resultLabel": "Erro",
     "ts": 1789150977326,
     "habilidade": "TESTE"
+  },
+  {
+    "nome": "anna",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 8,
+    "resultado": 8,
+    "resultLabel": "Erro — Vantagem",
+    "ts": 1789150986176,
+    "mode": "vantagem",
+    "rolls": [
+      8,
+      5
+    ],
+    "habilidade": "TESTE"
   }
 ]
