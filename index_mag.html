@@ -12452,6 +12452,46 @@ body{
     renderLiveBoardMini(); // caveira de Vida 0 no mini-tabuleiro — no-op se o painel nem estiver montado
     if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens)
     refreshBoardHpBars(); // barrinha de Vida + caveira embaixo dos ícones — ver renderBoardCell()
+    syncBoardTokenBonusFromLiveVitals(); // bônus de DES/Movimento de peça JÁ colocada — ver função abaixo
+  }
+
+  // Bug relatado: mudar o Modificador de Movimento (#m_mov, ou o próprio Atributo DES) de uma
+  // ficha que JÁ está colocada no tabuleiro não tinha NENHUM jeito de chegar até o alcance de
+  // movimento de verdade — handleBoardDrop() e mergeRemoteHeroTokensIntoLocalBoard() só gravam
+  // bonusDes/bonusMov no momento em que a peça É CRIADA (arrastada pro tabuleiro pela primeira vez,
+  // ou reconciliada a partir de um movimento remoto), então o valor ficava "congelado" ali até a
+  // peça ser removida/recolocada ou o tabuleiro inteiro ser salvo/recarregado — mesmo a ficha
+  // publicando o valor novo certinho em mesa40k/live/{uid} a cada mudança (ver pushLiveVitals()).
+  // Corrigido aqui: sempre que mesa40k/live muda — o que já acontece a cada tecla/clique na ficha
+  // de QUALQUER jogador logado, incluindo Vida/Mana, então esta função roda com frequência mas só
+  // GRAVA/REENVIA quando realmente encontra uma diferença — confere se o bonusDes/bonusMov de cada
+  // ficha de jogador já em campo bate com o valor mais recente publicado por ela; se não bater,
+  // atualiza a peça local (boardTokens, a fonte de verdade do mestre) e reenvia o tabuleiro
+  // (scheduleBoardTokensPush(), que já tem seu próprio debounce de 500ms) — assim a MESMA peça já
+  // em campo passa a refletir o modificador novo sozinha, sem precisar remover/recolocar nem
+  // salvar/recarregar o tabuleiro. Só roda pro mestre (só ele tem boardTokens de verdade — ver o
+  // guard de currentRole logo acima) — precisa do mestre estar com a página aberta pra propagar,
+  // mesma limitação que qualquer outra mudança do tabuleiro já tem (é sempre o mestre quem publica
+  // mesa40k/liveBoard/tokens por inteiro).
+  function syncBoardTokenBonusFromLiveVitals(){
+    let changed = false;
+    Object.keys(boardTokens).forEach(key=>{
+      const t = boardTokens[key];
+      if(!t || t.kind !== 'hero' || !t.ownerUid) return;
+      const live = liveVitalsAll[t.ownerUid];
+      // bonusDes só vem junto quando a ficha tem nome preenchido (ver "if(nome)" em
+      // pushLiveVitals()) — sem isso, null/undefined aqui só quer dizer "essa conta ainda não
+      // publicou nada de verdade", não "o bônus dela é zero".
+      if(!live || live.bonusDes == null) return;
+      const freshDes = live.bonusDes || 0;
+      const freshMov = live.bonusMov || 0;
+      if((t.bonusDes || 0) !== freshDes || (t.bonusMov || 0) !== freshMov){
+        t.bonusDes = freshDes;
+        t.bonusMov = freshMov;
+        changed = true;
+      }
+    });
+    if(changed) scheduleBoardTokensPush();
   }
 
   // Gera a função que desenha uma bandeja de moedas de personagem (jogador ou mestre) —
