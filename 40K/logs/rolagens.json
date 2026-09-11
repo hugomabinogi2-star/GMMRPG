@@ -1,25 +1,6 @@
 [
   {
     "nome": "efreet",
-    "tipo": "dano",
-    "qtd": 5,
-    "maxVal": 3,
-    "bonus": 5,
-    "rolls": [
-      3,
-      3,
-      1,
-      1,
-      1
-    ],
-    "resultado": 14,
-    "habilidade": "Ataque de Espada Pesada",
-    "atributo": null,
-    "grito": null,
-    "ts": 1789073462598
-  },
-  {
-    "nome": "efreet",
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 10,
@@ -298,5 +279,12 @@
     "de": "B2",
     "para": "F2",
     "ts": 1789165170767
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "F2",
+    "para": "B2",
+    "ts": 1789165172378
   }
 ]
