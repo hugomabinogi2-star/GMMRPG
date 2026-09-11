@@ -253,5 +253,22 @@
     "resultado": 3,
     "resultLabel": "Erro",
     "ts": 1789122572389
+  },
+  {
+    "nome": "anna",
+    "tipo": "dano",
+    "qtd": 3,
+    "maxVal": 3,
+    "bonus": 4,
+    "rolls": [
+      2,
+      2,
+      1
+    ],
+    "resultado": 9,
+    "habilidade": "Ataque de Espada Pesada",
+    "atributo": null,
+    "grito": null,
+    "ts": 1789122608956
   }
 ]
