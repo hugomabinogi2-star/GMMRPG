@@ -1,15 +1,6 @@
 [
   {
     "nome": "anna",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 8,
-    "resultado": 3,
-    "resultLabel": "Erro",
-    "ts": 1789122572389
-  },
-  {
-    "nome": "anna",
     "tipo": "dano",
     "qtd": 3,
     "maxVal": 3,
@@ -257,5 +248,19 @@
     "de": "D3",
     "para": "C3",
     "ts": 1789166857383
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 17,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1789166893895,
+    "mode": "vantagem",
+    "rolls": [
+      17,
+      12
+    ]
   }
 ]
