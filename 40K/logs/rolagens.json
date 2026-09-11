@@ -1,19 +1,5 @@
 [
   {
-    "nome": "oi",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 6,
-    "resultado": 9,
-    "resultLabel": "Erro — Vantagem",
-    "ts": 1789066131896,
-    "mode": "vantagem",
-    "rolls": [
-      1,
-      9
-    ]
-  },
-  {
     "nome": "anna",
     "tipo": "atributo",
     "statKey": "for",
@@ -361,5 +347,12 @@
     "de": "O7",
     "para": "M7",
     "ts": 1789155714878
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "M7",
+    "para": "G7",
+    "ts": 1789155747482
   }
 ]
