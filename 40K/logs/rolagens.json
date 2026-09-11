@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 6,
-    "resultado": 11,
-    "resultLabel": "Erro",
-    "ts": 1789066126920
-  },
-  {
-    "nome": "oi",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 6,
     "resultado": 15,
     "resultLabel": "Acerto — Vantagem",
     "ts": 1789066130148,
@@ -370,5 +361,12 @@
     "de": "M7",
     "para": "Q7",
     "ts": 1789155696202
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "Q7",
+    "para": "O7",
+    "ts": 1789155707002
   }
 ]
