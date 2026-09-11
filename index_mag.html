@@ -3608,11 +3608,30 @@ body{
 }
 .hab-levelup-ok-btn:hover:not(:disabled){transform:scale(1.04);box-shadow:0 0 12px rgba(224,182,86,.5);}
 .hab-levelup-ok-btn:disabled{opacity:.4;cursor:not-allowed;}
-/* zoom ao passar o mouse no NOME da Habilidade (só o campo de nome, pedido explícito) -- amplia
-   o quadro (.hab-row) inteiro daquela Habilidade, pra ficar mais fácil de ler; ver wireHabNomeZoom()
-   no <script>, delegação de evento em vez de listener fixo (mesmo motivo do zoom de imagem acima:
-   as linhas de Habilidade são recriadas por renderHabilidadesTab() toda hora). */
+/* zoom EM CASCATA dos cards de Habilidade (pedido explícito, nova rodada) -- 3 níveis que somam
+   (efeito "escada"), porque cada elemento de baixo é FILHO de verdade do de cima no DOM
+   (.hab-row > .hab-desc-inline > .hab-desc-img-wrap > .hab-desc-img -- ver
+   row.append(head, extra, icons, descBox) no <script>), então os 3 transforms se acumulam
+   naturalmente quando o mouse está sobre o mais interno:
+   1) .hab-row: passar o mouse em QUALQUER parte do card (não só no nome, como antes) amplia o
+      quadro inteiro.
+   2) .hab-desc-inline (o "sanfonado" que o livrinho abre): passar o mouse por cima dele NÃO desfaz
+      o zoom do passo 1 (o mouse continua "dentro" de .hab-row, que é o pai) e aplica um zoom A MAIS
+      só nele.
+   3) .hab-desc-img (a miniatura dentro do card de descrição): passar o mouse por cima dela mantém
+      os 2 zooms anteriores E aplica mais um zoom nela -- clipado pela moldura 64x64 de
+      .hab-desc-img-wrap (overflow:hidden), então funciona como uma lupa "entrando" na miniatura,
+      sem quebrar o layout. Continua existindo, por cima disso, o preview flutuante que já dobra de
+      tamanho ao lado do cursor (.hab-img-zoom-preview/wireHabImageZoom() -- não mudou).
+   Cada nível também centraliza o PRÓPRIO zoom na posição do mouse (--hz/--vz, atualizados a cada
+   mousemove -- pedido explícito "zoom centralizado no mouse"), em vez de um ponto fixo do card;
+   ver o bloco de delegação de evento no <script>, logo depois de wireHabImageZoom(). */
+.hab-row{transform-origin:var(--hz,50%) var(--vz,50%);}
 .hab-row.hab-row-zoomed{transform:scale(1.35);position:relative;z-index:5;box-shadow:0 6px 18px rgba(0,0,0,.55);}
+.hab-desc-inline{transition:transform .15s ease;transform-origin:var(--hz,50%) var(--vz,50%);}
+.hab-desc-inline.hab-desc-inline-zoomed{transform:scale(1.12);position:relative;z-index:6;}
+.hab-desc-img{transition:transform .15s ease;transform-origin:var(--hz,50%) var(--vz,50%);}
+.hab-desc-img.hab-desc-img-zoomed{transform:scale(1.22);}
 .hab-row-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
 .hab-nome{font-family:'Cinzel Decorative',serif;font-size:12.5px;letter-spacing:.02em;color:var(--gold-bright);}
 .hab-nome-attr{color:var(--gold-bright);opacity:.65;font-size:10.5px;margin-left:4px;}
@@ -4638,9 +4657,14 @@ body{
                   <option value="car">CAR</option>
                 </select>
                 <div class="attr-icons-row">
+                  <!-- pedido explícito: ordem dos 3 dados (normal/vantagem/desvantagem) trocada pra
+                       bater com a mesma ordem que já era usada nos ícones de Habilidade (ver
+                       icons.append(rollIcon, advIcon, disIcon, ...) no <script>) -- Vantagem (🎲+)
+                       agora vem ANTES de Desvantagem (🎲−) aqui também, e essa é a ordem de
+                       referência usada também nos novos ícones da aba Talento. -->
                   <button type="button" class="hab-icon hab-icon-roll" id="attrRollBtn" title="Rolamento" aria-label="Rolar o atributo selecionado">🎲</button>
-                  <button type="button" class="hab-icon hab-icon-dis" id="attrDisBtn" title="Rolamento em Desvantagem" aria-label="Rolar o atributo selecionado em desvantagem">🎲<span class="hab-icon-sign minus">−</span></button>
                   <button type="button" class="hab-icon hab-icon-adv" id="attrAdvBtn" title="Rolamento em Vantagem" aria-label="Rolar o atributo selecionado em vantagem">🎲<span class="hab-icon-sign plus">+</span></button>
+                  <button type="button" class="hab-icon hab-icon-dis" id="attrDisBtn" title="Rolamento em Desvantagem" aria-label="Rolar o atributo selecionado em desvantagem">🎲<span class="hab-icon-sign minus">−</span></button>
                   <button type="button" class="hab-icon hab-icon-dano" id="attrDanoBtn" title="Rolar Dano (1d3 + bônus)" aria-label="Rolar dano do atributo selecionado">⚔️</button>
                 </div>
               </div>
@@ -5609,27 +5633,51 @@ body{
     window.addEventListener('scroll', hideImgZoom, true);
   }
 
-  // ---------- zoom ao passar o mouse no NOME de uma Habilidade (aba Armamento/Elemento) ----------
-  // pedido explícito: "quando passa o mouse no nome da habilidade, apenas no campo de nome",
-  // amplia o quadro (.hab-row) inteiro daquela Habilidade, pra ficar mais fácil de ler -- ao
-  // contrário do zoom de imagem acima (clone flutuante), aqui é só um transform:scale no próprio
-  // .hab-row (.hab-row-zoomed no <style>), já que ele não fica dentro de nenhum contêiner com
-  // overflow:hidden que cortaria a ampliação. Delegação de evento no document (mouseover/mouseout,
-  // que sobem/bubble) em vez de listener fixo por linha, porque renderHabilidadesTab() recria as
-  // linhas inteiras (innerHTML/appendChild) toda vez que um nível muda -- um listener preso no
-  // elemento antigo perderia a linha nova.
-  document.addEventListener('mouseover', (e)=>{
-    const nomeEl = e.target.closest && e.target.closest('.hab-nome');
-    if(!nomeEl) return;
-    const row = nomeEl.closest('.hab-row');
-    if(row) row.classList.add('hab-row-zoomed');
-  });
-  document.addEventListener('mouseout', (e)=>{
-    const nomeEl = e.target.closest && e.target.closest('.hab-nome');
-    if(!nomeEl) return;
-    const row = nomeEl.closest('.hab-row');
-    if(row) row.classList.remove('hab-row-zoomed');
-  });
+  // ---------- zoom EM CASCATA dos cards de Habilidade (aba Armamento/Elemento) ----------
+  // pedido explícito, nova rodada: o zoom do card (.hab-row) agora dispara em QUALQUER parte dele
+  // (não só no nome, como antes); ao abrir a descrição (livrinho) e passar o mouse nela, o zoom do
+  // card SE MANTÉM (o mouse continua "dentro" de .hab-row, que é o pai de verdade no DOM -- ver
+  // row.append(head, extra, icons, descBox) mais abaixo) e o card de descrição ganha um zoom A MAIS
+  // por cima; passando o mouse pela imagem dentro da descrição, ela ganha mais um zoom ainda, sem
+  // desfazer os 2 anteriores (mesmo motivo: a imagem é neta de .hab-row). Como são 3 transforms
+  // aninhados de verdade, eles se SOMAM sozinhos -- não precisa nenhuma lógica especial de
+  // "acumular" zoom, só aplicar/remover cada classe no elemento certo (ver .hab-row-zoomed/
+  // .hab-desc-inline-zoomed/.hab-desc-img-zoomed no <style>). Cada nível também centraliza o
+  // PRÓPRIO zoom na posição do mouse (pedido explícito "zoom centralizado no mouse") através de
+  // --hz/--vz, recalculados a cada mousemove por setHabZoomOrigin().
+  //
+  // Delegação de evento no document (mouseover/mouseout/mousemove, que sobem/bubble) em vez de
+  // listener fixo por linha, porque renderHabilidadesTab() recria as linhas inteiras (innerHTML/
+  // appendChild) toda vez que um nível muda -- um listener preso no elemento antigo perderia a
+  // linha nova. mouseout confere e.relatedTarget (o elemento que o mouse está ENTRANDO) pra só
+  // remover o zoom quando o mouse sai de vez do elemento (não a cada filho interno cruzado) --
+  // sem isso, a transição de .15s ficaria piscando toda hora que o mouse passasse de um ícone pro
+  // outro dentro do mesmo card.
+  function setHabZoomOrigin(el, e){
+    const r = el.getBoundingClientRect();
+    if(!r.width || !r.height) return;
+    const hz = Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100));
+    const vz = Math.max(0, Math.min(100, (e.clientY - r.top) / r.height * 100));
+    el.style.setProperty('--hz', hz.toFixed(1) + '%');
+    el.style.setProperty('--vz', vz.toFixed(1) + '%');
+  }
+  function wireHabCascadeZoom(selector, zoomClass){
+    document.addEventListener('mouseover', (e)=>{
+      const el = e.target.closest && e.target.closest(selector);
+      if(el) el.classList.add(zoomClass);
+    });
+    document.addEventListener('mouseout', (e)=>{
+      const el = e.target.closest && e.target.closest(selector);
+      if(el && !el.contains(e.relatedTarget)) el.classList.remove(zoomClass);
+    });
+    document.addEventListener('mousemove', (e)=>{
+      const el = e.target.closest && e.target.closest(selector);
+      if(el) setHabZoomOrigin(el, e);
+    });
+  }
+  wireHabCascadeZoom('.hab-row', 'hab-row-zoomed');
+  wireHabCascadeZoom('.hab-desc-inline', 'hab-desc-inline-zoomed');
+  wireHabCascadeZoom('.hab-desc-img', 'hab-desc-img-zoomed');
 
   // as fadas dos cantos esquerdo e direito sao duas fotos diferentes, cada uma ja embutida
   // direto no <img> correspondente no HTML -- nao precisa copiar src de um lado pro outro.
