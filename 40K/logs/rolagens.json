@@ -293,5 +293,19 @@
       19,
       10
     ]
+  },
+  {
+    "nome": "efreet",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 10,
+    "resultado": 18,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1789128074567,
+    "mode": "vantagem",
+    "rolls": [
+      18,
+      14
+    ]
   }
 ]
