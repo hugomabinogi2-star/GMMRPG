@@ -341,5 +341,20 @@
       5
     ],
     "habilidade": "TESTE"
+  },
+  {
+    "nome": "anna",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 8,
+    "resultado": 2,
+    "resultLabel": "Erro — Desvantagem",
+    "ts": 1789150992208,
+    "mode": "desvantagem",
+    "rolls": [
+      2,
+      13
+    ],
+    "habilidade": "TESTE"
   }
 ]
