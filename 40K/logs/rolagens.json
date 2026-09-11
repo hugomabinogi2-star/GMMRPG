@@ -1,23 +1,6 @@
 [
   {
     "nome": "anna",
-    "tipo": "dano",
-    "qtd": 3,
-    "maxVal": 3,
-    "bonus": 4,
-    "rolls": [
-      3,
-      3,
-      2
-    ],
-    "resultado": 12,
-    "habilidade": "Ataque de Espada Pesada",
-    "atributo": null,
-    "grito": null,
-    "ts": 1789070217997
-  },
-  {
-    "nome": "anna",
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 8,
@@ -338,5 +321,12 @@
     "de": "K7",
     "para": "H7",
     "ts": 1789162602964
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "H7",
+    "para": "J7",
+    "ts": 1789162612901
   }
 ]
