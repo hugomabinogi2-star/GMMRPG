@@ -6830,6 +6830,18 @@ body{
       // sem nenhuma referência a bonusMov) — pedido explícito: mexer no Movimento não pode mudar a
       // visão.
       payload.bonusMov = num(els.mMov) || 0;
+      // Bug relatado DE NOVO depois da correção anterior (syncBoardTokenBonusFromLiveVitals(),
+      // acima): aquela correção só roda pro MESTRE (currentRole === 'mestre', dentro de
+      // onLiveVitalsChanged()) — então só propaga pra peça já colocada se o MESTRE estiver com a
+      // própria página aberta e conectada no momento em que o jogador muda o modificador. Testando
+      // só como jogador (sem nenhum mestre logado no meio), a correção nunca roda, e a peça já
+      // colocada no tabuleiro fica com o bonusDes/bonusMov TRAVADO no valor de quando foi criada
+      // pra sempre — exatamente o "ele está apenas ignorando o valor" relatado. Corrigido aqui:
+      // o PRÓPRIO jogador (ou o mestre, editando essa ficha por "Ver ficha") agora também corrige
+      // diretamente a(s) peça(s) já colocada(s) dessa ficha em mesa40k/liveBoard/tokens (nó que
+      // QUALQUER conta logada já pode escrever, ver regras do Firebase) — não precisa mais esperar
+      // ninguém mais estar com a página do mestre aberta. Ver syncOwnPlacedTokenBonus() logo abaixo.
+      syncOwnPlacedTokenBonus(ownerUid, payload.bonusDes, payload.bonusMov);
       // divindade atual da ficha — mesmo motivo do bonusDes acima: sem isto, uma ficha nunca salva
       // (liveOnlyRosterEntries()) não teria como a seta de direção do tabuleiro ao vivo saber a cor.
       payload.deidade = els.deidade ? (els.deidade.value || '') : '';
@@ -6882,6 +6894,37 @@ body{
         fbDb.ref('mesa40k/deidade/' + ownerUid).set(els.deidade.value);
       }
     }
+  }
+
+  // Corrige diretamente, em mesa40k/liveBoard/tokens, o bonusDes/bonusMov de qualquer peça JÁ
+  // colocada no tabuleiro que pertença a esta ficha (ownerUid) -- ver comentário grande dentro de
+  // pushLiveVitals(), logo acima, sobre por que a correção anterior (syncBoardTokenBonusFromLiveVitals(),
+  // só-mestre) não bastava sozinha: sem nenhum mestre com a página aberta no momento certo, a peça
+  // ficava travada no valor antigo pra sempre. Chamada por QUALQUER conta que publique essa ficha
+  // (o próprio jogador, ou o mestre editando-a via "Ver ficha") -- o nó mesa40k/liveBoard/tokens já
+  // pode ser escrito por qualquer conta logada (ver regras do Firebase), então não precisa de
+  // nenhuma permissão nova. Só escreve os 2 campos que realmente mudaram, num update pontual (nunca
+  // o token inteiro) -- nunca mexe em anchorR/anchorC/facing, tanto pra não pisar em cima de um
+  // movimento/direção que outra aba possa ter acabado de gravar, quanto porque
+  // liveBoardState.tokens só reflete o que ESTE navegador já recebeu do Firebase até agora.
+  function syncOwnPlacedTokenBonus(ownerUid, freshDes, freshMov){
+    if(!ownerUid || !fbDb || !liveBoardState || !liveBoardState.tokens) return;
+    const patch = {};
+    let any = false;
+    Object.keys(liveBoardState.tokens).forEach(key=>{
+      const tok = liveBoardState.tokens[key];
+      if(!tok || tok.kind !== 'hero' || tok.ownerUid !== ownerUid) return;
+      const curDes = tok.bonusDes || 0, curMov = tok.bonusMov || 0;
+      if(curDes === (freshDes || 0) && curMov === (freshMov || 0)) return;
+      tok.bonusDes = freshDes || 0;
+      tok.bonusMov = freshMov || 0;
+      patch[key + '/bonusDes'] = freshDes || 0;
+      patch[key + '/bonusMov'] = freshMov || 0;
+      any = true;
+    });
+    if(!any) return;
+    renderLiveBoardMini(); // o próprio navegador não espera o round-trip do Firebase pra já refletir o valor novo
+    fbDb.ref('mesa40k/liveBoard/tokens').update(patch).catch(err=> console.error('Não foi possível atualizar o bônus da peça no tabuleiro ao vivo:', err));
   }
 
   // ---------- atributos ao vivo: mestre corrigindo a ficha de um jogador ----------
@@ -14821,6 +14864,18 @@ body{
           // QUALQUER outro motivo redesenhasse aquela casa (ex.: a peça se mover de novo) -- o
           // jogador escolher a direção, sozinho, nunca acendia a seta na tela do mestre.
           affected.add(localKey);
+        }
+        // Mesmo raciocínio, agora pro bonusDes/bonusMov: desde que o PRÓPRIO jogador passou a
+        // corrigir sozinho a peça já colocada (ver syncOwnPlacedTokenBonus(), dentro de
+        // pushLiveVitals()) sem depender do mestre estar com a página aberta, o boardTokens LOCAL
+        // do mestre (a fonte de onde scheduleBoardTokensPush()/collectBoardTokensOut() fazem o
+        // próximo overwrite cheio do nó inteiro) precisa aprender esse valor novo também -- senão,
+        // a primeira vez que o mestre mexer em QUALQUER outra coisa do tabuleiro depois disso, o
+        // push dele (ainda com o bonusDes/bonusMov ANTIGO guardado aqui) apagaria de volta a
+        // correção que o jogador acabou de gravar, trazendo o bug de volta escondido.
+        if((localTok.bonusDes || 0) !== (rt.bonusDes || 0) || (localTok.bonusMov || 0) !== (rt.bonusMov || 0)){
+          localTok.bonusDes = rt.bonusDes || 0;
+          localTok.bonusMov = rt.bonusMov || 0;
         }
         return;
       }
