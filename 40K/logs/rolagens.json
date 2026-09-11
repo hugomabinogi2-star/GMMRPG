@@ -4,20 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 8,
-    "resultado": 18,
-    "resultLabel": "Acerto — Desvantagem",
-    "ts": 1789070209734,
-    "mode": "desvantagem",
-    "rolls": [
-      18,
-      18
-    ]
-  },
-  {
-    "nome": "anna",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 8,
     "resultado": 17,
     "resultLabel": "Acerto — Vantagem",
     "ts": 1789070212984,
@@ -352,5 +338,12 @@
     "de": "G7",
     "para": "J7",
     "ts": 1789162582574
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "J7",
+    "para": "K7",
+    "ts": 1789162600897
   }
 ]
