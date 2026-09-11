@@ -307,5 +307,14 @@
       18,
       14
     ]
+  },
+  {
+    "nome": "anna",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 8,
+    "resultado": 6,
+    "resultLabel": "Erro",
+    "ts": 1789150960610
   }
 ]
