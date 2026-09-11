@@ -1,22 +1,6 @@
 [
   {
     "nome": "efreet",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 10,
-    "resultado": 19,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1789073509333,
-    "mode": "vantagem",
-    "rolls": [
-      19,
-      4
-    ],
-    "habilidade": "Ataque de Espada Pesada",
-    "habilidadeDesc": "Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
-  },
-  {
-    "nome": "efreet",
     "tipo": "dano",
     "qtd": 5,
     "maxVal": 3,
@@ -278,5 +262,12 @@
     "de": "D3",
     "para": "C3",
     "ts": 1789166849199
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "C3",
+    "para": "D3",
+    "ts": 1789166856174
   }
 ]
