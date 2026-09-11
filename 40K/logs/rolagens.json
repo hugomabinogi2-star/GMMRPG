@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 8,
-    "resultado": 10,
-    "resultLabel": "Erro",
-    "ts": 1789070206530
-  },
-  {
-    "nome": "anna",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 8,
     "resultado": 18,
     "resultLabel": "Acerto — Desvantagem",
     "ts": 1789070209734,
@@ -354,5 +345,12 @@
     "de": "M7",
     "para": "G7",
     "ts": 1789155747482
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "G7",
+    "para": "J7",
+    "ts": 1789162582574
   }
 ]
