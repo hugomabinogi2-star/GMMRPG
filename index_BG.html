@@ -2976,6 +2976,15 @@ body{
   18%{opacity:1;}
   100%{opacity:0;transform:translate(var(--dx,0px), var(--dy,-60px)) scale(1.15) rotate(var(--rot,20deg));}
 }
+/* variante um pouco maior, pra "explosões" mais chamativas (ver spawnEffectToggleBurst() no
+   <script>, painel EFEITOS). */
+.dice-particle-explosion{font-size:22px;}
+/* variante ANCORADA em cima de um elemento de verdade (getBoundingClientRect(), coordenadas de
+   tela em px absolutos setadas via JS) -- position:fixed em vez de position:absolute relativo a
+   uma .dice-particle-layer, porque nem todo elemento que precisa desse efeito mora dentro de uma
+   layer própria (ex.: os botões do painel EFEITOS). z-index alto pra sempre aparecer por cima de
+   qualquer painel/modal. */
+.dice-particle-fixed{position:fixed;z-index:9999;font-size:16px;}
 
 /* moeda grega antiga — rolagem de sorte (cara ou coroa) */
 .coin-result{
@@ -6197,16 +6206,73 @@ body{
     tonto: 'TONTO', ferido: 'FERIDO',
   };
   function hasActiveEffect(key){ return !!(effectsState && effectsState[key]); }
+  // "fogos de caveirinhas" ao LIGAR um Efeito, estrelinhas na cor da Divindade ao DESLIGAR (pedido
+  // explícito) -- reaproveita o mesmo mecanismo de partículas já usado em toda a ficha
+  // (spawnDiceParticles()/.dice-particle no <style>), só ANCORADO em cima do botão de verdade
+  // (position:fixed via getBoundingClientRect(), classe .dice-particle-fixed nova -- os botões de
+  // Efeito não moram dentro de nenhuma .dice-particle-layer própria) em vez de centralizado numa
+  // layer fixa. Sempre um leque de 360° completo nos dois casos ("pra todos os lados"/pedido
+  // explícito). Estrela usa um caractere "sólido" (✦/✧, não emoji) porque um emoji colorido de
+  // verdade tipo ⭐ não aceita `color` do CSS, então não daria pra pintar na cor certa. Puramente
+  // decorativo, não mexe em nenhum estado de jogo.
+  function spawnEffectToggleBurst(btn, active){
+    if(!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+    if(active){
+      const count = 12;
+      for(let i=0;i<count;i++){
+        const span = document.createElement('span');
+        span.className = 'dice-particle dice-particle-explosion dice-particle-fixed';
+        span.textContent = '💀';
+        const angle = Math.random()*Math.PI*2;
+        const dist = 26 + Math.random()*46;
+        span.style.left = cx.toFixed(1)+'px';
+        span.style.top = cy.toFixed(1)+'px';
+        span.style.setProperty('--dx', (Math.cos(angle)*dist).toFixed(1)+'px');
+        span.style.setProperty('--dy', (Math.sin(angle)*dist).toFixed(1)+'px');
+        span.style.setProperty('--rot', (Math.random()*180-90).toFixed(1)+'deg');
+        span.style.animationDelay = Math.floor(Math.random()*80)+'ms';
+        document.body.appendChild(span);
+        setTimeout(()=> span.remove(), 1200);
+      }
+    } else {
+      // cor da Divindade DESTA ficha -- mesma variável reativa que já pinta o resto da ficha
+      // inteira (--deity-eye-color, ver updateDeityEyeGlow()), lida direto do <html> na hora;
+      // sempre em dia sozinha, nenhum JS extra precisou disso.
+      const cor = getComputedStyle(document.documentElement).getPropertyValue('--deity-eye-color').trim() || '#e0b656';
+      const count = 9;
+      for(let i=0;i<count;i++){
+        const span = document.createElement('span');
+        span.className = 'dice-particle dice-particle-fixed';
+        span.textContent = (i % 2 === 0) ? '✦' : '✧';
+        span.style.color = cor;
+        span.style.textShadow = `0 0 5px ${cor}`;
+        const angle = Math.random()*Math.PI*2;
+        const dist = 16 + Math.random()*30;
+        span.style.left = cx.toFixed(1)+'px';
+        span.style.top = cy.toFixed(1)+'px';
+        span.style.setProperty('--dx', (Math.cos(angle)*dist).toFixed(1)+'px');
+        span.style.setProperty('--dy', (Math.sin(angle)*dist).toFixed(1)+'px');
+        span.style.setProperty('--rot', (Math.random()*90-45).toFixed(1)+'deg');
+        span.style.animationDelay = Math.floor(Math.random()*120)+'ms';
+        document.body.appendChild(span);
+        setTimeout(()=> span.remove(), 1200);
+      }
+    }
+  }
   // liga/desliga um Efeito -- pedido explícito: "no momento que o botão é apertado" (sem debounce,
-  // sem esperar SALVAR) reflete na hora (1) o visual do próprio botão, (2) publica ao vivo
-  // (pushLiveVitals(), que por sua vez corrige a(s) peça(s) já colocada(s) no Tabuleiro ao Vivo via
-  // syncOwnPlacedTokenBonus() -- mesmo mecanismo já usado pro Modificador de Movimento) e (3) se
-  // apertar de novo, desliga do mesmo jeito.
+  // sem esperar SALVAR) reflete na hora (1) o visual do próprio botão, (2) o "fogos de
+  // caveirinhas"/estrelinhas acima, (3) publica ao vivo (pushLiveVitals(), que por sua vez corrige
+  // a(s) peça(s) já colocada(s) no Tabuleiro ao Vivo via syncOwnPlacedTokenBonus() -- mesmo
+  // mecanismo já usado pro Modificador de Movimento) e (4) se apertar de novo, desliga do mesmo
+  // jeito.
   function setEffectActive(key, active){
     if(!EFFECT_LABELS[key]) return;
     if(active) effectsState[key] = true; else delete effectsState[key];
     const btn = document.querySelector(`.effect-btn[data-effect="${key}"]`);
     if(btn) btn.classList.toggle('active', !!active);
+    spawnEffectToggleBurst(btn, !!active);
     // publica na hora (não espera o debounce de 600ms de scheduleLiveVitalsPush()) -- pedido
     // explícito de tempo real "no momento que o botão é apertado".
     pushLiveVitals();

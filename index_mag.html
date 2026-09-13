@@ -3402,22 +3402,25 @@ body{
    Cor de cada botão reaproveita a MESMA variável reativa já usada em toda a ficha pro elemento/
    credo escolhido (--deity-eye-color/--deity-eye-glow-soft, ver DEITY_EYE_COLOR no <script> —
    nenhum JS extra precisou disso, já é atualizada sozinha em qualquer troca de elemento).
-   INATIVO fica apagado/dessaturado de propósito (pedido explícito: "ele fica apagado/sombreado"),
-   ATIVO acende na cor cheia do elemento/credo com um leve glow. */
+   INATIVO fica apagado/sombreado de propósito (pedido explícito: "ele fica apagado/sombreado"),
+   ATIVO acende na cor cheia do elemento/credo com um leve glow.
+   Pedido explícito, rodada nova: o TEXTO continua dourado mesmo desativado -- por isso o "apagado"
+   deixou de vir de `filter`/`opacity` no botão inteiro (que também lavava a cor do texto junto,
+   já que os dois afetam TODOS os pixels do elemento, texto incluso) e passou a vir só do fundo/
+   borda em rgba (baixa opacidade só neles) — a cor do texto (`color`) nunca é tocada por isso. */
 .effects-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 10px;}
 .effects-grid.collapsed{display:none;}
 .effect-btn{
   padding:8px 4px;font-family:'Cinzel Decorative',serif;font-size:11px;font-weight:700;letter-spacing:.3px;
-  color:var(--paper-l);
-  background:linear-gradient(180deg,#3a3a3a,#1c1c1c);
-  border:1px solid var(--border-brown);border-radius:4px;cursor:pointer;text-align:center;
-  filter:grayscale(85%) brightness(.6);opacity:.5;
-  transition:filter .15s,opacity .15s,box-shadow .15s,border-color .15s,color .15s;
+  color:var(--gold-bright);
+  background:linear-gradient(180deg,rgba(58,58,58,.55),rgba(28,28,28,.55));
+  border:1px solid rgba(139,115,85,.5);border-radius:4px;cursor:pointer;text-align:center;
+  transition:background .15s,border-color .15s,box-shadow .15s,color .15s;
 }
-.effect-btn:hover{filter:grayscale(35%) brightness(.85);opacity:.85;}
+.effect-btn:hover{border-color:var(--gold-bright);box-shadow:0 0 7px rgba(224,182,86,.35);}
 .effect-btn.active{
-  filter:none;opacity:1;
   color:var(--deity-eye-color,#e0b656);border-color:var(--deity-eye-color,#e0b656);
+  background:linear-gradient(180deg,#3a3a3a,#1c1c1c);
   box-shadow:0 0 9px 1px var(--deity-eye-glow-soft, rgba(224,182,86,.6)), inset 0 0 5px rgba(255,255,255,.12);
 }
 
@@ -9256,16 +9259,75 @@ body{
     tonto: 'TONTO', ferido: 'FERIDO',
   };
   function hasActiveEffect(key){ return !!(effectsState && effectsState[key]); }
+  // "fogos de caveirinhas" ao LIGAR um Efeito, estrelinhas na cor do elemento/divindade ao
+  // DESLIGAR (pedido explícito) -- reaproveita literalmente o mesmo mecanismo de partículas já
+  // usado pela "explosão de dados" ao clicar num ícone de rolagem (spawnDiceExplosionAtElement()/
+  // diceExplosionAngle() mais acima: mesmas classes .dice-particle/.dice-particle-fixed, mesmo
+  // keyframe diceParticleFloat no <style>, mesmo position:fixed ancorado em cima do botão de
+  // verdade via getBoundingClientRect() -- os botões de Efeito não moram dentro de nenhuma
+  // .dice-particle-layer própria, por isso precisam da variante "fixed"). Sempre um leque de 360°
+  // completo nos dois casos ("pra todos os lados"/pedido explícito). Estrela usa o mesmo caractere
+  // "sólido" (✦/✧, não emoji) já usado em .mana-star-particle logo acima -- um emoji colorido de
+  // verdade tipo ⭐ não aceita `color` do CSS, então não daria pra pintar na cor certa. Puramente
+  // decorativo, não mexe em nenhum estado de jogo.
+  function spawnEffectToggleBurst(btn, active){
+    if(!btn) return;
+    const rect = btn.getBoundingClientRect();
+    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+    if(active){
+      const count = 12;
+      for(let i=0;i<count;i++){
+        const span = document.createElement('span');
+        span.className = 'dice-particle dice-particle-explosion dice-particle-fixed';
+        span.textContent = '💀';
+        const angle = diceExplosionAngle('normal');
+        const dist = 26 + Math.random()*46;
+        span.style.left = cx.toFixed(1)+'px';
+        span.style.top = cy.toFixed(1)+'px';
+        span.style.setProperty('--dx', (Math.cos(angle)*dist).toFixed(1)+'px');
+        span.style.setProperty('--dy', (Math.sin(angle)*dist).toFixed(1)+'px');
+        span.style.setProperty('--rot', (Math.random()*180-90).toFixed(1)+'deg');
+        span.style.animationDelay = Math.floor(Math.random()*80)+'ms';
+        document.body.appendChild(span);
+        setTimeout(()=> span.remove(), 1200);
+      }
+    } else {
+      // cor do elemento/divindade DESTA ficha -- mesma variável reativa que já pinta o resto da
+      // ficha inteira (--deity-eye-color, ver updateDeityEyeGlow()), lida direto do <html> na hora;
+      // sempre em dia sozinha, nenhum JS extra precisou disso.
+      const cor = getComputedStyle(document.documentElement).getPropertyValue('--deity-eye-color').trim() || '#e0b656';
+      const count = 9;
+      for(let i=0;i<count;i++){
+        const span = document.createElement('span');
+        span.className = 'dice-particle dice-particle-fixed';
+        span.textContent = (i % 2 === 0) ? '✦' : '✧';
+        span.style.color = cor;
+        span.style.textShadow = `0 0 5px ${cor}`;
+        const angle = Math.random()*Math.PI*2;
+        const dist = 16 + Math.random()*30;
+        span.style.left = cx.toFixed(1)+'px';
+        span.style.top = cy.toFixed(1)+'px';
+        span.style.setProperty('--dx', (Math.cos(angle)*dist).toFixed(1)+'px');
+        span.style.setProperty('--dy', (Math.sin(angle)*dist).toFixed(1)+'px');
+        span.style.setProperty('--rot', (Math.random()*90-45).toFixed(1)+'deg');
+        span.style.animationDelay = Math.floor(Math.random()*120)+'ms';
+        document.body.appendChild(span);
+        setTimeout(()=> span.remove(), 1200);
+      }
+    }
+  }
   // liga/desliga um Efeito -- pedido explícito: "no momento que o botão é apertado" (sem debounce,
-  // sem esperar SALVAR) reflete na hora (1) o visual do próprio botão, (2) publica ao vivo
-  // (pushLiveVitals(), que por sua vez corrige a(s) peça(s) já colocada(s) no Tabuleiro ao Vivo via
-  // syncOwnPlacedTokenBonus() -- mesmo mecanismo já usado pro Modificador de Movimento) e (3) se
-  // apertar de novo, desliga do mesmo jeito.
+  // sem esperar SALVAR) reflete na hora (1) o visual do próprio botão, (2) o "fogos de
+  // caveirinhas"/estrelinhas acima, (3) publica ao vivo (pushLiveVitals(), que por sua vez corrige
+  // a(s) peça(s) já colocada(s) no Tabuleiro ao Vivo via syncOwnPlacedTokenBonus() -- mesmo
+  // mecanismo já usado pro Modificador de Movimento) e (4) se apertar de novo, desliga do mesmo
+  // jeito.
   function setEffectActive(key, active){
     if(!EFFECT_LABELS[key]) return;
     if(active) effectsState[key] = true; else delete effectsState[key];
     const btn = document.querySelector(`.effect-btn[data-effect="${key}"]`);
     if(btn) btn.classList.toggle('active', !!active);
+    spawnEffectToggleBurst(btn, !!active);
     // publica na hora (não espera o debounce de 600ms de scheduleLiveVitalsPush()) -- pedido
     // explícito de tempo real "no momento que o botão é apertado".
     pushLiveVitals();
