@@ -3397,6 +3397,30 @@ body{
 .mod-step-btn:hover{border-color:#e0b656;background:linear-gradient(180deg,#8a6a2e,#54401a);}
 .mod-step-btn:active{transform:translateY(1px);}
 
+/* EFEITOS (guia nova, logo abaixo de Modificadores) -- botões liga/desliga (toggleEffect() no
+   <script>), sem valor numérico nenhum, então usam sua própria grade (não reaproveita .mods-grid).
+   Cor de cada botão reaproveita a MESMA variável reativa já usada em toda a ficha pro elemento/
+   credo escolhido (--deity-eye-color/--deity-eye-glow-soft, ver DEITY_EYE_COLOR no <script> —
+   nenhum JS extra precisou disso, já é atualizada sozinha em qualquer troca de elemento).
+   INATIVO fica apagado/dessaturado de propósito (pedido explícito: "ele fica apagado/sombreado"),
+   ATIVO acende na cor cheia do elemento/credo com um leve glow. */
+.effects-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 10px;}
+.effects-grid.collapsed{display:none;}
+.effect-btn{
+  padding:8px 4px;font-family:'Cinzel Decorative',serif;font-size:11px;font-weight:700;letter-spacing:.3px;
+  color:var(--paper-l);
+  background:linear-gradient(180deg,#3a3a3a,#1c1c1c);
+  border:1px solid var(--border-brown);border-radius:4px;cursor:pointer;text-align:center;
+  filter:grayscale(85%) brightness(.6);opacity:.5;
+  transition:filter .15s,opacity .15s,box-shadow .15s,border-color .15s,color .15s;
+}
+.effect-btn:hover{filter:grayscale(35%) brightness(.85);opacity:.85;}
+.effect-btn.active{
+  filter:none;opacity:1;
+  color:var(--deity-eye-color,#e0b656);border-color:var(--deity-eye-color,#e0b656);
+  box-shadow:0 0 9px 1px var(--deity-eye-glow-soft, rgba(224,182,86,.6)), inset 0 0 5px rgba(255,255,255,.12);
+}
+
 /* lists (inventory / habilidades) */
 .list-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
 .item-entry{margin-bottom:2px;}
@@ -3746,28 +3770,15 @@ body{
   border-radius:4px;padding:6px 10px;cursor:pointer;width:100%;
 }
 .add-row-btn:hover{border-color:var(--ink);color:var(--ink);}
-/* ---------- Talentos (nova guia abaixo de Rolamentos -- lista livre "à moda antiga", ver
-   addTalentoRow()/talentosRows no <script>) ---------- */
-/* pedido explícito: "precisa ser um campo de texto igual ao inventário, mas sem o seletor de
-   quantidade, apenas com o livrinho" -- cada linha de Talento REAPROVEITA literalmente as mesmas
-   classes do Inventário (.item-entry/.item-row/.item-name/.item-actions/.item-book-btn/
-   .item-desc-panel/.item-desc, ver addItemRow() no <script>) -- mesmo campo de nome, mesma
-   caixinha de descrição atrás do livrinho (já preto com texto dourado, ver .item-desc no
-   <style>), só SEM nenhum botão de quantidade.
-   Pedido explícito, rodada nova (voltou atrás na decisão de uma rodada anterior que tinha
-   removido isso): de volta o seletor de Atributo + os 3 dados de rolagem (🎲/🎲+/🎲−), reaproveitando
-   os mesmos ícones .hab-icon já usados nas Habilidades/Atributos -- .talento-actions ganhou
-   flex-wrap pra não espremer tudo numa linha só em telas estreitas (nome + livrinho + seletor +
-   3 dados + remover é bastante coisa pra uma linha só). */
-.talento-actions{flex-wrap:wrap;row-gap:6px;}
-/* seletor de Atributo de cada Talento -- select de verdade e VISÍVEL (diferente do #diceStat dos
-   Atributos, que fica escondido porque lá a escolha é feita clicando no campo de número; aqui não
-   existe nenhum campo assim pra clicar, então o próprio <select> precisa aparecer). Tamanho/fonte
-   pequenos pra caber ao lado do livrinho e dos ícones de dado sem dominar a linha. */
-.talento-attr-select{
-  font-family:'EB Garamond',serif;font-size:11px;padding:2px 3px;border-radius:4px;
-  border:1px solid var(--border-brown);background:var(--paper-l);color:var(--ink);cursor:pointer;
-}
+/* ---------- Talentos (nova guia abaixo de Rolamentos -- catálogo FIXO por atributo, ver
+   TALENTO_CATALOG/renderTalentos() no <script>) ---------- */
+/* pedido explícito: talentos passaram a ser um catálogo fixo escolhido por um painel próprio
+   (#talentoLevelUpModal), não mais uma lista livre digitada à mão -- por isso cada linha
+   reaproveita literalmente as MESMAS classes já usadas pelas Habilidades fixas (.hab-row/
+   .hab-nome/.hab-nome-attr/.hab-row-icons/.hab-icon/.hab-desc-inline, ver renderHabilidadesTab()
+   no <style> acima) e o próprio painel de escolha reaproveita .hab-tabs/.hab-tab-btn (guias por
+   atributo) e .hab-levelup-* (cards/ações do #habLevelUpModal) -- nenhuma classe/CSS novo
+   necessário só pra Talentos. */
 /* linha com "Atualizar histórico" e "Limpar histórico" lado a lado, no modal de Histórico de
    Rolagens — o de limpar usa o mesmo tom de vermelho já usado em outras ações destrutivas
    (apagar ficha/tabuleiro, botão Sair). */
@@ -4737,6 +4748,26 @@ body{
               </div>
             </div>
 
+            <!-- EFEITOS: pedido explícito, painel novo logo ABAIXO de Modificadores. 8 botões
+                 liga/desliga (toggleEffect() no <script>) -- cada um aplica uma regra de verdade
+                 no Tabuleiro ao Vivo (movimento/rolagem, ver computeEffectiveMoveLimit()/
+                 hasActiveEffect() no <script>), aparece ao lado do nome em toda rolagem
+                 (buildEffectTag()) e soma dano automático quando é o caso (ENVENENADO/QUEIMANDO/
+                 SANGRANDO). Painel nasce colapsado, igual Modificadores. -->
+            <div class="panel">
+              <h2>Efeitos <button type="button" class="panel-toggle-btn is-collapsed" id="effectsToggleBtn" aria-label="Expandir Efeitos" title="Minimizar/expandir Efeitos">▾</button></h2>
+              <div class="effects-grid collapsed" id="effectsGrid">
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="paralizado">PARALIZADO<div class="cs-tooltip">O personagem não pode se mover</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="congelado">CONGELADO<div class="cs-tooltip">O personagem não pode se mover ou fazer qualquer rolagem no tabuleiro</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="envenenado">ENVENENADO<div class="cs-tooltip">O personagem perde 1 de vida sempre que rolar um dado</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="queimando">QUEIMANDO<div class="cs-tooltip">O personagem perde 1 de vida sempre que rolar um dado</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="sangrando">SANGRANDO<div class="cs-tooltip">O personagem recebe 1 de dano para cada casa que se mover no tabuleiro</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="enjoado">ENJOADO<div class="cs-tooltip">Corta pela metade a quantidade de casas que o personagem pode se mover, mínimo de 1 casa</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="tonto">TONTO<div class="cs-tooltip">Força os rolamentos a serem feitos em desvantagem</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="ferido">FERIDO<div class="cs-tooltip">O personagem anda apenas 1 espaço por movimento — marcado sozinho ao chegar a 0 de vida</div></button>
+              </div>
+            </div>
+
             <div class="panel">
               <h2>Armamento e Armadura</h2>
               <div class="ar-ap-grid">
@@ -4950,17 +4981,18 @@ body{
               </div>
             </div>
 
-            <!-- TALENTOS: nova guia abaixo de Rolamentos (pedido explícito) -- funciona como a
-                 antiga lista livre de Habilidades funcionava ANTES das Habilidades fixas por Arma/
-                 Elemento (nome/atributo/texto digitados à mão pelo jogador, sem nível/custo/dado de
-                 dano fixo nenhum -- só um espaço livre pra qualquer talento que não se encaixe nas
-                 Habilidades fixas). Cada linha tem seu próprio ícone de rolamento (🎲/🎲+/🎲−, mesmo
-                 painel "Rolamentos" reaproveitado, ver addTalentoRow() no <script>). -->
+            <!-- TALENTOS: nova guia abaixo de Rolamentos -- catálogo FIXO por atributo (pedido
+                 explícito, rodada nova), só mostra os talentos que o personagem já possui (ver
+                 renderTalentos()/TALENTO_CATALOG no <script>); a escolha acontece no painel
+                 "Escolha um Talento" (#talentoLevelUpModal), que abre sozinho pro jogador na
+                 criação da ficha/subida de Rank. Cada linha tem seu próprio ícone de rolamento
+                 (🎲/🎲+/🎲−, mesmo painel "Rolamentos" reaproveitado) usando o atributo FIXO do
+                 catálogo. -->
             <div class="panel talentos-panel">
-              <h2>Talentos <button type="button" class="panel-toggle-btn" id="talentosToggleBtn" aria-label="Minimizar Talentos" title="Minimizar/expandir Talentos">▾</button></h2>
+              <h2>Talentos <span class="attr-points-badge" id="talentoPointsBadge" title="Pontos de talento acumulados ainda não distribuídos">0</span> <button type="button" class="panel-toggle-btn" id="talentosToggleBtn" aria-label="Minimizar Talentos" title="Minimizar/expandir Talentos">▾</button></h2>
               <div class="dice-panel-body" id="talentosBody">
                 <div class="list-rows" id="talentosRows"></div>
-                <button type="button" id="addTalentoBtn" class="add-row-btn">+ Adicionar Talento</button>
+                <button type="button" id="openTalentoPickerBtn" class="add-row-btn">+ Escolher Talento</button>
               </div>
             </div>
           </div>
@@ -5564,6 +5596,37 @@ body{
   </div>
 </div>
 
+<!-- painel "Escolha um Talento" (ver TALENTO_CATALOG/openTalentoLevelUpPanel() no <script>) --
+     pedido explícito: TALENTOS agora são fixos, por atributo, em vez do campo de texto livre de
+     antes. Mesmo espírito/mecânica do #habLevelUpModal logo acima (escolher um card e clicar "OK"
+     investe o ponto; se ainda sobrar ponto de Talento, o painel se reabre sozinho) -- a diferença
+     é a fileira de guias por atributo (FOR/CON/DES/INT/VON/CAR) no topo, que filtra a lista de
+     baixo pros talentos daquele atributo (pedido explícito: "se clica em FOR mostra os talentos
+     que usam FOR como atributo na rolagem de dado"). Pro JOGADOR abre sozinho, encadeado depois
+     do #habLevelUpModal (ver maybeOpenLevelUpPanels()) -- personagem novo ganha 3 talentos de uma
+     vez, +1 a cada Rank, mesma fórmula de pontos de Habilidade (ver talentoPointsTotal()). Pro
+     MESTRE abre manualmente pelo botão "+ Escolher Talento" do próprio painel Talentos. -->
+<div class="modal-overlay" id="talentoLevelUpModal" hidden>
+  <div class="modal-box hab-levelup-box">
+    <div class="modal-head">
+      <h2 id="talentoLevelUpTitle">Escolha um Talento</h2>
+    </div>
+    <p class="element-picker-intro" id="talentoLevelUpIntro">Você ganhou um Talento! Escolha um atributo abaixo e depois o Talento.</p>
+    <div class="hab-tabs talento-attr-tabs" id="talentoAttrTabs">
+      <button type="button" class="hab-tab-btn talento-attr-tab-btn" data-talento-attr="FOR">FOR</button>
+      <button type="button" class="hab-tab-btn talento-attr-tab-btn" data-talento-attr="CON">CON</button>
+      <button type="button" class="hab-tab-btn talento-attr-tab-btn" data-talento-attr="DES">DES</button>
+      <button type="button" class="hab-tab-btn talento-attr-tab-btn" data-talento-attr="INT">INT</button>
+      <button type="button" class="hab-tab-btn talento-attr-tab-btn" data-talento-attr="VON">VON</button>
+      <button type="button" class="hab-tab-btn talento-attr-tab-btn" data-talento-attr="CAR">CAR</button>
+    </div>
+    <div class="hab-levelup-list" id="talentoLevelUpList"></div>
+    <div class="hab-levelup-actions">
+      <button type="button" class="hab-levelup-ok-btn" id="talentoLevelUpOkBtn" disabled>OK</button>
+    </div>
+  </div>
+</div>
+
 <!-- A descrição de cada Habilidade (ícone 📖) não usa mais modal -- agora abre/fecha "encaixada"
      logo abaixo da própria linha, na aba Armamento/Elemento (ver .hab-desc-inline no <style> e
      renderHabilidadesTab() no <script>). -->
@@ -5646,8 +5709,14 @@ body{
     if(!imgZoomOverlay || !imgEl) return;
     const src = imgEl.currentSrc || imgEl.src;
     if(!src) return;
-    const rect = imgEl.getBoundingClientRect();
-    if(rect.width < 1 || rect.height < 1) return;
+    showImgZoomAt(imgEl.getBoundingClientRect(), src);
+  }
+  // mesma lógica de showImgZoom() acima, só que recebendo o retângulo/src prontos em vez de ler de
+  // um <img> de verdade -- reaproveitada pelos ícones do Tabuleiro ao Vivo (que usam background-image
+  // num <div>, não <img>, ver renderLiveBoardMini()) pro zoom de retrato ao passar o mouse num
+  // personagem/inimigo que não é o seu.
+  function showImgZoomAt(rect, src){
+    if(!imgZoomOverlay || !src || !rect || rect.width < 1 || rect.height < 1) return;
     // até o dobro do tamanho exibido, sem estourar a viewport (telas pequenas/imagem já grande)
     const maxW = window.innerWidth * .8, maxH = window.innerHeight * .8;
     const scale = Math.max(1, Math.min(2, maxW / rect.width, maxH / rect.height));
@@ -5755,6 +5824,10 @@ body{
   };
 
   let portraitData = null;
+  // último valor de portraitData já publicado em mesa40k/livePortrait/{uid} (ver pushLiveVitals())
+  // -- começa null (nada publicado ainda), nunca igual a portraitData de verdade até a primeira
+  // publicação, então a primeira chamada de pushLiveVitals() sempre publica pelo menos uma vez.
+  let lastPublishedPortrait = undefined;
   // ---------- formas do personagem (verso: fada/pixie/animal/humana) ----------
   // animalFormData/humanaFormData seguem o mesmo padrão de portraitData acima (data URL JPEG ou
   // null) -- a de fada usa o retrato normal (portraitData) e a de pixie é gerada por JS (chama
@@ -6555,13 +6628,13 @@ body{
     if(leveledUp){
       celebrateLevelUp(levelFloor);
       // pedido explícito: subida de nível abre, pro JOGADOR, o painel de escolha de Habilidade pra
-      // investir o(s) novo(s) ponto(s) -- ver maybeOpenHabLevelUpPanel()/openHabLevelUpPanel(), mais
+      // investir o(s) novo(s) ponto(s) -- ver maybeOpenLevelUpPanels()/openHabLevelUpPanel(), mais
       // abaixo no <script> (function declarations, disponíveis aqui por hoisting, mesmo raciocínio
       // de renderHabilidades()/maybeOfferRankUpgrade() logo abaixo). Não interfere com o painel de
       // upgrade de Rank (nova Arma/Elemento, ver maybeOfferRankUpgrade() abaixo) -- são modais
       // independentes; no raro caso de os dois dispararem juntos (personagem sobe de Rank E ganha
       // ponto de Habilidade na mesma subida de nível), os dois abrem e o jogador resolve um de cada vez.
-      maybeOpenHabLevelUpPanel();
+      maybeOpenLevelUpPanels();
     }
     // pontos de Habilidade disponíveis (badge/steppers das abas Armamento/Elemento) dependem do
     // Nível do personagem (ver habPointsTotal()) -- sem isto, subir de nível só refletia ali depois
@@ -6841,7 +6914,14 @@ body{
       // diretamente a(s) peça(s) já colocada(s) dessa ficha em mesa40k/liveBoard/tokens (nó que
       // QUALQUER conta logada já pode escrever, ver regras do Firebase) — não precisa mais esperar
       // ninguém mais estar com a página do mestre aberta. Ver syncOwnPlacedTokenBonus() logo abaixo.
-      syncOwnPlacedTokenBonus(ownerUid, payload.bonusDes, payload.bonusMov);
+      // EFEITOS ativos (painel novo, ver effectsState/setEffectActive() mais acima) -- mesmo
+      // formato salvo em collectState(), objeto simples { chaveDoEfeito: true }. Junto do
+      // bonusDes/bonusMov acima nessa mesma correção direta da peça já colocada, pra PARALIZADO/
+      // CONGELADO/ENJOADO/FERIDO travarem ou cortarem o alcance de movimento na hora (ver
+      // computeEffectiveMoveLimit()) e SANGRANDO/ENVENENADO/QUEIMANDO/TONTO funcionarem sem
+      // precisar de nenhum recarregamento.
+      payload.efeitos = Object.assign({}, effectsState);
+      syncOwnPlacedTokenBonus(ownerUid, payload.bonusDes, payload.bonusMov, payload.efeitos);
       // divindade atual da ficha — mesmo motivo do bonusDes acima: sem isto, uma ficha nunca salva
       // (liveOnlyRosterEntries()) não teria como a seta de direção do tabuleiro ao vivo saber a cor.
       payload.deidade = els.deidade ? (els.deidade.value || '') : '';
@@ -6856,6 +6936,16 @@ body{
       // sem isso, o resumo do mestre em MESA (mc-attrs, ver makeFichasListLoader()) só atualizava
       // ao salvar a ficha no GitHub, podendo ficar bem desatualizado numa sessão longa.
       payload.totals = { for: totals.for, con: totals.con, des: totals.des, int: totals.int, von: totals.von, car: totals.car };
+      // RETRATO ao vivo (painel/pedido novo -- ver livePortraits/resolveTokenPortrait() no
+      // <script>) -- só reenvia quando o retrato realmente MUDOU desde a última publicação
+      // (lastPublishedPortrait): pushLiveVitals() já roda a cada recalc() (cada tecla/clique na
+      // ficha inteira, debounced), reenviar a imagem inteira em base64 a cada uma dessas seria
+      // pesado à toa -- só pesa de verdade no momento em que o retrato é trocado de fato.
+      if(portraitData !== lastPublishedPortrait){
+        lastPublishedPortrait = portraitData;
+        fbDb.ref('mesa40k/livePortrait/' + ownerUid).set(portraitData || null)
+          .catch(err=> console.error('Não foi possível publicar o retrato ao vivo:', err));
+      }
     }
     fbDb.ref('mesa40k/live/' + ownerUid).set(payload);
     // Sentido contrário do scheduleAtributosPush()/pushAtributos() logo abaixo (mestre corrigindo a
@@ -6907,19 +6997,29 @@ body{
   // o token inteiro) -- nunca mexe em anchorR/anchorC/facing, tanto pra não pisar em cima de um
   // movimento/direção que outra aba possa ter acabado de gravar, quanto porque
   // liveBoardState.tokens só reflete o que ESTE navegador já recebeu do Firebase até agora.
-  function syncOwnPlacedTokenBonus(ownerUid, freshDes, freshMov){
+  // freshEfeitos (novo parâmetro, painel EFEITOS): mesmo tratamento do bonusDes/bonusMov acima,
+  // corrigido direto na(s) peça(s) já colocada(s) -- objeto vazio/ausente grava null (remove o
+  // campo, em vez de {} -- o Realtime Database de verdade não lida bem com objeto vazio) pra
+  // computeEffectiveMoveLimit() no <script> (movimento) e a mensagem de rolagem (buildEffectTag(),
+  // já embutida na mensagem antes de chegar aqui) sempre lerem o estado certo.
+  function syncOwnPlacedTokenBonus(ownerUid, freshDes, freshMov, freshEfeitos){
     if(!ownerUid || !fbDb || !liveBoardState || !liveBoardState.tokens) return;
+    const efeitosVal = (freshEfeitos && Object.keys(freshEfeitos).length) ? freshEfeitos : null;
+    const efeitosKey = efeitosVal ? Object.keys(efeitosVal).sort().join(',') : '';
     const patch = {};
     let any = false;
     Object.keys(liveBoardState.tokens).forEach(key=>{
       const tok = liveBoardState.tokens[key];
       if(!tok || tok.kind !== 'hero' || tok.ownerUid !== ownerUid) return;
       const curDes = tok.bonusDes || 0, curMov = tok.bonusMov || 0;
-      if(curDes === (freshDes || 0) && curMov === (freshMov || 0)) return;
+      const curEfeitosKey = tok.efeitos ? Object.keys(tok.efeitos).sort().join(',') : '';
+      if(curDes === (freshDes || 0) && curMov === (freshMov || 0) && curEfeitosKey === efeitosKey) return;
       tok.bonusDes = freshDes || 0;
       tok.bonusMov = freshMov || 0;
+      if(efeitosVal) tok.efeitos = efeitosVal; else delete tok.efeitos;
       patch[key + '/bonusDes'] = freshDes || 0;
       patch[key + '/bonusMov'] = freshMov || 0;
+      patch[key + '/efeitos'] = efeitosVal;
       any = true;
     });
     if(!any) return;
@@ -7192,6 +7292,18 @@ body{
       const collapsed = modsGrid.classList.toggle('collapsed');
       modToggleBtn.classList.toggle('is-collapsed', collapsed);
       modToggleBtn.setAttribute('aria-label', collapsed ? 'Expandir Modificadores' : 'Minimizar Modificadores');
+    });
+  }
+
+  // mesmo mecanismo de minimizar/expandir acima, pro painel EFEITOS novo (nasce colapsado, igual
+  // Modificadores -- ver .effects-grid.collapsed no HTML).
+  const effectsToggleBtn = $('effectsToggleBtn');
+  const effectsGrid = $('effectsGrid');
+  if(effectsToggleBtn && effectsGrid){
+    effectsToggleBtn.addEventListener('click', ()=>{
+      const collapsed = effectsGrid.classList.toggle('collapsed');
+      effectsToggleBtn.classList.toggle('is-collapsed', collapsed);
+      effectsToggleBtn.setAttribute('aria-label', collapsed ? 'Expandir Efeitos' : 'Minimizar Efeitos');
     });
   }
 
@@ -8142,10 +8254,14 @@ body{
 
   // avisa no Discord quando a vida da ficha chega a zero, com um ícone de caveira na mesma
   // moldura circular (com anel na cor da Deidade) usada nos ícones de rolagem enviados pra mesa.
+  // Pedido explícito: a mensagem deixou de ser "MORREU" e passou a ser "ESTÁ FERIDO" -- também
+  // aciona sozinho o efeito FERIDO (ver EFEITOS/toggleEffect() mais abaixo), que é o mesmo pedido
+  // ("marque este automaticamente caso o personagem chegue a 0 de vida").
   function announceDeath(){
     const nome = (els.nome.value || '').trim() || '(sem nome)';
     if(isBlankName(nome)) return; // ficha sem nome não avisa ninguém
-    postToDiscord(`💀 **${nome}** MORREU`, buildRollIconDataUrl('morte'));
+    postToDiscord(`💀 **${nome}** ESTÁ FERIDO`, buildRollIconDataUrl('morte'));
+    setEffectActive('ferido', true);
   }
 
   // ---------- dice roller ----------
@@ -8379,7 +8495,19 @@ body{
 
   rollBtn.addEventListener('click', ()=>{
     if(rollingInterval) return; // já rolando, ignora clique duplo
+    // CONGELADO (painel EFEITOS): "não pode se mover OU fazer qualquer rolagem no tabuleiro" --
+    // barra aqui, ANTES de qualquer animação começar, cobrindo também Habilidades/Talentos (que só
+    // disparam este mesmo rollBtn.click() por baixo, ver rollHabilidadeAtributo()/rollTalento()).
+    if(hasActiveEffect('congelado')){
+      expandDicePanelIfCollapsed();
+      diceHint.textContent = 'CONGELADO — não é possível rolar enquanto este efeito estiver ativo.';
+      return;
+    }
     expandDicePanelIfCollapsed();
+    // TONTO (painel EFEITOS): "força os rolamentos a serem feitos em desvantagem" -- sobrescreve o
+    // modo escolhido no seletor ANTES dele ser lido logo abaixo, então vale pra qualquer origem
+    // desta rolagem (painel solto, ícone de Habilidade, ícone de Talento).
+    if(hasActiveEffect('tonto')) diceMode.value = 'desvantagem';
 
     const stat = diceStat.value;
     const statVal = baseAttrs[stat] ?? 0;
@@ -8599,6 +8727,12 @@ body{
 
   rollDanoBtn.addEventListener('click', ()=>{
     if(danoRollingInterval) return;
+    // CONGELADO (painel EFEITOS) -- mesma regra/mesmo motivo do rollBtn acima.
+    if(hasActiveEffect('congelado')){
+      expandDicePanelIfCollapsed();
+      danoHint.textContent = 'CONGELADO — não é possível rolar enquanto este efeito estiver ativo.';
+      return;
+    }
     expandDicePanelIfCollapsed();
     showDanoDiceArea();
     playCutSound(); // som de corte ao CLICAR em Rolar Dano (pedido explícito), na hora, sem depender do resultado
@@ -8777,6 +8911,11 @@ body{
 
   rollSorteBtn.addEventListener('click', ()=>{
     if(sorteRollingInterval) return; // já rolando, ignora clique duplo
+    // CONGELADO (painel EFEITOS) -- mesma regra/mesmo motivo do rollBtn/rollDanoBtn acima.
+    if(hasActiveEffect('congelado')){
+      sorteHint.textContent = 'CONGELADO — não é possível rolar enquanto este efeito estiver ativo.';
+      return;
+    }
 
     // rolar Sorte "custa" pelo menos 1 moeda de OURO — sem isso nem gira a moeda, só avisa no chat
     // (e no Discord, se tiver webhook) que não dá, com o nome do personagem sempre em negrito,
@@ -9094,6 +9233,68 @@ body{
   // Nível da ficha, ver els.lvNum/recalc() lá em cima), sendo 1 ponto já disponível no nível 1 —
   // e é esse nível que multiplica os dados de dano (ver rollHabilidadeDano() mais abaixo).
   let habNiveis = {}; // { idDaHabilidade: nivel } -- ver collectState()/applyState()
+
+  // Talentos fixos (ver TALENTO_CATALOG/renderTalentos() na seção "Talentos" mais abaixo) --
+  // estado simples { idDoTalento: true }, mesmo espírito de habNiveis acima só que sem nível (um
+  // talento só existe "possuído" ou não, sem grau).
+  let talentosOwned = {};
+
+  // ---------- EFEITOS (painel novo, logo abaixo de Modificadores) ----------
+  // Estado simples { chaveDoEfeito: true } -- só entram chaves ATIVAS (ausente/false = desligado),
+  // pra ficar leve tanto salvo na ficha (collectState()/applyState()) quanto publicado ao vivo
+  // (pushLiveVitals()/syncOwnPlacedTokenBonus() logo abaixo, e no token do Tabuleiro ao Vivo em
+  // mesa40k/liveBoard/tokens/*/efeitos -- ver computeEffectiveMoveLimit()). Cada chave é sempre
+  // minúscula (paralizado/congelado/envenenado/queimando/sangrando/enjoado/tonto/ferido), casando
+  // com data-effect="..." de cada .effect-btn no HTML.
+  let effectsState = {};
+  // nome (sempre em CAIXA ALTA, igual ao resto da ficha) de cada Efeito -- reaproveitado tanto pro
+  // texto ao lado do nome em toda rolagem (buildEffectTag()) quanto, se precisar no futuro, por
+  // qualquer outro lugar que precise do rótulo certinho a partir da chave.
+  const EFFECT_LABELS = {
+    paralizado: 'PARALIZADO', congelado: 'CONGELADO', envenenado: 'ENVENENADO',
+    queimando: 'QUEIMANDO', sangrando: 'SANGRANDO', enjoado: 'ENJOADO',
+    tonto: 'TONTO', ferido: 'FERIDO',
+  };
+  function hasActiveEffect(key){ return !!(effectsState && effectsState[key]); }
+  // liga/desliga um Efeito -- pedido explícito: "no momento que o botão é apertado" (sem debounce,
+  // sem esperar SALVAR) reflete na hora (1) o visual do próprio botão, (2) publica ao vivo
+  // (pushLiveVitals(), que por sua vez corrige a(s) peça(s) já colocada(s) no Tabuleiro ao Vivo via
+  // syncOwnPlacedTokenBonus() -- mesmo mecanismo já usado pro Modificador de Movimento) e (3) se
+  // apertar de novo, desliga do mesmo jeito.
+  function setEffectActive(key, active){
+    if(!EFFECT_LABELS[key]) return;
+    if(active) effectsState[key] = true; else delete effectsState[key];
+    const btn = document.querySelector(`.effect-btn[data-effect="${key}"]`);
+    if(btn) btn.classList.toggle('active', !!active);
+    // publica na hora (não espera o debounce de 600ms de scheduleLiveVitalsPush()) -- pedido
+    // explícito de tempo real "no momento que o botão é apertado".
+    pushLiveVitals();
+  }
+  function toggleEffect(key){ setEffectActive(key, !hasActiveEffect(key)); }
+  // botões liga/desliga do painel EFEITOS -- ver .effect-btn no HTML/CSS.
+  document.querySelectorAll('.effect-btn[data-effect]').forEach(btn=>{
+    btn.addEventListener('click', ()=> toggleEffect(btn.dataset.effect));
+  });
+  // texto " (EFEITO)" (ou " (EFEITO1, EFEITO2)" com mais de um ativo) -- pedido explícito: "O
+  // Efeito precisa ser informado ao lado do nome do personagem em todo rolamento que ele fizer,
+  // por exemplo NOME DO PERSONAGEM (ESTA EFEITO)". Usado dentro de formatRollMessage() logo abaixo,
+  // que é o ÚNICO lugar por onde toda mensagem de rolagem (atributo/dano/sorte) passa.
+  function buildEffectTag(){
+    const ativos = Object.keys(effectsState).filter(k=> effectsState[k] && EFFECT_LABELS[k]).map(k=> EFFECT_LABELS[k]);
+    return ativos.length ? ` (${ativos.join(', ')})` : '';
+  }
+  // ENVENENADO/QUEIMANDO: "o personagem perde 1 de vida sempre que rolar um dado" -- os dois juntos
+  // somam (1 de cada, 2 no total se ambos ativos). Chamado de dentro de pushRollLog(), único ponto
+  // por onde TODA rolagem de verdade (atributo/dano/sorte) passa -- roda mesmo com o Silenciar do
+  // mestre ativo (o dado já foi rolado de verdade, silêncio só esconde a MENSAGEM, não a regra).
+  function applyPerRollEffectDamage(){
+    let perda = 0;
+    if(hasActiveEffect('envenenado')) perda += 1;
+    if(hasActiveEffect('queimando')) perda += 1;
+    if(perda <= 0) return;
+    els.curVida.value = Math.max(0, num(els.curVida) - perda);
+    recalc();
+  }
   // texto livre escrito pelo jogador dentro do resumo (📖) de cada Habilidade -- quando a
   // Habilidade é rolada (atributo OU dano), esse texto vai pro TOPO da mensagem do Discord/
   // histórico em caixa alta e em "letras grandes" (cabeçalho "# " do Markdown do Discord), como se
@@ -9652,11 +9853,17 @@ body{
   const habLevelUpOkBtn = $('habLevelUpOkBtn');
   const habLevelUpIntro = $('habLevelUpIntro');
   let habLevelUpSelectedId = null;
-  function maybeOpenHabLevelUpPanel(){
-    if(currentRole !== 'jogador') return; // mestre nunca vê esse painel (ver comentário acima)
+  // ponto de entrada único pra abrir QUALQUER painel de "ganhou algo pra escolher" (subida de
+  // nível/criação de ficha) -- primeiro esgota os pontos de Habilidade (openHabLevelUpPanel()) e só
+  // depois, se ainda sobrar, passa a bola pro painel de Talento (openTalentoLevelUpPanel(), ver
+  // seção "Talentos" mais abaixo -- function declaration, disponível aqui por hoisting). Cada um
+  // dos dois modais continua se reabrindo sozinho enquanto sobrar ponto DAQUELE tipo (ver os
+  // próprios handlers de OK), então esta função só precisa decidir QUAL painel abrir primeiro.
+  function maybeOpenLevelUpPanels(){
+    if(currentRole !== 'jogador') return; // mestre nunca vê esses painéis (ver comentário acima)
     if(!isFichaEditable()) return; // mesma trava de maybeOfferRankUpgrade(): só quem pode editar essa ficha
-    if(habPointsUsedTotal() >= habPointsTotal()) return; // sem ponto sobrando, nada a fazer
-    openHabLevelUpPanel();
+    if(habPointsUsedTotal() < habPointsTotal()){ openHabLevelUpPanel(); return; }
+    if(talentoPointsUsedTotal() < talentoPointsTotal()){ openTalentoLevelUpPanel(); return; }
   }
   function openHabLevelUpPanel(){
     habLevelUpSelectedId = null;
@@ -9723,102 +9930,267 @@ body{
     if(!habLevelUpSelectedId) return;
     habNivelStep(habLevelUpSelectedId, 1); // já chama renderHabilidades() sozinho
     habLevelUpModal.hidden = true;
-    if(habPointsUsedTotal() < habPointsTotal()) openHabLevelUpPanel(); // ainda sobra ponto -- reabre sozinho
+    if(habPointsUsedTotal() < habPointsTotal()){ openHabLevelUpPanel(); return; } // ainda sobra ponto de Habilidade -- reabre sozinho
+    // sem ponto de Habilidade sobrando -- se sobrar ponto de Talento, o painel de Talento assume
+    // (ver openTalentoLevelUpPanel() na seção "Talentos" mais abaixo, disponível aqui por hoisting).
+    if(talentoPointsUsedTotal() < talentoPointsTotal()) openTalentoLevelUpPanel();
   });
 
   // ---------- Talentos (nova guia abaixo de Rolamentos) ----------
-  // Funciona como a antiga lista livre de Habilidades funcionava ANTES das Habilidades fixas por
-  // Arma/Elemento (pedido explícito) -- nome/atributo/texto digitados à mão pelo jogador, sem
-  // nível/custo/dado de dano fixo nenhum (mesmo padrão de addItemRow() do Inventário logo acima:
-  // lê o DOM direto em collectState(), sem nenhum array JS à parte). Cada linha reaproveita o
-  // mesmo painel "Rolamentos" de sempre pra rolar o Atributo escolhido (🎲/🎲+/🎲−) -- sem custo de
-  // Mana/Vida nenhum (é um espaço livre, não uma Habilidade fixa com fórmula própria).
-  // Pedido explícito (correção de uma rodada anterior): "precisa ser um campo de texto igual ao
-  // inventário, mas sem o seletor de quantidade, apenas com o livrinho" -- por isso o HTML abaixo
-  // reaproveita literalmente as mesmas classes de addItemRow() (.item-entry/.item-row/.item-name/
-  // .item-actions/.item-book-btn/.item-desc-panel/.item-desc), sem nenhum botão de quantidade;
-  // as classes .talento-* continuam JUNTO (como segunda classe em cada elemento) só pros seletores
-  // que já dependiam delas (testes automatizados, collectState()/applyState() abaixo) continuarem
-  // funcionando -- não carregam mais nenhum CSS próprio (ver comentário no <style>).
-  // Pedido explícito, rodada nova (voltou atrás na decisão da rodada anterior): "abaixo do nome ao
-  // lado do livrinho da descrição coloque um seletor de atributo e ao lado do seletor de atributo
-  // os dados de rolagem para aquela habilidade, igual com os atributos" -- o seletor de Atributo
-  // (`<select>` de verdade, visível -- diferente do Atributos/diceStat escondido, já que aqui não
-  // existe nenhum campo de número clicável pra escolher por trás) e os 3 ícones de dado (🎲/🎲+/🎲−,
-  // sempre nesta ordem -- Normal, Vantagem, Desvantagem -- mesma ordem de referência usada nos
-  // Atributos e nas Habilidades fixas, ver rodada anterior) entram dentro de `.item-actions`, que
-  // JÁ fica numa linha PRÓPRIA abaixo do nome (`.item-row` é `flex-direction:column`, então o
-  // `<input>` do nome e `.item-actions` já empilham verticalmente sozinhos, sem precisar de
-  // nenhuma reestruturação de HTML) -- entre o livrinho e o botão de remover.
+  // Pedido explícito (rodada nova): a guia de Talentos deixa de ser uma lista livre (nome/atributo/
+  // texto digitados à mão) e passa a ter um catálogo FIXO de talentos, agrupados por Atributo
+  // (FOR/CON/DES/INT/VON/CAR) -- mesmo espírito das Habilidades fixas por Arma/Elemento (ver
+  // TALENTO_CATALOG/talentosOwned/openTalentoLevelUpPanel() logo abaixo), só que sem nível: um
+  // talento só existe "possuído" ou não. Talento que o personagem não possui NÃO aparece na ficha
+  // (renderTalentos() só desenha os possuídos) -- a escolha acontece só no painel "Escolha um
+  // Talento" (#talentoLevelUpModal no HTML), com as guias por atributo no topo e a lista filtrada
+  // embaixo. Personagem novo ganha 3 talentos de uma vez (nível 1), +1 a cada Rank -- mesma
+  // fórmula de pontos de Habilidade (ver talentoPointsTotal()/habPointsTotal()).
   const talentosRows = $('talentosRows');
-  const TALENTO_ATTR_OPTIONS_HTML = `
-    <option value="for">FOR</option>
-    <option value="con">CON</option>
-    <option value="des">DES</option>
-    <option value="int">INT</option>
-    <option value="von">VON</option>
-    <option value="car">CAR</option>`;
-  function addTalentoRow(nome='', texto='', attr='for'){
-    const entry = document.createElement('div');
-    entry.className = 'item-entry talento-entry';
-    entry.innerHTML = `
-      <div class="item-row">
-        <input type="text" class="item-name talento-nome" placeholder="Nome do talento" value="${escapeHtml(nome)}">
-        <div class="item-actions talento-actions">
-          <button type="button" class="skill-book-btn item-book-btn" title="Descrição do talento">📖</button>
-          <select class="talento-attr-select" aria-label="Atributo usado por este talento">${TALENTO_ATTR_OPTIONS_HTML}</select>
-          <button type="button" class="hab-icon hab-icon-roll talento-roll-icon" title="Rolamento" aria-label="Rolar o talento">🎲</button>
-          <button type="button" class="hab-icon hab-icon-adv talento-adv-icon" title="Rolamento em Vantagem" aria-label="Rolar o talento em vantagem">🎲<span class="hab-icon-sign plus">+</span></button>
-          <button type="button" class="hab-icon hab-icon-dis talento-dis-icon" title="Rolamento em Desvantagem" aria-label="Rolar o talento em desvantagem">🎲<span class="hab-icon-sign minus">−</span></button>
-          <button type="button" class="remove-btn talento-remove" title="Remover">✕</button>
-        </div>
-      </div>
-      <div class="item-desc-panel talento-desc-panel" hidden>
-        <textarea class="item-desc talento-texto" placeholder="Descrição/anotações livres deste talento...">${escapeHtml(texto)}</textarea>
-      </div>`;
-    const bookBtn = entry.querySelector('.item-book-btn');
-    const panelEl = entry.querySelector('.talento-desc-panel');
-    const descEl = entry.querySelector('.talento-texto');
-    const nomeEl = entry.querySelector('.talento-nome');
-    const attrSelectEl = entry.querySelector('.talento-attr-select');
-    attrSelectEl.value = attr || 'for';
-    function refreshHasDesc(){
-      bookBtn.classList.toggle('has-desc', !!descEl.value.trim());
+  const talentoPointsBadge = $('talentoPointsBadge');
+  const openTalentoPickerBtn = $('openTalentoPickerBtn');
+  const talentoDescOpenIds = new Set();
+  // Catálogo fixo (pedido explícito -- nomes/descrições exatamente como especificados, em CAIXA
+  // ALTA, mesma regra de sempre) -- cada entrada: id único (usado como chave em talentosOwned/
+  // collectState()/applyState()), attr (FOR/CON/DES/INT/VON/CAR -- o mesmo atributo que é ROLADO
+  // ao usar o talento, ver rollTalento()/talentoAttrCode() abaixo), nome e desc.
+  const TALENTO_CATALOG = [
+    { id:'talento_salto', attr:'FOR', nome:'SALTO', desc:'O PERSONAGEM PODE EXECUTAR UM SALTO A LONGA DISTÂNCIA PARA ALCANÇAR UM LUGAR MAIS DISTANTE.' },
+    { id:'talento_arrombar', attr:'FOR', nome:'ARROMBAR', desc:'O PERSONAGEM PODE DERRUBAR UMA PORTA TRANCADA COM UM TESTE DE FORÇA.' },
+    { id:'talento_surto_vitalidade', attr:'CON', nome:'SURTO DE VITALIDADE', desc:'O PERSONAGEM RECEBE +10 DE VIDA. SÓ PODE OCORRER UMA VEZ POR COMBATE.' },
+    { id:'talento_perseveranca', attr:'CON', nome:'PERSEVERANÇA', desc:'AO CHEGAR A 0 DE VIDA, RECUPERA 1 DE VIDA. SÓ PODE OCORRER UMA VEZ POR COMBATE.' },
+    { id:'talento_ferreiro', attr:'CON', nome:'FERREIRO', desc:'O PERSONAGEM CONSEGUE CRIAR E REPARAR EQUIPAMENTOS DE METAL COM AS FERRAMENTAS NECESSÁRIAS.' },
+    { id:'talento_destrancar', attr:'DES', nome:'DESTRANCAR', desc:'AO CUSTO DE UMA GAZUA, O PERSONAGEM COM ESSA PERÍCIA PODE ABRIR PORTAS OU BAÚS SEM TER UMA CHAVE. BAÚS SIMPLES DEPENDEM DE UM ROLAMENTO EM VANTAGEM, BAÚS METÁLICOS DEPENDEM DE UM ROLAMENTO NORMAL E BAÚS DE OURO DEPENDEM DE UM ROLAMENTO EM DESVANTAGEM.' },
+    { id:'talento_parkour', attr:'DES', nome:'PARKOUR', desc:'O PERSONAGEM PODE EXECUTAR UMA SEQUÊNCIA DE SALTOS PARA ALCANÇAR UM LUGAR MAIS ALTO OU DISTANTE, SE HOUVER UM CAMINHO VÁLIDO PARA ISSO.' },
+    { id:'talento_detectar_armadilhas', attr:'DES', nome:'DETECTAR ARMADILHAS', desc:'O PERSONAGEM PODE PROCURAR ARMADILHAS PELO MAPA DENTRO DO SEU LIMITE DE VISÃO.' },
+    { id:'talento_desarmar_armadilhas', attr:'DES', nome:'DESARMAR ARMADILHAS', desc:'O PERSONAGEM CONSEGUE DESARMAR ARMADILHAS DETECTADAS.' },
+    { id:'talento_detectar_inimigos', attr:'DES', nome:'DETECTAR INIMIGOS', desc:'O PERSONAGEM CONSEGUE DETECTAR INIMIGOS OCULTOS PELO CHEIRO OU PELO SOM.' },
+    { id:'talento_surto_concentracao', attr:'INT', nome:'SURTO DE CONCENTRAÇÃO', desc:'O PERSONAGEM RECEBE +10 DE MANA. SÓ PODE OCORRER UMA VEZ POR COMBATE.' },
+    { id:'talento_conhecimento_historia', attr:'INT', nome:'CONHECIMENTO EM HISTÓRIA', desc:'O PERSONAGEM É VERSADO SOBRE A HISTÓRIA DO MUNDO.' },
+    { id:'talento_conhecimento_artefatos', attr:'INT', nome:'CONHECIMENTO EM ARTEFATOS ANTIGOS', desc:'O PERSONAGEM ESTUDA ARTEFATOS ANTIGOS E CONSEGUE INTERAGIR COM ELES.' },
+    { id:'talento_conhecimento_monstros', attr:'INT', nome:'CONHECIMENTO EM MONSTROS', desc:'O PERSONAGEM É VERSADO SOBRE CRIATURAS MÁGICAS NO GERAL, SEUS EFEITOS E REGRAS.' },
+    { id:'talento_cozinheiro', attr:'INT', nome:'COZINHEIRO', desc:'O PERSONAGEM CONSEGUE CRIAR ALIMENTOS COM EFEITOS DIVERSOS, CASO TENHA AS FERRAMENTAS E INGREDIENTES NECESSÁRIOS.' },
+    { id:'talento_apotecario', attr:'INT', nome:'APOTECÁRIO', desc:'O PERSONAGEM CONSEGUE CRIAR POÇÕES DE CURA, MANA E LIMPEZA, CASO TENHA AS FERRAMENTAS E INGREDIENTES NECESSÁRIOS.' },
+    { id:'talento_super_cura', attr:'VON', nome:'SUPER CURA', desc:'QUANDO UMA CURA É EXECUTADA E O VALOR DA CURA SUPERA O VALOR TOTAL DA VIDA DO ALVO, ELE GANHA VIDA MÁXIMA EXTRA ATÉ UM LIMITE DO DOBRO DO TOTAL DE VIDA.' },
+    { id:'talento_abencoar', attr:'VON', nome:'ABENÇOAR', desc:'O PERSONAGEM PODE ABENÇOAR O PRÓXIMO ROLAMENTO DE UM ALIADO -- ESTE ROLAMENTO É FEITO EM VANTAGEM. NÃO É POSSÍVEL ABENÇOAR A SI MESMO, E UMA MESMA AÇÃO DE ROLAMENTO NÃO PODE SER ABENÇOADA DUAS VEZES.' },
+    { id:'talento_resistir', attr:'VON', nome:'RESISTIR', desc:'O PERSONAGEM CONSEGUE RESISTIR A UM EFEITO.' },
+    { id:'talento_falar_animais', attr:'CAR', nome:'FALAR COM OS ANIMAIS', desc:'O PERSONAGEM GANHA A CAPACIDADE DE ENTENDER E SER ENTENDIDO POR ANIMAIS.' },
+    { id:'talento_encantar_animais', attr:'CAR', nome:'ENCANTAR ANIMAIS', desc:'O PERSONAGEM CONSEGUE FAZER COM QUE ANIMAIS GOSTEM DELE.' },
+    { id:'talento_seduzir', attr:'CAR', nome:'SEDUZIR', desc:'O PERSONAGEM CONSEGUE FAZER COM QUE ALGUNS HUMANOS GOSTEM DELE.' },
+    { id:'talento_costura', attr:'CAR', nome:'COSTURA', desc:'O PERSONAGEM CONSEGUE CRIAR E REPARAR EQUIPAMENTOS DE TECIDO.' },
+    { id:'talento_negociar', attr:'CAR', nome:'NEGOCIAR', desc:'O PERSONAGEM CONSEGUE NEGOCIAR O PREÇO DE COMPRA E VENDA DE ITENS.' },
+    { id:'talento_intimidar', attr:'CAR', nome:'INTIMIDAR', desc:'O PERSONAGEM CONSEGUE AMEAÇAR OUTROS PERSONAGENS.' },
+  ];
+  function talentoAttrCode(attr){ return String(attr||'FOR').toLowerCase(); }
+  function hasTalento(id){ return !!talentosOwned[id]; }
+  // total de pontos de Talento disponíveis -- MESMA fórmula de habPointsTotal() (pedido explícito:
+  // "3 talentos no primeiro nível... e mais um talento sempre que sobe um rank").
+  function talentoPointsTotal(){
+    const nivel = Math.max(1, Number(els.lvNum && els.lvNum.dataset.level) || 1);
+    return nivel + 2;
+  }
+  function talentoPointsUsedTotal(){ return Object.keys(talentosOwned).length; }
+  function grantTalento(id){
+    if(!id || talentosOwned[id]) return;
+    if(talentoPointsUsedTotal() >= talentoPointsTotal()) return; // sem ponto sobrando
+    talentosOwned[id] = true;
+    renderTalentos();
+  }
+  // só pro MESTRE (ver botão ✕ em renderTalentos() abaixo) -- devolve o ponto, mesmo espírito do
+  // botão "−" de nível que o mestre tem nas Habilidades fixas.
+  function revokeTalento(id){
+    if(!talentosOwned[id]) return;
+    delete talentosOwned[id];
+    renderTalentos();
+  }
+  // desenha só os talentos POSSUÍDOS (pedido explícito: "os talentos que o personagem não possui
+  // não devem aparecer na ficha") -- mesmo layout/classes .hab-row/.hab-nome/.hab-row-icons/
+  // .hab-desc-inline já usados pelas Habilidades fixas (renderHabilidadesTab() mais acima), sem
+  // stepper de nível/custo/faixa de dano (talento não tem nada disso). O atributo que será ROLADO
+  // aparece junto ao nome (pedido explícito, mesmo padrão de hab.attr) E como primeira linha da
+  // descrição expandida (pedido explícito: "deixe no topo da descrição qual atributo será rolado
+  // ao usar os dados daquele talento").
+  function renderTalentos(){
+    talentosRows.innerHTML = '';
+    const isMestreView = currentRole === 'mestre';
+    const owned = TALENTO_CATALOG.filter(t=> hasTalento(t.id));
+    if(!owned.length){
+      const p = document.createElement('div');
+      p.className = 'hab-empty-msg';
+      p.textContent = isMestreView
+        ? 'Nenhum talento escolhido ainda -- use "+ Escolher Talento" pra adicionar.'
+        : 'Nenhum talento escolhido ainda -- suba de nível ou crie a ficha pra escolher.';
+      talentosRows.appendChild(p);
+    } else {
+      owned.forEach(tal=>{
+        const row = document.createElement('div');
+        row.className = 'hab-row talento-row';
+        row.dataset.talentoId = tal.id;
+
+        const head = document.createElement('div');
+        head.className = 'hab-row-head';
+        const nomeEl = document.createElement('span');
+        nomeEl.className = 'hab-nome';
+        nomeEl.textContent = tal.nome + ' ';
+        const attrEl = document.createElement('span');
+        attrEl.className = 'hab-nome-attr';
+        attrEl.textContent = `(${tal.attr})`;
+        nomeEl.appendChild(attrEl);
+        head.appendChild(nomeEl);
+        if(isMestreView){
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button'; removeBtn.className = 'remove-btn talento-remove-btn'; removeBtn.textContent = '✕';
+          removeBtn.title = 'Remover talento (devolve o ponto)';
+          removeBtn.setAttribute('aria-label', `Remover talento ${tal.nome}`);
+          removeBtn.addEventListener('click', ()=> revokeTalento(tal.id));
+          head.appendChild(removeBtn);
+        }
+
+        const icons = document.createElement('div');
+        icons.className = 'hab-row-icons';
+        const attrCode = talentoAttrCode(tal.attr);
+        const rollIcon = document.createElement('button');
+        rollIcon.type = 'button'; rollIcon.className = 'hab-icon hab-icon-roll'; rollIcon.title = 'Rolamento'; rollIcon.textContent = '🎲';
+        rollIcon.setAttribute('aria-label', `Rolar ${tal.attr} de ${tal.nome}`);
+        rollIcon.addEventListener('click', ()=> rollTalento(tal.nome, attrCode, 'normal', rollIcon));
+        const advIcon = document.createElement('button');
+        advIcon.type = 'button'; advIcon.className = 'hab-icon hab-icon-adv'; advIcon.title = 'Rolamento em Vantagem';
+        advIcon.append(document.createTextNode('🎲'));
+        const advSign = document.createElement('span'); advSign.className = 'hab-icon-sign plus'; advSign.textContent = '+';
+        advIcon.appendChild(advSign);
+        advIcon.setAttribute('aria-label', `Rolar ${tal.attr} de ${tal.nome} em vantagem`);
+        advIcon.addEventListener('click', ()=> rollTalento(tal.nome, attrCode, 'vantagem', advIcon));
+        const disIcon = document.createElement('button');
+        disIcon.type = 'button'; disIcon.className = 'hab-icon hab-icon-dis'; disIcon.title = 'Rolamento em Desvantagem';
+        disIcon.append(document.createTextNode('🎲'));
+        const disSign = document.createElement('span'); disSign.className = 'hab-icon-sign minus'; disSign.textContent = '−';
+        disIcon.appendChild(disSign);
+        disIcon.setAttribute('aria-label', `Rolar ${tal.attr} de ${tal.nome} em desvantagem`);
+        disIcon.addEventListener('click', ()=> rollTalento(tal.nome, attrCode, 'desvantagem', disIcon));
+        const descIcon = document.createElement('button');
+        descIcon.type = 'button'; descIcon.className = 'hab-icon hab-icon-desc'; descIcon.title = 'Descrição'; descIcon.textContent = '📖';
+        descIcon.setAttribute('aria-label', `Ver/ocultar descrição de ${tal.nome}`);
+        icons.append(rollIcon, advIcon, disIcon, descIcon);
+
+        const descBox = document.createElement('div');
+        descBox.className = 'hab-desc-inline';
+        descBox.hidden = !talentoDescOpenIds.has(tal.id);
+        const textWrap = document.createElement('div');
+        textWrap.className = 'hab-desc-text-inline';
+        textWrap.textContent = `ATRIBUTO ROLADO: ${tal.attr}\n\n${tal.desc}`;
+        descBox.appendChild(textWrap);
+        descIcon.addEventListener('click', ()=>{
+          descBox.hidden = !descBox.hidden;
+          if(descBox.hidden) talentoDescOpenIds.delete(tal.id); else talentoDescOpenIds.add(tal.id);
+        });
+
+        row.append(head, icons, descBox);
+        talentosRows.appendChild(row);
+      });
     }
-    refreshHasDesc();
-    bookBtn.addEventListener('click', ()=>{
-      panelEl.hidden = !panelEl.hidden;
-      if(!panelEl.hidden) descEl.focus();
-    });
-    descEl.addEventListener('input', refreshHasDesc);
-    entry.querySelector('.talento-roll-icon').addEventListener('click', (e)=> rollTalento(nomeEl, attrSelectEl, 'normal', e.currentTarget));
-    entry.querySelector('.talento-adv-icon').addEventListener('click', (e)=> rollTalento(nomeEl, attrSelectEl, 'vantagem', e.currentTarget));
-    entry.querySelector('.talento-dis-icon').addEventListener('click', (e)=> rollTalento(nomeEl, attrSelectEl, 'desvantagem', e.currentTarget));
-    entry.querySelector('.talento-remove').addEventListener('click', ()=> entry.remove());
-    talentosRows.appendChild(entry);
+    if(talentoPointsBadge) talentoPointsBadge.textContent = String(Math.max(0, talentoPointsTotal() - talentoPointsUsedTotal()));
+    // botão manual "+ Escolher Talento" -- só pro MESTRE (jogador só ganha talento pelo painel
+    // automático, ver maybeOpenLevelUpPanels()); some pro jogador e fica desabilitado (com pontos
+    // zerados) pro mestre, mesmo espírito do plusBtn.disabled das Habilidades fixas.
+    if(openTalentoPickerBtn){
+      openTalentoPickerBtn.hidden = !isMestreView;
+      openTalentoPickerBtn.disabled = talentoPointsUsedTotal() >= talentoPointsTotal();
+    }
   }
   // Rolagem de um Talento -- reaproveita EXATAMENTE o mesmo mecanismo já usado pelas Habilidades
   // fixas (rollHabilidadeAtributo(), lá em cima) e pelos ícones soltos de Atributo: seta
-  // pendingHabilidadeRoll com o NOME DO TALENTO (lido na hora do clique, não guardado à parte --
-  // sempre reflete o que estiver escrito no campo naquele momento) e dispara o mesmo rollBtn.click()
-  // do painel "Rolamentos". Como finishRoll() já inclui o nome do PERSONAGEM em toda rolagem
-  // (logEntry.nome = els.nome.value) e agora também o de pendingHabilidadeRoll.nome (aqui, o nome
-  // do talento) em entry.habilidade, a mensagem que sai pro chat/Discord automaticamente cita os
-  // dois juntos -- exatamente o pedido explícito ("é preciso informar no chat o nome do personagem
-  // e o talento que ele tentou usar"), sem precisar de nenhuma formatação de mensagem nova. Talento
-  // não tem nível/custo de Mana/Vida (é um espaço livre) -- a única trava é não rolar com o nome
-  // ainda em branco, pra nunca mandar uma mensagem citando um talento sem nome nenhum.
-  function rollTalento(nomeInput, attrSelect, modo, iconEl){
+  // pendingHabilidadeRoll com o NOME DO TALENTO e dispara o mesmo rollBtn.click() do painel
+  // "Rolamentos". Como finishRoll() já inclui o nome do PERSONAGEM em toda rolagem (logEntry.nome
+  // = els.nome.value) e agora também o de pendingHabilidadeRoll.nome (aqui, o nome do talento) em
+  // entry.habilidade, a mensagem que sai pro chat/Discord automaticamente cita os dois juntos --
+  // exatamente o pedido explícito ("é preciso informar no chat o nome do personagem e o talento
+  // que ele tentou usar"), sem precisar de nenhuma formatação de mensagem nova. `nome`/`attrCode`
+  // agora vêm FIXOS do catálogo (TALENTO_CATALOG), não mais de um <input>/<select> editável --
+  // não existe mais "talento sem nome", então a trava de nome em branco da rodada anterior não é
+  // mais necessária.
+  function rollTalento(nome, attrCode, modo, iconEl){
     if(rollingInterval) return;
-    const nome = nomeInput.value.trim();
     if(!nome) return;
     pendingHabilidadeRoll = { nome: nome, desc: '', grito: '' };
     pendingRollSourceIcon = iconEl || null;
-    diceStat.value = attrSelect.value;
+    diceStat.value = attrCode;
     diceMode.value = modo;
     rollBtn.click();
   }
-  $('addTalentoBtn').addEventListener('click', ()=> addTalentoRow());
+
+  // Painel "Escolha um Talento" (ver #talentoLevelUpModal no HTML) -- mesmo espírito do
+  // #habLevelUpModal (escolher um card e clicar "OK" investe o ponto; se ainda sobrar ponto, o
+  // painel se reabre sozinho), com a fileira de guias por atributo no topo (pedido explícito) que
+  // filtra a lista de baixo pros talentos daquele atributo, escondendo os já possuídos (não faz
+  // sentido oferecer de novo um talento que o personagem já tem).
+  const talentoLevelUpModal = $('talentoLevelUpModal');
+  const talentoLevelUpList = $('talentoLevelUpList');
+  const talentoLevelUpOkBtn = $('talentoLevelUpOkBtn');
+  const talentoLevelUpIntro = $('talentoLevelUpIntro');
+  const talentoAttrTabsEl = $('talentoAttrTabs');
+  let talentoLevelUpSelectedId = null;
+  let talentoLevelUpActiveAttr = 'FOR';
+  function renderTalentoLevelUpList(){
+    talentoLevelUpSelectedId = null;
+    talentoLevelUpOkBtn.disabled = true;
+    talentoLevelUpList.innerHTML = '';
+    const opcoes = TALENTO_CATALOG.filter(t=> t.attr === talentoLevelUpActiveAttr && !hasTalento(t.id));
+    if(!opcoes.length){
+      const p = document.createElement('div');
+      p.className = 'hab-empty-msg';
+      p.textContent = 'Nenhum talento novo disponível neste atributo (já escolhidos todos).';
+      talentoLevelUpList.appendChild(p);
+      return;
+    }
+    opcoes.forEach(tal=>{
+      const card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'hab-levelup-card';
+      card.dataset.talentoId = tal.id;
+      const body = document.createElement('div');
+      body.className = 'hab-levelup-card-body';
+      const headEl = document.createElement('div');
+      headEl.className = 'hab-levelup-card-head';
+      const nomeEl = document.createElement('span');
+      nomeEl.className = 'hab-levelup-card-nome';
+      nomeEl.textContent = `${tal.nome} (${tal.attr})`;
+      headEl.appendChild(nomeEl);
+      const descEl = document.createElement('div');
+      descEl.className = 'hab-levelup-card-desc';
+      descEl.textContent = tal.desc;
+      body.append(headEl, descEl);
+      card.appendChild(body);
+      card.addEventListener('click', ()=>{
+        talentoLevelUpSelectedId = tal.id;
+        talentoLevelUpList.querySelectorAll('.hab-levelup-card').forEach(c=> c.classList.toggle('hab-levelup-card-selected', c === card));
+        talentoLevelUpOkBtn.disabled = false;
+      });
+      talentoLevelUpList.appendChild(card);
+    });
+  }
+  function openTalentoLevelUpPanel(){
+    const restantes = talentoPointsTotal() - talentoPointsUsedTotal();
+    talentoLevelUpIntro.textContent = restantes > 1
+      ? `Você tem ${restantes} Talentos pra escolher! Selecione um atributo e depois o Talento.`
+      : 'Você ganhou um Talento! Selecione um atributo e depois o Talento.';
+    talentoAttrTabsEl.querySelectorAll('.talento-attr-tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.talentoAttr === talentoLevelUpActiveAttr));
+    renderTalentoLevelUpList();
+    talentoLevelUpModal.hidden = false;
+  }
+  talentoAttrTabsEl.addEventListener('click', (e)=>{
+    const btn = e.target.closest('.talento-attr-tab-btn');
+    if(!btn) return;
+    talentoLevelUpActiveAttr = btn.dataset.talentoAttr;
+    talentoAttrTabsEl.querySelectorAll('.talento-attr-tab-btn').forEach(b=> b.classList.toggle('active', b === btn));
+    renderTalentoLevelUpList();
+  });
+  talentoLevelUpOkBtn.addEventListener('click', ()=>{
+    if(!talentoLevelUpSelectedId) return;
+    grantTalento(talentoLevelUpSelectedId);
+    talentoLevelUpModal.hidden = true;
+    if(talentoPointsUsedTotal() < talentoPointsTotal()) openTalentoLevelUpPanel(); // ainda sobra ponto -- reabre sozinho
+  });
+  if(openTalentoPickerBtn) openTalentoPickerBtn.addEventListener('click', ()=> openTalentoLevelUpPanel());
   wirePanelToggle('talentosToggleBtn', 'talentosBody', 'Talentos');
 
   // ---------- save / load ----------
@@ -9875,20 +10247,16 @@ body{
       // simples { idDaHabilidade: nivel }, uma chave por habilidade (únicas entre todas as armas/
       // elementos, então não precisa nada além do id pra identificar qual é qual).
       habNiveis: Object.assign({}, habNiveis),
+      // EFEITOS ativos (painel novo, ver setEffectActive()/effectsState mais acima) -- objeto
+      // simples { chaveDoEfeito: true }, mesmo formato salvo/publicado ao vivo.
+      efeitos: Object.assign({}, effectsState),
       // texto do "grito" de cada Habilidade fixa (ver habGritos, declarado perto de habNiveis) --
       // mesmo formato { idDaHabilidade: texto }, só entra na mensagem quando não vazio.
       habGritos: Object.assign({}, habGritos),
-      // TALENTOS (nova aba abaixo de Rolamentos -- funciona como a antiga lista livre de
-      // habilidades, de antes das Habilidades fixas por Arma/Elemento) -- mesmo padrão do
-      // Inventário logo acima: lê o DOM direto (talentosRows.children) em vez de manter um array
-      // JS à parte, ver addTalentoRow() na seção "Habilidades fixas"/TALENTOS mais abaixo.
-      talentos: [...talentosRows.children].map(r=>({
-        nome: r.querySelector('.talento-nome').value,
-        texto: r.querySelector('.talento-texto').value,
-        // seletor de Atributo de cada Talento (rodada nova) -- salvo junto pra sobreviver a
-        // reload/relogin, ver applyState() logo abaixo.
-        attr: r.querySelector('.talento-attr-select').value,
-      })),
+      // TALENTOS fixos (catálogo por atributo -- substituiu a lista livre de antes, ver
+      // TALENTO_CATALOG/renderTalentos() na seção "Talentos" mais abaixo) -- objeto simples
+      // { idDoTalento: true }, mesmo formato de habNiveis (só que sem nível, ver talentosOwned).
+      talentosOwned: Object.assign({}, talentosOwned),
     };
   }
 
@@ -9999,10 +10367,20 @@ body{
     habNiveis = Object.assign({}, s.habNiveis || {});
     habGritos = Object.assign({}, s.habGritos || {});
     renderHabilidades();
-    // TALENTOS -- reconstrói as linhas salvas (vazio numa ficha nova/sem nada salvo ainda), mesmo
-    // padrão do Inventário logo acima (addItemRow/invList).
-    talentosRows.innerHTML = '';
-    (Array.isArray(s.talentos) ? s.talentos : []).forEach(t=> addTalentoRow(t.nome, t.texto, t.attr));
+    // EFEITOS ativos (ver setEffectActive()/effectsState mais acima) -- vazio numa ficha nova/sem
+    // nada salvo ainda. Precisa reconstruir o visual (.active) de cada botão na mão aqui -- ao
+    // contrário de setEffectActive() em uso normal (clique), carregar uma ficha não deve chamar
+    // pushLiveVitals() efeito por efeito (ela já roda sozinha mais abaixo, via recalc(), com TODOS
+    // os efeitos certos de uma vez só).
+    effectsState = Object.assign({}, s.efeitos || {});
+    document.querySelectorAll('.effect-btn[data-effect]').forEach(btn=>{
+      btn.classList.toggle('active', hasActiveEffect(btn.dataset.effect));
+    });
+    // TALENTOS fixos -- restaura quais talentos do catálogo o personagem possui (vazio numa ficha
+    // nova/sem nada salvo ainda) e redesenha a lista (renderTalentos() já limpa talentosRows
+    // sozinha, mesmo padrão de renderHabilidades() acima).
+    talentosOwned = Object.assign({}, s.talentosOwned || {});
+    renderTalentos();
 
     // carregar uma ficha nova reinicia a referência de "pontos já distribuídos" (senão os valores
     // do personagem anterior/carregado seriam comparados com os daquele que acabou de ser aberto)
@@ -10055,6 +10433,7 @@ body{
     // sempre volta a fechado neste ponto.
     [
       [modToggleBtn, modsGrid, 'Modificadores'],
+      [effectsToggleBtn, effectsGrid, 'Efeitos'],
       [$('diceToggleBtn'), $('diceBody'), 'Rolamentos'],
       [$('sorteToggleBtn'), $('sorteBody'), 'Rolagem de Sorte'],
       [$('talentosToggleBtn'), $('talentosBody'), 'Talentos'],
@@ -10431,9 +10810,9 @@ body{
           updateArmaBadge();
           renderHabilidades(); // aba Armamento passa a valer pra arma recém-escolhida
           // pedido explícito: ficha nova de JOGADOR já nasce no nível 1 = 3 pontos de Habilidade
-          // pra gastar de uma vez -- maybeOpenHabLevelUpPanel() não faz nada pro mestre (NPC),
+          // pra gastar de uma vez -- maybeOpenLevelUpPanels() não faz nada pro mestre (NPC),
           // e o próprio painel se repete sozinho até os 3 pontos acabarem (ver openHabLevelUpPanel()).
-          maybeOpenHabLevelUpPanel();
+          maybeOpenLevelUpPanels();
         });
       }, { showCenter: currentRole === 'mestre' });
     }
@@ -11068,7 +11447,11 @@ body{
   // Registra uma rolagem no histórico compartilhado. Falha silenciosamente (sem travar a rolagem)
   // se não houver token configurado ou se der algum erro de rede/conflito.
   function formatRollMessage(entry){
-    const nome = entry.nome || '(sem nome)';
+    // painel EFEITOS: "o Efeito precisa ser informado ao lado do nome do personagem em todo
+    // rolamento que ele fizer, por exemplo NOME DO PERSONAGEM (ESTA EFEITO)" -- buildEffectTag()
+    // já devolve pronto o " (EFEITO1, EFEITO2)" (ou '' sem nenhum ativo); toda rolagem passa por
+    // aqui (dano/sorte/atributo), então um lugar só cobre os 3 tipos.
+    const nome = (entry.nome || '(sem nome)') + buildEffectTag();
     // "grito" da Habilidade (texto livre escrito no resumo 📖, ver habGritos) -- vai pro TOPO da
     // mensagem, em caixa alta e em "letras grandes" (cabeçalho "# " do Markdown do Discord), como
     // se o personagem estivesse gritando aquele texto (pedido explícito). Vazio/ausente não muda
@@ -11136,6 +11519,10 @@ body{
     // atributo/dano/sorte já mandam entry.nome com o mesmo fallback "(sem nome)" usado em
     // isBlankName()).
     if(isBlankName(entry && entry.nome)) return;
+    // ENVENENADO/QUEIMANDO (painel EFEITOS): "perde 1 de vida sempre que rolar um dado" -- roda
+    // ANTES do SILENCIAR abaixo de propósito, o dado já foi rolado de verdade nesse momento, então
+    // a regra vale mesmo silenciado (silêncio só esconde a MENSAGEM, não o efeito).
+    applyPerRollEffectDamage();
     // botão SILENCIAR (só o mestre vê) — enquanto ativo NUMA SESSÃO DE MESTRE, a rolagem nem manda
     // mensagem pro Discord (postToDiscord já vira no-op sozinho) nem entra no histórico
     // compartilhado (o resto desta função, que grava no GitHub, nem chega a rodar). Rolagens feitas
@@ -14267,6 +14654,13 @@ body{
 
   function resolveTokenPortrait(tok){
     if(tok.kind === 'hero'){
+      // RETRATO ao vivo (pedido explícito: "respeitar a imagem selecionada na ficha em tempo
+      // real") -- livePortraits (ver connectLiveBoard()) sempre vence o roster salvo no GitHub
+      // (heroRoster/mestreRoster, que só atualiza depois de SALVAR): cobre tanto a própria ficha
+      // quanto a de qualquer outro jogador, sem precisar de nenhum recarregamento.
+      if(tok.ownerUid && Object.prototype.hasOwnProperty.call(livePortraits, tok.ownerUid)){
+        return livePortraits[tok.ownerUid] || null;
+      }
       const hero = heroRoster.find(h => h.id === tok.id) || mestreRoster.find(h => h.id === tok.id);
       if(hero) return hero.portrait;
       // Roster ainda não chegou (fetch assíncrono no GitHub, ver comentário em makeRosterLoader())
@@ -14316,6 +14710,15 @@ body{
   let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false };
   let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null;
   let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null;
+  // RETRATO ao vivo (pedido explícito: "a imagem do ícone que representa o personagem... precisa
+  // respeitar a imagem selecionada na ficha em tempo real") -- heroRoster/mestreRoster (ver
+  // makeRosterLoader()) só atualizam depois de SALVAR (busca no GitHub), então não bastam sozinhos
+  // pra refletir uma troca de retrato na hora. livePortraits é um cache local { uid: dataUrl },
+  // alimentado por um único listener em mesa40k/livePortrait (mesmo padrão de mesa40k/live, ver
+  // connectLiveBoard()/disconnectLiveBoard() mais abaixo) -- resolveTokenPortrait() consulta esse
+  // cache ANTES do roster, pra qualquer ficha (a própria ou de outra pessoa).
+  let livePortraits = {};
+  let livePortraitRef = null, livePortraitCb = null;
   // ids de peça (token.id) já avistadas nesta sessão de jogador (ver isSpottableToken()/
   // announceTokenSpotted(), chamadas dentro de renderLiveBoardMini()) — só pra não repetir o aviso
   // de "avistamento" a cada nova renderização enquanto o alcance de Fog continuar cobrindo a mesma
@@ -14612,6 +15015,17 @@ body{
             const portrait = resolveTokenPortrait(token);
             if(portrait) t.style.backgroundImage = `url("${portrait}")`;
             else t.innerHTML = `<span class="token-fallback">${escapeHtml((token.name||'?').slice(0,2).toUpperCase())}</span>`;
+            // pedido explícito: "quando o jogador passa o mouse em um ícone que não é o dele mostre
+            // a imagem atual selecionada daquele personagem em um zoom" -- reaproveita o MESMO
+            // overlay já usado pro retrato da própria ficha (showImgZoomAt()/imgZoomOverlay, ver
+            // IMG_ZOOM_SELECTOR lá em cima), só que a partir do retângulo do próprio ícone do
+            // tabuleiro (que usa background-image, não <img>) em vez de um elemento <img> de
+            // verdade. "que não é o dele": mine já cobre isso pra heróis (isMyLiveToken()) -- peças
+            // de inimigo/aliado/monstro/boss nunca são "minhas", então sempre mostram o zoom.
+            if(!mine && portrait){
+              t.addEventListener('mouseenter', ()=> showImgZoomAt(t.getBoundingClientRect(), portrait));
+              t.addEventListener('mouseleave', hideImgZoom);
+            }
           }
           if(mine){
             t.draggable = true;
@@ -14751,13 +15165,31 @@ body{
   // calculada de antemão pra toda a grade de uma vez, em vez de casa por casa no "solta". A própria
   // casa do token nunca entra no resultado de computeLiveBoardReachable() (não faz sentido "poder
   // mover" pra onde já está).
+  // EFEITOS (painel novo, ver effectsState/setEffectActive() no <script>) que travam ou cortam o
+  // alcance de movimento no Tabuleiro ao Vivo -- PARALIZADO/CONGELADO zeram o alcance por completo
+  // ("o personagem não pode se mover"); ENJOADO corta pela metade, mínimo de 1 casa (pedido
+  // explícito); FERIDO (inclusive o auto-aplicado por announceDeath() ao chegar a 0 de vida) trava
+  // em NO MÁXIMO 1 casa ("anda apenas 1 espaço por movimento") -- nunca aumenta o alcance, só
+  // limita. Usado tanto na prévia azul (highlightLiveBoardReachable(), logo abaixo) quanto na
+  // validação de verdade do "solta" (handleLiveBoardDrop()) -- mesma fórmula nos dois lugares, pra
+  // prévia nunca mentir sobre o que realmente vai ser aceito.
+  function computeEffectiveMoveLimit(tok){
+    const efeitos = (tok && tok.efeitos) || {};
+    if(efeitos.paralizado || efeitos.congelado) return 0;
+    let limit = Math.max(0, 1 + (tok.bonusDes || 0) + (tok.bonusMov || 0));
+    if(efeitos.enjoado) limit = Math.max(1, Math.floor(limit / 2));
+    if(efeitos.ferido) limit = Math.min(limit, 1);
+    return limit;
+  }
+
   function highlightLiveBoardReachable(tok){
     if(!liveBoardGridEl || !tok) return;
     const cols = liveBoardState.cols || 24;
     // Modificador de Movimento (#m_mov/bonusMov — ver pushLiveVitals()) soma/subtrai por CIMA do
     // bônus de DES só aqui, no alcance de MOVIMENTO — nunca no de visão (computeFogReachableKeys(),
-    // mais acima, continua usando só bonusDes puro, sem bonusMov).
-    const limit = Math.max(0, 1 + (tok.bonusDes || 0) + (tok.bonusMov || 0));
+    // mais acima, continua usando só bonusDes puro, sem bonusMov). computeEffectiveMoveLimit()
+    // ainda aplica PARALIZADO/CONGELADO/ENJOADO/FERIDO por cima (ver EFEITOS).
+    const limit = computeEffectiveMoveLimit(tok);
     computeLiveBoardReachable(tok.anchorR, tok.anchorC, limit).forEach((dist, key)=>{
       const occupant = liveBoardState.tokens[key];
       if(occupant && occupant.id !== tok.id) return; // casa ocupada por outra peça, não alcançável de verdade
@@ -14795,14 +15227,32 @@ body{
     // puro, sem bonusMov). Mesmo raciocínio e mesma fórmula de highlightLiveBoardReachable() (que só
     // desenha a prévia azul durante o arrasto) — aqui é a validação de verdade.
     const bonusMov = tok.bonusMov || 0;
-    const limit = Math.max(0, 1 + bonusDes + bonusMov);
+    // computeEffectiveMoveLimit() aplica PARALIZADO/CONGELADO/ENJOADO/FERIDO por cima da conta de
+    // sempre (1 + bônus de DES + Movimento) -- ver EFEITOS/computeEffectiveMoveLimit() acima.
+    const limit = computeEffectiveMoveLimit(tok);
+    if(limit <= 0 && ((tok.efeitos||{}).paralizado || (tok.efeitos||{}).congelado)){
+      liveBoardHintEl.textContent = ((tok.efeitos||{}).congelado ? 'CONGELADO' : 'PARALIZADO') + ' — este personagem não pode se mover enquanto este efeito estiver ativo.';
+      return;
+    }
     // computeLiveBoardReachable() já leva bloco em conta (ver comentário na definição dela, lá em
     // cima) — uma casa que só dava pra alcançar "pulando" por cima de um bloco simplesmente não
     // aparece nesse Map, então o movimento é recusado igual a "longe demais", mesmo estando perto
     // em linha reta.
-    if(!computeLiveBoardReachable(payload.r, payload.c, limit).has(newKey)){
+    const reachableMap = computeLiveBoardReachable(payload.r, payload.c, limit);
+    if(!reachableMap.has(newKey)){
       liveBoardHintEl.textContent = `Muito longe (ou bloqueado por um bloco no caminho)! Seu limite agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES${bonusMov ? (bonusMov > 0 ? ' + ' : ' - ') + Math.abs(bonusMov) + ' de Movimento' : ''}).`;
       return;
+    }
+    // SANGRANDO: "o personagem recebe 1 de dano para cada casa que se mover" -- distância real
+    // (número de passos do caminho encontrado por computeLiveBoardReachable(), não a distância em
+    // linha reta) já calculada acima, no próprio Map usado pra validar o alcance. Só desconta a
+    // vida de quem controla esta ficha de verdade (nome bate com a ficha aberta neste navegador --
+    // isMyLiveToken() já garante que só dá pra arrastar a própria peça, este nome extra é só uma
+    // segurança a mais contra uma peça "mestre:" de outro personagem).
+    const passosMovidos = reachableMap.get(newKey) || 0;
+    if((tok.efeitos||{}).sangrando && passosMovidos > 0 && (tok.name||'') === (els.nome.value||'').trim()){
+      els.curVida.value = Math.max(0, num(els.curVida) - passosMovidos);
+      recalc();
     }
     liveBoardHintEl.textContent = '';
     const movedToken = Object.assign({}, tok, { anchorR: r, anchorC: c });
@@ -14827,7 +15277,9 @@ body{
     const toLabel = columnLabel(c) + (r + 1);
     // ficha/token sem nome não avisa ninguém nem entra no Histórico (ver isBlankName()) --
     // pushMoveLog() já se protege sozinha, mas o aviso de chat/Discord é uma chamada separada.
-    if(!isBlankName(tok.name)) postToDiscord(`🚶 **${tok.name}** se movimentou`, null);
+    // SANGRANDO (ver acima) entra na mesma mensagem, sem precisar de um post separado.
+    const sangrandoTxt = ((tok.efeitos||{}).sangrando && passosMovidos > 0) ? ` E PERDEU ${passosMovidos} DE VIDA (SANGRANDO)` : '';
+    if(!isBlankName(tok.name)) postToDiscord(`🚶 **${tok.name}** SE MOVIMENTOU${sangrandoTxt}`, null);
     pushMoveLog({ nome: tok.name, tipo:'movimento', de: fromLabel, para: toLabel, ts: Date.now() });
   }
 
@@ -14877,6 +15329,15 @@ body{
           localTok.bonusDes = rt.bonusDes || 0;
           localTok.bonusMov = rt.bonusMov || 0;
         }
+        // mesmo raciocínio de novo, agora pro painel EFEITOS -- setEffectActive() já corrige a peça
+        // já colocada na hora (mesmo caminho do bonusDes/bonusMov, ver pushLiveVitals()), então o
+        // boardTokens LOCAL do mestre também precisa aprender o efeitos novo, senão o próximo
+        // overwrite cheio dele apagaria o efeito de volta escondido.
+        const curEfKey = localTok.efeitos ? Object.keys(localTok.efeitos).sort().join(',') : '';
+        const newEfKey = rt.efeitos ? Object.keys(rt.efeitos).sort().join(',') : '';
+        if(curEfKey !== newEfKey){
+          if(rt.efeitos && Object.keys(rt.efeitos).length) localTok.efeitos = rt.efeitos; else delete localTok.efeitos;
+        }
         return;
       }
       if(!canPlace(rt.anchorR, rt.anchorC, 1, 1, localTok ? localTok.id : null)) return;
@@ -14889,6 +15350,7 @@ body{
         portrait: resolveTokenPortrait(rt), donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0, bonusMov: rt.bonusMov || 0,
         facing: rt.facing || null, deidade: rt.deidade || '',
       };
+      if(rt.efeitos && Object.keys(rt.efeitos).length) token.efeitos = rt.efeitos;
       if(rt.pvp) token.pvp = true;
       if(rt.seq) token.seq = rt.seq;
       placeToken(rt.anchorR, rt.anchorC, token);
@@ -14911,6 +15373,9 @@ body{
     // continuaria recebendo (e reagindo a) atualizações de mesa/live mesmo depois de deslogar.
     if(liveVitalsRef){ liveVitalsRef.off('value', liveVitalsCb); liveVitalsRef = null; liveVitalsCb = null; }
     liveVitalsAll = {};
+    // mesmo raciocínio acima, agora pro listener de RETRATO ao vivo (ver connectLiveBoard()).
+    if(livePortraitRef){ livePortraitRef.off('value', livePortraitCb); livePortraitRef = null; livePortraitCb = null; }
+    livePortraits = {};
     liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false };
     spottedTokenIds = new Set();
     pendingFacingTokenIds = new Set();
@@ -14954,6 +15419,24 @@ body{
     liveVitalsCb = liveVitalsRef.on('value', (snap)=>{
       liveVitalsAll = snap.val() || {};
       onLiveVitalsChanged();
+    });
+    // RETRATO ao vivo (ver livePortraits/resolveTokenPortrait() lá em cima) -- um único listener
+    // pro nó inteiro, igual mesa40k/live acima; qualquer troca de retrato (própria ou de outra
+    // ficha) já chega aqui na hora, sem precisar de SALVAR nem de recarregar o roster do GitHub.
+    livePortraitRef = fbDb.ref('mesa40k/livePortrait');
+    livePortraitCb = livePortraitRef.on('value', (snap)=>{
+      livePortraits = snap.val() || {};
+      renderLiveBoardMini();
+      // a aba Mesa do mestre (tabuleiro "de verdade", boardTokens) também precisa redesenhar —
+      // renderBoardCell() já chama resolveTokenPortrait() de novo a cada redesenho, só falta
+      // disparar um redesenho de cada casa ocupada (não existe um "renderBoard() cheio", só por
+      // casa — mesmo padrão usado no resto do <script> pra redesenhar só o que mudou).
+      if(currentRole === 'mestre'){
+        Object.keys(boardTokens).forEach(key=>{
+          const [r,c] = key.split('_').map(Number);
+          renderBoardCell(r,c);
+        });
+      }
     });
     // roster (retrato de cada ficha ativa) precisa estar carregado pra resolver as imagens aqui —
     // reaproveita loadHeroRoster()/loadMestreRoster() (mesma leitura pública do GitHub que já

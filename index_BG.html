@@ -3050,6 +3050,30 @@ body{
 .mod-step-btn:hover{border-color:#e0b656;background:linear-gradient(180deg,#8a6a2e,#54401a);}
 .mod-step-btn:active{transform:translateY(1px);}
 
+/* EFEITOS (guia nova, logo abaixo de Modificadores) -- botões liga/desliga (toggleEffect() no
+   <script>), sem valor numérico nenhum, então usam sua própria grade (não reaproveita .mods-grid).
+   Cor de cada botão reaproveita a MESMA variável reativa já usada em toda a ficha pra divindade
+   escolhida (--deity-eye-color/--deity-eye-glow-soft, ver .card .mod-step-btn acima -- nenhum JS
+   extra precisou disso, já é atualizada sozinha em qualquer troca de divindade).
+   INATIVO fica apagado/dessaturado de propósito (pedido explícito: "ele fica apagado/sombreado"),
+   ATIVO acende na cor cheia da divindade com um leve glow. */
+.effects-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 10px;}
+.effects-grid.collapsed{display:none;}
+.effect-btn{
+  padding:8px 4px;font-family:'Marcellus',serif;font-size:11px;font-weight:700;letter-spacing:.3px;
+  color:var(--paper-l);
+  background:linear-gradient(180deg,#3a3a3a,#1c1c1c);
+  border:1px solid var(--border-brown);border-radius:4px;cursor:pointer;text-align:center;
+  filter:grayscale(85%) brightness(.6);opacity:.5;
+  transition:filter .15s,opacity .15s,box-shadow .15s,border-color .15s,color .15s;
+}
+.effect-btn:hover{filter:grayscale(35%) brightness(.85);opacity:.85;}
+.effect-btn.active{
+  filter:none;opacity:1;
+  color:var(--deity-eye-color,#e0b656);border-color:var(--deity-eye-color,#e0b656);
+  box-shadow:0 0 9px 1px var(--deity-eye-glow-soft, rgba(224,182,86,.6)), inset 0 0 5px rgba(255,255,255,.12);
+}
+
 /* lists (inventory / habilidades) */
 .list-rows{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
 .item-entry{margin-bottom:2px;}
@@ -3951,6 +3975,26 @@ body{
                 <div class="mod-row"><span class="lbl">CAR</span><input type="number" id="m_car" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_car" data-dir="-1" aria-label="Diminuir modificador de CAR">−</button><button type="button" class="mod-step-btn" data-target="m_car" data-dir="1" aria-label="Aumentar modificador de CAR">+</button></div></div>
                 <div class="mod-row"><span class="lbl ar-ap-tip">DANO<div class="cs-tooltip">Soma ao tamanho de TODO dado de dano rolado (ex.: 1d6 com +1 vira 1d7)</div></span><input type="number" id="m_dano" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_dano" data-dir="-1" aria-label="Diminuir modificador de Dano">−</button><button type="button" class="mod-step-btn" data-target="m_dano" data-dir="1" aria-label="Aumentar modificador de Dano">+</button></div></div>
                 <div class="mod-row"><span class="lbl ar-ap-tip">MOVIMENTO<div class="cs-tooltip">Soma/subtrai casas de verdade no alcance de movimento do Tabuleiro ao Vivo — não muda o alcance de visão</div></span><input type="number" id="m_mov" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_mov" data-dir="-1" aria-label="Diminuir modificador de Movimento">−</button><button type="button" class="mod-step-btn" data-target="m_mov" data-dir="1" aria-label="Aumentar modificador de Movimento">+</button></div></div>
+              </div>
+            </div>
+
+            <!-- EFEITOS: pedido explícito, painel novo logo ABAIXO de Modificadores. 8 botões
+                 liga/desliga (toggleEffect() no <script>) -- cada um aplica uma regra de verdade
+                 no Tabuleiro ao Vivo (movimento/rolagem, ver computeEffectiveMoveLimit()/
+                 hasActiveEffect() no <script>), aparece ao lado do nome em toda rolagem
+                 (buildEffectTag()) e soma dano automático quando é o caso (ENVENENADO/QUEIMANDO/
+                 SANGRANDO). Painel nasce colapsado, igual Modificadores. -->
+            <div class="panel">
+              <h2>Efeitos <button type="button" class="panel-toggle-btn is-collapsed" id="effectsToggleBtn" aria-label="Expandir Efeitos" title="Minimizar/expandir Efeitos">▾</button></h2>
+              <div class="effects-grid collapsed" id="effectsGrid">
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="paralizado">PARALIZADO<div class="cs-tooltip">O personagem não pode se mover</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="congelado">CONGELADO<div class="cs-tooltip">O personagem não pode se mover ou fazer qualquer rolagem no tabuleiro</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="envenenado">ENVENENADO<div class="cs-tooltip">O personagem perde 1 de vida sempre que rolar um dado</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="queimando">QUEIMANDO<div class="cs-tooltip">O personagem perde 1 de vida sempre que rolar um dado</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="sangrando">SANGRANDO<div class="cs-tooltip">O personagem recebe 1 de dano para cada casa que se mover no tabuleiro</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="enjoado">ENJOADO<div class="cs-tooltip">Corta pela metade a quantidade de casas que o personagem pode se mover, mínimo de 1 casa</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="tonto">TONTO<div class="cs-tooltip">Força os rolamentos a serem feitos em desvantagem</div></button>
+                <button type="button" class="effect-btn ar-ap-tip" data-effect="ferido">FERIDO<div class="cs-tooltip">O personagem anda apenas 1 espaço por movimento — marcado sozinho ao chegar a 0 de vida</div></button>
               </div>
             </div>
 
@@ -4879,8 +4923,14 @@ body{
     if(!imgZoomOverlay || !imgEl) return;
     const src = imgEl.currentSrc || imgEl.src;
     if(!src) return;
-    const rect = imgEl.getBoundingClientRect();
-    if(rect.width < 1 || rect.height < 1) return;
+    showImgZoomAt(imgEl.getBoundingClientRect(), src);
+  }
+  // mesma lógica de showImgZoom() acima, só que recebendo o retângulo/src prontos em vez de ler de
+  // um <img> de verdade -- reaproveitada pelos ícones do Tabuleiro ao Vivo (que usam background-image
+  // num <div>, não <img>, ver renderLiveBoardMini()) pro zoom de retrato ao passar o mouse num
+  // personagem/inimigo que não é o seu.
+  function showImgZoomAt(rect, src){
+    if(!imgZoomOverlay || !src || !rect || rect.width < 1 || rect.height < 1) return;
     // até o dobro do tamanho exibido, sem estourar a viewport (telas pequenas/imagem já grande)
     const maxW = window.innerWidth * .8, maxH = window.innerHeight * .8;
     const scale = Math.max(1, Math.min(2, maxW / rect.width, maxH / rect.height));
@@ -4944,6 +4994,11 @@ body{
   };
 
   let portraitData = null;
+  // último valor de portraitData já publicado em mesa/livePortrait/{uid} (ver pushLiveVitals())
+  // -- começa undefined (nada publicado ainda), nunca igual a portraitData de verdade até a
+  // primeira publicação, então a primeira chamada de pushLiveVitals() sempre publica pelo menos
+  // uma vez.
+  let lastPublishedPortrait = undefined;
   // ---------- formas do personagem (verso: fada/pixie/animal/humana) ----------
   // Portado de index_mag.html -- animalFormData/humanaFormData seguem o mesmo padrão de
   // portraitData acima (data URL JPEG ou null); a de fada usa o retrato normal (portraitData) e a
@@ -5807,7 +5862,14 @@ body{
       // diretamente a(s) peça(s) já colocada(s) dessa ficha em mesa/liveBoard/tokens (nó que
       // QUALQUER conta logada já pode escrever, ver regras do Firebase) — não precisa mais esperar
       // ninguém mais estar com a página do mestre aberta. Ver syncOwnPlacedTokenBonus() logo abaixo.
-      syncOwnPlacedTokenBonus(ownerUid, payload.bonusDes, payload.bonusMov);
+      // EFEITOS ativos (painel novo, ver effectsState/setEffectActive() mais acima) -- mesmo
+      // formato salvo em collectState(), objeto simples { chaveDoEfeito: true }. Junto do
+      // bonusDes/bonusMov acima nessa mesma correção direta da peça já colocada, pra PARALIZADO/
+      // CONGELADO/ENJOADO/FERIDO travarem ou cortarem o alcance de movimento na hora (ver
+      // computeEffectiveMoveLimit()) e SANGRANDO/ENVENENADO/QUEIMANDO/TONTO funcionarem sem
+      // precisar de nenhum recarregamento.
+      payload.efeitos = Object.assign({}, effectsState);
+      syncOwnPlacedTokenBonus(ownerUid, payload.bonusDes, payload.bonusMov, payload.efeitos);
       // divindade atual da ficha — mesmo motivo do bonusDes acima: sem isto, uma ficha nunca salva
       // (liveOnlyRosterEntries()) não teria como a seta de direção do tabuleiro ao vivo saber a cor.
       payload.deidade = els.deidade ? (els.deidade.value || '') : '';
@@ -5822,6 +5884,16 @@ body{
       // sem isso, o resumo do mestre em MESA (mc-attrs, ver makeFichasListLoader()) só atualizava
       // ao salvar a ficha no GitHub, podendo ficar bem desatualizado numa sessão longa.
       payload.totals = { for: totals.for, con: totals.con, des: totals.des, int: totals.int, von: totals.von, car: totals.car };
+      // RETRATO ao vivo (painel/pedido novo -- ver livePortraits/resolveTokenPortrait() no
+      // <script>) -- só reenvia quando o retrato realmente MUDOU desde a última publicação
+      // (lastPublishedPortrait): pushLiveVitals() já roda a cada recalc() (cada tecla/clique na
+      // ficha inteira, debounced), reenviar a imagem inteira em base64 a cada uma dessas seria
+      // pesado à toa -- só pesa de verdade no momento em que o retrato é trocado de fato.
+      if(portraitData !== lastPublishedPortrait){
+        lastPublishedPortrait = portraitData;
+        fbDb.ref('mesa/livePortrait/' + ownerUid).set(portraitData || null)
+          .catch(err=> console.error('Não foi possível publicar o retrato ao vivo:', err));
+      }
     }
     fbDb.ref('mesa/live/' + ownerUid).set(payload);
     // Sentido contrário do scheduleAtributosPush()/pushAtributos() logo abaixo (mestre corrigindo a
@@ -5861,19 +5933,29 @@ body{
   // o token inteiro) -- nunca mexe em anchorR/anchorC/facing, tanto pra não pisar em cima de um
   // movimento/direção que outra aba possa ter acabado de gravar, quanto porque
   // liveBoardState.tokens só reflete o que ESTE navegador já recebeu do Firebase até agora.
-  function syncOwnPlacedTokenBonus(ownerUid, freshDes, freshMov){
+  // freshEfeitos (novo parâmetro, painel EFEITOS): mesmo tratamento do bonusDes/bonusMov acima,
+  // corrigido direto na(s) peça(s) já colocada(s) -- objeto vazio/ausente grava null (remove o
+  // campo, em vez de {} -- o Realtime Database de verdade não lida bem com objeto vazio) pra
+  // computeEffectiveMoveLimit() no <script> (movimento) e a mensagem de rolagem (buildEffectTag(),
+  // já embutida na mensagem antes de chegar aqui) sempre lerem o estado certo.
+  function syncOwnPlacedTokenBonus(ownerUid, freshDes, freshMov, freshEfeitos){
     if(!ownerUid || !fbDb || !liveBoardState || !liveBoardState.tokens) return;
+    const efeitosVal = (freshEfeitos && Object.keys(freshEfeitos).length) ? freshEfeitos : null;
+    const efeitosKey = efeitosVal ? Object.keys(efeitosVal).sort().join(',') : '';
     const patch = {};
     let any = false;
     Object.keys(liveBoardState.tokens).forEach(key=>{
       const tok = liveBoardState.tokens[key];
       if(!tok || tok.kind !== 'hero' || tok.ownerUid !== ownerUid) return;
       const curDes = tok.bonusDes || 0, curMov = tok.bonusMov || 0;
-      if(curDes === (freshDes || 0) && curMov === (freshMov || 0)) return;
+      const curEfeitosKey = tok.efeitos ? Object.keys(tok.efeitos).sort().join(',') : '';
+      if(curDes === (freshDes || 0) && curMov === (freshMov || 0) && curEfeitosKey === efeitosKey) return;
       tok.bonusDes = freshDes || 0;
       tok.bonusMov = freshMov || 0;
+      if(efeitosVal) tok.efeitos = efeitosVal; else delete tok.efeitos;
       patch[key + '/bonusDes'] = freshDes || 0;
       patch[key + '/bonusMov'] = freshMov || 0;
+      patch[key + '/efeitos'] = efeitosVal;
       any = true;
     });
     if(!any) return;
@@ -6087,6 +6169,71 @@ body{
       modToggleBtn.classList.toggle('is-collapsed', collapsed);
       modToggleBtn.setAttribute('aria-label', collapsed ? 'Expandir Modificadores' : 'Minimizar Modificadores');
     });
+  }
+
+  // mesmo mecanismo de minimizar/expandir acima, pro painel EFEITOS novo (nasce colapsado, igual
+  // Modificadores -- ver .effects-grid.collapsed no HTML).
+  const effectsToggleBtn = $('effectsToggleBtn');
+  const effectsGrid = $('effectsGrid');
+  if(effectsToggleBtn && effectsGrid){
+    effectsToggleBtn.addEventListener('click', ()=>{
+      const collapsed = effectsGrid.classList.toggle('collapsed');
+      effectsToggleBtn.classList.toggle('is-collapsed', collapsed);
+      effectsToggleBtn.setAttribute('aria-label', collapsed ? 'Expandir Efeitos' : 'Minimizar Efeitos');
+    });
+  }
+
+  // ---------- EFEITOS (painel novo, logo abaixo de Modificadores) ----------
+  // Estado simples { chaveDoEfeito: true } -- só entram chaves ATIVAS (ausente/false = desligado),
+  // pra ficar leve tanto salvo na ficha (collectState()/applyState()) quanto publicado ao vivo
+  // (pushLiveVitals()/syncOwnPlacedTokenBonus() mais abaixo, e no token do Tabuleiro ao Vivo em
+  // mesa/liveBoard/tokens/*/efeitos -- ver computeEffectiveMoveLimit()). Cada chave é sempre
+  // minúscula (paralizado/congelado/envenenado/queimando/sangrando/enjoado/tonto/ferido), casando
+  // com data-effect="..." de cada .effect-btn no HTML.
+  let effectsState = {};
+  const EFFECT_LABELS = {
+    paralizado: 'PARALIZADO', congelado: 'CONGELADO', envenenado: 'ENVENENADO',
+    queimando: 'QUEIMANDO', sangrando: 'SANGRANDO', enjoado: 'ENJOADO',
+    tonto: 'TONTO', ferido: 'FERIDO',
+  };
+  function hasActiveEffect(key){ return !!(effectsState && effectsState[key]); }
+  // liga/desliga um Efeito -- pedido explícito: "no momento que o botão é apertado" (sem debounce,
+  // sem esperar SALVAR) reflete na hora (1) o visual do próprio botão, (2) publica ao vivo
+  // (pushLiveVitals(), que por sua vez corrige a(s) peça(s) já colocada(s) no Tabuleiro ao Vivo via
+  // syncOwnPlacedTokenBonus() -- mesmo mecanismo já usado pro Modificador de Movimento) e (3) se
+  // apertar de novo, desliga do mesmo jeito.
+  function setEffectActive(key, active){
+    if(!EFFECT_LABELS[key]) return;
+    if(active) effectsState[key] = true; else delete effectsState[key];
+    const btn = document.querySelector(`.effect-btn[data-effect="${key}"]`);
+    if(btn) btn.classList.toggle('active', !!active);
+    // publica na hora (não espera o debounce de 600ms de scheduleLiveVitalsPush()) -- pedido
+    // explícito de tempo real "no momento que o botão é apertado".
+    pushLiveVitals();
+  }
+  function toggleEffect(key){ setEffectActive(key, !hasActiveEffect(key)); }
+  document.querySelectorAll('.effect-btn[data-effect]').forEach(btn=>{
+    btn.addEventListener('click', ()=> toggleEffect(btn.dataset.effect));
+  });
+  // texto " (EFEITO)" (ou " (EFEITO1, EFEITO2)" com mais de um ativo) -- pedido explícito: "O
+  // Efeito precisa ser informado ao lado do nome do personagem em todo rolamento que ele fizer,
+  // por exemplo NOME DO PERSONAGEM (ESTA EFEITO)". Usado dentro de formatRollMessage() mais abaixo,
+  // que é o ÚNICO lugar por onde toda mensagem de rolagem (atributo/dano/sorte) passa.
+  function buildEffectTag(){
+    const ativos = Object.keys(effectsState).filter(k=> effectsState[k] && EFFECT_LABELS[k]).map(k=> EFFECT_LABELS[k]);
+    return ativos.length ? ` (${ativos.join(', ')})` : '';
+  }
+  // ENVENENADO/QUEIMANDO: "o personagem perde 1 de vida sempre que rolar um dado" -- os dois juntos
+  // somam (1 de cada, 2 no total se ambos ativos). Chamado de dentro de pushRollLog(), único ponto
+  // por onde TODA rolagem de verdade (atributo/dano/sorte) passa -- roda mesmo com o Silenciar do
+  // mestre ativo (o dado já foi rolado de verdade, silêncio só esconde a MENSAGEM, não a regra).
+  function applyPerRollEffectDamage(){
+    let perda = 0;
+    if(hasActiveEffect('envenenado')) perda += 1;
+    if(hasActiveEffect('queimando')) perda += 1;
+    if(perda <= 0) return;
+    els.curVida.value = Math.max(0, num(els.curVida) - perda);
+    recalc();
   }
 
   // mesmo mecanismo acima, reaproveitado nos 3 painéis de rolagem da Coluna 3 (Dado/Dano/Sorte) —
@@ -6816,10 +6963,14 @@ body{
 
   // avisa no Discord quando a vida da ficha chega a zero, com um ícone de caveira na mesma
   // moldura circular (com anel na cor da Deidade) usada nos ícones de rolagem enviados pra mesa.
+  // Pedido explícito: a mensagem deixou de ser "MORREU" e passou a ser "ESTÁ FERIDO" -- também
+  // aciona sozinho o efeito FERIDO (ver EFEITOS/toggleEffect() mais abaixo), que é o mesmo pedido
+  // ("marque este automaticamente caso o personagem chegue a 0 de vida").
   function announceDeath(){
     const nome = (els.nome.value || '').trim() || '(sem nome)';
     if(isBlankName(nome)) return; // ficha sem nome não avisa ninguém
-    postToDiscord(`💀 **${nome}** MORREU`, buildRollIconDataUrl('morte'));
+    postToDiscord(`💀 **${nome}** ESTÁ FERIDO`, buildRollIconDataUrl('morte'));
+    setEffectActive('ferido', true);
   }
 
   // ---------- dice roller ----------
@@ -7028,6 +7179,17 @@ body{
 
   rollBtn.addEventListener('click', ()=>{
     if(rollingInterval) return; // já rolando, ignora clique duplo
+    // CONGELADO (painel EFEITOS): "não pode se mover OU fazer qualquer rolagem no tabuleiro" --
+    // barra aqui, ANTES de qualquer animação começar, cobrindo também Habilidades/Talentos (que só
+    // disparam este mesmo rollBtn.click() por baixo).
+    if(hasActiveEffect('congelado')){
+      diceHint.textContent = 'CONGELADO — não é possível rolar enquanto este efeito estiver ativo.';
+      return;
+    }
+    // TONTO (painel EFEITOS): "força os rolamentos a serem feitos em desvantagem" -- sobrescreve o
+    // modo escolhido no seletor ANTES dele ser lido logo abaixo, então vale pra qualquer origem
+    // desta rolagem.
+    if(hasActiveEffect('tonto')) diceMode.value = 'desvantagem';
 
     const stat = diceStat.value;
     const statVal = baseAttrs[stat] ?? 0;
@@ -7240,6 +7402,11 @@ body{
 
   rollDanoBtn.addEventListener('click', ()=>{
     if(danoRollingInterval) return;
+    // CONGELADO (painel EFEITOS) -- mesma regra/mesmo motivo do rollBtn acima.
+    if(hasActiveEffect('congelado')){
+      danoHint.textContent = 'CONGELADO — não é possível rolar enquanto este efeito estiver ativo.';
+      return;
+    }
     let maxVal = parseInt(danoMax.value, 10);
     if(isNaN(maxVal) || maxVal < 1) maxVal = 1;
     // modificador de Dano (guia Modificadores, #m_dano): soma ao TAMANHO do dado de qualquer
@@ -7332,6 +7499,11 @@ body{
 
   rollSorteBtn.addEventListener('click', ()=>{
     if(sorteRollingInterval) return; // já rolando, ignora clique duplo
+    // CONGELADO (painel EFEITOS) -- mesma regra/mesmo motivo do rollBtn/rollDanoBtn acima.
+    if(hasActiveEffect('congelado')){
+      sorteHint.textContent = 'CONGELADO — não é possível rolar enquanto este efeito estiver ativo.';
+      return;
+    }
 
     // rolar Sorte "custa" pelo menos 1 moeda de OURO — sem isso nem gira a moeda, só avisa no chat
     // (e no Discord, se tiver webhook) que não dá, com o nome do personagem sempre em negrito,
@@ -7869,6 +8041,9 @@ body{
         const costEl = r.querySelector('.extra-skill-cost');
         return { nome: nomeInput.value, attr: attrDisplay ? attrDisplay.dataset.attr : 'FOR', desc: descEl ? descEl.value : '', imagem: imageValueEl ? imageValueEl.value : '', custo: costEl ? costEl.value : '1' };
       }),
+      // EFEITOS ativos (painel novo, ver setEffectActive()/effectsState mais acima) -- objeto
+      // simples { chaveDoEfeito: true }, mesmo formato salvo/publicado ao vivo.
+      efeitos: Object.assign({}, effectsState),
     };
   }
 
@@ -7946,6 +8121,16 @@ body{
     extraSkillRows.innerHTML='';
     (s.habilidadesExtras && s.habilidadesExtras.length ? s.habilidadesExtras : [{},{}]).forEach(h=> addExtraSkillRow(h.nome||'', h.attr||'FOR', h.desc||'', h.imagem||'', h.custo||'1'));
 
+    // EFEITOS ativos (ver setEffectActive()/effectsState mais acima) -- vazio numa ficha nova/sem
+    // nada salvo ainda. Precisa reconstruir o visual (.active) de cada botão na mão aqui -- ao
+    // contrário de setEffectActive() em uso normal (clique), carregar uma ficha não deve chamar
+    // pushLiveVitals() efeito por efeito (ela já roda sozinha mais abaixo, via recalc(), com TODOS
+    // os efeitos certos de uma vez só).
+    effectsState = Object.assign({}, s.efeitos || {});
+    document.querySelectorAll('.effect-btn[data-effect]').forEach(btn=>{
+      btn.classList.toggle('active', hasActiveEffect(btn.dataset.effect));
+    });
+
     // carregar uma ficha nova reinicia a referência de "pontos já distribuídos" (senão os valores
     // do personagem anterior/carregado seriam comparados com os daquele que acabou de ser aberto)
     resetAttrGuard();
@@ -7992,6 +8177,7 @@ body{
     // sempre volta a fechado neste ponto.
     [
       [modToggleBtn, modsGrid, 'Modificadores'],
+      [effectsToggleBtn, effectsGrid, 'Efeitos'],
       [$('diceToggleBtn'), $('diceBody'), 'Rolagem de Atributo'],
       [$('danoToggleBtn'), $('danoBody'), 'Rolagem de Dano'],
       [$('sorteToggleBtn'), $('sorteBody'), 'Rolagem de Sorte'],
@@ -8688,7 +8874,11 @@ body{
   // Registra uma rolagem no histórico compartilhado. Falha silenciosamente (sem travar a rolagem)
   // se não houver token configurado ou se der algum erro de rede/conflito.
   function formatRollMessage(entry){
-    const nome = entry.nome || '(sem nome)';
+    // painel EFEITOS: "o Efeito precisa ser informado ao lado do nome do personagem em todo
+    // rolamento que ele fizer, por exemplo NOME DO PERSONAGEM (ESTA EFEITO)" -- buildEffectTag()
+    // já devolve pronto o " (EFEITO1, EFEITO2)" (ou '' sem nenhum ativo); toda rolagem passa por
+    // aqui (dano/sorte/atributo), então um lugar só cobre os 3 tipos.
+    const nome = (entry.nome || '(sem nome)') + buildEffectTag();
     if(entry.tipo === 'dano'){
       const qtd = entry.qtd || 1;
       const detalhe = (Array.isArray(entry.rolls) && qtd > 1)
@@ -8737,6 +8927,10 @@ body{
     // atributo/dano/sorte já mandam entry.nome com o mesmo fallback "(sem nome)" usado em
     // isBlankName()).
     if(isBlankName(entry && entry.nome)) return;
+    // ENVENENADO/QUEIMANDO (painel EFEITOS): "perde 1 de vida sempre que rolar um dado" -- roda
+    // ANTES do SILENCIAR abaixo de propósito, o dado já foi rolado de verdade nesse momento, então
+    // a regra vale mesmo silenciado (silêncio só esconde a MENSAGEM, não a regra).
+    applyPerRollEffectDamage();
     // botão SILENCIAR (só o mestre vê) — enquanto ativo NUMA SESSÃO DE MESTRE, a rolagem nem manda
     // mensagem pro Discord (postToDiscord já vira no-op sozinho) nem entra no histórico
     // compartilhado (o resto desta função, que grava no GitHub, nem chega a rodar). Rolagens feitas
@@ -11717,6 +11911,13 @@ body{
 
   function resolveTokenPortrait(tok){
     if(tok.kind === 'hero'){
+      // RETRATO ao vivo (pedido explícito: "respeitar a imagem selecionada na ficha em tempo
+      // real") -- livePortraits (ver connectLiveBoard()) sempre vence o roster salvo no GitHub
+      // (heroRoster/mestreRoster, que só atualiza depois de SALVAR): cobre tanto a própria ficha
+      // quanto a de qualquer outro jogador, sem precisar de nenhum recarregamento.
+      if(tok.ownerUid && Object.prototype.hasOwnProperty.call(livePortraits, tok.ownerUid)){
+        return livePortraits[tok.ownerUid] || null;
+      }
       const hero = heroRoster.find(h => h.id === tok.id) || mestreRoster.find(h => h.id === tok.id);
       if(hero) return hero.portrait;
       // Roster ainda não chegou (fetch assíncrono no GitHub, ver comentário em makeRosterLoader())
@@ -11761,6 +11962,15 @@ body{
   let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false };
   let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null;
   let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null;
+  // RETRATO ao vivo (pedido explícito: "a imagem do ícone que representa o personagem... precisa
+  // respeitar a imagem selecionada na ficha em tempo real") -- heroRoster/mestreRoster (ver
+  // makeRosterLoader()) só atualizam depois de SALVAR (busca no GitHub), então não bastam sozinhos
+  // pra refletir uma troca de retrato na hora. livePortraits é um cache local { uid: dataUrl },
+  // alimentado por um único listener em mesa/livePortrait (mesmo padrão de mesa/live, ver
+  // connectLiveBoard()/disconnectLiveBoard() mais abaixo) -- resolveTokenPortrait() consulta esse
+  // cache ANTES do roster, pra qualquer ficha (a própria ou de outra pessoa).
+  let livePortraits = {};
+  let livePortraitRef = null, livePortraitCb = null;
   // ids de peça (token.id) já avistadas nesta sessão de jogador (ver isSpottableToken()/
   // announceTokenSpotted(), chamadas dentro de renderLiveBoardMini()) — só pra não repetir o aviso
   // de "avistamento" a cada nova renderização enquanto o alcance de Fog continuar cobrindo a mesma
@@ -12053,6 +12263,17 @@ body{
             const portrait = resolveTokenPortrait(token);
             if(portrait) t.style.backgroundImage = `url("${portrait}")`;
             else t.innerHTML = `<span class="token-fallback">${escapeHtml((token.name||'?').slice(0,2).toUpperCase())}</span>`;
+            // pedido explícito: "quando o jogador passa o mouse em um ícone que não é o dele mostre
+            // a imagem atual selecionada daquele personagem em um zoom" -- reaproveita o MESMO
+            // overlay já usado pro retrato da própria ficha (showImgZoomAt()/imgZoomOverlay, ver
+            // IMG_ZOOM_SELECTOR lá em cima), só que a partir do retângulo do próprio ícone do
+            // tabuleiro (que usa background-image, não <img>) em vez de um elemento <img> de
+            // verdade. "que não é o dele": mine já cobre isso pra heróis (isMyLiveToken()) -- peças
+            // de inimigo/aliado/monstro/boss nunca são "minhas", então sempre mostram o zoom.
+            if(!mine && portrait){
+              t.addEventListener('mouseenter', ()=> showImgZoomAt(t.getBoundingClientRect(), portrait));
+              t.addEventListener('mouseleave', hideImgZoom);
+            }
           }
           if(mine){
             t.draggable = true;
@@ -12192,13 +12413,31 @@ body{
   // calculada de antemão pra toda a grade de uma vez, em vez de casa por casa no "solta". A própria
   // casa do token nunca entra no resultado de computeLiveBoardReachable() (não faz sentido "poder
   // mover" pra onde já está).
+  // EFEITOS (painel novo, ver effectsState/setEffectActive() no <script>) que travam ou cortam o
+  // alcance de movimento no Tabuleiro ao Vivo -- PARALIZADO/CONGELADO zeram o alcance por completo
+  // ("o personagem não pode se mover"); ENJOADO corta pela metade, mínimo de 1 casa (pedido
+  // explícito); FERIDO (inclusive o auto-aplicado por announceDeath() ao chegar a 0 de vida) trava
+  // em NO MÁXIMO 1 casa ("anda apenas 1 espaço por movimento") -- nunca aumenta o alcance, só
+  // limita. Usado tanto na prévia azul (highlightLiveBoardReachable(), logo abaixo) quanto na
+  // validação de verdade do "solta" (handleLiveBoardDrop()) -- mesma fórmula nos dois lugares, pra
+  // prévia nunca mentir sobre o que realmente vai ser aceito.
+  function computeEffectiveMoveLimit(tok){
+    const efeitos = (tok && tok.efeitos) || {};
+    if(efeitos.paralizado || efeitos.congelado) return 0;
+    let limit = Math.max(0, 1 + (tok.bonusDes || 0) + (tok.bonusMov || 0));
+    if(efeitos.enjoado) limit = Math.max(1, Math.floor(limit / 2));
+    if(efeitos.ferido) limit = Math.min(limit, 1);
+    return limit;
+  }
+
   function highlightLiveBoardReachable(tok){
     if(!liveBoardGridEl || !tok) return;
     const cols = liveBoardState.cols || 24;
     // Modificador de Movimento (#m_mov/bonusMov — ver pushLiveVitals()) soma/subtrai por CIMA do
     // bônus de DES só aqui, no alcance de MOVIMENTO — nunca no de visão (computeFogReachableKeys(),
-    // mais acima, continua usando só bonusDes puro, sem bonusMov).
-    const limit = Math.max(0, 1 + (tok.bonusDes || 0) + (tok.bonusMov || 0));
+    // mais acima, continua usando só bonusDes puro, sem bonusMov). computeEffectiveMoveLimit()
+    // ainda aplica PARALIZADO/CONGELADO/ENJOADO/FERIDO por cima (ver EFEITOS).
+    const limit = computeEffectiveMoveLimit(tok);
     computeLiveBoardReachable(tok.anchorR, tok.anchorC, limit).forEach((dist, key)=>{
       const occupant = liveBoardState.tokens[key];
       if(occupant && occupant.id !== tok.id) return; // casa ocupada por outra peça, não alcançável de verdade
@@ -12236,14 +12475,32 @@ body{
     // puro, sem bonusMov). Mesmo raciocínio e mesma fórmula de highlightLiveBoardReachable() (que só
     // desenha a prévia azul durante o arrasto) — aqui é a validação de verdade.
     const bonusMov = tok.bonusMov || 0;
-    const limit = Math.max(0, 1 + bonusDes + bonusMov);
+    // computeEffectiveMoveLimit() aplica PARALIZADO/CONGELADO/ENJOADO/FERIDO por cima da conta de
+    // sempre (1 + bônus de DES + Movimento) -- ver EFEITOS/computeEffectiveMoveLimit() acima.
+    const limit = computeEffectiveMoveLimit(tok);
+    if(limit <= 0 && ((tok.efeitos||{}).paralizado || (tok.efeitos||{}).congelado)){
+      liveBoardHintEl.textContent = ((tok.efeitos||{}).congelado ? 'CONGELADO' : 'PARALIZADO') + ' — este personagem não pode se mover enquanto este efeito estiver ativo.';
+      return;
+    }
     // computeLiveBoardReachable() já leva bloco em conta (ver comentário na definição dela, lá em
     // cima) — uma casa que só dava pra alcançar "pulando" por cima de um bloco simplesmente não
     // aparece nesse Map, então o movimento é recusado igual a "longe demais", mesmo estando perto
     // em linha reta.
-    if(!computeLiveBoardReachable(payload.r, payload.c, limit).has(newKey)){
+    const reachableMap = computeLiveBoardReachable(payload.r, payload.c, limit);
+    if(!reachableMap.has(newKey)){
       liveBoardHintEl.textContent = `Muito longe (ou bloqueado por um bloco no caminho)! Seu limite agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES${bonusMov ? (bonusMov > 0 ? ' + ' : ' - ') + Math.abs(bonusMov) + ' de Movimento' : ''}).`;
       return;
+    }
+    // SANGRANDO: "o personagem recebe 1 de dano para cada casa que se mover" -- distância real
+    // (número de passos do caminho encontrado por computeLiveBoardReachable(), não a distância em
+    // linha reta) já calculada acima, no próprio Map usado pra validar o alcance. Só desconta a
+    // vida de quem controla esta ficha de verdade (nome bate com a ficha aberta neste navegador --
+    // isMyLiveToken() já garante que só dá pra arrastar a própria peça, este nome extra é só uma
+    // segurança a mais contra uma peça "mestre:" de outro personagem).
+    const passosMovidos = reachableMap.get(newKey) || 0;
+    if((tok.efeitos||{}).sangrando && passosMovidos > 0 && (tok.name||'') === (els.nome.value||'').trim()){
+      els.curVida.value = Math.max(0, num(els.curVida) - passosMovidos);
+      recalc();
     }
     liveBoardHintEl.textContent = '';
     const movedToken = Object.assign({}, tok, { anchorR: r, anchorC: c });
@@ -12268,7 +12525,9 @@ body{
     const toLabel = columnLabel(c) + (r + 1);
     // ficha/token sem nome não avisa ninguém nem entra no Histórico (ver isBlankName()) --
     // pushMoveLog() já se protege sozinha, mas o aviso de chat/Discord é uma chamada separada.
-    if(!isBlankName(tok.name)) postToDiscord(`🚶 **${tok.name}** se movimentou`, null);
+    // SANGRANDO (ver acima) entra na mesma mensagem, sem precisar de um post separado.
+    const sangrandoTxt = ((tok.efeitos||{}).sangrando && passosMovidos > 0) ? ` E PERDEU ${passosMovidos} DE VIDA (SANGRANDO)` : '';
+    if(!isBlankName(tok.name)) postToDiscord(`🚶 **${tok.name}** SE MOVIMENTOU${sangrandoTxt}`, null);
     pushMoveLog({ nome: tok.name, tipo:'movimento', de: fromLabel, para: toLabel, ts: Date.now() });
   }
 
@@ -12318,6 +12577,15 @@ body{
           localTok.bonusDes = rt.bonusDes || 0;
           localTok.bonusMov = rt.bonusMov || 0;
         }
+        // mesmo raciocínio de novo, agora pro painel EFEITOS -- setEffectActive() já corrige a peça
+        // já colocada na hora (mesmo caminho do bonusDes/bonusMov, ver pushLiveVitals()), então o
+        // boardTokens LOCAL do mestre também precisa aprender o efeitos novo, senão o próximo
+        // overwrite cheio dele apagaria o efeito de volta escondido.
+        const curEfKey = localTok.efeitos ? Object.keys(localTok.efeitos).sort().join(',') : '';
+        const newEfKey = rt.efeitos ? Object.keys(rt.efeitos).sort().join(',') : '';
+        if(curEfKey !== newEfKey){
+          if(rt.efeitos && Object.keys(rt.efeitos).length) localTok.efeitos = rt.efeitos; else delete localTok.efeitos;
+        }
         return;
       }
       if(!canPlace(rt.anchorR, rt.anchorC, 1, 1, localTok ? localTok.id : null)) return;
@@ -12330,6 +12598,7 @@ body{
         portrait: resolveTokenPortrait(rt), donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0, bonusMov: rt.bonusMov || 0,
         facing: rt.facing || null, deidade: rt.deidade || '',
       };
+      if(rt.efeitos && Object.keys(rt.efeitos).length) token.efeitos = rt.efeitos;
       if(rt.pvp) token.pvp = true;
       if(rt.seq) token.seq = rt.seq;
       placeToken(rt.anchorR, rt.anchorC, token);
@@ -12352,6 +12621,9 @@ body{
     // continuaria recebendo (e reagindo a) atualizações de mesa/live mesmo depois de deslogar.
     if(liveVitalsRef){ liveVitalsRef.off('value', liveVitalsCb); liveVitalsRef = null; liveVitalsCb = null; }
     liveVitalsAll = {};
+    // mesmo raciocínio acima, agora pro listener de RETRATO ao vivo (ver connectLiveBoard()).
+    if(livePortraitRef){ livePortraitRef.off('value', livePortraitCb); livePortraitRef = null; livePortraitCb = null; }
+    livePortraits = {};
     liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false };
     spottedTokenIds = new Set();
     pendingFacingTokenIds = new Set();
@@ -12395,6 +12667,24 @@ body{
     liveVitalsCb = liveVitalsRef.on('value', (snap)=>{
       liveVitalsAll = snap.val() || {};
       onLiveVitalsChanged();
+    });
+    // RETRATO ao vivo (ver livePortraits/resolveTokenPortrait() lá em cima) -- um único listener
+    // pro nó inteiro, igual mesa/live acima; qualquer troca de retrato (própria ou de outra ficha)
+    // já chega aqui na hora, sem precisar de SALVAR nem de recarregar o roster do GitHub.
+    livePortraitRef = fbDb.ref('mesa/livePortrait');
+    livePortraitCb = livePortraitRef.on('value', (snap)=>{
+      livePortraits = snap.val() || {};
+      renderLiveBoardMini();
+      // a aba Mesa do mestre (tabuleiro "de verdade", boardTokens) também precisa redesenhar —
+      // renderBoardCell() já chama resolveTokenPortrait() de novo a cada redesenho, só falta
+      // disparar um redesenho de cada casa ocupada (não existe um "renderBoard() cheio", só por
+      // casa — mesmo padrão usado no resto do <script> pra redesenhar só o que mudou).
+      if(currentRole === 'mestre'){
+        Object.keys(boardTokens).forEach(key=>{
+          const [r,c] = key.split('_').map(Number);
+          renderBoardCell(r,c);
+        });
+      }
     });
     // roster (retrato de cada ficha ativa) precisa estar carregado pra resolver as imagens aqui —
     // reaproveita loadHeroRoster()/loadMestreRoster() (mesma leitura pública do GitHub que já
