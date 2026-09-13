@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 10,
-    "resultado": 3,
-    "resultLabel": "Erro",
-    "ts": 1789128067698
-  },
-  {
-    "nome": "efreet",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 10,
     "resultado": 10,
     "resultLabel": "Acerto — Desvantagem",
     "ts": 1789128071552,
@@ -259,5 +250,12 @@
       1,
       4
     ]
+  },
+  {
+    "nome": "Allana",
+    "tipo": "movimento",
+    "de": "C4",
+    "para": "D4",
+    "ts": 1789316620339
   }
 ]
