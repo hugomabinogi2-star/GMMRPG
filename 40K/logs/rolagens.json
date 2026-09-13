@@ -1,19 +1,5 @@
 [
   {
-    "nome": "efreet",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 10,
-    "resultado": 18,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1789128074567,
-    "mode": "vantagem",
-    "rolls": [
-      18,
-      14
-    ]
-  },
-  {
     "nome": "anna",
     "tipo": "atributo",
     "statKey": "for",
@@ -259,5 +245,12 @@
     ],
     "habilidade": "Disparo",
     "habilidadeDesc": "Dispara uma flecha a uma casa de distância.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "Allana",
+    "tipo": "movimento",
+    "de": "D4",
+    "para": "D5",
+    "ts": 1789316651665
   }
 ]
