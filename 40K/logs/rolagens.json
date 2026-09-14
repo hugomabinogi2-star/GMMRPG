@@ -1,20 +1,6 @@
 [
   {
     "nome": "Allana",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 4,
-    "resultado": 5,
-    "resultLabel": "Erro — Vantagem",
-    "ts": 1789405177858,
-    "mode": "vantagem",
-    "rolls": [
-      5,
-      5
-    ]
-  },
-  {
-    "nome": "Allana",
     "tipo": "dano",
     "qtd": 1,
     "maxVal": 3,
@@ -343,5 +329,12 @@
     "resultado": "cara",
     "verdict": "acerto",
     "ts": 1789427222803
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "B3",
+    "para": "C2",
+    "ts": 1789427541662
   }
 ]
