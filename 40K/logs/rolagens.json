@@ -2,13 +2,6 @@
   {
     "nome": "oi",
     "tipo": "movimento",
-    "de": "C3",
-    "para": "D3",
-    "ts": 1789166856174
-  },
-  {
-    "nome": "oi",
-    "tipo": "movimento",
     "de": "D3",
     "para": "C3",
     "ts": 1789166857383
@@ -310,5 +303,17 @@
     "atributo": null,
     "grito": "POR GLORIA!!!",
     "ts": 1789407237683
+  },
+  {
+    "nome": "Oi",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1789407244088,
+    "habilidade": "Disparo",
+    "habilidadeDesc": "Dispara uma flecha a uma casa de distância.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).",
+    "grito": "POR GLORIA!!!"
   }
 ]
