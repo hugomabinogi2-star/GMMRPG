@@ -2,13 +2,6 @@
   {
     "nome": "oi",
     "tipo": "movimento",
-    "de": "K7",
-    "para": "H7",
-    "ts": 1789162602964
-  },
-  {
-    "nome": "oi",
-    "tipo": "movimento",
     "de": "H7",
     "para": "J7",
     "ts": 1789162612901
@@ -262,5 +255,12 @@
     "atributo": null,
     "grito": null,
     "ts": 1789405212390
+  },
+  {
+    "nome": "Allana",
+    "tipo": "movimento",
+    "de": "E2",
+    "para": "D2",
+    "ts": 1789405323234
   }
 ]
