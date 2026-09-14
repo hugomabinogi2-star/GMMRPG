@@ -6717,7 +6717,8 @@ body{
     // "Habilidades fixas" mais abaixo no <script> roda (é uma function declaration, então já está
     // disponível por hoisting) -- e essa seção já rodou bem antes de qualquer chamada real a
     // recalc() acontecer (a primeira é só no fim do <script>, ver init no rodapé).
-    if(lastKnownLevel !== levelFloor) renderHabilidades();
+    const nivelMudou = lastKnownLevel !== levelFloor;
+    if(nivelMudou) renderHabilidades();
     lastKnownLevel = levelFloor;
 
     const rank = levelFloor >= 16 ? 'S' : levelFloor >= 11 ? 'A' : levelFloor >= 6 ? 'B' : 'C';
@@ -6729,6 +6730,14 @@ body{
     // está disponível por hoisting a essa altura (mesma lógica de renderHabilidades(), comentada
     // logo acima).
     maybeOfferRankUpgrade();
+    // MESMO motivo do renderHabilidades() acima, mas pro badge/botão manual "+ Escolher Talento"
+    // (ver talentoPointsTotal(), que agora depende do RANK, não mais do Nível puro) -- sem isto, o
+    // botão do MESTRE ficava com o disabled/badge desatualizado depois de uma subida de Rank via
+    // XP, só corrigindo na próxima vez que algo MAIS re-renderizasse os Talentos (conceder/remover
+    // um talento, ou recarregar a ficha). renderTalentos() só existe de verdade mais abaixo no
+    // <script> (seção "Talentos") -- disponível aqui por hoisting, mesmo raciocínio de
+    // renderHabilidades()/maybeOfferRankUpgrade() logo acima.
+    if(nivelMudou) renderTalentos();
 
     // Garante que os pontos de atributo distribuídos fiquem sempre entre 1 e 18
     // (isso não afeta os modificadores de outras fontes da ficha, que podem ser negativos ou passar de 18)
@@ -10146,11 +10155,18 @@ body{
   ];
   function talentoAttrCode(attr){ return String(attr||'FOR').toLowerCase(); }
   function hasTalento(id){ return !!talentosOwned[id]; }
-  // total de pontos de Talento disponíveis -- MESMA fórmula de habPointsTotal() (pedido explícito:
-  // "3 talentos no primeiro nível... e mais um talento sempre que sobe um rank").
+  // total de pontos de Talento disponíveis -- NÃO é por Nível (isso é Habilidade, ver
+  // habPointsTotal() lá em cima). Pedido explícito: "3 talentos no primeiro nível... e mais um
+  // talento quando sobe de RANK" -- ou seja, o ganho é atrelado à subida de RANK (C->B->A->S), não
+  // a cada subida de Nível dentro do mesmo Rank. Usa o mesmo padrão de leitura de Rank que
+  // maybeOfferRankUpgrade() (mais abaixo) já usa -- els.levelRank.textContent + RANK_ORDER (também
+  // mais abaixo, mas já disponível aqui por hoisting de "const" no mesmo escopo de módulo, pois
+  // esta function só é efetivamente CHAMADA depois que RANK_ORDER já foi inicializado no topo do
+  // <script>). Rank C = 3 pontos (base), B = 4, A = 5, S = 6.
   function talentoPointsTotal(){
-    const nivel = Math.max(1, Number(els.lvNum && els.lvNum.dataset.level) || 1);
-    return nivel + 2;
+    const rank = els.levelRank && els.levelRank.textContent;
+    const nivelRank = RANK_ORDER[rank];
+    return 3 + (nivelRank !== undefined ? nivelRank : 0);
   }
   function talentoPointsUsedTotal(){ return Object.keys(talentosOwned).length; }
   function grantTalento(id){
