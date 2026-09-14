@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 4,
-    "resultado": 18,
-    "resultLabel": "Acerto",
-    "ts": 1789405157393
-  },
-  {
-    "nome": "Allana",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 4,
     "resultado": 5,
     "resultLabel": "Erro — Vantagem",
     "ts": 1789405177858,
@@ -344,5 +335,13 @@
     "resultado": 17,
     "resultLabel": "Acerto",
     "ts": 1789427104968
+  },
+  {
+    "nome": "oi",
+    "tipo": "sorte",
+    "escolha": "cara",
+    "resultado": "cara",
+    "verdict": "acerto",
+    "ts": 1789427222803
   }
 ]
