@@ -2,13 +2,6 @@
   {
     "nome": "Allana",
     "tipo": "movimento",
-    "de": "R20",
-    "para": "O20",
-    "ts": 1789404916604
-  },
-  {
-    "nome": "Allana",
-    "tipo": "movimento",
     "de": "C3",
     "para": "D2",
     "ts": 1789405096532
@@ -333,5 +326,17 @@
     "atributo": null,
     "grito": null,
     "ts": 1789426765440
+  },
+  {
+    "nome": "efreet",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 10,
+    "resultado": 19,
+    "resultLabel": "Acerto",
+    "ts": 1789426788540,
+    "habilidade": "Ataque de Espada Pesada",
+    "habilidadeDesc": "Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).",
+    "grito": "POR GLORIA!!!!"
   }
 ]
