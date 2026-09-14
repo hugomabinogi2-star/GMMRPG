@@ -2,13 +2,6 @@
   {
     "nome": "oi",
     "tipo": "movimento",
-    "de": "M7",
-    "para": "G7",
-    "ts": 1789155747482
-  },
-  {
-    "nome": "oi",
-    "tipo": "movimento",
     "de": "G7",
     "para": "J7",
     "ts": 1789162582574
@@ -240,5 +233,20 @@
       5,
       5
     ]
+  },
+  {
+    "nome": "Allana",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 3,
+    "bonus": 2,
+    "rolls": [
+      3
+    ],
+    "resultado": 5,
+    "habilidade": null,
+    "atributo": "DES",
+    "grito": null,
+    "ts": 1789405188840
   }
 ]
