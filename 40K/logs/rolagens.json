@@ -1,13 +1,6 @@
 [
   {
     "nome": "oi",
-    "tipo": "movimento",
-    "de": "D3",
-    "para": "C3",
-    "ts": 1789166857383
-  },
-  {
-    "nome": "oi",
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 4,
@@ -315,5 +308,12 @@
     "habilidade": "Disparo",
     "habilidadeDesc": "Dispara uma flecha a uma casa de distância.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).",
     "grito": "POR GLORIA!!!"
+  },
+  {
+    "nome": "Oi",
+    "tipo": "movimento",
+    "de": "L15",
+    "para": "M15",
+    "ts": 1789407380937
   }
 ]
