@@ -6,15 +6,6 @@
     "statValor": 8,
     "resultado": 6,
     "resultLabel": "Erro",
-    "ts": 1789150960610
-  },
-  {
-    "nome": "anna",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 8,
-    "resultado": 6,
-    "resultLabel": "Erro",
     "ts": 1789150977326,
     "habilidade": "TESTE"
   },
@@ -252,5 +243,12 @@
     "de": "D4",
     "para": "D5",
     "ts": 1789316651665
+  },
+  {
+    "nome": "Allana",
+    "tipo": "movimento",
+    "de": "D3",
+    "para": "E3",
+    "ts": 1789400859025
   }
 ]
