@@ -1,22 +1,6 @@
 [
   {
     "nome": "Allana",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 4,
-    "resultado": 13,
-    "resultLabel": "Erro — Desvantagem",
-    "ts": 1789316644811,
-    "mode": "desvantagem",
-    "rolls": [
-      19,
-      13
-    ],
-    "habilidade": "Disparo",
-    "habilidadeDesc": "Dispara uma flecha a uma casa de distância.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
-  },
-  {
-    "nome": "Allana",
     "tipo": "movimento",
     "de": "D4",
     "para": "D5",
@@ -308,5 +292,14 @@
       15,
       10
     ]
+  },
+  {
+    "nome": "efreet",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 10,
+    "resultado": 9,
+    "resultLabel": "Erro",
+    "ts": 1789426687556
   }
 ]
