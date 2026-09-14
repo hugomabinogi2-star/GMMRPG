@@ -2,13 +2,6 @@
   {
     "nome": "oi",
     "tipo": "movimento",
-    "de": "C2",
-    "para": "I2",
-    "ts": 1789163332782
-  },
-  {
-    "nome": "oi",
-    "tipo": "movimento",
     "de": "I2",
     "para": "C2",
     "ts": 1789163343941
@@ -270,5 +263,19 @@
     "resultado": 4,
     "resultLabel": "Erro",
     "ts": 1789405708761
+  },
+  {
+    "nome": "Oi",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 9,
+    "resultado": 15,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1789405713797,
+    "mode": "vantagem",
+    "rolls": [
+      5,
+      15
+    ]
   }
 ]
