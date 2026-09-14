@@ -1,19 +1,5 @@
 [
   {
-    "nome": "oi",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
-    "resultado": 1,
-    "resultLabel": "Erro Crítico — Desvantagem",
-    "ts": 1789166898547,
-    "mode": "desvantagem",
-    "rolls": [
-      1,
-      4
-    ]
-  },
-  {
     "nome": "Allana",
     "tipo": "movimento",
     "de": "C4",
@@ -308,5 +294,12 @@
     "de": "C5",
     "para": "D4",
     "ts": 1789407595697
+  },
+  {
+    "nome": "Oi",
+    "tipo": "movimento",
+    "de": "D4",
+    "para": "E4",
+    "ts": 1789407601055
   }
 ]
