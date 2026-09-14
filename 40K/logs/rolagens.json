@@ -2,13 +2,6 @@
   {
     "nome": "oi",
     "tipo": "movimento",
-    "de": "H7",
-    "para": "J7",
-    "ts": 1789162612901
-  },
-  {
-    "nome": "oi",
-    "tipo": "movimento",
     "de": "B1",
     "para": "C2",
     "ts": 1789163125389
@@ -262,5 +255,14 @@
     "de": "E2",
     "para": "D2",
     "ts": 1789405323234
+  },
+  {
+    "nome": "Allana",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 13,
+    "resultLabel": "Erro",
+    "ts": 1789405390619
   }
 ]
