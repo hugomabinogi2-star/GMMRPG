@@ -4,20 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 4,
-    "resultado": 17,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1789166893895,
-    "mode": "vantagem",
-    "rolls": [
-      17,
-      12
-    ]
-  },
-  {
-    "nome": "oi",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
     "resultado": 1,
     "resultLabel": "Erro Crítico — Desvantagem",
     "ts": 1789166898547,
@@ -315,5 +301,12 @@
     "de": "L15",
     "para": "M15",
     "ts": 1789407380937
+  },
+  {
+    "nome": "Oi",
+    "tipo": "movimento",
+    "de": "C5",
+    "para": "D4",
+    "ts": 1789407595697
   }
 ]
