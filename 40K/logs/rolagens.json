@@ -2,13 +2,6 @@
   {
     "nome": "oi",
     "tipo": "movimento",
-    "de": "D3",
-    "para": "C3",
-    "ts": 1789166849199
-  },
-  {
-    "nome": "oi",
-    "tipo": "movimento",
     "de": "C3",
     "para": "D3",
     "ts": 1789166856174
@@ -300,5 +293,22 @@
     "resultLabel": "Erro",
     "ts": 1789407210976,
     "habilidade": "DETECTAR ARMADILHAS"
+  },
+  {
+    "nome": "Oi",
+    "tipo": "dano",
+    "qtd": 3,
+    "maxVal": 3,
+    "bonus": 3,
+    "rolls": [
+      3,
+      3,
+      3
+    ],
+    "resultado": 12,
+    "habilidade": "Disparo",
+    "atributo": null,
+    "grito": "POR GLORIA!!!",
+    "ts": 1789407237683
   }
 ]
