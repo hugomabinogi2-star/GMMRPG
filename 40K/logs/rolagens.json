@@ -2,13 +2,6 @@
   {
     "nome": "Allana",
     "tipo": "movimento",
-    "de": "C3",
-    "para": "D2",
-    "ts": 1789405096532
-  },
-  {
-    "nome": "Allana",
-    "tipo": "movimento",
     "de": "D2",
     "para": "E2",
     "ts": 1789405098941
@@ -338,5 +331,16 @@
     "habilidade": "Ataque de Espada Pesada",
     "habilidadeDesc": "Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).",
     "grito": "POR GLORIA!!!!"
+  },
+  {
+    "nome": "efreet",
+    "tipo": "atributo",
+    "statKey": "von",
+    "statValor": 10,
+    "resultado": 7,
+    "resultLabel": "Erro",
+    "ts": 1789426977734,
+    "habilidade": "Raio de Fogo",
+    "habilidadeDesc": "Dispara uma seta de fogo.\nDano: 1d3 + nível da habilidade + bônus de VON (aumenta 1 dado por nível)."
   }
 ]
