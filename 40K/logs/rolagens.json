@@ -2,13 +2,6 @@
   {
     "nome": "oi",
     "tipo": "movimento",
-    "de": "I2",
-    "para": "C2",
-    "ts": 1789163343941
-  },
-  {
-    "nome": "oi",
-    "tipo": "movimento",
     "de": "B2",
     "para": "F2",
     "ts": 1789165170767
@@ -277,5 +270,14 @@
       5,
       15
     ]
+  },
+  {
+    "nome": "Oi",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 3,
+    "resultLabel": "Erro",
+    "ts": 1789407163564
   }
 ]
