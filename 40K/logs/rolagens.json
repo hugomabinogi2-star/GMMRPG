@@ -2,13 +2,6 @@
   {
     "nome": "oi",
     "tipo": "movimento",
-    "de": "O7",
-    "para": "M7",
-    "ts": 1789155714878
-  },
-  {
-    "nome": "oi",
-    "tipo": "movimento",
     "de": "M7",
     "para": "G7",
     "ts": 1789155747482
@@ -233,5 +226,19 @@
     "resultado": 18,
     "resultLabel": "Acerto",
     "ts": 1789405157393
+  },
+  {
+    "nome": "Allana",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 4,
+    "resultado": 5,
+    "resultLabel": "Erro — Vantagem",
+    "ts": 1789405177858,
+    "mode": "vantagem",
+    "rolls": [
+      5,
+      5
+    ]
   }
 ]
