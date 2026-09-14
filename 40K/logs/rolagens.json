@@ -1,13 +1,6 @@
 [
   {
     "nome": "Allana",
-    "tipo": "movimento",
-    "de": "D2",
-    "para": "E2",
-    "ts": 1789405098941
-  },
-  {
-    "nome": "Allana",
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 4,
@@ -342,5 +335,14 @@
     "ts": 1789426977734,
     "habilidade": "Raio de Fogo",
     "habilidadeDesc": "Dispara uma seta de fogo.\nDano: 1d3 + nível da habilidade + bônus de VON (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 8,
+    "resultado": 17,
+    "resultLabel": "Acerto",
+    "ts": 1789427104968
   }
 ]
