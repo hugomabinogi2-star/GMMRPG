@@ -1,21 +1,6 @@
 [
   {
     "nome": "Allana",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 3,
-    "bonus": 2,
-    "rolls": [
-      3
-    ],
-    "resultado": 5,
-    "habilidade": null,
-    "atributo": "DES",
-    "grito": null,
-    "ts": 1789405188840
-  },
-  {
-    "nome": "Allana",
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 4,
@@ -336,5 +321,12 @@
     "de": "B3",
     "para": "C2",
     "ts": 1789427541662
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "C2",
+    "para": "D2",
+    "ts": 1789427570514
   }
 ]
