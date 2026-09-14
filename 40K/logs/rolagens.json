@@ -2,13 +2,6 @@
   {
     "nome": "Allana",
     "tipo": "movimento",
-    "de": "D4",
-    "para": "D5",
-    "ts": 1789316651665
-  },
-  {
-    "nome": "Allana",
-    "tipo": "movimento",
     "de": "D3",
     "para": "E3",
     "ts": 1789400859025
@@ -301,5 +294,19 @@
     "resultado": 9,
     "resultLabel": "Erro",
     "ts": 1789426687556
+  },
+  {
+    "nome": "efreet",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 10,
+    "resultado": 4,
+    "resultLabel": "Erro — Desvantagem",
+    "ts": 1789426725005,
+    "mode": "desvantagem",
+    "rolls": [
+      17,
+      4
+    ]
   }
 ]
