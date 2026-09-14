@@ -1,13 +1,6 @@
 [
   {
     "nome": "Allana",
-    "tipo": "movimento",
-    "de": "C4",
-    "para": "D4",
-    "ts": 1789316620339
-  },
-  {
-    "nome": "Allana",
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 4,
@@ -301,5 +294,19 @@
     "de": "D4",
     "para": "E4",
     "ts": 1789407601055
+  },
+  {
+    "nome": "Oi",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 15,
+    "resultLabel": "Acerto — Vantagem",
+    "ts": 1789407662422,
+    "mode": "vantagem",
+    "rolls": [
+      15,
+      10
+    ]
   }
 ]
