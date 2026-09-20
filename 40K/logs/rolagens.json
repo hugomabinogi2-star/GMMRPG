@@ -2,20 +2,6 @@
   {
     "nome": "Oi",
     "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 9,
-    "resultado": 15,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1789405713797,
-    "mode": "vantagem",
-    "rolls": [
-      5,
-      15
-    ]
-  },
-  {
-    "nome": "Oi",
-    "tipo": "atributo",
     "statKey": "des",
     "statValor": 6,
     "resultado": 3,
@@ -306,5 +292,16 @@
     "de": "J20",
     "para": "J15",
     "ts": 1789900333811
+  },
+  {
+    "nome": "Gosma",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 16,
+    "resultLabel": "Acerto",
+    "ts": 1789903496896,
+    "habilidade": "Golpe de Espada",
+    "habilidadeDesc": "Ataca com a espada.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
   }
 ]
