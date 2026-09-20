@@ -4,20 +4,6 @@
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 6,
-    "resultado": 12,
-    "resultLabel": "Erro — Vantagem",
-    "ts": 1789407180546,
-    "mode": "vantagem",
-    "rolls": [
-      12,
-      12
-    ]
-  },
-  {
-    "nome": "Oi",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 6,
     "resultado": 10,
     "resultLabel": "Erro — Desvantagem",
     "ts": 1789407184080,
@@ -309,5 +295,12 @@
     "atributo": null,
     "grito": null,
     "ts": 1789903500560
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "E4",
+    "para": "D5",
+    "ts": 1789903559085
   }
 ]
