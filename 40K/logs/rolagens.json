@@ -2,13 +2,6 @@
   {
     "nome": "Oi",
     "tipo": "movimento",
-    "de": "L15",
-    "para": "M15",
-    "ts": 1789407380937
-  },
-  {
-    "nome": "Oi",
-    "tipo": "movimento",
     "de": "C5",
     "para": "D4",
     "ts": 1789407595697
@@ -279,5 +272,16 @@
     "de": "E6",
     "para": "D6",
     "ts": 1789911275608
+  },
+  {
+    "nome": "Gosma",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 6,
+    "resultado": 11,
+    "resultLabel": "Erro",
+    "ts": 1789926880870,
+    "habilidade": "Golpe de Espada",
+    "habilidadeDesc": "Ataca com a espada.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
   }
 ]
