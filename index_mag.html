@@ -775,12 +775,36 @@ body{
 .turn-status-bar .turn-status-text{font-size:12px;color:var(--ink-soft);flex:1 1 auto;min-width:140px;}
 .turn-status-bar .mini-btn:disabled{opacity:.4;cursor:not-allowed;}
 .turn-status-bar .mini-btn:disabled:hover{border-color:var(--border-brown);color:var(--ink-soft);}
-/* Ampulheta do "Encerrar Turno" (pedido explícito: virou ⏳ no lugar do ⏹️, ver HTML) -- gira uma
+/* Painel de Turno da aba MESA (pedido explícito desta rodada: agora fica IMEDIATAMENTE ACIMA DO
+   TABULEIRO, e é uma guia inteira que pode ser minimizada -- mesmo padrão visual/comportamento de
+   .live-board-panel.minimized, ver setTurnControlMinimized() no <script>) -- engloba a
+   .turn-status-bar de sempre (agora com os botões ➡️/⬅️ de avançar/voltar) + o painel novo da fila
+   de ações (.turn-queue-panel logo abaixo). */
+.turn-control-panel{margin:8px 0 12px;border:1px solid var(--border-brown);border-radius:6px;background:rgba(0,0,0,.12);overflow:hidden;}
+.turn-control-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;background:rgba(0,0,0,.18);}
+.turn-control-head-title{font-family:'Cinzel Decorative',serif;font-size:12px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.06em;}
+.turn-control-panel.minimized .turn-control-body{display:none;}
+.turn-control-body{padding:8px 10px;}
+.turn-control-body .turn-status-bar{margin:0 0 10px;}
+/* Fila de ações atual (pedido explícito): "RODADA N" + lista de quem ainda vai agir nesta rodada,
+   sempre com quem está NA VEZ no topo (ver renderTurnQueuePanel() no <script>, que já manda só o
+   "resto" da fila a partir da vez atual -- quem já passou a vez simplesmente não está mais na
+   lista). "Caixa estilizada" (pedido explícito): moldura própria, separada da barra de botões. */
+.turn-queue-panel{border:1px solid var(--ink-faint);border-radius:5px;background:rgba(120,85,40,.08);padding:8px 10px;min-height:20px;}
+.turn-queue-round{font-family:'Cinzel Decorative',serif;font-size:12px;color:var(--gold-bright);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;text-align:center;}
+.turn-queue-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;}
+.turn-queue-item{font-size:12.5px;color:var(--ink-soft);padding:4px 8px;border-radius:4px;border:1px solid transparent;background:rgba(0,0,0,.1);}
+.turn-queue-item.turn-queue-current{color:var(--ink);border-color:var(--gold-bright);background:rgba(180,140,40,.18);font-weight:600;}
+/* Ampulheta do "Encerrar/Pular Turno" (pedido explícito: virou ⏳ no lugar do ⏹️, ver HTML; e nesta
+   rodada perdeu o texto "Encerrar Turno" do lado -- o botão passou a ser só o ícone) -- gira uma
    volta completa (360°) na hora que o turno encerra (ver spinEndTurnBtn() no <script>): sentido
    HORÁRIO num clique manual de verdade, sentido ANTI-horário quando é o encerramento AUTOMÁTICO
-   por erro de rolagem (junto da explosão de caveirinhas, ver spawnSkullFireworksAt()). "inline-block"
-   no próprio botão é necessário pra rotate() ter efeito (elementos inline não giram). */
-#boardEndTurnBtn, #liveEndTurnBtn{display:inline-block;}
+   por erro de rolagem (junto da explosão de caveirinhas, ver spawnSkullFireworksAt()). PEDIDO
+   EXPLÍCITO desta rodada: a animação de giro acontece só no ÍCONE (.end-turn-icon, o <span> de
+   dentro do botão), não no botão inteiro -- por isso as classes de giro/"inline-block" (necessário
+   pra rotate() ter efeito -- elementos inline não giram) vão no ícone, não em #boardEndTurnBtn/
+   #liveEndTurnBtn diretamente. */
+.end-turn-icon{display:inline-block;}
 .end-turn-spin-cw{animation:endTurnSpinCW .6s ease;}
 .end-turn-spin-ccw{animation:endTurnSpinCCW .6s ease;}
 @keyframes endTurnSpinCW{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
@@ -4651,7 +4675,7 @@ body{
                clicar em "Encerrar Turno" quando a ficha da vez é a própria dele. -->
           <div class="turn-status-bar">
             <span class="turn-status-text" id="liveTurnStatus">Nenhuma iniciativa rodada ainda.</span>
-            <button type="button" class="mini-btn" id="liveEndTurnBtn" disabled>⏳ Encerrar Turno</button>
+            <button type="button" class="mini-btn" id="liveEndTurnBtn" disabled title="Encerrar Turno"><span class="end-turn-icon">⏳</span></button>
           </div>
           <div class="live-board-panel-body" id="liveBoardPanelBody">
             <div class="chat-bg-fx" id="liveBoardBgFx" aria-hidden="true"></div>
@@ -5235,13 +5259,6 @@ body{
     <div class="board-section">
       <h2 class="board-title">🗺️ Tabuleiro da Mesa</h2>
 
-      <!-- Rodada/Turno (ver turnState/renderTurnBars() no <script>) -- o Mestre pode encerrar
-           QUALQUER turno que esteja na vez agora, sem restrição. -->
-      <div class="turn-status-bar">
-        <span class="turn-status-text" id="boardTurnStatus">Nenhuma iniciativa rodada ainda.</span>
-        <button type="button" class="mini-btn" id="boardEndTurnBtn" disabled>⏳ Encerrar Turno</button>
-      </div>
-
       <div class="board-menu">
         <div class="board-save-control">
           <label>Salvar / carregar tabuleiro</label>
@@ -5347,6 +5364,34 @@ body{
           <div class="board-tray-title" style="margin-top:14px;">Baú / Objetos</div>
           <p class="board-tray-hint">Baú, Arbusto, Armadilha e Poça de Água: nenhum bloqueia movimento nem visão — clique num já colocado no tabuleiro pra escrever a descrição (o que tem dentro, ou o efeito da armadilha, por exemplo), que aparece pra todo mundo ao passar o mouse em cima.</p>
           <div class="board-enemy-coins" id="boardChestCoins"></div>
+        </div>
+      </div>
+
+      <!-- Painel de Turno (pedido explícito desta rodada: movido pra ficar IMEDIATAMENTE ACIMA DO
+           TABULEIRO -- antes ficava logo abaixo do título, com o menu de abas no meio dos dois).
+           Ver turnState/renderTurnBars()/renderTurnQueuePanel() no <script>. O Mestre pode encerrar
+           QUALQUER turno que esteja na vez agora, sem restrição -- inclusive pra PULAR o turno de
+           uma peça sem ficha associada, ou forçar o encerramento do turno de qualquer outra peça.
+           ➡️/⬅️ (avançar/voltar, delayCurrentTurn()/returnToPreviousTurn()): "segura" a ação da vez
+           atual, empurrando-a pro FIM da fila desta MESMA rodada (não influencia a rodada seguinte).
+           A guia inteira pode ser minimizada (setTurnControlMinimized(), mesmo padrão de
+           .live-board-panel.minimized). -->
+      <div class="turn-control-panel" id="turnControlPanel">
+        <div class="turn-control-head">
+          <span class="turn-control-head-title">⏳ Turno</span>
+          <button type="button" class="chat-min-btn" id="turnControlMinimizeBtn" title="Minimizar">▾</button>
+        </div>
+        <div class="turn-control-body" id="turnControlBody">
+          <div class="turn-status-bar">
+            <span class="turn-status-text" id="boardTurnStatus">Nenhuma iniciativa rodada ainda.</span>
+            <button type="button" class="mini-btn" id="turnDelayBtn" disabled title="Avançar Turno — segura a ação, vai pro fim da fila desta rodada">➡️</button>
+            <button type="button" class="mini-btn" id="turnUndoBtn" disabled title="Voltar ao Turno Anterior — desfaz o último 'Avançar'">⬅️</button>
+            <button type="button" class="mini-btn" id="boardEndTurnBtn" disabled title="Encerrar/Pular Turno"><span class="end-turn-icon">⏳</span></button>
+          </div>
+          <div class="turn-queue-panel" id="turnQueuePanel">
+            <div class="turn-queue-round" id="turnQueueRound"></div>
+            <ol class="turn-queue-list" id="turnQueueList"></ol>
+          </div>
         </div>
       </div>
 
@@ -9313,7 +9358,14 @@ body{
   // quanto o jogador (completar a própria ação, Encerrar o próprio turno) publicam na hora, sem
   // debounce — é um objeto pequeno que muda pouco, não precisa da mesma proteção contra "eco" que
   // os pushes grandes do Mestre têm.
-  let turnState = { active:false, round:1, order:[], turnIndex:0, moved:false, rolled:false };
+  let turnState = { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false };
+  // Histórico (pedido explícito desta rodada) só do botão "avançar" (➡️, ver delayCurrentTurn()) —
+  // guarda um snapshot ANTES de cada "avançar", pra "voltar" (⬅️, ver returnToPreviousTurn())
+  // desfazer exatamente aquele clique. Só LOCAL (não sincronizado pelo Firebase, não sobrevive a um
+  // F5) — é uma conveniência de quem está mexendo na fila na hora, não faz parte do estado real do
+  // jogo; zera sozinho a cada rodada nova (ver advanceTurn()), já que "avançar" nunca influencia a
+  // rodada seguinte, então não faria sentido "voltar" atravessar pra rodada anterior.
+  let turnDelayHistory = [];
 
   function pushTurnState(){
     let ready = false;
@@ -9321,7 +9373,8 @@ body{
     if(!ready) return;
     fbDb.ref('mesa40k/liveBoard/turn').set({
       active: !!turnState.active, round: turnState.round || 1,
-      order: turnState.order || [], turnIndex: turnState.turnIndex || 0,
+      order: turnState.order || [], baseOrder: turnState.baseOrder || turnState.order || [],
+      turnIndex: turnState.turnIndex || 0,
       moved: !!turnState.moved, rolled: !!turnState.rolled,
       ts: firebase.database.ServerValue.TIMESTAMP,
     }).catch(err=> console.error('Não foi possível publicar o turno:', err));
@@ -9375,14 +9428,22 @@ body{
   // recusar uma 2ª tentativa). Peça SEM ficha (Aliado/Inimigo/Monstro/Boss avulsos, isFreeform)
   // nunca tem Habilidade/Talento/Atributo pra rolar — pra essas o próprio movimento já encerra o
   // turno sozinho, senão a fila travaria nelas pra sempre (mesmo comportamento de antes desta
-  // rodada, só que agora sem depender de nenhum contador de ações).
+  // rodada, só que agora sem depender de nenhum contador de ações). PEDIDO EXPLÍCITO desta rodada:
+  // avisar no chat/Discord sempre que um turno terminar, "independente da forma que tenha
+  // finalizado" — este é o único dos 3 jeitos de terminar um turno (manual, erro de rolagem, e
+  // este aqui) que ainda não tinha aviso próprio (handleEndTurnClick()/autoEndTurnOnRollFailure()
+  // já avisam cada um o seu).
   function markTurnMoved(){
     if(!turnState.active) return;
     const entry = currentTurnEntry();
     if(!entry) return;
     turnState.moved = true;
     const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha';
-    if(isFreeform){ advanceTurn(); return; }
+    if(isFreeform){
+      if(!isBlankName(entry.nome)) postToDiscord(`⏭️ ${entry.nome} SE MOVEU E O TURNO FOI ENCERRADO AUTOMATICAMENTE (SEM FICHA PRA ROLAR)`.toUpperCase(), null);
+      advanceTurn();
+      return;
+    }
     pushTurnState();
     renderTurnBars();
   }
@@ -9443,11 +9504,64 @@ body{
     if(turnState.turnIndex >= turnState.order.length){
       turnState.turnIndex = 0;
       turnState.round = (turnState.round || 1) + 1;
+      // PEDIDO EXPLICITO desta rodada: reordenações feitas com "avançar" (delayCurrentTurn(), o
+      // botão ➡️) valem só PRA RODADA ATUAL — "não influencia a próxima rodada". A cada rodada
+      // nova, a fila volta pra ordem original sorteada (baseOrder), desfazendo qualquer "segurar
+      // ação" que tenha acontecido na rodada que acabou de terminar. O histórico de "voltar" (⬅️)
+      // também zera aqui, pelo mesmo motivo — nunca atravessa pra rodada anterior.
+      if(turnState.baseOrder && turnState.baseOrder.length) turnState.order = turnState.baseOrder.slice();
+      turnDelayHistory = [];
     }
     pushTurnState();
     renderTurnBars();
     const nextEntry = currentTurnEntry();
     if(nextEntry) postToDiscord(`⏭️ Rodada ${turnState.round} — agora é a vez de **${nextEntry.nome}**!`.toUpperCase(), null);
+  }
+
+  // PEDIDO EXPLICITO desta rodada: botão "avançar" (➡️, ver HTML #turnDelayBtn) — "segura" a ação
+  // de quem está na vez, empurrando essa peça pro FIM da fila desta MESMA rodada (ela ainda vai
+  // agir nesta rodada, só que por último) — diferente de handleEndTurnClick() (Encerrar/Pular
+  // Turno), que já existia antes e é um encerramento "de verdade" (some da vez até a rodada dar a
+  // volta). Guarda um snapshot em turnDelayHistory ANTES de reordenar, pra "voltar"
+  // (returnToPreviousTurn() logo abaixo) poder desfazer exatamente este clique. Se a peça da vez já
+  // É a última da fila desta rodada, empurrá-la pro fim não muda posição nenhuma — nesse caso o
+  // efeito é simplesmente virar a rodada (mesmo caminho de sempre, ver advanceTurn() acima, que já
+  // reseta a fila pra ordem original).
+  function delayCurrentTurn(){
+    if(!turnState.active) return;
+    const entry = currentTurnEntry();
+    if(!entry) return;
+    if(turnState.turnIndex < turnState.order.length - 1){
+      turnDelayHistory.push({
+        order: turnState.order.slice(), turnIndex: turnState.turnIndex,
+        moved: turnState.moved, rolled: turnState.rolled, round: turnState.round,
+      });
+      const [delayed] = turnState.order.splice(turnState.turnIndex, 1);
+      turnState.order.push(delayed);
+      turnState.moved = false;
+      turnState.rolled = false;
+      pushTurnState();
+      renderTurnBars();
+    }else{
+      advanceTurn();
+    }
+  }
+
+  // PEDIDO EXPLICITO desta rodada: botão "voltar" (⬅️, ver HTML #turnUndoBtn) — desfaz o último
+  // clique em "avançar" (delayCurrentTurn() acima), restaurando a fila/vez/movimento/rolagem
+  // exatamente como estavam antes daquele clique. Não faz nada se não houver nenhum "avançar" pra
+  // desfazer nesta rodada (turnDelayHistory vazio — inclusive zerado sozinho a cada rodada nova).
+  function returnToPreviousTurn(){
+    if(!turnState.active) return;
+    const snap = turnDelayHistory.pop();
+    if(!snap) return;
+    turnState.order = snap.order;
+    turnState.turnIndex = snap.turnIndex;
+    turnState.moved = snap.moved;
+    turnState.rolled = snap.rolled;
+    turnState.round = snap.round;
+    pushTurnState();
+    renderTurnBars();
   }
 
   // Mestre encerra o turno de QUALQUER UM que esteja na vez agora (pedido explícito, sem restrição
@@ -9500,9 +9614,50 @@ body{
       if(textEl) textEl.textContent = turnStatusText();
       if(btnEl) btnEl.disabled = !canEndCurrentTurn();
     });
+    // "avançar"/"voltar" (pedido explícito desta rodada — só existem na aba MESA, mestre-only, ver
+    // HTML) — avançar só faz sentido com fila ativa e alguém na vez; voltar só quando existir algum
+    // "avançar" pra desfazer (ver turnDelayHistory).
+    const delayBtn = $('turnDelayBtn'), undoBtn = $('turnUndoBtn');
+    if(delayBtn) delayBtn.disabled = !(turnState.active && currentTurnEntry());
+    if(undoBtn) undoBtn.disabled = !turnDelayHistory.length;
+    renderTurnQueuePanel();
   }
   $('boardEndTurnBtn').addEventListener('click', handleEndTurnClick);
   $('liveEndTurnBtn').addEventListener('click', handleEndTurnClick);
+  if($('turnDelayBtn')) $('turnDelayBtn').addEventListener('click', delayCurrentTurn);
+  if($('turnUndoBtn')) $('turnUndoBtn').addEventListener('click', returnToPreviousTurn);
+
+  // Minimizar/expandir a guia inteira do Painel de Turno (pedido explícito: "toda essa guia pode
+  // ser minimizada") -- mesmo padrão de setLiveBoardMinimized() mais abaixo no <script>, só que
+  // este painel começa EXPANDIDO por padrão (é informação ativa de combate, relevante assim que o
+  // Mestre abre a aba MESA).
+  const turnControlPanelEl = $('turnControlPanel');
+  function setTurnControlMinimized(min){
+    if(!turnControlPanelEl) return;
+    turnControlPanelEl.classList.toggle('minimized', min);
+    const btn = $('turnControlMinimizeBtn');
+    if(btn){ btn.textContent = min ? '▸' : '▾'; btn.title = min ? 'Expandir' : 'Minimizar'; }
+  }
+  if($('turnControlMinimizeBtn')) $('turnControlMinimizeBtn').addEventListener('click', ()=> setTurnControlMinimized(!turnControlPanelEl.classList.contains('minimized')));
+
+  // PEDIDO EXPLICITO desta rodada: painel mostrando a fila de ações atual dentro da aba MESA —
+  // "RODADA N" no topo + a lista de quem ainda vai agir nesta rodada, com quem está NA VEZ agora
+  // sempre no topo da lista; nomes de quem já passou a vez desaparecem da lista (por isso é
+  // order.slice(turnIndex) — só o "resto" da fila a partir da vez atual, nunca a fila inteira).
+  function renderTurnQueuePanel(){
+    const roundEl = $('turnQueueRound'), listEl = $('turnQueueList');
+    if(!roundEl || !listEl) return;
+    if(!turnState.active || !turnState.order || !turnState.order.length){
+      roundEl.textContent = '';
+      listEl.innerHTML = '';
+      return;
+    }
+    roundEl.textContent = `RODADA ${turnState.round}`;
+    const upcoming = turnState.order.slice(turnState.turnIndex);
+    listEl.innerHTML = upcoming.map((it, i)=>
+      `<li class="turn-queue-item${i===0 ? ' turn-queue-current' : ''}">${escapeHtml(it.nome)}</li>`
+    ).join('');
+  }
 
   // ---------- iniciativa (pelo tabuleiro) ----------
   // Sorteia (mesmo embaralhamento aleatório de sempre) quem já está posicionado no tabuleiro AGORA
@@ -9539,7 +9694,8 @@ body{
         const j = Math.floor(Math.random() * (i + 1));
         [itens[i], itens[j]] = [itens[j], itens[i]];
       }
-      turnState = { active:true, round:1, order:itens, turnIndex:0, moved:false, rolled:false };
+      turnState = { active:true, round:1, order:itens, baseOrder:itens.slice(), turnIndex:0, moved:false, rolled:false };
+      turnDelayHistory = [];
       pushTurnState();
       renderTurnBars();
       const linhas = itens.map((it, idx) => `${idx+1}. **${it.nome}**`).join('\n');
@@ -9786,35 +9942,40 @@ body{
   // completa (360°) na hora que o turno encerra -- sentido HORÁRIO (.end-turn-spin-cw) quando é um
   // clique manual de verdade (ver handleEndTurnClick()), sentido ANTI-horário
   // (.end-turn-spin-ccw) quando é o encerramento AUTOMÁTICO por erro de rolagem (ver
-  // autoEndTurnOnRollFailure()) -- classes/keyframes em .end-turn-spin-cw/-ccw no <style>. Gira os
-  // DOIS botões sempre juntos (o de dentro da aba Mesa do Mestre e o do Tabuleiro ao Vivo do
-  // jogador) -- cada navegador só tem os SEUS próprios elementos na tela, então isto aqui só afeta
-  // visualmente quem clicou/rolou (mesmo espírito de qualquer outra animação deste arquivo: nunca
-  // sincronizada entre abas, só o ESTADO em si viaja pelo Firebase). Remove a classe antes de
+  // autoEndTurnOnRollFailure()) -- classes/keyframes em .end-turn-spin-cw/-ccw no <style>. PEDIDO
+  // EXPLÍCITO desta rodada: a animação acontece só no ÍCONE (.end-turn-icon, o <span> de dentro do
+  // botão -- o botão em si não tem mais texto nenhum do lado, só o ícone), não no botão inteiro.
+  // Gira os DOIS ícones sempre juntos (o de dentro da aba Mesa do Mestre e o do Tabuleiro ao Vivo
+  // do jogador) -- cada navegador só tem os SEUS próprios elementos na tela, então isto aqui só
+  // afeta visualmente quem clicou/rolou (mesmo espírito de qualquer outra animação deste arquivo:
+  // nunca sincronizada entre abas, só o ESTADO em si viaja pelo Firebase). Remove a classe antes de
   // reaplicar (com um reflow forçado no meio) pra poder repetir a mesma animação em cliques
   // seguidos -- sem isso, girar duas vezes seguidas rápido demais não reiniciava a animação.
   function spinEndTurnBtn(direction){
     const cls = direction === 'ccw' ? 'end-turn-spin-ccw' : 'end-turn-spin-cw';
     [$('boardEndTurnBtn'), $('liveEndTurnBtn')].forEach(btn=>{
-      if(!btn) return;
-      btn.classList.remove('end-turn-spin-cw', 'end-turn-spin-ccw');
-      void btn.offsetWidth;
-      btn.classList.add(cls);
+      const icon = btn && btn.querySelector('.end-turn-icon');
+      if(!icon) return;
+      icon.classList.remove('end-turn-spin-cw', 'end-turn-spin-ccw');
+      void icon.offsetWidth;
+      icon.classList.add(cls);
     });
   }
 
   // "Explosão de caveirinhas, como fogos" (pedido explícito) -- dispara só no encerramento
   // AUTOMÁTICO do turno por erro de rolagem (ver autoEndTurnOnRollFailure()), ancorada em cima do
-  // botão de Encerrar Turno de verdade (mesma técnica de spawnEffectToggleBurst()/
+  // ÍCONE da ampulheta de verdade (.end-turn-icon -- mesmo pedido explícito de spinEndTurnBtn(),
+  // "a animação só acontece no ícone") -- mesma técnica de spawnEffectToggleBurst()/
   // diceExplosionAngle() logo abaixo: .dice-particle/.dice-particle-fixed, position:fixed via
   // getBoundingClientRect(), leque de 360° completo) -- só que em 3 LEVAS escalonadas (delay
   // crescente por leva, não tudo de uma vez), pra imitar o estouro em sequência de fogos de
   // artifício de verdade, e com mais partículas/alcance que o efeito de Efeito (mais "espetáculo",
-  // já que é um evento raro/automático, não algo clicado o tempo todo). Não faz nada se o botão não
+  // já que é um evento raro/automático, não algo clicado o tempo todo). Não faz nada se o ícone não
   // estiver desenhado na tela agora (rect 0x0 — painel fechado/minimizado nesta aba).
   function spawnSkullFireworksAt(btn){
-    if(!btn) return;
-    const rect = btn.getBoundingClientRect();
+    const icon = btn && btn.querySelector('.end-turn-icon');
+    if(!icon) return;
+    const rect = icon.getBoundingClientRect();
     if(!rect.width && !rect.height) return;
     const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
     for(let wave=0; wave<3; wave++){
@@ -16340,7 +16501,8 @@ body{
     if(liveBoardTokensRef){ liveBoardTokensRef.off('value', liveBoardTokensCb); liveBoardTokensRef = null; liveBoardTokensCb = null; }
     // fila de iniciativa/turno (ver turnState lá em cima) — mesmo padrão dos outros 3 acima.
     if(liveBoardTurnRef){ liveBoardTurnRef.off('value', liveBoardTurnCb); liveBoardTurnRef = null; liveBoardTurnCb = null; }
-    turnState = { active:false, round:1, order:[], turnIndex:0, moved:false, rolled:false };
+    turnState = { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false };
+    turnDelayHistory = [];
     renderTurnBars();
     // desliga o listener único de mesa/live (Vida/Mana/Escudo/XP ao vivo — ver onLiveVitalsChanged()
     // mais acima) — senão ele fica pendurado pra sempre no mesmo navegador: como o Firebase Auth
@@ -16396,9 +16558,12 @@ body{
       turnState = val ? {
         active: !!val.active, round: val.round || 1,
         order: Array.isArray(val.order) ? val.order : [],
+        // baseOrder pode não existir ainda em pushes antigos (antes desta rodada) — cai pra "order"
+        // como fallback, já que antes disso "order" nunca era reordenado no meio da rodada mesmo.
+        baseOrder: Array.isArray(val.baseOrder) ? val.baseOrder : (Array.isArray(val.order) ? val.order : []),
         turnIndex: val.turnIndex || 0,
         moved: !!val.moved, rolled: !!val.rolled,
-      } : { active:false, round:1, order:[], turnIndex:0, moved:false, rolled:false };
+      } : { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false };
       renderTurnBars();
     });
     liveBoardTokensRef = fbDb.ref('mesa40k/liveBoard/tokens');
