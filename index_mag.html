@@ -767,6 +767,14 @@ body{
 .mesa-preview-wrap{margin:10px 0;text-align:center;}
 .mesa-preview-wrap img{max-width:100%;max-height:220px;border-radius:4px;border:1px solid var(--border-brown);display:block;margin:0 auto 8px;}
 .mesa-hint{margin-top:8px;font-size:11.5px;color:var(--ink-faint);text-align:center;min-height:14px;}
+/* barra de Rodada/Turno (ver renderTurnBars()/turnStatusText() no <script>) -- uma no topo da aba
+   MESA (Mestre) e outra no topo do Tabuleiro ao Vivo (jogador), lendo o MESMO turnState. Botão
+   "Encerrar Turno" reaproveita .mini-btn, só com um estilo próprio pra quando fica desabilitado
+   (não é a vez de quem está vendo agora). */
+.turn-status-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;margin:8px 0 12px;padding:7px 10px;border:1px solid var(--border-brown);border-radius:6px;background:rgba(0,0,0,.15);}
+.turn-status-bar .turn-status-text{font-size:12px;color:var(--ink-soft);flex:1 1 auto;min-width:140px;}
+.turn-status-bar .mini-btn:disabled{opacity:.4;cursor:not-allowed;}
+.turn-status-bar .mini-btn:disabled:hover{border-color:var(--border-brown);color:var(--ink-soft);}
 .token-help{font-size:11.5px;color:var(--ink-faint);line-height:1.5;margin:10px 0 14px;}
 .token-help ol{margin:6px 0 0;padding-left:20px;}
 .token-help a{color:var(--gold-text);}
@@ -925,6 +933,28 @@ body{
    invisível por baixo do fundo dela. */
 .board-cell.live-board-reachable{box-shadow:inset 0 0 0 999px rgba(70,150,255,.55);}
 .board-cell.drag-over{outline:2px solid var(--gold-bright);outline-offset:-2px;z-index:3;}
+/* FOG+ (ver boardFogPlusMode/setBoardFogPlusMode() e mistReachable dentro de renderLiveBoardMini()
+   no <script>) -- camada de névoa visual por cima de TODA casa fora do alcance combinado dos
+   jogadores, só no Tabuleiro ao Vivo (nunca aparece pro Mestre). z-index alto o bastante pra cobrir
+   até o ícone/peça da própria casa (2), a seta de direção (2) e o seletor de 8 direções (4) --
+   pointer-events:none pra não atrapalhar clique/arrasto por baixo dela. */
+.board-cell.board-cell-mist::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:6;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 28% 32%, rgba(255,255,255,.24), transparent 60%),
+    radial-gradient(circle at 72% 68%, rgba(255,255,255,.16), transparent 58%),
+    rgba(110,118,130,.78);
+  backdrop-filter: blur(1.5px);
+  animation: boardMistDrift 9s ease-in-out infinite alternate;
+}
+@keyframes boardMistDrift{
+  from{ opacity:.86; transform:scale(1); }
+  to{ opacity:1; transform:scale(1.04); }
+}
 
 /* Seta de direção (8 sentidos) do tabuleiro ao vivo — ver FACING_ANGLES/buildFacingArrowEl() e
    handleLiveBoardDrop()/renderLiveBoardMini() no <script>. Fica na MESMA casa do ícone do
@@ -1150,6 +1180,39 @@ body{
   background:transparent;color:var(--ink-soft);cursor:pointer;
 }
 .guide-tab-add-btn:hover{background:rgba(255,255,255,.5);}
+/* switch Privado/Público de cada guia (pedido explícito: "precisa existir uma tag... indicando que
+   aquela guia pode ou não aparecer para os jogadores... esse botão precisa ser um switch onde a
+   esquerda está a posição inicial vai ser sempre privado") -- MESTRE-only (.mestre-only), sempre
+   logo no início do painel (ver .guide-visibility-bar no HTML, embaixo da barra de guias), reflete
+   sempre a guia ATIVA agora (troca de estado ao trocar de guia, ver renderMapTabVisibilityControls()/
+   renderEnredoTabVisibilityControls() no <script>). Estrutura clássica "trilho + bolinha": um botão
+   (role="switch") com uma bolinha que desliza da esquerda (privado, cinza) pra direita (público,
+   dourado) via transform, sem nenhuma biblioteca externa. */
+.guide-visibility-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.guide-visibility-label{
+  font-family:'Cinzel Decorative',serif;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--ink-soft);
+}
+.guide-visibility-switch{
+  position:relative;flex:0 0 auto;width:42px;height:22px;border-radius:11px;
+  border:1px solid var(--border-brown);background:rgba(120,110,95,.35);cursor:pointer;padding:0;
+  transition:background .18s ease;
+}
+.guide-visibility-switch.on{background:var(--border-brown);}
+.guide-visibility-switch-thumb{
+  position:absolute;top:1px;left:1px;width:18px;height:18px;border-radius:50%;
+  background:#fff8e6;box-shadow:0 1px 3px rgba(0,0,0,.4);
+  transition:transform .18s ease;
+}
+.guide-visibility-switch.on .guide-visibility-switch-thumb{transform:translateX(20px);background:var(--gold-bright);}
+.guide-visibility-switch-state{
+  font-family:'Cinzel Decorative',serif;font-size:11px;letter-spacing:.05em;color:var(--ink-soft);
+  min-width:58px;
+}
+.guide-visibility-empty-hint{
+  font-family:'EB Garamond',serif;font-size:13px;font-style:italic;color:var(--ink-soft);
+  margin-bottom:10px;opacity:.85;
+}
 .board-menu-panel.active{display:block;}
 .board-block-material-control{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
 .board-block-material-control label{font-family:'Cinzel Decorative',serif;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-soft);}
@@ -4548,6 +4611,12 @@ body{
             <button id="liveBoardZoomInBtn" class="chat-min-btn" title="Aumentar zoom" type="button">+</button>
             <button id="liveBoardMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
           </span></h2>
+          <!-- Rodada/Turno (ver turnState/renderTurnBars() no <script>) -- o jogador só consegue
+               clicar em "Encerrar Turno" quando a ficha da vez é a própria dele. -->
+          <div class="turn-status-bar">
+            <span class="turn-status-text" id="liveTurnStatus">Nenhuma iniciativa rodada ainda.</span>
+            <button type="button" class="mini-btn" id="liveEndTurnBtn" disabled>⏹️ Encerrar Turno</button>
+          </div>
           <div class="live-board-panel-body" id="liveBoardPanelBody">
             <div class="chat-bg-fx" id="liveBoardBgFx" aria-hidden="true"></div>
             <div class="live-board-wrap" id="liveBoardWrap">
@@ -5130,6 +5199,13 @@ body{
     <div class="board-section">
       <h2 class="board-title">🗺️ Tabuleiro da Mesa</h2>
 
+      <!-- Rodada/Turno (ver turnState/renderTurnBars() no <script>) -- o Mestre pode encerrar
+           QUALQUER turno que esteja na vez agora, sem restrição. -->
+      <div class="turn-status-bar">
+        <span class="turn-status-text" id="boardTurnStatus">Nenhuma iniciativa rodada ainda.</span>
+        <button type="button" class="mini-btn" id="boardEndTurnBtn" disabled>⏹️ Encerrar Turno</button>
+      </div>
+
       <div class="board-menu">
         <div class="board-save-control">
           <label>Salvar / carregar tabuleiro</label>
@@ -5279,6 +5355,12 @@ body{
         <button type="button" class="board-mode-toggle" id="boardFogModeLabel" aria-pressed="false">
           <span class="board-mode-toggle-name">🌫️ Remover Fog</span>
         </button>
+        <!-- FOG+ (pedido explícito, "se possível" -- ver boardFogPlusMode/setBoardFogPlusMode() no
+             <script>): camada visual extra de neblina cobrindo o tabuleiro inteiro pro jogador,
+             deixando sem neblina só o campo de visão combinado dos jogadores. DESLIGADO por padrão. -->
+        <button type="button" class="board-mode-toggle" id="boardFogPlusModeLabel" aria-pressed="false">
+          <span class="board-mode-toggle-name">🌁 FOG+</span>
+        </button>
         <button type="button" class="board-mode-toggle" id="boardDarkModeLabel" aria-pressed="false">
           <span class="board-mode-toggle-name">🌑 ESCURIDÃO TOTAL</span>
         </button>
@@ -5421,6 +5503,21 @@ body{
       <button type="button" class="guide-tab-add-btn mestre-only" id="mapTabAddBtn" title="Nova guia de Mapa">+ Guia</button>
     </div>
 
+    <!-- switch Privado/Público da guia ATIVA agora (pedido explícito, só MESTRE vê) -- ver
+         .guide-visibility-bar no <style> e renderMapTabVisibilityControls()/toggleMapTabVisibility()
+         no <script>. Esquerda (sem a classe "on") = PRIVADO, sempre a posição inicial de qualquer
+         guia nova; direita (classe "on") = PÚBLICO, aí sim os jogadores enxergam essa guia. -->
+    <div class="guide-visibility-bar mestre-only" id="mapTabVisibilityBar">
+      <span class="guide-visibility-label">Guia visível pros jogadores</span>
+      <button type="button" class="guide-visibility-switch" id="mapTabVisibilitySwitch" role="switch" aria-checked="false" aria-label="Tornar esta guia de Mapa pública para os jogadores"><span class="guide-visibility-switch-thumb"></span></button>
+      <span class="guide-visibility-switch-state" id="mapTabVisibilityState">PRIVADA</span>
+    </div>
+    <!-- só aparece pro JOGADOR, e só quando NENHUMA guia estiver pública ainda (ver
+         renderMapTabVisibilityControls() no <script>) -- sem isto, um jogador entrando numa mesa
+         cujo mestre ainda não publicou guia nenhuma veria o modal simplesmente vazio, sem entender
+         por quê. -->
+    <div class="guide-visibility-empty-hint jogador-only" id="mapTabsEmptyHint" hidden>O mestre ainda não liberou nenhuma guia de Mapa pra vocês verem.</div>
+
     <div class="map-edit-toolbar mestre-only">
       <input type="file" id="mapBgInput" accept="image/*" style="display:none;">
       <button id="mapBgChooseBtn" class="mini-btn" type="button">🖼️ Imagem do mapa</button>
@@ -5500,6 +5597,19 @@ body{
       <div class="guide-tabs-scroll" id="enredoTabsScroll"></div>
       <button type="button" class="guide-tab-add-btn mestre-only" id="enredoTabAddBtn" title="Nova guia de Enredo">+ Guia</button>
     </div>
+
+    <!-- MESMO switch Privado/Público do Mapa (ver comentário lá em #mapTabVisibilityBar), agora pra
+         guia de Enredo ATIVA -- só que aqui não é "tempo real" via Firebase (Enredo não usa Firebase
+         nenhum, só o arquivo enredo.json do GitHub): o estado muda na hora pro MESTRE (mesma tela,
+         ver renderEnredoTabVisibilityControls() no <script>) e marca "não salvo" (markEnredoDirty()),
+         chegando pro jogador só depois do 💾 Salvar de sempre -- igual qualquer outra edição de
+         Enredo já funciona hoje. -->
+    <div class="guide-visibility-bar mestre-only" id="enredoTabVisibilityBar">
+      <span class="guide-visibility-label">Guia visível pros jogadores</span>
+      <button type="button" class="guide-visibility-switch" id="enredoTabVisibilitySwitch" role="switch" aria-checked="false" aria-label="Tornar esta guia de Enredo pública para os jogadores"><span class="guide-visibility-switch-thumb"></span></button>
+      <span class="guide-visibility-switch-state" id="enredoTabVisibilityState">PRIVADA</span>
+    </div>
+    <div class="guide-visibility-empty-hint jogador-only" id="enredoTabsEmptyHint" hidden>O mestre ainda não liberou nenhuma guia de Enredo pra vocês verem.</div>
     <div class="enredo-list" id="enredoList"></div>
     <p class="master-empty" id="enredoEmptyMsg" hidden>O mestre ainda não escreveu nada aqui.</p>
     <div class="enredo-add-area mestre-only" id="enredoAddArea">
@@ -8788,6 +8898,10 @@ body{
       pendingHabilidadeRoll = null;
     }
     pushRollLog(logEntry);
+    // fila de iniciativa: esta rolagem (Atributo solto, Habilidade fixa ou Talento — os 3 convergem
+    // pra cá) acabou de completar a parte "rolou" da ação da vez, SE for a ficha da vez que está
+    // rolando agora (ver markActionRollFromOpenSheet()/markTurnActionPart() mais abaixo).
+    markActionRollFromOpenSheet();
   }
 
   // ---------- rolagem de dano ----------
@@ -9098,14 +9212,164 @@ body{
     pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'sorte', escolha, resultado, verdict, ts: Date.now() });
   }
 
+  // ---------- ⚔️ Rodadas / Turnos / Fila de Iniciativa ----------
+  // Pedido explícito: "Rodar Iniciativa" passa a gerar uma FILA de verdade (sorteio aleatório,
+  // igual já era) que trava os movimentos do tabuleiro (aba MESA e Tabuleiro ao Vivo) só pra quem
+  // estiver NA VEZ agora — vale pra TODO MUNDO, inclusive o Mestre (esclarecimento explícito: sem
+  // exceção de "correção livre" aqui, diferente do limite de alcance de isBoardMoveRestrictedToken()
+  // mais acima). Cada "ação" = 1 movimento (respeitando o alcance de sempre) + 1 rolagem de
+  // Habilidade/Talento/Atributo (sucesso ou falha não importa — ver markActionRollFromOpenSheet(),
+  // chamada de dentro do handler de rollBtn, tipo:'atributo', que já cobre as 3 rolagens). Um turno
+  // tem até 2 ações; completar as 2 (ou clicar em "Encerrar Turno") passa a vez pro próximo da fila
+  // — dar a volta na fila inteira soma 1 na Rodada. Peça SEM ficha nenhuma (Aliado/Inimigo/Monstro/
+  // Boss avulsos, sem heroId) nunca tem Habilidade/Talento/Atributo pra rolar — pra essas, o próprio
+  // movimento já fecha a ação sozinho (ver isFreeform em markTurnActionPart()), senão a fila
+  // travaria pra sempre nelas.
+  //
+  // Sincronizado em mesa40k/liveBoard/turn — ao contrário de meta/marks/tokens (só o Mestre
+  // escreve, write-only, sem ouvir de volta — ver o comentário grande logo depois de
+  // connectLiveBoard()), aqui QUALQUER autenticado escreve DIRETO e todo mundo (Mestre incluso)
+  // ouve ao vivo (ver liveBoardTurnRef/liveBoardTurnCb dentro de connectLiveBoard()) — mesmo
+  // espírito já usado em liveBoard/tokens pro jogador mover a própria ficha sem depender do Mestre
+  // estar com a página aberta: tanto o Mestre (Rodar Iniciativa, Encerrar o turno de qualquer um)
+  // quanto o jogador (completar a própria ação, Encerrar o próprio turno) publicam na hora, sem
+  // debounce — é um objeto pequeno que muda pouco, não precisa da mesma proteção contra "eco" que
+  // os pushes grandes do Mestre têm.
+  let turnState = { active:false, round:1, order:[], turnIndex:0, actionsLeft:2, moved:false, rolled:false };
+
+  function pushTurnState(){
+    let ready = false;
+    try{ ready = !!(fbReady && fbDb && currentUser); }catch(err){ ready = false; }
+    if(!ready) return;
+    fbDb.ref('mesa40k/liveBoard/turn').set({
+      active: !!turnState.active, round: turnState.round || 1,
+      order: turnState.order || [], turnIndex: turnState.turnIndex || 0,
+      actionsLeft: turnState.actionsLeft != null ? turnState.actionsLeft : 2,
+      moved: !!turnState.moved, rolled: !!turnState.rolled,
+      ts: firebase.database.ServerValue.TIMESTAMP,
+    }).catch(err=> console.error('Não foi possível publicar o turno:', err));
+  }
+
+  function currentTurnEntry(){
+    if(!turnState.active || !turnState.order || !turnState.order.length) return null;
+    return turnState.order[turnState.turnIndex] || null;
+  }
+  // "Esta peça faz parte da fila rodada agora?" — só peças que já estavam no tabuleiro no momento
+  // do sorteio entram na fila (ver itens, dentro do listener de iniciativaTabuleiroBtn logo abaixo);
+  // qualquer peça de fora (colocada depois do sorteio) continua livre pra mover a qualquer momento
+  // — a fila simplesmente não sabe que ela existe.
+  function isTurnGatedToken(tok){
+    if(!tok || !turnState.active || !turnState.order) return false;
+    return turnState.order.some(it=> it.id === tok.id);
+  }
+  function isCurrentTurnToken(tok){
+    const entry = currentTurnEntry();
+    return !!(entry && tok && entry.id === tok.id);
+  }
+
+  // Consome a parte "moveu" ou "rolou" da ação atual da ficha da vez; quando as duas partes
+  // completam, fecha 1 das até-2 ações do turno e reseta o progresso pra próxima ação (ou passa a
+  // vez automaticamente, se as 2 já acabaram).
+  function markTurnActionPart(part){
+    if(!turnState.active) return;
+    const entry = currentTurnEntry();
+    if(!entry) return;
+    if(part === 'moved') turnState.moved = true;
+    else if(part === 'rolled') turnState.rolled = true;
+    const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha';
+    if(isFreeform && turnState.moved) turnState.rolled = true;
+    if(turnState.moved && turnState.rolled){
+      turnState.moved = false; turnState.rolled = false;
+      turnState.actionsLeft = Math.max(0, (turnState.actionsLeft != null ? turnState.actionsLeft : 2) - 1);
+      if(turnState.actionsLeft <= 0){ advanceTurn(); return; }
+    }
+    pushTurnState();
+    renderTurnBars();
+  }
+
+  // Roll hook — chamado de dentro do handler de rollBtn (tipo:'atributo' cobre rolagem "solta" de
+  // Atributo, Habilidade fixa e Talento: as 3 únicas formas de rolar um dado de ação, ver
+  // rollHabilidadeAtributo()/rollTalento()/rollAtributoIconSelected() mais abaixo — todas convergem
+  // pro mesmo rollBtn.click()). Identifica a ficha da vez comparando o NOME da ficha aberta agora
+  // neste navegador (els.nome) com o nome BASE (sem numeração de instância) do token que está na
+  // vez — mesmo padrão já usado dentro de handleLiveBoardDrop() pro efeito SANGRANDO.
+  function markActionRollFromOpenSheet(){
+    if(!turnState.active) return;
+    const entry = currentTurnEntry();
+    if(!entry || (entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha')) return;
+    const sheetName = ((els.nome && els.nome.value) || '').trim();
+    if(!sheetName || sheetName !== entry.baseNome) return;
+    markTurnActionPart('rolled');
+  }
+
+  function advanceTurn(){
+    if(!turnState.active || !turnState.order || !turnState.order.length) return;
+    turnState.moved = false; turnState.rolled = false; turnState.actionsLeft = 2;
+    turnState.turnIndex = (turnState.turnIndex || 0) + 1;
+    if(turnState.turnIndex >= turnState.order.length){
+      turnState.turnIndex = 0;
+      turnState.round = (turnState.round || 1) + 1;
+    }
+    pushTurnState();
+    renderTurnBars();
+    const nextEntry = currentTurnEntry();
+    if(nextEntry) postToDiscord(`⏭️ Rodada ${turnState.round} — agora é a vez de **${nextEntry.nome}**!`.toUpperCase(), null);
+  }
+
+  // Mestre encerra o turno de QUALQUER UM que esteja na vez agora (pedido explícito, sem restrição
+  // nenhuma); jogador só encerra o PRÓPRIO turno (a ficha da vez precisa ser dele — ver
+  // isMyLiveToken() mais abaixo). Procura o token da vez tanto em boardTokens (fonte de verdade do
+  // Mestre) quanto em liveBoardState.tokens (espelho ao vivo) — os dois têm sempre o mesmo conjunto
+  // de peças.
+  function findTurnEntryToken(entry){
+    if(!entry) return null;
+    const pool = (currentRole === 'mestre') ? boardTokens : liveBoardState.tokens;
+    for(const key in pool){ const t = pool[key]; if(t && t.id === entry.id) return t; }
+    return null;
+  }
+  function canEndCurrentTurn(){
+    const entry = currentTurnEntry();
+    if(!entry) return false;
+    if(currentRole === 'mestre') return true;
+    const tok = findTurnEntryToken(entry);
+    return !!tok && isMyLiveToken(tok);
+  }
+  // Pedido explícito: quando alguém pula o turno (Encerrar Turno sem usar as 2 ações), avisar no
+  // chat/Discord "NOME DO PERSONAGEM encerrou o turno" — só neste fluxo (o avanço "natural", ao
+  // completar as 2 ações, já ganha seu próprio aviso de "agora é a vez de" em advanceTurn()).
+  function handleEndTurnClick(){
+    const entry = currentTurnEntry();
+    if(!entry || !canEndCurrentTurn()) return;
+    if(!isBlankName(entry.nome)) postToDiscord(`⏹️ ${entry.nome} encerrou o turno`.toUpperCase(), null);
+    advanceTurn();
+  }
+
+  function turnStatusText(){
+    const entry = currentTurnEntry();
+    if(!entry) return 'Nenhuma iniciativa rodada ainda.';
+    const acoes = turnState.actionsLeft != null ? turnState.actionsLeft : 2;
+    return `Rodada ${turnState.round} — vez de ${entry.nome} (${acoes} ação${acoes===1?'':'ões'} restante${acoes===1?'':'s'})`;
+  }
+  function renderTurnBars(){
+    [['boardTurnStatus','boardEndTurnBtn'], ['liveTurnStatus','liveEndTurnBtn']].forEach(([textId, btnId])=>{
+      const textEl = $(textId), btnEl = $(btnId);
+      if(textEl) textEl.textContent = turnStatusText();
+      if(btnEl) btnEl.disabled = !canEndCurrentTurn();
+    });
+  }
+  $('boardEndTurnBtn').addEventListener('click', handleEndTurnClick);
+  $('liveEndTurnBtn').addEventListener('click', handleEndTurnClick);
+
   // ---------- iniciativa (pelo tabuleiro) ----------
-  // Embaralha e manda pro Discord quem já está posicionado no tabuleiro AGORA — cada token de
-  // herói (kind:'hero') e de aliado/inimigo/monstro/boss (ENEMY_KINDS) vira um item; blocos/
-  // obstáculos (isBlockKind) ficam de fora, não são combatentes. tokenTooltipText() já monta o
-  // nome certo pra cada um (nome da ficha pro herói, "Rótulo N" pro resto — mesmo texto que já
-  // aparece na dica ao passar o mouse em cada peça). Como o tabuleiro já está todo na memória
-  // (boardTokens), não precisa buscar nada no GitHub — o sorteio é instantâneo, sem espera de rede
-  // antes de mandar pro Discord.
+  // Sorteia (mesmo embaralhamento aleatório de sempre) quem já está posicionado no tabuleiro AGORA
+  // — cada token de herói (kind:'hero') e de aliado/inimigo/monstro/boss/inimigo_ficha vira um
+  // item; blocos/obstáculos (isBlockKind) ficam de fora, não são combatentes. tokenTooltipText() já
+  // monta o nome certo pra cada um (nome da ficha pro herói, "Rótulo N" pro resto — mesmo texto que
+  // já aparece na dica ao passar o mouse em cada peça); baseNome (sem numeração) é o que
+  // markActionRollFromOpenSheet() usa pra reconhecer a rolagem certa. Como o tabuleiro já está todo
+  // na memória (boardTokens), não precisa buscar nada no GitHub — o sorteio é instantâneo. Agora,
+  // além de mandar a ordem pro Discord, isto AQUI também liga a fila de verdade (turnState) que
+  // trava os movimentos — ver o bloco grande de comentário logo acima.
   const iniciativaTabuleiroBtn = $('iniciativaTabuleiroBtn');
   const iniciativaTabuleiroHint = $('iniciativaTabuleiroHint');
   iniciativaTabuleiroBtn.addEventListener('click', async ()=>{
@@ -9116,7 +9380,7 @@ body{
       if(!tok || seenIds.has(tok.id)) continue;
       seenIds.add(tok.id);
       if(isBlockKind(tok.kind)) continue;
-      itens.push(tokenTooltipText(tok));
+      itens.push({ id: tok.id, kind: tok.kind, nome: tokenTooltipText(tok), baseNome: (tok.name || '').trim() });
     }
     if(!itens.length){
       iniciativaTabuleiroHint.textContent = 'Não há nenhum herói ou inimigo posicionado no tabuleiro agora.';
@@ -9131,14 +9395,17 @@ body{
         const j = Math.floor(Math.random() * (i + 1));
         [itens[i], itens[j]] = [itens[j], itens[i]];
       }
-      const linhas = itens.map((nome, idx) => `${idx+1}. **${nome}**`).join('\n');
-      await postToDiscord(`⚔️ **O MESTRE** sorteou a **ORDEM DE INICIATIVA pelo tabuleiro!**\n${linhas}`);
+      turnState = { active:true, round:1, order:itens, turnIndex:0, actionsLeft:2, moved:false, rolled:false };
+      pushTurnState();
+      renderTurnBars();
+      const linhas = itens.map((it, idx) => `${idx+1}. **${it.nome}**`).join('\n');
+      await postToDiscord(`⚔️ **O MESTRE** sorteou a **ORDEM DE INICIATIVA pelo tabuleiro!** Rodada 1 — vez de **${itens[0].nome}**!\n${linhas}`.toUpperCase());
       iniciativaTabuleiroBtn.textContent = '✓ Enviado!';
-      iniciativaTabuleiroHint.textContent = `Ordem sorteada: ${itens.join(' → ')}`;
+      iniciativaTabuleiroHint.textContent = `Ordem sorteada: ${itens.map(it=>it.nome).join(' → ')}`;
     }catch(err){
       console.error(err);
       iniciativaTabuleiroBtn.textContent = 'Erro, tente de novo';
-      iniciativaTabuleiroHint.textContent = 'Não foi possível enviar a ordem de iniciativa agora.';
+      iniciativaTabuleiroHint.textContent = 'Não foi possível sortear a ordem de iniciativa agora.';
     }
     setTimeout(()=>{ iniciativaTabuleiroBtn.textContent = original; iniciativaTabuleiroBtn.disabled = false; }, 900);
   });
@@ -12273,6 +12540,11 @@ body{
 
   let boardMarks   = {};   // "r_c" -> 'green' | 'yellow' | 'red'
   let boardTokens  = {};   // "r_c" -> {id, kind, name, portrait, size, anchorR, anchorC} (todas as casas ocupadas apontam pro mesmo objeto)
+  // ids de peça (token.id) restrita (ver isBoardMoveRestrictedToken() mais abaixo) que acabou de ser
+  // movida pela aba Mesa e está esperando o mestre escolher pra onde ela está olhando -- equivalente,
+  // do lado do mestre, ao pendingFacingTokenIds do Tabuleiro ao Vivo (ver a declaração dele mais
+  // abaixo, e o comentário lá pro funcionamento geral do seletor de 8 direções).
+  let pendingBoardFacingTokenIds = new Set();
   let boardBackground = null; // data URL da imagem de fundo custom, ou null = tabuleiro de mármore padrão
   let boardGridColor = '#ffffff'; // cor das linhas do grid (só aparecem por cima de um fundo custom) — sempre aplicada semitransparente
   // ---------- modos de visão do tabuleiro (Revelar / Dark / Fog) ----------
@@ -12294,6 +12566,12 @@ body{
   let boardDarkMode = false;
   let boardFogMode  = true;
   let boardRevealMode = false;
+  // FOG+ (pedido explícito, "se possível"): camada visual extra de neblina cobrindo TODO o
+  // tabuleiro pro jogador, deixando sem neblina só o campo de visão combinado dos jogadores (ver
+  // computeFogReachableKeys(), reaproveitada em renderLiveBoardMini()) — independente do Fog normal
+  // (que só esconde MARCAÇÕES/PEÇAS) estar ligado ou não. Nunca afeta a visão do próprio Mestre.
+  // DESLIGADO por padrão (recurso novo, opcional).
+  let boardFogPlusMode = false;
   let heroRoster   = [];   // [{id, name, portrait}] — fichas de jogador ativas
   let mestreRoster = [];   // [{id, name, portrait}] — fichas do mestre ativas (id sempre prefixado "mestre:" pra nunca colidir com o de um jogador)
   let spawnCounter = 1;
@@ -12526,6 +12804,7 @@ body{
   const scheduleBoardMetaPush = makeDebouncedBoardPush('mesa40k/liveBoard/meta', ()=> ({
     rows: BOARD_ROWS, cols: BOARD_COLS, gridColor: boardGridColor, background: boardBackground || null,
     fog: !!boardFogMode,
+    fogPlus: !!boardFogPlusMode,
     revealed: !!boardRevealMode,
     ts: firebase.database.ServerValue.TIMESTAMP,
   }));
@@ -12564,6 +12843,15 @@ body{
     }
     scheduleBoardMetaPush(); // só o campo "fog" de mesa40k/liveBoard/meta depende disso
   }
+  function setBoardFogPlusMode(on){
+    boardFogPlusMode = !!on;
+    const fogPlusLabel = $('boardFogPlusModeLabel');
+    if(fogPlusLabel){
+      fogPlusLabel.classList.toggle('mode-active', boardFogPlusMode);
+      fogPlusLabel.setAttribute('aria-pressed', boardFogPlusMode ? 'true' : 'false');
+    }
+    scheduleBoardMetaPush(); // só o campo "fogPlus" de mesa40k/liveBoard/meta depende disso
+  }
   function setBoardRevealMode(on){
     boardRevealMode = !!on;
     const revealLabel = $('boardRevealModeLabel');
@@ -12581,6 +12869,7 @@ body{
   // já É esse oposto de "removido", então passa ele mesmo como o novo "removed" pra
   // setBoardFogRemoved() — ver o comentário dentro dela pra reversão completa.
   $('boardFogModeLabel').addEventListener('click', ()=> setBoardFogRemoved(boardFogMode));
+  $('boardFogPlusModeLabel').addEventListener('click', ()=> setBoardFogPlusMode(!boardFogPlusMode));
   $('boardRevealModeLabel').addEventListener('click', ()=> setBoardRevealMode(!boardRevealMode));
 
   function buildBoardGrid(){
@@ -12694,6 +12983,12 @@ body{
     // outra casa, muda de direção pra "nenhuma" (facing null) ou é removido do tabuleiro.
     const existingArrow = cell.querySelector('.board-facing-arrow');
     if(existingArrow) existingArrow.remove();
+    // o seletor de 8 direções (inimigo_ficha/ficha do mestre, ver pendingBoardFacingTokenIds) é
+    // outro elemento À PARTE, mesma lógica da seta acima -- sem esta limpeza, escolher uma direção
+    // (chooseBoardFacing() chama renderBoardCell() só dessa casa) deixaria o seletor velho boiando
+    // por cima da seta nova recém-desenhada.
+    const existingPicker = cell.querySelector('.board-facing-picker');
+    if(existingPicker) existingPicker.remove();
     const token = boardTokens[boardKey(r,c)];
     // só desenha o visual na casa-âncora (canto superior-esquerdo) do token — nas demais
     // casas ocupadas por um token maior (ex: monstro 2x2) não criamos elemento nenhum,
@@ -12784,15 +13079,21 @@ body{
         cell.appendChild(hpBar);
         applyBoardHpBar(hpBar);
       }
-      // Seta de direção (ver FACING_ANGLES/buildFacingArrowEl() lá embaixo) -- o jogador escolhe
-      // pra onde está olhando pelo PRÓPRIO painel "Tabuleiro ao Vivo" (mini, dentro da ficha dele,
-      // ver chooseLiveBoardFacing()); aqui no tabuleiro DE VERDADE (aba Mesa) o mestre só ENXERGA a
-      // seta já escolhida, sem seletor nenhum pra mexer nela por aqui -- token.facing chega junto
-      // com o resto do token local (boardTokens) através de mergeRemoteHeroTokensIntoLocalBoard(),
-      // que mantém esse campo sincronizado a partir do que cada jogador publica no Firebase, mesmo
-      // sem o mestre ter mexido em nada. Antes desta correção, a aba Mesa nunca desenhava essa
-      // seta -- só o painel pequeno "Tabuleiro ao Vivo" (renderLiveBoardMini()) desenhava.
-      if(token.kind === 'hero' && token.facing){
+      // Seta de direção (ver FACING_ANGLES/buildFacingArrowEl() lá embaixo). Ficha de JOGADOR: o
+      // jogador escolhe pra onde está olhando pelo PRÓPRIO painel "Tabuleiro ao Vivo" (mini, dentro
+      // da ficha dele, ver chooseLiveBoardFacing()) -- aqui no tabuleiro DE VERDADE (aba Mesa) o
+      // mestre só ENXERGA a seta já escolhida pra essas, sem seletor nenhum pra mexer nela por
+      // aqui -- token.facing chega junto com o resto do token local (boardTokens) através de
+      // mergeRemoteHeroTokensIntoLocalBoard(), que mantém esse campo sincronizado a partir do que
+      // cada jogador publica no Firebase, mesmo sem o mestre ter mexido em nada. inimigo_ficha e
+      // ficha do PRÓPRIO mestre (ver isBoardMoveRestrictedToken() mais abaixo, pedido explícito:
+      // "mesmas condições [de jogador]... as setas e tudo mais"): a escolha acontece AQUI mesmo, na
+      // aba Mesa, logo depois de mover a peça (ver handleBoardDrop()/pendingBoardFacingTokenIds/
+      // chooseBoardFacing() mais abaixo) -- por isso o seletor de 8 direções (buildFacingPickerEl())
+      // também pode aparecer nesta função, não só a seta já fixada.
+      if(pendingBoardFacingTokenIds.has(token.id) && isBoardMoveRestrictedToken(token)){
+        cell.appendChild(buildFacingPickerEl(token, chooseBoardFacing));
+      } else if((token.kind === 'hero' || token.kind === 'inimigo_ficha') && token.facing){
         cell.appendChild(buildFacingArrowEl(token));
       }
     }
@@ -12923,6 +13224,70 @@ body{
     return null;
   }
 
+  // "Esta peça, movida pela aba Mesa, respeita alcance de movimento de verdade?" -- pedido
+  // explícito (esclarecimento do mestre, opção escolhida: "Seta + limite de alcance só pros
+  // Inimigos-com-ficha e PCs do mestre na aba MESA"): inimigo_ficha (inimigo com ficha de NPC
+  // amarrada, ver payload.kind==='inimigo_ficha' mais acima) e fichas do PRÓPRIO mestre (id
+  // prefixado "mestre:", ver mestreRoster) passam a respeitar o mesmo alcance (1 + DES + Modificador
+  // de Movimento, ver computeEffectiveMoveLimit() mais abaixo) que uma ficha de jogador já respeita
+  // no Tabuleiro ao Vivo -- ficha de JOGADOR continua livre pra o mestre arrastar pela aba Mesa sem
+  // limite nenhum (só correções/ajustes, nunca precisou de limite). Peça sem ficha nenhuma amarrada
+  // (aliado/inimigo/monstro/boss "avulsos", sem heroId) nunca entra aqui -- exclusão explícita
+  // ("essas alterações só não afetam os ícones de personagem do tabuleiro que não possuem uma ficha
+  // amarrada").
+  function isBoardMoveRestrictedToken(tok){
+    if(!tok) return false;
+    if(tok.kind === 'inimigo_ficha') return true;
+    if(tok.kind === 'hero' && typeof tok.id === 'string' && tok.id.indexOf('mestre:') === 0) return true;
+    return false;
+  }
+
+  // Mesmo BFS de computeLiveBoardReachable() (ver comentário grande na definição dela, mais abaixo)
+  // -- só que trabalhando em cima do tabuleiro DE VERDADE do mestre (boardTokens/BOARD_ROWS/
+  // BOARD_COLS/boardKey) em vez do espelho "ao vivo" (liveBoardState/liveBoardKey) que cada jogador
+  // usa no próprio painel. Necessário porque inimigo_ficha e ficha do mestre (ver
+  // isBoardMoveRestrictedToken() acima) só podem ser movidas por aqui, na aba Mesa -- nunca pelo
+  // Tabuleiro ao Vivo, que é só pra ficha de jogador.
+  function computeBoardReachable(anchorR, anchorC, limit){
+    const rows = BOARD_ROWS, cols = BOARD_COLS;
+    const visited = new Map();
+    const startKey = boardKey(anchorR, anchorC);
+    visited.set(startKey, 0);
+    const queue = [[anchorR, anchorC, 0]];
+    let head = 0;
+    while(head < queue.length){
+      const [r, c, d] = queue[head++];
+      if(d >= limit) continue;
+      const neighbors = [[r-1,c],[r+1,c],[r,c-1],[r,c+1]];
+      for(const [nr, nc] of neighbors){
+        if(nr < 0 || nc < 0 || nr >= rows || nc >= cols) continue;
+        const key = boardKey(nr, nc);
+        if(visited.has(key)) continue;
+        const occupant = boardTokens[key];
+        if(occupant && isBlockKind(occupant.kind)) continue; // bloco: impassável, nem dá pra atravessar
+        visited.set(key, d + 1);
+        queue.push([nr, nc, d + 1]);
+      }
+    }
+    visited.delete(startKey);
+    return visited;
+  }
+
+  // Fixa a direção escolhida pro seletor de 8 direções da aba Mesa (ver buildFacingPickerEl()/
+  // pendingBoardFacingTokenIds) -- equivalente a chooseLiveBoardFacing(), só que gravando em
+  // boardTokens (fonte de verdade do mestre) em vez de liveBoardState.tokens. Não precisa de um
+  // update pontual no Firebase: scheduleBoardTokensPush() (chamado por handleBoardDrop logo depois
+  // de mover a peça) já republica o token inteiro, facing incluído (ver collectBoardTokensOut()).
+  function chooseBoardFacing(tok, dir){
+    const key = boardKey(tok.anchorR, tok.anchorC);
+    const current = boardTokens[key];
+    if(!current || current.id !== tok.id) return;
+    current.facing = dir;
+    pendingBoardFacingTokenIds.delete(tok.id);
+    renderBoardCell(tok.anchorR, tok.anchorC);
+    scheduleBoardTokensPush();
+  }
+
   function handleBoardDrop(r, c, e){
     let payload;
     try{ payload = JSON.parse(e.dataTransfer.getData('text/plain')); }catch(err){ return; }
@@ -13022,12 +13387,44 @@ body{
       const [sizeR, sizeC] = tokenFootprintSize(tok);
       if(tok.anchorR === r && tok.anchorC === c) return; // soltou em cima de si mesmo
       if(!canPlace(r, c, sizeR, sizeC, tok.id)) return;
+      // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() logo acima): só quem está NA VEZ
+      // agora pode ser movido — vale pra QUALQUER peça que faça parte da fila (inclusive as que o
+      // Mestre normalmente move livre, como ficha de jogador) e vale pro próprio Mestre também,
+      // pedido explícito, sem exceção de correção aqui.
+      if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok)){
+        const entry = currentTurnEntry();
+        alert(`Não é a vez desta peça! Turno atual (Rodada ${turnState.round}): ${entry ? entry.nome : '—'}.`);
+        return;
+      }
+      // NOVO: inimigo_ficha e ficha do próprio mestre passam a respeitar o alcance de movimento de
+      // verdade (ver isBoardMoveRestrictedToken()/computeBoardReachable() logo acima) -- ficha de
+      // jogador continua livre, sem checagem nenhuma aqui.
+      const restricted = isBoardMoveRestrictedToken(tok);
+      if(restricted){
+        const limit = computeEffectiveMoveLimit(tok);
+        const reachableMap = computeBoardReachable(tok.anchorR, tok.anchorC, limit);
+        if(!reachableMap.has(boardKey(r, c))){
+          alert(`Muito longe (ou bloqueado por um bloco no caminho)! O limite de movimento desta peça agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES + Movimento).`);
+          return;
+        }
+      }
       const oldCells = footprintCells(tok.anchorR, tok.anchorC, sizeR, sizeC);
       clearTokenFootprint(tok);
+      // a cada movimento restrito a direção anterior deixa de valer -- mesmo espírito de
+      // handleLiveBoardDrop() ("caso ele se mova novamente a seta some e a ação se repete"): a peça
+      // entra em pendingBoardFacingTokenIds, e o próximo renderBoardCell() da casa nova (logo
+      // abaixo) já desenha o seletor de 8 direções em vez da seta antiga.
+      if(restricted){
+        delete tok.facing;
+        pendingBoardFacingTokenIds.add(tok.id);
+      }
       placeToken(r, c, tok);
       oldCells.forEach(([or,oc]) => renderBoardCell(or,oc));
       footprintCells(r, c, sizeR, sizeC).forEach(([fr,fc]) => renderBoardCell(fr,fc));
       if(tok.kind === 'hero'){ renderHeroTray(); renderMestreTray(); }
+      // fila de iniciativa: este movimento acabou de completar a parte "moveu" da ação da vez (ver
+      // markTurnActionPart() lá em cima) — só conta se esta MESMA peça é quem está na vez agora.
+      if(turnState.active && isCurrentTurnToken(tok)) markTurnActionPart('moved');
     }
     scheduleBoardTokensPush();
   }
@@ -14904,9 +15301,9 @@ body{
   // localStorage separada da do tabuleiro do mestre, cada um lembra o próprio nível.
   const applyLiveBoardZoom = setupBoardZoom(liveBoardZoomSpacerEl, liveBoardOuterEl, $('liveBoardZoomReadout'), $('liveBoardZoomOutBtn'), $('liveBoardZoomInBtn'), 'rpg_ficha_liveboard_zoom');
 
-  let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false };
-  let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null;
-  let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null;
+  let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlus: false };
+  let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null, liveBoardTurnRef = null;
+  let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null, liveBoardTurnCb = null;
   // RETRATO ao vivo (pedido explícito: "a imagem do ícone que representa o personagem... precisa
   // respeitar a imagem selecionada na ficha em tempo real") -- heroRoster/mestreRoster (ver
   // makeRosterLoader()) só atualizam depois de SALVAR (busca no GitHub), então não bastam sozinhos
@@ -15157,6 +15554,13 @@ body{
     // esteja com esse mini-tabuleiro aberto em algum canto da tela dele).
     const fogActive = !!liveBoardState.fog && currentRole !== 'mestre';
     const fogReachable = (revealed && fogActive) ? computeFogReachableKeys() : null;
+    // FOG+ (ver boardFogPlusMode/setBoardFogPlusMode() na aba Mesa do mestre): camada visual extra
+    // de neblina, só pra jogador, independente do Fog normal (fogActive) estar ligado ou não —
+    // reaproveita o MESMO conjunto "visível" de computeFogReachableKeys() (o de fogActive, se já
+    // calculado, senão calcula na hora) pra decidir quais casas ficam cobertas de névoa (ver
+    // .board-cell-mist no <style>, aplicado logo abaixo dentro do loop).
+    const fogPlusActive = !!liveBoardState.fogPlus && currentRole !== 'mestre';
+    const mistReachable = (revealed && fogPlusActive) ? (fogReachable || computeFogReachableKeys()) : null;
     for(let r = 0; r < rows; r++){
       for(let c = 0; c < cols; c++){
         const cell = document.createElement('div');
@@ -15169,6 +15573,7 @@ body{
         cell.addEventListener('dragover', (e)=> e.preventDefault());
         cell.addEventListener('drop', (e)=>{ e.preventDefault(); handleLiveBoardDrop(r, c, e); });
         if(!revealed){ liveBoardGridEl.appendChild(cell); continue; }
+        if(mistReachable && !mistReachable.has(cellKey)) cell.classList.add('board-cell-mist');
         const mark = liveBoardState.marks[cellKey];
         if(mark && (!fogActive || fogReachable.has(cellKey))) cell.classList.add('mark-' + mark);
         const token = liveBoardState.tokens[liveBoardKey(r,c)];
@@ -15277,7 +15682,12 @@ body{
     if(revealed){
       Object.keys(liveBoardState.tokens).forEach(key=>{
         const tok = liveBoardState.tokens[key];
-        if(!tok || tok.kind !== 'hero') return;
+        // inimigo_ficha entra aqui também (pedido explícito: "as setas... precisam aparecer em
+        // todas as fichas e para todo mundo") -- só que nunca é "minha" (isMyLiveToken() só
+        // reconhece kind 'hero'), então só cai no ramo "else if(tok.facing)" logo abaixo: o
+        // jogador vê a seta já escolhida pelo mestre (ver chooseBoardFacing(), aba Mesa), nunca o
+        // seletor de 8 direções -- essa peça só é movida pela aba Mesa, nunca por aqui.
+        if(!tok || (tok.kind !== 'hero' && tok.kind !== 'inimigo_ficha')) return;
         if(key !== liveBoardKey(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça
         if(fogActive && fogReachable && !fogReachable.has(key)) return;
         const cellEl = liveBoardGridEl.children[tok.anchorR * cols + tok.anchorC];
@@ -15320,8 +15730,11 @@ body{
   // Seletor de 8 direções — some assim que uma direção é escolhida (ver chooseLiveBoardFacing()) e
   // reaparece a cada novo movimento (ver handleLiveBoardDrop()). Um botão por direção, posicionado
   // AO REDOR do ícone, por fora do círculo dele (FACING_PICKER_POINTS — raio maior que
-  // FACING_POINTS) e já rotacionado pra apontar certo.
-  function buildFacingPickerEl(tok){
+  // FACING_POINTS) e já rotacionado pra apontar certo. onChoose (opcional): pra qual função entregar
+  // a direção escolhida — padrão chooseLiveBoardFacing() (Tabuleiro ao Vivo, ficha de jogador); a
+  // aba Mesa (inimigo_ficha/ficha do mestre, ver renderBoardCell()) passa chooseBoardFacing() aqui.
+  function buildFacingPickerEl(tok, onChoose){
+    const chooseFn = onChoose || chooseLiveBoardFacing;
     const wrap = document.createElement('div');
     wrap.className = 'board-facing-picker';
     FACING_ORDER.forEach(dir=>{
@@ -15336,7 +15749,7 @@ body{
       btn.title = dir;
       btn.addEventListener('click', (e)=>{
         e.preventDefault(); e.stopPropagation();
-        chooseLiveBoardFacing(tok, dir);
+        chooseFn(tok, dir);
       });
       wrap.appendChild(btn);
     });
@@ -15413,6 +15826,13 @@ body{
     const tok = liveBoardState.tokens[oldKey];
     if(!tok || tok.id !== payload.id || !isMyLiveToken(tok)) return;
     if(r === payload.r && c === payload.c) return;
+    // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() na aba Mesa): só quem está NA VEZ
+    // agora pode se mover — mesma trava usada em handleBoardDrop(), aqui do lado do jogador.
+    if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok)){
+      const entry = currentTurnEntry();
+      liveBoardHintEl.textContent = `Não é a sua vez! Turno atual (Rodada ${turnState.round}): ${entry ? entry.nome : '—'}.`;
+      return;
+    }
     const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
     if(r < 0 || c < 0 || r >= rows || c >= cols) return;
     const newKey = liveBoardKey(r, c);
@@ -15482,6 +15902,9 @@ body{
     const sangrandoTxt = ((tok.efeitos||{}).sangrando && passosMovidos > 0) ? ` E PERDEU ${passosMovidos} DE VIDA (SANGRANDO)` : '';
     if(!isBlankName(tok.name)) postToDiscord(`🚶 **${tok.name}** SE MOVIMENTOU${sangrandoTxt}`, null);
     pushMoveLog({ nome: tok.name, tipo:'movimento', de: fromLabel, para: toLabel, ts: Date.now() });
+    // fila de iniciativa: este movimento acabou de completar a parte "moveu" da ação da vez (ver
+    // markTurnActionPart() na aba Mesa) — só conta se esta MESMA peça é quem está na vez agora.
+    if(turnState.active && isCurrentTurnToken(tok)) markTurnActionPart('moved');
   }
 
   // Além de alimentar o mini-tabuleiro, essa mesma leitura de mesa/liveBoard/tokens também
@@ -15654,6 +16077,10 @@ body{
     if(liveBoardMetaRef){ liveBoardMetaRef.off('value', liveBoardMetaCb); liveBoardMetaRef = null; liveBoardMetaCb = null; }
     if(liveBoardMarksRef){ liveBoardMarksRef.off('value', liveBoardMarksCb); liveBoardMarksRef = null; liveBoardMarksCb = null; }
     if(liveBoardTokensRef){ liveBoardTokensRef.off('value', liveBoardTokensCb); liveBoardTokensRef = null; liveBoardTokensCb = null; }
+    // fila de iniciativa/turno (ver turnState lá em cima) — mesmo padrão dos outros 3 acima.
+    if(liveBoardTurnRef){ liveBoardTurnRef.off('value', liveBoardTurnCb); liveBoardTurnRef = null; liveBoardTurnCb = null; }
+    turnState = { active:false, round:1, order:[], turnIndex:0, actionsLeft:2, moved:false, rolled:false };
+    renderTurnBars();
     // desliga o listener único de mesa/live (Vida/Mana/Escudo/XP ao vivo — ver onLiveVitalsChanged()
     // mais acima) — senão ele fica pendurado pra sempre no mesmo navegador: como o Firebase Auth
     // signOut() não desliga listener nenhum sozinho, uma conta trocada nesse mesmo navegador
@@ -15663,7 +16090,7 @@ body{
     // mesmo raciocínio acima, agora pro listener de RETRATO ao vivo (ver connectLiveBoard()).
     if(livePortraitRef){ livePortraitRef.off('value', livePortraitCb); livePortraitRef = null; livePortraitCb = null; }
     livePortraits = {};
-    liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false };
+    liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlus: false };
     spottedTokenIds = new Set();
     pendingFacingTokenIds = new Set();
     liveBoardTokensHydrated = false;
@@ -15686,12 +16113,32 @@ body{
       // Revelar (ver boardRevealMode/setBoardRevealMode()): quando falso, o mini-tabuleiro inteiro
       // fica preto pra quem não é mestre (ver o guard "revealed" dentro de renderLiveBoardMini()).
       liveBoardState.revealed = !!val.revealed;
+      // FOG+ (ver boardFogPlusMode/setBoardFogPlusMode() na aba Mesa do mestre): igual ao Fog
+      // normal, só pra jogador — camada visual extra de neblina por cima de toda casa fora do
+      // alcance combinado dos jogadores (ver computeFogReachableKeys() e o filtro dentro de
+      // renderLiveBoardMini()), independente do Fog normal estar ligado ou não.
+      liveBoardState.fogPlus = !!val.fogPlus;
       renderLiveBoardMini();
     });
     liveBoardMarksRef = fbDb.ref('mesa40k/liveBoard/marks');
     liveBoardMarksCb = liveBoardMarksRef.on('value', (snap)=>{
       liveBoardState.marks = snap.val() || {};
       renderLiveBoardMini();
+    });
+    // fila de iniciativa/turno (ver turnState/pushTurnState() lá em cima) — ao vivo pros DOIS papéis
+    // (Mestre incluso, diferente de meta/marks/tokens que são write-only pro Mestre): qualquer
+    // autenticado publica direto em mesa40k/liveBoard/turn, e todo mundo ouve aqui.
+    liveBoardTurnRef = fbDb.ref('mesa40k/liveBoard/turn');
+    liveBoardTurnCb = liveBoardTurnRef.on('value', (snap)=>{
+      const val = snap.val();
+      turnState = val ? {
+        active: !!val.active, round: val.round || 1,
+        order: Array.isArray(val.order) ? val.order : [],
+        turnIndex: val.turnIndex || 0,
+        actionsLeft: val.actionsLeft != null ? val.actionsLeft : 2,
+        moved: !!val.moved, rolled: !!val.rolled,
+      } : { active:false, round:1, order:[], turnIndex:0, actionsLeft:2, moved:false, rolled:false };
+      renderTurnBars();
     });
     liveBoardTokensRef = fbDb.ref('mesa40k/liveBoard/tokens');
     liveBoardTokensCb = liveBoardTokensRef.on('value', (snap)=>{
@@ -15748,6 +16195,10 @@ body{
   const mapBtn          = $('mapBtn');
   const mapTabsScroll   = $('mapTabsScroll');
   const mapTabAddBtn    = $('mapTabAddBtn');
+  const mapTabVisibilityBar    = $('mapTabVisibilityBar');
+  const mapTabVisibilitySwitch = $('mapTabVisibilitySwitch');
+  const mapTabVisibilityState  = $('mapTabVisibilityState');
+  const mapTabsEmptyHint       = $('mapTabsEmptyHint');
   const mapBgInput      = $('mapBgInput');
   const mapBgChooseBtn  = $('mapBgChooseBtn');
   const mapIconPalette  = $('mapIconPalette');
@@ -15802,10 +16253,31 @@ body{
   function mapTabPath(tabId, part){
     return (tabId === 'principal') ? ('mesa40k/mapa/' + part) : ('mesa40k/mapa/tabs/' + tabId + '/' + part);
   }
+  // Privado/Público por guia (pedido explícito: "precisa existir uma tag... indicando que aquela
+  // guia pode ou não aparecer para os jogadores... a posição inicial vai ser sempre privado").
+  // `tab.public` só existe de verdade (`true`) numa guia que o MESTRE já publicou -- qualquer guia
+  // SEM esse campo (`undefined`) é tratada como PÚBLICA aqui (só `=== false` conta como privada).
+  // Isso é de propósito, não um descuido: guias que já existiam ANTES desta rodada (qualquer mesa
+  // que já estava jogando com guias de Mapa) nunca tiveram esse campo gravado, e tratar
+  // `undefined` como privado apagaria da tela dos jogadores, da noite pro dia, um mapa que eles já
+  // enxergavam normalmente. Só guia CRIADA daqui pra frente (ver mapTabAddBtn abaixo) já nasce com
+  // `public:false` de propósito, pra valer o "sempre começa privado" pedido.
+  function isMapTabPublic(tab){ return !!tab && tab.public !== false; }
+  function visibleMapTabsFor(role){
+    return role === 'mestre' ? mapTabs : mapTabs.filter(isMapTabPublic);
+  }
   function renderMapTabs(){
     if(!mapTabsScroll) return;
+    const visibleTabs = visibleMapTabsFor(currentRole);
+    // jogador estava numa guia que ficou privada agora (o mestre despublicou enquanto ele olhava,
+    // ver connectLiveMapTabList() abaixo) -- pula sozinho pra 1ª guia ainda visível, sem esperar
+    // nenhuma ação dele; sem NENHUMA guia visível mais, cai no estado vazio (ver mapTabsEmptyHint).
+    if(currentRole !== 'mestre' && visibleTabs.length && !visibleTabs.some(t=> t.id === activeMapTabId)){
+      switchActiveMapTab(visibleTabs[0].id);
+      return; // switchActiveMapTab() já chama renderMapTabs() de novo, com o estado já corrigido
+    }
     mapTabsScroll.innerHTML = '';
-    mapTabs.forEach(tab=>{
+    visibleTabs.forEach(tab=>{
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'guide-tab-btn' + (tab.id === activeMapTabId ? ' active' : '');
@@ -15825,10 +16297,36 @@ body{
       }
       mapTabsScroll.appendChild(btn);
     });
+    renderMapTabVisibilityControls(visibleTabs);
   }
-  // lista de guias É pequena (só {id,name} de cada uma, nunca o conteúdo do mapa em si) -- grava
-  // inteira de uma vez, sem debounce (criar/renomear guia é um gesto deliberado e raro, não uma
-  // edição contínua tipo arrastar um ícone).
+  // MESTRE: switch reflete a guia ATIVA agora (troca de estado ao trocar de guia). JOGADOR: sem
+  // switch nenhum pra ele (.mestre-only já cuida disso) -- só o aviso de "nenhuma guia liberada
+  // ainda" quando a lista filtrada (visibleTabs, já calculada em renderMapTabs() acima) vier vazia.
+  function renderMapTabVisibilityControls(visibleTabs){
+    if(mapTabVisibilityBar){
+      const tab = mapTabs.find(t=> t.id === activeMapTabId);
+      const isPublic = isMapTabPublic(tab);
+      mapTabVisibilitySwitch.classList.toggle('on', isPublic);
+      mapTabVisibilitySwitch.setAttribute('aria-checked', isPublic ? 'true' : 'false');
+      mapTabVisibilityState.textContent = isPublic ? 'PÚBLICA' : 'PRIVADA';
+    }
+    if(mapTabsEmptyHint) mapTabsEmptyHint.hidden = currentRole === 'mestre' || visibleTabs.length > 0;
+  }
+  if(mapTabVisibilitySwitch){
+    mapTabVisibilitySwitch.addEventListener('click', ()=>{
+      const tab = mapTabs.find(t=> t.id === activeMapTabId);
+      if(!tab) return;
+      tab.public = !isMapTabPublic(tab);
+      renderMapTabVisibilityControls(visibleMapTabsFor(currentRole));
+      saveMapTabList();
+    });
+  }
+  // lista de guias É pequena (só {id,name,public} de cada uma, nunca o conteúdo do mapa em si) --
+  // grava inteira de uma vez, sem debounce (criar/renomear/publicar guia é um gesto deliberado e
+  // raro, não uma edição contínua tipo arrastar um ícone). Escreve AO VIVO (.set() de verdade, não
+  // só local) -- é o que faz o switch Privado/Público "funcionar em tempo real" (pedido explícito):
+  // o jogador com listener ao vivo ligado (ver connectLiveMapTabList() abaixo) recebe a mudança na
+  // hora, sem precisar fechar/reabrir o painel.
   function saveMapTabList(){
     let ready = false;
     try{ ready = !!(fbReady && fbDb && currentUser); }catch(err){ ready = false; }
@@ -15842,7 +16340,10 @@ body{
       const trimmed = nome.trim();
       if(!trimmed) return;
       const id = 'guia' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      mapTabs.push({ id, name: trimmed });
+      // guia nova sempre nasce PRIVADA (pedido explícito: "a posição inicial vai ser sempre
+      // privado") -- diferente de uma guia sem o campo (tratada como pública, ver isMapTabPublic()
+      // acima), aqui grava `public:false` OLHO ABERTO, de propósito.
+      mapTabs.push({ id, name: trimmed, public: false });
       saveMapTabList();
       switchActiveMapTab(id);
     });
@@ -16139,6 +16640,29 @@ body{
   // próprio modal. ----
   let mapMetaRef = null, mapMetaCb = null;
   let mapContentRef = null, mapContentCb = null;
+  // lista de guias (ver mapTabs/renderMapTabs() lá em cima) AO VIVO só pro JOGADOR, só enquanto o
+  // modal está aberto -- MESMO espírito/ciclo de vida de mapMetaRef/mapContentRef logo acima (liga
+  // em connectLiveMap(), desliga em disconnectLiveMap()). Sem isto, o switch Privado/Público (pedido
+  // explícito: "precisa funcionar em tempo real") só chegaria pro jogador da próxima vez que ele
+  // fechasse e reabrisse o painel de Mapa -- o MESTRE nunca precisa disso (ele é quem escreve a
+  // lista, ver saveMapTabList(), não quem escuta de volta -- mesmo motivo write-only do resto do
+  // Mapa, ver comentário grande perto de hydrateMapOnce() logo abaixo).
+  let mapTabListRef = null, mapTabListCb = null;
+  function connectLiveMapTabList(){
+    if(mapTabListRef) return; // já conectado
+    mapTabListRef = fbDb.ref('mesa40k/mapaTabList');
+    mapTabListCb = mapTabListRef.on('value', (snap)=>{
+      const val = snap.val();
+      if(Array.isArray(val) && val.length){
+        mapTabs = val.filter(t=> t && t.id).map(t=> ({ id: String(t.id), name: t.name ? String(t.name) : 'Sem nome', public: t.public }));
+      }
+      if(!mapTabs.length) mapTabs = [{ id:'principal', name:'Mapa Principal' }];
+      renderMapTabs(); // já troca sozinho de guia (ou mostra o aviso vazio) se a atual sumiu/ficou privada
+    });
+  }
+  function disconnectLiveMapTabList(){
+    if(mapTabListRef){ mapTabListRef.off('value', mapTabListCb); mapTabListRef = null; mapTabListCb = null; }
+  }
   function connectLiveMap(){
     if(mapMetaRef) return; // já conectado
     mapMetaRef = fbDb.ref(mapTabPath(activeMapTabId, 'meta'));
@@ -16234,7 +16758,7 @@ body{
     fbDb.ref('mesa40k/mapaTabList').once('value').then((snap)=>{
       const val = snap.val();
       if(Array.isArray(val) && val.length){
-        mapTabs = val.filter(t=> t && t.id).map(t=> ({ id: String(t.id), name: t.name ? String(t.name) : 'Sem nome' }));
+        mapTabs = val.filter(t=> t && t.id).map(t=> ({ id: String(t.id), name: t.name ? String(t.name) : 'Sem nome', public: t.public }));
       }
       if(!mapTabs.length) mapTabs = [{ id:'principal', name:'Mapa Principal' }];
       if(!mapTabs.some(t=> t.id === activeMapTabId)) activeMapTabId = mapTabs[0].id;
@@ -16251,7 +16775,7 @@ body{
 
   function closeMapModal(){
     mapModal.hidden = true;
-    if(currentRole !== 'mestre') disconnectLiveMap();
+    if(currentRole !== 'mestre'){ disconnectLiveMap(); disconnectLiveMapTabList(); }
     mapDrawingLine = null; // solta um desenho de linha em andamento se o modal fechar no meio do arrasto
   }
   mapBtn.addEventListener('click', ()=>{
@@ -16265,7 +16789,11 @@ body{
     // algum motivo isso ainda não tiver terminado (login lento, por exemplo), garante aqui também
     // -- hydrateMapOnce() já se protege sozinha contra rodar 2 vezes.
     hydrateMapOnce();
-    if(currentRole !== 'mestre') connectLiveMap();
+    // conectada em SEPARADO de connectLiveMap() (que só cuida do conteúdo da guia ATIVA) de
+    // propósito -- trocar de guia (switchActiveMapTab()) desliga/religa o conteúdo, mas a lista de
+    // guias em si (pra saber QUAIS guias existem/estão públicas) fica ligada o tempo todo que o
+    // modal estiver aberto, num caminho fixo (mesa40k/mapaTabList) que não muda com a guia ativa.
+    if(currentRole !== 'mestre'){ connectLiveMapTabList(); connectLiveMap(); }
     renderMapView();
     applyMapZoom();
   });
@@ -16288,6 +16816,10 @@ body{
   const enredoEmptyMsg     = $('enredoEmptyMsg');
   const enredoTabsScroll   = $('enredoTabsScroll');
   const enredoTabAddBtn    = $('enredoTabAddBtn');
+  const enredoTabVisibilityBar    = $('enredoTabVisibilityBar');
+  const enredoTabVisibilitySwitch = $('enredoTabVisibilitySwitch');
+  const enredoTabVisibilityState  = $('enredoTabVisibilityState');
+  const enredoTabsEmptyHint       = $('enredoTabsEmptyHint');
   const enredoAddBtn       = $('enredoAddBtn');
   const enredoAddChoice    = $('enredoAddChoice');
   const enredoChooseTextBtn  = $('enredoChooseTextBtn');
@@ -16336,6 +16868,11 @@ body{
         id: (t && t.id) ? String(t.id) : ('guia' + Math.random().toString(36).slice(2, 8)),
         name: (t && t.name) ? String(t.name) : 'Sem nome',
         entries: (t && Array.isArray(t.entries)) ? t.entries : [],
+        // Privado/Público (pedido explícito, mesmo espírito do Mapa, ver isMapTabPublic() lá em
+        // cima) -- `undefined`/ausente conta como PÚBLICA (guia que já existia antes desta rodada
+        // continua visível pros jogadores exatamente como já estava); só `=== false` de verdade
+        // conta como privada.
+        public: (t && t.public),
       }));
       const activeTabId = (parsed.activeTabId && tabs.some(t=> t.id === parsed.activeTabId)) ? parsed.activeTabId : tabs[0].id;
       return { tabs, activeTabId };
@@ -16346,9 +16883,21 @@ body{
   function currentEnredoTab(){
     return enredoData.tabs.find(t=> t.id === enredoData.activeTabId) || enredoData.tabs[0];
   }
+  function isEnredoTabPublic(tab){ return !!tab && tab.public !== false; }
+  function visibleEnredoTabsFor(role){
+    return role === 'mestre' ? enredoData.tabs : enredoData.tabs.filter(isEnredoTabPublic);
+  }
   function renderEnredoTabs(){
+    const visibleTabs = visibleEnredoTabsFor(currentRole);
+    // mesma lógica do Mapa (ver renderMapTabs()): jogador numa guia que ficou/está privada pula
+    // sozinho pra 1ª guia ainda visível assim que os dados mudam (troca de guia, reload do GitHub
+    // via 💾 Salvar de outra pessoa, ou o próprio switch sendo desligado pelo mestre).
+    if(currentRole !== 'mestre' && visibleTabs.length && !visibleTabs.some(t=> t.id === enredoData.activeTabId)){
+      enredoData.activeTabId = visibleTabs[0].id;
+      renderEnredoList();
+    }
     enredoTabsScroll.innerHTML = '';
-    enredoData.tabs.forEach(tab=>{
+    visibleTabs.forEach(tab=>{
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'guide-tab-btn' + (tab.id === enredoData.activeTabId ? ' active' : '');
@@ -16373,6 +16922,31 @@ body{
       }
       enredoTabsScroll.appendChild(btn);
     });
+    renderEnredoTabVisibilityControls(visibleTabs);
+  }
+  // MESMO espírito de renderMapTabVisibilityControls() (Mapa) -- só que aqui não há nada "ao vivo"
+  // pra ligar/desligar (Enredo não usa Firebase, ver comentário grande em #enredoTabVisibilityBar
+  // no HTML): o switch muda a variável local na hora, marca "não salvo" (markEnredoDirty()) e só
+  // chega pro jogador de verdade no próximo 💾 Salvar + próxima vez que ele carregar o Enredo --
+  // igual qualquer outra edição de Enredo já funciona hoje.
+  function renderEnredoTabVisibilityControls(visibleTabs){
+    if(enredoTabVisibilityBar){
+      const tab = currentEnredoTab();
+      const isPublic = isEnredoTabPublic(tab);
+      enredoTabVisibilitySwitch.classList.toggle('on', isPublic);
+      enredoTabVisibilitySwitch.setAttribute('aria-checked', isPublic ? 'true' : 'false');
+      enredoTabVisibilityState.textContent = isPublic ? 'PÚBLICA' : 'PRIVADA';
+    }
+    if(enredoTabsEmptyHint) enredoTabsEmptyHint.hidden = currentRole === 'mestre' || visibleTabs.length > 0;
+  }
+  if(enredoTabVisibilitySwitch){
+    enredoTabVisibilitySwitch.addEventListener('click', ()=>{
+      const tab = currentEnredoTab();
+      if(!tab) return;
+      tab.public = !isEnredoTabPublic(tab);
+      renderEnredoTabVisibilityControls(visibleEnredoTabsFor(currentRole));
+      markEnredoDirty();
+    });
   }
   if(enredoTabAddBtn){
     enredoTabAddBtn.addEventListener('click', ()=>{
@@ -16381,7 +16955,9 @@ body{
       const trimmed = nome.trim();
       if(!trimmed) return;
       const id = 'guia' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      enredoData.tabs.push({ id, name: trimmed, entries: [] });
+      // nova guia sempre nasce PRIVADA (pedido explícito, mesmo espírito da guia nova de Mapa, ver
+      // mapTabAddBtn lá em cima).
+      enredoData.tabs.push({ id, name: trimmed, entries: [], public: false });
       enredoData.activeTabId = id;
       renderEnredoTabs();
       renderEnredoList();
