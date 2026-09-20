@@ -1,23 +1,6 @@
 [
   {
     "nome": "Allana",
-    "tipo": "dano",
-    "qtd": 3,
-    "maxVal": 3,
-    "bonus": 2,
-    "rolls": [
-      3,
-      3,
-      1
-    ],
-    "resultado": 9,
-    "habilidade": "Disparo",
-    "atributo": null,
-    "grito": null,
-    "ts": 1789405212390
-  },
-  {
-    "nome": "Allana",
     "tipo": "movimento",
     "de": "E2",
     "para": "D2",
@@ -324,5 +307,12 @@
     "de": "B2",
     "para": "B3",
     "ts": 1789900148361
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "B3",
+    "para": "B2",
+    "ts": 1789900199553
   }
 ]
