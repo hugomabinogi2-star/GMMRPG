@@ -4,17 +4,6 @@
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 6,
-    "resultado": 4,
-    "resultLabel": "Erro",
-    "ts": 1789407198636,
-    "habilidade": "Disparo",
-    "habilidadeDesc": "Dispara uma flecha a uma casa de distância.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
-  },
-  {
-    "nome": "Oi",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 6,
     "resultado": 8,
     "resultLabel": "Erro",
     "ts": 1789407210976,
@@ -295,5 +284,12 @@
     "de": "D5",
     "para": "C5",
     "ts": 1789903632121
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "C5",
+    "para": "D5",
+    "ts": 1789903635173
   }
 ]
