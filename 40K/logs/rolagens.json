@@ -1,17 +1,6 @@
 [
   {
     "nome": "Allana",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 4,
-    "resultado": 19,
-    "resultLabel": "Acerto",
-    "ts": 1789405206375,
-    "habilidade": "Disparo",
-    "habilidadeDesc": "Dispara uma flecha a uma casa de distância.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
-  },
-  {
-    "nome": "Allana",
     "tipo": "dano",
     "qtd": 3,
     "maxVal": 3,
@@ -328,5 +317,12 @@
     "de": "C2",
     "para": "D2",
     "ts": 1789427570514
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "B2",
+    "para": "B3",
+    "ts": 1789900148361
   }
 ]
