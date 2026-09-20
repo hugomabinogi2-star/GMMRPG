@@ -835,27 +835,53 @@ body{
    invisível por baixo do fundo dela. */
 .board-cell.live-board-reachable{box-shadow:inset 0 0 0 999px rgba(70,150,255,.55);}
 .board-cell.drag-over{outline:2px solid var(--gold-bright);outline-offset:-2px;z-index:3;}
-/* FOG+ (ver boardFogPlusMode/setBoardFogPlusMode() e mistReachable dentro de renderLiveBoardMini()
+/* FOG+ (ver boardFogPlusColor/setBoardFogPlusColor() e mistReachable dentro de renderLiveBoardMini()
    no <script>) -- camada de névoa visual por cima de TODA casa fora do alcance combinado dos
    jogadores, só no Tabuleiro ao Vivo (nunca aparece pro Mestre). z-index alto o bastante pra cobrir
    até o ícone/peça da própria casa (2), a seta de direção (2) e o seletor de 8 direções (4) --
-   pointer-events:none pra não atrapalhar clique/arrasto por baixo dela. */
+   pointer-events:none pra não atrapalhar clique/arrasto por baixo dela. 3 cores possíveis (só uma
+   ativa por vez, ver setBoardFogPlusColor()): .mist-cinza (NEBLINA, padrão), .mist-preta (FUMAÇA),
+   .mist-roxa (ESTRANHEZA) -- cada uma com seu próprio gradiente/animação. */
 .board-cell.board-cell-mist::after{
   content:'';
   position:absolute;
   inset:0;
   z-index:6;
   pointer-events:none;
+  backdrop-filter: blur(1.5px);
+}
+.board-cell.board-cell-mist.mist-cinza::after{
   background:
     radial-gradient(circle at 28% 32%, rgba(255,255,255,.24), transparent 60%),
     radial-gradient(circle at 72% 68%, rgba(255,255,255,.16), transparent 58%),
     rgba(110,118,130,.78);
-  backdrop-filter: blur(1.5px);
   animation: boardMistDrift 9s ease-in-out infinite alternate;
+}
+.board-cell.board-cell-mist.mist-preta::after{
+  background:
+    radial-gradient(circle at 30% 30%, rgba(90,90,98,.2), transparent 55%),
+    radial-gradient(circle at 70% 70%, rgba(60,60,68,.14), transparent 55%),
+    rgba(14,14,18,.88);
+  animation: boardSmokeDrift 6s ease-in-out infinite alternate;
+}
+.board-cell.board-cell-mist.mist-roxa::after{
+  background:
+    radial-gradient(circle at 32% 28%, rgba(220,140,255,.28), transparent 58%),
+    radial-gradient(circle at 68% 72%, rgba(120,40,200,.22), transparent 58%),
+    rgba(58,16,80,.8);
+  animation: boardWeirdPulse 5s ease-in-out infinite alternate;
 }
 @keyframes boardMistDrift{
   from{ opacity:.86; transform:scale(1); }
   to{ opacity:1; transform:scale(1.04); }
+}
+@keyframes boardSmokeDrift{
+  from{ opacity:.82; transform:scale(1) rotate(0deg); }
+  to{ opacity:1; transform:scale(1.06) rotate(1deg); }
+}
+@keyframes boardWeirdPulse{
+  from{ opacity:.8; filter:hue-rotate(0deg); transform:scale(1); }
+  to{ opacity:1; filter:hue-rotate(25deg); transform:scale(1.05); }
 }
 
 /* Seta de direção (8 sentidos) do tabuleiro ao vivo — ver FACING_ANGLES/buildFacingArrowEl() e
@@ -4677,11 +4703,18 @@ body{
         <button type="button" class="board-mode-toggle" id="boardFogModeLabel" aria-pressed="false">
           <span class="board-mode-toggle-name">🌫️ Remover Fog</span>
         </button>
-        <!-- FOG+ (pedido explícito, "se possível" -- ver boardFogPlusMode/setBoardFogPlusMode() no
+        <!-- FOG+ (pedido explícito, "se possível" -- ver boardFogPlusColor/setBoardFogPlusColor() no
              <script>): camada visual extra de neblina cobrindo o tabuleiro inteiro pro jogador,
-             deixando sem neblina só o campo de visão combinado dos jogadores. DESLIGADO por padrão. -->
-        <button type="button" class="board-mode-toggle" id="boardFogPlusModeLabel" aria-pressed="false">
-          <span class="board-mode-toggle-name">🌁 FOG+</span>
+             deixando sem neblina só o campo de visão combinado dos jogadores. 3 cores, só uma ativa
+             por vez (clicar na ativa desliga; clicar em outra troca direto) -- DESLIGADO por padrão. -->
+        <button type="button" class="board-mode-toggle" id="boardFogCinzaModeLabel" aria-pressed="false">
+          <span class="board-mode-toggle-name">🌫️ FOG CINZA (NEBLINA)</span>
+        </button>
+        <button type="button" class="board-mode-toggle" id="boardFogPretaModeLabel" aria-pressed="false">
+          <span class="board-mode-toggle-name">🖤 FOG PRETA (FUMAÇA)</span>
+        </button>
+        <button type="button" class="board-mode-toggle" id="boardFogRoxaModeLabel" aria-pressed="false">
+          <span class="board-mode-toggle-name">💜 FOG ROXA (ESTRANHEZA)</span>
         </button>
         <button type="button" class="board-mode-toggle" id="boardDarkModeLabel" aria-pressed="false">
           <span class="board-mode-toggle-name">🌑 ESCURIDÃO TOTAL</span>
@@ -7435,6 +7468,24 @@ body{
       diceHint.textContent = 'CONGELADO — não é possível rolar enquanto este efeito estiver ativo.';
       return;
     }
+    // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() mais abaixo no <script> -- os
+    // símbolos são "let"/function declarados depois no arquivo, mas por serem só REFERENCIADOS aqui
+    // dentro do corpo do handler, já estão prontos no momento em que o clique de verdade acontece):
+    // pedido explícito, a partir do momento que a iniciativa é rodada, NENHUMA rolagem de
+    // Atributo/Habilidade pode acontecer fora da própria vez -- a ficha aberta neste navegador
+    // (els.nome) precisa bater com o NOME BASE de uma entrada da fila (mesmo casamento de
+    // markActionRollFromOpenSheet() mais abaixo) que NÃO seja a vez atual pra ser barrada aqui; uma
+    // ficha de fora da fila (nunca esteve no tabuleiro quando a iniciativa foi rodada) continua livre
+    // pra rolar, mesmo com a fila ativa -- mesmo critério já usado pro movimento.
+    if(turnState.active && turnState.order){
+      const sheetName = ((els.nome && els.nome.value) || '').trim();
+      const turnEntry = sheetName ? turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha') && it.baseNome === sheetName) : null;
+      if(turnEntry && !isCurrentTurnToken(turnEntry)){
+        diceHint.textContent = `Não é a sua vez! Turno atual (Rodada ${turnState.round}): ${(currentTurnEntry()||{}).nome || '—'}.`;
+        announceOutOfTurn(turnEntry);
+        return;
+      }
+    }
     // TONTO (painel EFEITOS): "força os rolamentos a serem feitos em desvantagem" -- sobrescreve o
     // modo escolhido no seletor ANTES dele ser lido logo abaixo, então vale pra qualquer origem
     // desta rolagem.
@@ -7879,6 +7930,21 @@ body{
   function isCurrentTurnToken(tok){
     const entry = currentTurnEntry();
     return !!(entry && tok && entry.id === tok.id);
+  }
+  // acha, dentro da fila sorteada, a entrada correspondente a um token específico (usado só pra
+  // saber o NOME certo a avisar quando alguém tenta agir fora da vez -- ver announceOutOfTurn()).
+  function turnEntryForToken(tok){
+    if(!tok || !turnState.order) return null;
+    return turnState.order.find(it=> it.id === tok.id) || null;
+  }
+  // Pedido explícito: sempre que alguém tentar mover OU rolar fora da própria vez, além de recusar a
+  // ação, avisar no chat/Discord "NOME DO PERSONAGEM - AINDA NÃO É O SEU TURNO" (maiúsculo, mesmo
+  // padrão dos outros avisos de turno). "who" é a entrada (id/nome) de quem TENTOU agir fora da vez
+  // -- não necessariamente quem está na vez agora.
+  function announceOutOfTurn(who){
+    const nome = (who && who.nome) || '';
+    if(isBlankName(nome)) return;
+    postToDiscord(`⛔ ${nome} - AINDA NÃO É O SEU TURNO`.toUpperCase(), null);
   }
 
   // Consome a parte "moveu" ou "rolou" da ação atual da ficha da vez; quando as duas partes
@@ -9908,12 +9974,14 @@ body{
   let boardDarkMode = false;
   let boardFogMode  = true;
   let boardRevealMode = false;
-  // FOG+ (pedido explícito, "se possível" -- ver boardFogPlusMode/setBoardFogPlusMode() no
+  // FOG+ (pedido explícito, "se possível" -- ver boardFogPlusColor/setBoardFogPlusColor() no
   // <script>): camada visual extra de neblina cobrindo TODO o tabuleiro pro jogador, deixando sem
   // neblina só o campo de visão combinado dos jogadores (ver computeFogReachableKeys(), reaproveitada
   // em renderLiveBoardMini()) — independente do Fog normal (que só esconde MARCAÇÕES/PEÇAS) estar
-  // ligado ou não. Nunca afeta a visão do próprio Mestre. DESLIGADO por padrão (recurso novo, opcional).
-  let boardFogPlusMode = false;
+  // ligado ou não. Nunca afeta a visão do próprio Mestre. 3 cores possíveis (pedido explícito):
+  // 'cinza' (NEBLINA), 'preta' (FUMAÇA), 'roxa' (ESTRANHEZA) — null = DESLIGADO (padrão). Só uma cor
+  // ativa por vez (ver setBoardFogPlusColor()).
+  let boardFogPlusColor = null;
   let heroRoster   = [];   // [{id, name, portrait}] — fichas de jogador ativas
   let mestreRoster = [];   // [{id, name, portrait}] — fichas do mestre ativas (id sempre prefixado "mestre:" pra nunca colidir com o de um jogador)
   let spawnCounter = 1;
@@ -10142,7 +10210,7 @@ body{
   const scheduleBoardMetaPush = makeDebouncedBoardPush('mesa/liveBoard/meta', ()=> ({
     rows: BOARD_ROWS, cols: BOARD_COLS, gridColor: boardGridColor, background: boardBackground || null,
     fog: !!boardFogMode,
-    fogPlus: !!boardFogPlusMode,
+    fogPlusColor: boardFogPlusColor || null,
     revealed: !!boardRevealMode,
     ts: firebase.database.ServerValue.TIMESTAMP,
   }));
@@ -10181,14 +10249,21 @@ body{
     }
     scheduleBoardMetaPush(); // só o campo "fog" de mesa/liveBoard/meta depende disso
   }
-  function setBoardFogPlusMode(on){
-    boardFogPlusMode = !!on;
-    const fogPlusLabel = $('boardFogPlusModeLabel');
-    if(fogPlusLabel){
-      fogPlusLabel.classList.toggle('mode-active', boardFogPlusMode);
-      fogPlusLabel.setAttribute('aria-pressed', boardFogPlusMode ? 'true' : 'false');
-    }
-    scheduleBoardMetaPush(); // só o campo "fogPlus" de mesa/liveBoard/meta depende disso
+  // ids dos 3 botões de cor do FOG+, na mesma ordem/chave usada em boardFogPlusColor ('cinza' =
+  // NEBLINA, 'preta' = FUMAÇA, 'roxa' = ESTRANHEZA). Só uma cor fica ativa por vez: clicar na cor já
+  // ativa desliga o FOG+ (volta pra null); clicar em outra cor troca direto, sem precisar desligar
+  // antes.
+  const FOG_PLUS_COLOR_BTN_IDS = { cinza: 'boardFogCinzaModeLabel', preta: 'boardFogPretaModeLabel', roxa: 'boardFogRoxaModeLabel' };
+  function setBoardFogPlusColor(color){
+    boardFogPlusColor = (boardFogPlusColor === color) ? null : (color || null);
+    Object.keys(FOG_PLUS_COLOR_BTN_IDS).forEach(key=>{
+      const btn = $(FOG_PLUS_COLOR_BTN_IDS[key]);
+      if(!btn) return;
+      const active = boardFogPlusColor === key;
+      btn.classList.toggle('mode-active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    scheduleBoardMetaPush(); // só o campo "fogPlusColor" de mesa/liveBoard/meta depende disso
   }
   function setBoardRevealMode(on){
     boardRevealMode = !!on;
@@ -10207,7 +10282,9 @@ body{
   // já É esse oposto de "removido", então passa ele mesmo como o novo "removed" pra
   // setBoardFogRemoved() — ver o comentário dentro dela pra reversão completa.
   $('boardFogModeLabel').addEventListener('click', ()=> setBoardFogRemoved(boardFogMode));
-  $('boardFogPlusModeLabel').addEventListener('click', ()=> setBoardFogPlusMode(!boardFogPlusMode));
+  $('boardFogCinzaModeLabel').addEventListener('click', ()=> setBoardFogPlusColor('cinza'));
+  $('boardFogPretaModeLabel').addEventListener('click', ()=> setBoardFogPlusColor('preta'));
+  $('boardFogRoxaModeLabel').addEventListener('click', ()=> setBoardFogPlusColor('roxa'));
   $('boardRevealModeLabel').addEventListener('click', ()=> setBoardRevealMode(!boardRevealMode));
 
   function buildBoardGrid(){
@@ -10735,6 +10812,7 @@ body{
       if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok)){
         const entry = currentTurnEntry();
         alert(`Não é a vez desta peça! Turno atual (Rodada ${turnState.round}): ${entry ? entry.nome : '—'}.`);
+        announceOutOfTurn(turnEntryForToken(tok));
         return;
       }
       // NOVO: inimigo_ficha e ficha do próprio mestre passam a respeitar o alcance de movimento de
@@ -12603,7 +12681,7 @@ body{
   // localStorage separada da do tabuleiro do mestre, cada um lembra o próprio nível.
   const applyLiveBoardZoom = setupBoardZoom(liveBoardZoomSpacerEl, liveBoardOuterEl, $('liveBoardZoomReadout'), $('liveBoardZoomOutBtn'), $('liveBoardZoomInBtn'), 'rpg_ficha_liveboard_zoom');
 
-  let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlus: false };
+  let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlusColor: null };
   let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null, liveBoardTurnRef = null;
   let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null, liveBoardTurnCb = null;
   // RETRATO ao vivo (pedido explícito: "a imagem do ícone que representa o personagem... precisa
@@ -12697,17 +12775,19 @@ body{
     }
   }
 
-  // quanto o campo de VISÃO (Fog) enxerga — pedido explícito mais recente: SEM direção apontada (ou
-  // fora do cone), o alcance de visão passa a ser EXATAMENTE o alcance de MOVIMENTO (só os campos
-  // aonde a ficha poderia se mover neste turno: 1 + bônus de DES — mesma conta de
-  // highlightLiveBoardReachable()/handleLiveBoardDrop() —, sem nenhum bônus extra); NA direção que a
-  // ficha estiver apontando (ver facing/FACING_VECTORS logo abaixo), dentro do cone a partir dela, o
-  // alcance vai até a BORDA do tabuleiro. Continua sendo Manhattan/BFS bloqueado por barreira (mesma
+  // quanto o campo de VISÃO (Fog/FOG+) enxerga — pedido explícito mais recente: a base do alcance de
+  // visão passa a ser EXATAMENTE o alcance de MOVIMENTO de verdade (computeEffectiveMoveLimit(): 1 +
+  // bônus de DES + Modificador de Movimento, já considerando PARALIZADO/CONGELADO/ENJOADO/FERIDO —
+  // mesma conta usada pro movimento de verdade, não só o bônus de DES puro). Em cima dessa base, a
+  // direção pra onde a ficha está apontando (ver facing/FACING_VECTORS logo abaixo) ganha +3 casas de
+  // alcance, a direção EXATAMENTE OPOSTA perde 3 casas (nunca menos que 0), e as outras 6 direções
+  // (as "laterais", incluindo as diagonais mais próximas da frente/trás) ficam exatamente na base,
+  // sem bônus nem penalidade. Sem direção nenhuma escolhida (tok.facing vazio), o alcance é a base
+  // em todas as direções por igual. Continua sendo Manhattan/BFS bloqueado por barreira (mesma
   // computeLiveBoardReachable) pra decidir até onde "dá pra chegar" — só o limite (número de passos)
-  // muda conforme a casa cai dentro do cone ou não. A linha de visão de verdade (hasLineOfSight/
-  // computeLineCells, logo abaixo) continua cortando quem está atrás de uma barreira, mesmo dentro
-  // desse alcance maior na direção apontada.
-  const FOG_VISION_EDGE_LIMIT = 9999; // grande o bastante pra nunca ser o fator limitante — o BFS já para sozinho nas bordas do tabuleiro (ver computeLiveBoardReachable).
+  // muda conforme a direção da casa. A linha de visão de verdade (hasLineOfSight/computeLineCells,
+  // logo abaixo) continua cortando quem está atrás de uma barreira, mesmo dentro do alcance liberado
+  // pra aquela direção.
 
   // 8 direções do seletor de "pra onde a ficha está olhando" (ver handleLiveBoardDrop(), que limpa
   // token.facing a cada movimento, e buildFacingPickerEl()/chooseLiveBoardFacing(), que fixam a
@@ -12718,8 +12798,8 @@ body{
   // MAIOR, pros 8 botões do seletor formarem um anel por FORA do ícone em vez de tampá-lo (ver
   // buildFacingPickerEl()) — os dois são percentuais dentro da própria casa do ícone (podem passar
   // de 0%/100%, pra "vazar" um pouco pras casas vizinhas de propósito). FACING_VECTORS é o vetor
-  // unitário de cada direção (linha desce = +r, coluna direita = +c) usado só pra decidir se uma
-  // casa cai dentro do cone (ver isInFacingCone() logo abaixo).
+  // unitário de cada direção (linha desce = +r, coluna direita = +c) usado só pra decidir qual das 8
+  // direções uma casa representa (ver closestFacingDirection() logo abaixo).
   const FACING_ORDER = ['N','NE','E','SE','S','SW','W','NW'];
   const FACING_ANGLES = { N:0, NE:45, E:90, SE:135, S:180, SW:225, W:270, NW:315 };
   const FACING_POINTS = { N:[50,6], NE:[82,18], E:[94,50], SE:[82,82], S:[50,94], SW:[18,82], W:[6,50], NW:[18,18] };
@@ -12728,18 +12808,27 @@ body{
     N:[-1,0], NE:[-Math.SQRT1_2, Math.SQRT1_2], E:[0,1], SE:[Math.SQRT1_2, Math.SQRT1_2],
     S:[1,0], SW:[Math.SQRT1_2, -Math.SQRT1_2], W:[0,-1], NW:[-Math.SQRT1_2, -Math.SQRT1_2],
   };
-  // meio-ângulo do cone (graus) — 67.5° pra cada lado (135° de largura total) cobre a própria
-  // direção apontada mais as duas direções vizinhas de cada lado, um cone "generoso" na frente do
-  // personagem sem virar visão em 360°.
-  const FACING_CONE_COS = Math.cos(67.5 * Math.PI / 180);
-  function isInFacingCone(anchorR, anchorC, facing, r, c){
-    const vec = FACING_VECTORS[facing];
-    if(!vec) return false;
-    const dr = r - anchorR, dc = c - anchorC;
-    if(dr === 0 && dc === 0) return true;
+  // acha, dentre as 8 direções de FACING_VECTORS, qual é a mais próxima do vetor (dr,dc) informado
+  // (maior cosseno de ângulo) — usada só pelo cálculo do alcance de VISÃO (computeFogReachableKeys()
+  // mais abaixo) pra classificar se uma casa cai na direção que a ficha está olhando, na oposta, ou
+  // numa das outras 6 ("laterais"). Devolve null pra (0,0) (a própria casa da ficha, sem direção).
+  function closestFacingDirection(dr, dc){
+    if(dr === 0 && dc === 0) return null;
     const dist = Math.sqrt(dr*dr + dc*dc);
-    const cosTheta = (dr*vec[0] + dc*vec[1]) / dist;
-    return cosTheta >= FACING_CONE_COS;
+    let best = null, bestCos = -Infinity;
+    FACING_ORDER.forEach(dir=>{
+      const vec = FACING_VECTORS[dir];
+      const cosTheta = (dr*vec[0] + dc*vec[1]) / dist;
+      if(cosTheta > bestCos){ bestCos = cosTheta; best = dir; }
+    });
+    return best;
+  }
+  // direção diametralmente oposta (N<->S, NE<->SW, E<->W, SE<->NW) — FACING_ORDER tem exatamente 8
+  // entradas, a oposta de qualquer uma está sempre 4 posições à frente no array (índice +4 mod 8).
+  function oppositeFacingDir(dir){
+    const idx = FACING_ORDER.indexOf(dir);
+    if(idx < 0) return null;
+    return FACING_ORDER[(idx + 4) % 8];
   }
 
   // Traça a linha reta (Bresenham) entre duas casas do grid — devolve a lista de casas cruzadas,
@@ -12780,17 +12869,20 @@ body{
     return true;
   }
 
-  // Fog (ver boardFogMode/liveBoardState.fog): monta o conjunto de casas "r_c" que a(s) própria(s)
-  // ficha(s) do jogador ENXERGAM nesse tabuleiro agora — mesma regra de alcance usada pro arrasto
-  // normal (highlightLiveBoardReachable/handleLiveBoardDrop: Manhattan até 1 + bônus de DES) EM
-  // TODAS as direções, exceto na direção apontada (ver facing/FACING_VECTORS acima), onde o alcance
-  // vai até a borda do tabuleiro. Além de precisar estar dentro desse alcance (BFS, respeita barreira
-  // como parede pra ATRAVESSAR), agora também precisa ter LINHA DE VISÃO reta livre até lá (ver
-  // hasLineOfSight acima) — uma barreira entre a ficha e a casa esconde essa casa mesmo que exista
-  // um caminho livre contornando. TANTO as marcações (pintura verde/amarela/vermelha) QUANTO as
-  // peças/ícones (fichas, inimigos, obstáculos) fora desse conjunto ficam escondidos — a própria
-  // ficha do jogador nunca some porque a casa-âncora dela sempre está a distância 0 do próprio
-  // alcance.
+  // Fog (ver boardFogMode/liveBoardState.fog) e FOG+ (ver boardFogPlusColor/liveBoardState.fogPlusColor):
+  // monta o conjunto de casas "r_c" que a(s) própria(s) ficha(s) do jogador ENXERGAM nesse tabuleiro
+  // agora. A base do alcance é o alcance de MOVIMENTO de verdade (computeEffectiveMoveLimit(), mais
+  // abaixo — 1 + bônus de DES + Modificador de Movimento, já com PARALIZADO/CONGELADO/ENJOADO/FERIDO
+  // aplicados). Em cima dessa base: a direção que a ficha estiver apontando (tok.facing, ver
+  // FACING_VECTORS acima) ganha +3 casas; a direção EXATAMENTE OPOSTA perde 3 (nunca menos que 0); as
+  // outras 6 direções ficam na base, sem ajuste (ver closestFacingDirection()/oppositeFacingDir()
+  // acima). Sem direção escolhida, a base vale igual em todas as direções. Além de precisar estar
+  // dentro desse alcance (BFS, respeita barreira como parede pra ATRAVESSAR), agora também precisa
+  // ter LINHA DE VISÃO reta livre até lá (ver hasLineOfSight acima) — uma barreira entre a ficha e a
+  // casa esconde essa casa mesmo que exista um caminho livre contornando. TANTO as marcações (pintura
+  // verde/amarela/vermelha) QUANTO as peças/ícones (fichas, inimigos, obstáculos) fora desse conjunto
+  // ficam escondidos — a própria ficha do jogador nunca some porque a casa-âncora dela sempre está a
+  // distância 0 do próprio alcance.
   //
   // Pedido explícito: "caso a ficha de um jogador não esteja no tabuleiro ele visualiza um
   // combinado das informações dos outros jogadores... se não conseguirem visualizar nenhum, o
@@ -12816,18 +12908,24 @@ body{
       const tok = liveBoardState.tokens[key];
       if(!tok || key !== liveBoardKey(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça (peças grandes ocupam mais de uma casa apontando pro mesmo objeto)
       if(!includeToken(tok)) return;
-      const baseLimit = 1 + (tok.bonusDes || 0);
-      const coneLimit = tok.facing ? FOG_VISION_EDGE_LIMIT : 0;
-      const visionLimit = Math.max(baseLimit, coneLimit);
+      const baseLimit = computeEffectiveMoveLimit(tok);
+      const facing = tok.facing || null;
+      const oppositeDir = facing ? oppositeFacingDir(facing) : null;
+      // maior limite possível entre as 8 direções (a de frente, base+3) — só pra limitar até onde o
+      // BFS precisa explorar; quem decide o limite de verdade de cada casa é o filtro por direção
+      // logo abaixo (cellLimit).
+      const maxLimit = facing ? baseLimit + 3 : baseLimit;
       reachable.add(key); // a própria casa da ficha sempre entra
-      computeLiveBoardReachable(tok.anchorR, tok.anchorC, visionLimit).forEach((dist, reachKey)=>{
+      computeLiveBoardReachable(tok.anchorR, tok.anchorC, maxLimit).forEach((dist, reachKey)=>{
         if(reachable.has(reachKey)) return; // já visível por outra ficha própria/combinada (ou é a própria casa)
         const [rr, rc] = reachKey.split('_').map(Number);
-        // dentro do alcance de movimento (todas as direções) OU dentro do cone apontado (até a
-        // borda do tabuleiro, só na direção/cone de facing) — o que valer primeiro já basta.
-        const withinBase = dist <= baseLimit;
-        const withinCone = tok.facing && dist <= coneLimit && isInFacingCone(tok.anchorR, tok.anchorC, tok.facing, rr, rc);
-        if(!withinBase && !withinCone) return;
+        let cellLimit = baseLimit;
+        if(facing){
+          const dir = closestFacingDirection(rr - tok.anchorR, rc - tok.anchorC);
+          if(dir === facing) cellLimit = baseLimit + 3;
+          else if(dir === oppositeDir) cellLimit = Math.max(0, baseLimit - 3);
+        }
+        if(dist > cellLimit) return;
         if(hasLineOfSight(tok.anchorR, tok.anchorC, rr, rc)) reachable.add(reachKey);
       });
     });
@@ -12856,13 +12954,14 @@ body{
     // esteja com esse mini-tabuleiro aberto em algum canto da tela dele).
     const fogActive = !!liveBoardState.fog && currentRole !== 'mestre';
     const fogReachable = (revealed && fogActive) ? computeFogReachableKeys() : null;
-    // FOG+ (ver boardFogPlusMode/setBoardFogPlusMode() na aba Mesa do mestre): camada visual extra
+    // FOG+ (ver boardFogPlusColor/setBoardFogPlusColor() na aba Mesa do mestre): camada visual extra
     // de neblina, só pra jogador, independente do Fog normal (fogActive) estar ligado ou não —
     // reaproveita o MESMO conjunto "visível" de computeFogReachableKeys() (o de fogActive, se já
     // calculado, senão calcula na hora) pra decidir quais casas ficam cobertas de névoa (ver
-    // .board-cell-mist no <style>, aplicado logo abaixo dentro do loop).
-    const fogPlusActive = !!liveBoardState.fogPlus && currentRole !== 'mestre';
-    const mistReachable = (revealed && fogPlusActive) ? (fogReachable || computeFogReachableKeys()) : null;
+    // .board-cell-mist/.mist-cinza/.mist-preta/.mist-roxa no <style>, aplicado logo abaixo dentro do
+    // loop -- a cor vem de fogPlusColorActive, uma das 3 chaves de FOG_PLUS_COLOR_BTN_IDS).
+    const fogPlusColorActive = liveBoardState.fogPlusColor && currentRole !== 'mestre' ? liveBoardState.fogPlusColor : null;
+    const mistReachable = (revealed && fogPlusColorActive) ? (fogReachable || computeFogReachableKeys()) : null;
     for(let r = 0; r < rows; r++){
       for(let c = 0; c < cols; c++){
         const cell = document.createElement('div');
@@ -12875,7 +12974,7 @@ body{
         cell.addEventListener('dragover', (e)=> e.preventDefault());
         cell.addEventListener('drop', (e)=>{ e.preventDefault(); handleLiveBoardDrop(r, c, e); });
         if(!revealed){ liveBoardGridEl.appendChild(cell); continue; }
-        if(mistReachable && !mistReachable.has(cellKey)) cell.classList.add('board-cell-mist');
+        if(mistReachable && !mistReachable.has(cellKey)) cell.classList.add('board-cell-mist', 'mist-' + fogPlusColorActive);
         const mark = liveBoardState.marks[cellKey];
         if(mark && (!fogActive || fogReachable.has(cellKey))) cell.classList.add('mark-' + mark);
         const token = liveBoardState.tokens[liveBoardKey(r,c)];
@@ -13136,6 +13235,7 @@ body{
     if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok)){
       const entry = currentTurnEntry();
       liveBoardHintEl.textContent = `Não é a sua vez! Turno atual (Rodada ${turnState.round}): ${entry ? entry.nome : '—'}.`;
+      announceOutOfTurn(turnEntryForToken(tok));
       return;
     }
     const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
@@ -13395,7 +13495,7 @@ body{
     // mesmo raciocínio acima, agora pro listener de RETRATO ao vivo (ver connectLiveBoard()).
     if(livePortraitRef){ livePortraitRef.off('value', livePortraitCb); livePortraitRef = null; livePortraitCb = null; }
     livePortraits = {};
-    liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlus: false };
+    liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlusColor: null };
     spottedTokenIds = new Set();
     pendingFacingTokenIds = new Set();
     liveBoardTokensHydrated = false;
@@ -13418,11 +13518,12 @@ body{
       // Revelar (ver boardRevealMode/setBoardRevealMode()): quando falso, o mini-tabuleiro inteiro
       // fica preto pra quem não é mestre (ver o guard "revealed" dentro de renderLiveBoardMini()).
       liveBoardState.revealed = !!val.revealed;
-      // FOG+ (ver boardFogPlusMode/setBoardFogPlusMode() na aba Mesa do mestre): igual ao Fog
+      // FOG+ (ver boardFogPlusColor/setBoardFogPlusColor() na aba Mesa do mestre): igual ao Fog
       // normal, só pra jogador — camada visual extra de neblina por cima de toda casa fora do
       // alcance combinado dos jogadores (ver computeFogReachableKeys() e o filtro dentro de
-      // renderLiveBoardMini()), independente do Fog normal estar ligado ou não.
-      liveBoardState.fogPlus = !!val.fogPlus;
+      // renderLiveBoardMini()), independente do Fog normal estar ligado ou não. 3 cores possíveis
+      // (cinza/preta/roxa), só uma ativa por vez.
+      liveBoardState.fogPlusColor = val.fogPlusColor || null;
       renderLiveBoardMini();
     });
     liveBoardMarksRef = fbDb.ref('mesa/liveBoard/marks');
