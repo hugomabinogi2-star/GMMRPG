@@ -5385,7 +5385,7 @@ body{
           <div class="turn-status-bar">
             <span class="turn-status-text" id="boardTurnStatus">Nenhuma iniciativa rodada ainda.</span>
             <button type="button" class="mini-btn" id="turnDelayBtn" disabled title="Avançar Turno — segura a ação, vai pro fim da fila desta rodada">➡️</button>
-            <button type="button" class="mini-btn" id="turnUndoBtn" disabled title="Voltar ao Turno Anterior — desfaz o último 'Avançar'">⬅️</button>
+            <button type="button" class="mini-btn" id="turnUndoBtn" disabled title="Voltar ao Turno Anterior — desfaz o último encerramento de turno (avançar, manual, erro, ou automático)">⬅️</button>
             <button type="button" class="mini-btn" id="boardEndTurnBtn" disabled title="Encerrar/Pular Turno"><span class="end-turn-icon">⏳</span></button>
           </div>
           <div class="turn-queue-panel" id="turnQueuePanel">
@@ -9359,13 +9359,16 @@ body{
   // debounce — é um objeto pequeno que muda pouco, não precisa da mesma proteção contra "eco" que
   // os pushes grandes do Mestre têm.
   let turnState = { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false };
-  // Histórico (pedido explícito desta rodada) só do botão "avançar" (➡️, ver delayCurrentTurn()) —
-  // guarda um snapshot ANTES de cada "avançar", pra "voltar" (⬅️, ver returnToPreviousTurn())
-  // desfazer exatamente aquele clique. Só LOCAL (não sincronizado pelo Firebase, não sobrevive a um
-  // F5) — é uma conveniência de quem está mexendo na fila na hora, não faz parte do estado real do
-  // jogo; zera sozinho a cada rodada nova (ver advanceTurn()), já que "avançar" nunca influencia a
-  // rodada seguinte, então não faria sentido "voltar" atravessar pra rodada anterior.
-  let turnDelayHistory = [];
+  // Histórico de "voltar" (⬅️, ver returnToPreviousTurn()) — guarda um snapshot ANTES de CADA jeito
+  // que um turno pode mudar (avançar de verdade — handleEndTurnClick()/autoEndTurnOnRollFailure()/
+  // markTurnMoved() isFreeform, todos passando por advanceTurn() — E o "segurar ação" do botão
+  // "avançar", delayCurrentTurn()). PEDIDO EXPLÍCITO desta rodada: "o botão de Voltar precisa ser
+  // capaz de desfazer o último encerramento de turno também" — não é mais só sobre desfazer um
+  // "avançar", é sobre desfazer o ÚLTIMO EVENTO que mudou de turno, seja ele qual for. Só LOCAL
+  // (não sincronizado pelo Firebase, não sobrevive a um F5) — é uma conveniência de quem está
+  // mexendo na fila na hora, não faz parte do estado real do jogo; zera ao rodar uma iniciativa
+  // nova ou desconectar (não faz sentido "voltar" pra um combate que já nem existe mais).
+  let turnUndoHistory = [];
 
   function pushTurnState(){
     let ready = false;
@@ -9499,18 +9502,29 @@ body{
 
   function advanceTurn(){
     if(!turnState.active || !turnState.order || !turnState.order.length) return;
+    // Snapshot pro "voltar" (⬅️, ver turnUndoHistory/returnToPreviousTurn() logo abaixo) — TODO
+    // jeito de um turno avançar de verdade passa por aqui (Encerrar Turno manual, erro de rolagem,
+    // movimento de peça avulsa sem ficha, e o "avançar" quando cai na última peça da fila), então
+    // guardar o snapshot neste ÚNICO ponto central, ANTES de qualquer mutação, cobre todos eles de
+    // uma vez só (pedido explícito desta rodada: "Voltar" desfaz o ÚLTIMO ENCERRAMENTO de turno,
+    // não só um "avançar").
+    turnUndoHistory.push({
+      order: turnState.order.slice(), turnIndex: turnState.turnIndex,
+      moved: turnState.moved, rolled: turnState.rolled, round: turnState.round,
+    });
     turnState.moved = false; turnState.rolled = false;
     turnState.turnIndex = (turnState.turnIndex || 0) + 1;
     if(turnState.turnIndex >= turnState.order.length){
       turnState.turnIndex = 0;
       turnState.round = (turnState.round || 1) + 1;
-      // PEDIDO EXPLICITO desta rodada: reordenações feitas com "avançar" (delayCurrentTurn(), o
-      // botão ➡️) valem só PRA RODADA ATUAL — "não influencia a próxima rodada". A cada rodada
+      // PEDIDO EXPLICITO (rodada anterior): reordenações feitas com "avançar" (delayCurrentTurn(),
+      // o botão ➡️) valem só PRA RODADA ATUAL — "não influencia a próxima rodada". A cada rodada
       // nova, a fila volta pra ordem original sorteada (baseOrder), desfazendo qualquer "segurar
-      // ação" que tenha acontecido na rodada que acabou de terminar. O histórico de "voltar" (⬅️)
-      // também zera aqui, pelo mesmo motivo — nunca atravessa pra rodada anterior.
+      // ação" que tenha acontecido na rodada que acabou de terminar (isso é só sobre o "order" que
+      // vale DAQUI PRA FRENTE — o snapshot que acabou de entrar em turnUndoHistory continua valendo
+      // normalmente, então "voltar" ainda consegue atravessar pra trás de uma virada de rodada,
+      // restaurando a rodada anterior exatamente como estava).
       if(turnState.baseOrder && turnState.baseOrder.length) turnState.order = turnState.baseOrder.slice();
-      turnDelayHistory = [];
     }
     pushTurnState();
     renderTurnBars();
@@ -9518,21 +9532,21 @@ body{
     if(nextEntry) postToDiscord(`⏭️ Rodada ${turnState.round} — agora é a vez de **${nextEntry.nome}**!`.toUpperCase(), null);
   }
 
-  // PEDIDO EXPLICITO desta rodada: botão "avançar" (➡️, ver HTML #turnDelayBtn) — "segura" a ação
-  // de quem está na vez, empurrando essa peça pro FIM da fila desta MESMA rodada (ela ainda vai
-  // agir nesta rodada, só que por último) — diferente de handleEndTurnClick() (Encerrar/Pular
+  // PEDIDO EXPLICITO (rodada anterior): botão "avançar" (➡️, ver HTML #turnDelayBtn) — "segura" a
+  // ação de quem está na vez, empurrando essa peça pro FIM da fila desta MESMA rodada (ela ainda
+  // vai agir nesta rodada, só que por último) — diferente de handleEndTurnClick() (Encerrar/Pular
   // Turno), que já existia antes e é um encerramento "de verdade" (some da vez até a rodada dar a
-  // volta). Guarda um snapshot em turnDelayHistory ANTES de reordenar, pra "voltar"
-  // (returnToPreviousTurn() logo abaixo) poder desfazer exatamente este clique. Se a peça da vez já
-  // É a última da fila desta rodada, empurrá-la pro fim não muda posição nenhuma — nesse caso o
-  // efeito é simplesmente virar a rodada (mesmo caminho de sempre, ver advanceTurn() acima, que já
-  // reseta a fila pra ordem original).
+  // volta). Guarda o próprio snapshot em turnUndoHistory ANTES de reordenar (só neste caso — quando
+  // CAI no fallback de advanceTurn() logo abaixo, o snapshot já sai de lá, sem duplicar), pra
+  // "voltar" (returnToPreviousTurn() logo abaixo) poder desfazer exatamente este clique. Se a peça
+  // da vez já É a última da fila desta rodada, empurrá-la pro fim não muda posição nenhuma — nesse
+  // caso o efeito é simplesmente virar a rodada (mesmo caminho de sempre, ver advanceTurn() acima).
   function delayCurrentTurn(){
     if(!turnState.active) return;
     const entry = currentTurnEntry();
     if(!entry) return;
     if(turnState.turnIndex < turnState.order.length - 1){
-      turnDelayHistory.push({
+      turnUndoHistory.push({
         order: turnState.order.slice(), turnIndex: turnState.turnIndex,
         moved: turnState.moved, rolled: turnState.rolled, round: turnState.round,
       });
@@ -9547,13 +9561,17 @@ body{
     }
   }
 
-  // PEDIDO EXPLICITO desta rodada: botão "voltar" (⬅️, ver HTML #turnUndoBtn) — desfaz o último
-  // clique em "avançar" (delayCurrentTurn() acima), restaurando a fila/vez/movimento/rolagem
-  // exatamente como estavam antes daquele clique. Não faz nada se não houver nenhum "avançar" pra
-  // desfazer nesta rodada (turnDelayHistory vazio — inclusive zerado sozinho a cada rodada nova).
+  // PEDIDO EXPLICITO desta rodada: botão "voltar" (⬅️, ver HTML #turnUndoBtn) — desfaz o ÚLTIMO
+  // EVENTO que mudou de turno, seja qual for (Encerrar Turno manual, erro de rolagem, movimento de
+  // peça avulsa sem ficha, ou um "avançar"/segurar ação), restaurando a fila/vez/movimento/rolagem/
+  // rodada exatamente como estavam antes daquele evento (ver turnUndoHistory, alimentado num único
+  // ponto central dentro de advanceTurn(), mais o caso próprio de delayCurrentTurn()). Não desfaz a
+  // ROLAGEM em si (o resultado do dado já rolou, a mensagem já foi pro Discord) — só a posição na
+  // fila/o estado de movimento-rolagem daquele turno. Não faz nada se não houver nada pra desfazer
+  // (turnUndoHistory vazio — zera ao rodar uma iniciativa nova ou desconectar).
   function returnToPreviousTurn(){
     if(!turnState.active) return;
-    const snap = turnDelayHistory.pop();
+    const snap = turnUndoHistory.pop();
     if(!snap) return;
     turnState.order = snap.order;
     turnState.turnIndex = snap.turnIndex;
@@ -9614,12 +9632,12 @@ body{
       if(textEl) textEl.textContent = turnStatusText();
       if(btnEl) btnEl.disabled = !canEndCurrentTurn();
     });
-    // "avançar"/"voltar" (pedido explícito desta rodada — só existem na aba MESA, mestre-only, ver
-    // HTML) — avançar só faz sentido com fila ativa e alguém na vez; voltar só quando existir algum
-    // "avançar" pra desfazer (ver turnDelayHistory).
+    // "avançar"/"voltar" (só existem na aba MESA, mestre-only, ver HTML) — avançar só faz sentido
+    // com fila ativa e alguém na vez; voltar só quando existir algum turno pra desfazer (ver
+    // turnUndoHistory — inclui avançar E qualquer encerramento de turno, pedido explícito).
     const delayBtn = $('turnDelayBtn'), undoBtn = $('turnUndoBtn');
     if(delayBtn) delayBtn.disabled = !(turnState.active && currentTurnEntry());
-    if(undoBtn) undoBtn.disabled = !turnDelayHistory.length;
+    if(undoBtn) undoBtn.disabled = !turnUndoHistory.length;
     renderTurnQueuePanel();
   }
   $('boardEndTurnBtn').addEventListener('click', handleEndTurnClick);
@@ -9695,7 +9713,7 @@ body{
         [itens[i], itens[j]] = [itens[j], itens[i]];
       }
       turnState = { active:true, round:1, order:itens, baseOrder:itens.slice(), turnIndex:0, moved:false, rolled:false };
-      turnDelayHistory = [];
+      turnUndoHistory = [];
       pushTurnState();
       renderTurnBars();
       const linhas = itens.map((it, idx) => `${idx+1}. **${it.nome}**`).join('\n');
@@ -14268,6 +14286,19 @@ body{
     // pedido explícito: resetar o tabuleiro também desliga o Revelar (senão o próximo tabuleiro
     // já nasceria "revelado" pros jogadores, mostrando tudo antes do mestre montar a cena de novo).
     if(boardRevealMode) setBoardRevealMode(false);
+    // PEDIDO EXPLÍCITO desta rodada: "os nomes na lista precisam ser apenas os nomes da lista de
+    // iniciativa, se não houve nenhuma listagem a lista não deve exibir nenhum nome" — resetar o
+    // tabuleiro apaga TODAS as peças (boardTokens acima), então qualquer fila de iniciativa sorteada
+    // antes do reset fica órfã: sem código nenhum aqui, o painel de fila (acima do tabuleiro)
+    // continuaria mostrando os nomes da iniciativa antiga, mesmo sem nenhuma peça real no tabuleiro
+    // sustentando aquela "listagem". Desliga a fila de turnos também (mesmo formato de
+    // disconnectLiveBoard() lá embaixo) e sincroniza pro Firebase — diferente de disconnectLiveBoard
+    // (que só desconecta a sessão de quem clicou), o Reset do tabuleiro já afeta todo mundo na mesa
+    // (scheduleBoardTokensPush() acima), então a fila zerada precisa alcançar todo mundo também.
+    turnState = { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false };
+    turnUndoHistory = [];
+    pushTurnState();
+    renderTurnBars();
   });
 
   boardResizeBtn.addEventListener('click', ()=>{
@@ -14297,6 +14328,13 @@ body{
     scheduleBoardMetaPush();
     scheduleBoardMarksPush();
     scheduleBoardTokensPush();
+    // mesmo motivo do boardResetBtn logo acima: mudar o tamanho também apaga todas as peças
+    // (boardTokens={} algumas linhas acima), então a fila de iniciativa sorteada antes fica órfã do
+    // mesmo jeito — zera a fila de turnos também.
+    turnState = { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false };
+    turnUndoHistory = [];
+    pushTurnState();
+    renderTurnBars();
   });
 
   // ---- fundo customizado do tabuleiro (mapa por cima, casas semitransparentes) ----
@@ -16502,7 +16540,7 @@ body{
     // fila de iniciativa/turno (ver turnState lá em cima) — mesmo padrão dos outros 3 acima.
     if(liveBoardTurnRef){ liveBoardTurnRef.off('value', liveBoardTurnCb); liveBoardTurnRef = null; liveBoardTurnCb = null; }
     turnState = { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false };
-    turnDelayHistory = [];
+    turnUndoHistory = [];
     renderTurnBars();
     // desliga o listener único de mesa/live (Vida/Mana/Escudo/XP ao vivo — ver onLiveVitalsChanged()
     // mais acima) — senão ele fica pendurado pra sempre no mesmo navegador: como o Firebase Auth
