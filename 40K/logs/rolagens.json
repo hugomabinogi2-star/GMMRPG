@@ -1,16 +1,6 @@
 [
   {
     "nome": "Oi",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 6,
-    "resultado": 8,
-    "resultLabel": "Erro",
-    "ts": 1789407210976,
-    "habilidade": "DETECTAR ARMADILHAS"
-  },
-  {
-    "nome": "Oi",
     "tipo": "dano",
     "qtd": 3,
     "maxVal": 3,
@@ -291,5 +281,16 @@
     "de": "C5",
     "para": "D5",
     "ts": 1789903635173
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 8,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1789903646850,
+    "habilidade": "Ataque Duplo",
+    "habilidadeDesc": "Realiza dois ataques em um mesmo inimigo.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
   }
 ]
