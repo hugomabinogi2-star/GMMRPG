@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 5,
-    "resultado": 13,
-    "resultLabel": "Erro",
-    "ts": 1789405703311
-  },
-  {
-    "nome": "Oi",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 5,
     "resultado": 11,
     "resultLabel": "Erro",
     "ts": 1789405706027
@@ -312,5 +303,12 @@
     "de": "B3",
     "para": "C4",
     "ts": 1789900233022
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "C4",
+    "para": "B3",
+    "ts": 1789900237357
   }
 ]
