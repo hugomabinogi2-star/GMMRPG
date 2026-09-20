@@ -1,13 +1,6 @@
 [
   {
     "nome": "Allana",
-    "tipo": "movimento",
-    "de": "E2",
-    "para": "D2",
-    "ts": 1789405323234
-  },
-  {
-    "nome": "Allana",
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 4,
@@ -314,5 +307,12 @@
     "de": "B3",
     "para": "B2",
     "ts": 1789900199553
+  },
+  {
+    "nome": "oi",
+    "tipo": "movimento",
+    "de": "B2",
+    "para": "B3",
+    "ts": 1789900220474
   }
 ]
