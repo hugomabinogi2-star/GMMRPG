@@ -775,6 +775,16 @@ body{
 .turn-status-bar .turn-status-text{font-size:12px;color:var(--ink-soft);flex:1 1 auto;min-width:140px;}
 .turn-status-bar .mini-btn:disabled{opacity:.4;cursor:not-allowed;}
 .turn-status-bar .mini-btn:disabled:hover{border-color:var(--border-brown);color:var(--ink-soft);}
+/* Ampulheta do "Encerrar Turno" (pedido explícito: virou ⏳ no lugar do ⏹️, ver HTML) -- gira uma
+   volta completa (360°) na hora que o turno encerra (ver spinEndTurnBtn() no <script>): sentido
+   HORÁRIO num clique manual de verdade, sentido ANTI-horário quando é o encerramento AUTOMÁTICO
+   por erro de rolagem (junto da explosão de caveirinhas, ver spawnSkullFireworksAt()). "inline-block"
+   no próprio botão é necessário pra rotate() ter efeito (elementos inline não giram). */
+#boardEndTurnBtn, #liveEndTurnBtn{display:inline-block;}
+.end-turn-spin-cw{animation:endTurnSpinCW .6s ease;}
+.end-turn-spin-ccw{animation:endTurnSpinCCW .6s ease;}
+@keyframes endTurnSpinCW{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes endTurnSpinCCW{from{transform:rotate(0deg);}to{transform:rotate(-360deg);}}
 .token-help{font-size:11.5px;color:var(--ink-faint);line-height:1.5;margin:10px 0 14px;}
 .token-help ol{margin:6px 0 0;padding-left:20px;}
 .token-help a{color:var(--gold-text);}
@@ -4641,7 +4651,7 @@ body{
                clicar em "Encerrar Turno" quando a ficha da vez é a própria dele. -->
           <div class="turn-status-bar">
             <span class="turn-status-text" id="liveTurnStatus">Nenhuma iniciativa rodada ainda.</span>
-            <button type="button" class="mini-btn" id="liveEndTurnBtn" disabled>⏹️ Encerrar Turno</button>
+            <button type="button" class="mini-btn" id="liveEndTurnBtn" disabled>⏳ Encerrar Turno</button>
           </div>
           <div class="live-board-panel-body" id="liveBoardPanelBody">
             <div class="chat-bg-fx" id="liveBoardBgFx" aria-hidden="true"></div>
@@ -5229,7 +5239,7 @@ body{
            QUALQUER turno que esteja na vez agora, sem restrição. -->
       <div class="turn-status-bar">
         <span class="turn-status-text" id="boardTurnStatus">Nenhuma iniciativa rodada ainda.</span>
-        <button type="button" class="mini-btn" id="boardEndTurnBtn" disabled>⏹️ Encerrar Turno</button>
+        <button type="button" class="mini-btn" id="boardEndTurnBtn" disabled>⏳ Encerrar Turno</button>
       </div>
 
       <div class="board-menu">
@@ -5386,13 +5396,13 @@ body{
              deixando sem neblina só o campo de visão combinado dos jogadores. 3 cores, só uma ativa
              por vez (clicar na ativa desliga; clicar em outra troca direto) -- DESLIGADO por padrão. -->
         <button type="button" class="board-mode-toggle" id="boardFogCinzaModeLabel" aria-pressed="false">
-          <span class="board-mode-toggle-name">🌫️ FOG CINZA (NEBLINA)</span>
+          <span class="board-mode-toggle-name">🌫️ NEVOA</span>
         </button>
         <button type="button" class="board-mode-toggle" id="boardFogPretaModeLabel" aria-pressed="false">
-          <span class="board-mode-toggle-name">🖤 FOG PRETA (FUMAÇA)</span>
+          <span class="board-mode-toggle-name">🖤 FUMAÇA</span>
         </button>
         <button type="button" class="board-mode-toggle" id="boardFogRoxaModeLabel" aria-pressed="false">
-          <span class="board-mode-toggle-name">💜 FOG ROXA (ESTRANHEZA)</span>
+          <span class="board-mode-toggle-name">💜 ESTRANHEZA</span>
         </button>
         <button type="button" class="board-mode-toggle" id="boardDarkModeLabel" aria-pressed="false">
           <span class="board-mode-toggle-name">🌑 ESCURIDÃO TOTAL</span>
@@ -8777,6 +8787,14 @@ body{
         announceOutOfTurn(turnEntry);
         return;
       }
+      // REDESENHO desta rodada (pedido explícito): só 1 rolagem de Habilidade/Atributo/Talento por
+      // turno — ver canRollThisTurnToken(). Ficha JÁ na própria vez, mas que já rolou o dado de
+      // ação desta vez, é recusada aqui, antes de qualquer animação.
+      if(turnEntry && isCurrentTurnToken(turnEntry) && !canRollThisTurnToken()){
+        expandDicePanelIfCollapsed();
+        diceHint.textContent = 'Você já rolou o dado de ação neste turno — encerre o turno pra continuar.';
+        return;
+      }
     }
     expandDicePanelIfCollapsed();
     // TONTO (painel EFEITOS): "força os rolamentos a serem feitos em desvantagem" -- sobrescreve o
@@ -8951,9 +8969,10 @@ body{
     }
     pushRollLog(logEntry);
     // fila de iniciativa: esta rolagem (Atributo solto, Habilidade fixa ou Talento — os 3 convergem
-    // pra cá) acabou de completar a parte "rolou" da ação da vez, SE for a ficha da vez que está
-    // rolando agora (ver markActionRollFromOpenSheet()/markTurnActionPart() mais abaixo).
-    markActionRollFromOpenSheet();
+    // pra cá) acabou de usar a AÇÃO DE ROLAGEM da vez, SE for a ficha da vez que está rolando agora
+    // (ver markActionRollFromOpenSheet()/markTurnRolled() mais abaixo) — verdict ('acerto'/'erro',
+    // já calculado mais acima nesta função) decide se o turno encerra sozinho ou não.
+    markActionRollFromOpenSheet(verdict);
   }
 
   // ---------- rolagem de dano ----------
@@ -9269,14 +9288,21 @@ body{
   // igual já era) que trava os movimentos do tabuleiro (aba MESA e Tabuleiro ao Vivo) só pra quem
   // estiver NA VEZ agora — vale pra TODO MUNDO, inclusive o Mestre (esclarecimento explícito: sem
   // exceção de "correção livre" aqui, diferente do limite de alcance de isBoardMoveRestrictedToken()
-  // mais acima). Cada "ação" = 1 movimento (respeitando o alcance de sempre) + 1 rolagem de
-  // Habilidade/Talento/Atributo (sucesso ou falha não importa — ver markActionRollFromOpenSheet(),
-  // chamada de dentro do handler de rollBtn, tipo:'atributo', que já cobre as 3 rolagens). Um turno
-  // tem até 2 ações; completar as 2 (ou clicar em "Encerrar Turno") passa a vez pro próximo da fila
-  // — dar a volta na fila inteira soma 1 na Rodada. Peça SEM ficha nenhuma (Aliado/Inimigo/Monstro/
-  // Boss avulsos, sem heroId) nunca tem Habilidade/Talento/Atributo pra rolar — pra essas, o próprio
-  // movimento já fecha a ação sozinho (ver isFreeform em markTurnActionPart()), senão a fila
-  // travaria pra sempre nelas.
+  // mais acima).
+  //
+  // REDESENHO desta rodada (pedido explícito, substitui o antigo modelo de "até 2 ações" pareadas
+  // movimento+rolagem): agora são exatamente 2 AÇÕES INDEPENDENTES por turno -- 1 movimento
+  // (respeitando o alcance de sempre) e 1 rolagem de Habilidade/Talento/Atributo (sucesso ou falha,
+  // ver verdict em finishRoll()) -- cada uma só pode acontecer 1 vez por turno, sem exigir a outra
+  // (ver canMoveThisTurnToken()/canRollThisTurnToken()). Assim que a ROLAGEM acontece (mesmo que o
+  // movimento ainda não tivesse sido usado), o movimento fica travado pro resto do turno (pedido
+  // explícito: "ao personagem não pode mais se mover"). O resultado da rolagem decide o fim do
+  // turno: ERRO encerra o turno automaticamente (ver markTurnRolled()/autoEndTurnOnRollFailure());
+  // ACERTO NÃO encerra sozinho -- precisa clicar em "Encerrar Turno" manualmente (pedido explícito:
+  // "assumindo que ainda possa ser necessário rolar dano"). Peça SEM ficha nenhuma (Aliado/Inimigo/
+  // Monstro/Boss avulsos, sem heroId) nunca tem Habilidade/Talento/Atributo pra rolar — pra essas, o
+  // próprio movimento já encerra o turno sozinho (ver isFreeform em markTurnMoved()), senão a fila
+  // travaria pra sempre nelas, igual já era antes desta rodada.
   //
   // Sincronizado em mesa40k/liveBoard/turn — ao contrário de meta/marks/tokens (só o Mestre
   // escreve, write-only, sem ouvir de volta — ver o comentário grande logo depois de
@@ -9287,7 +9313,7 @@ body{
   // quanto o jogador (completar a própria ação, Encerrar o próprio turno) publicam na hora, sem
   // debounce — é um objeto pequeno que muda pouco, não precisa da mesma proteção contra "eco" que
   // os pushes grandes do Mestre têm.
-  let turnState = { active:false, round:1, order:[], turnIndex:0, actionsLeft:2, moved:false, rolled:false };
+  let turnState = { active:false, round:1, order:[], turnIndex:0, moved:false, rolled:false };
 
   function pushTurnState(){
     let ready = false;
@@ -9296,7 +9322,6 @@ body{
     fbDb.ref('mesa40k/liveBoard/turn').set({
       active: !!turnState.active, round: turnState.round || 1,
       order: turnState.order || [], turnIndex: turnState.turnIndex || 0,
-      actionsLeft: turnState.actionsLeft != null ? turnState.actionsLeft : 2,
       moved: !!turnState.moved, rolled: !!turnState.rolled,
       ts: firebase.database.ServerValue.TIMESTAMP,
     }).catch(err=> console.error('Não foi possível publicar o turno:', err));
@@ -9334,22 +9359,47 @@ body{
     postToDiscord(`⛔ ${nome} - AINDA NÃO É O SEU TURNO`.toUpperCase(), null);
   }
 
-  // Consome a parte "moveu" ou "rolou" da ação atual da ficha da vez; quando as duas partes
-  // completam, fecha 1 das até-2 ações do turno e reseta o progresso pra próxima ação (ou passa a
-  // vez automaticamente, se as 2 já acabaram).
-  function markTurnActionPart(part){
+  // "Já dá pra mover/rolar neste turno?" — ver o comentário grande lá em cima (REDESENHO desta
+  // rodada): movimento só 1x por turno, E nunca depois de já ter rolado (mesmo que ainda não
+  // tivesse se movido) — por isso canMoveThisTurnToken() confere os DOIS campos, não só "moved".
+  // Rolagem também só 1x por turno.
+  function canMoveThisTurnToken(){
+    return !turnState.moved && !turnState.rolled;
+  }
+  function canRollThisTurnToken(){
+    return !turnState.rolled;
+  }
+
+  // Marca a AÇÃO DE MOVIMENTO da vez atual como usada (ver canMoveThisTurnToken(), chamada ANTES
+  // desta função nos dois pontos de movimento — handleBoardDrop()/handleLiveBoardDrop() — pra
+  // recusar uma 2ª tentativa). Peça SEM ficha (Aliado/Inimigo/Monstro/Boss avulsos, isFreeform)
+  // nunca tem Habilidade/Talento/Atributo pra rolar — pra essas o próprio movimento já encerra o
+  // turno sozinho, senão a fila travaria nelas pra sempre (mesmo comportamento de antes desta
+  // rodada, só que agora sem depender de nenhum contador de ações).
+  function markTurnMoved(){
     if(!turnState.active) return;
     const entry = currentTurnEntry();
     if(!entry) return;
-    if(part === 'moved') turnState.moved = true;
-    else if(part === 'rolled') turnState.rolled = true;
+    turnState.moved = true;
     const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha';
-    if(isFreeform && turnState.moved) turnState.rolled = true;
-    if(turnState.moved && turnState.rolled){
-      turnState.moved = false; turnState.rolled = false;
-      turnState.actionsLeft = Math.max(0, (turnState.actionsLeft != null ? turnState.actionsLeft : 2) - 1);
-      if(turnState.actionsLeft <= 0){ advanceTurn(); return; }
-    }
+    if(isFreeform){ advanceTurn(); return; }
+    pushTurnState();
+    renderTurnBars();
+  }
+
+  // Marca a AÇÃO DE ROLAGEM da vez atual como usada e decide o destino do turno a partir do
+  // resultado (verdict, 'acerto'/'erro' — ver finishRoll()): ERRO encerra o turno sozinho, com o
+  // efeito da ampulheta girando ao contrário + a explosão de caveirinhas (pedido explícito, ver
+  // autoEndTurnOnRollFailure() abaixo); ACERTO só marca a rolagem como usada (travando o movimento
+  // pro resto do turno, ver canMoveThisTurnToken()) e deixa o turno aberto — precisa de um clique
+  // manual em "Encerrar Turno" (ver handleEndTurnClick()) pra passar a vez, exatamente como pedido
+  // ("assumindo que ainda possa ser necessário rolar dano").
+  function markTurnRolled(verdict){
+    if(!turnState.active) return;
+    const entry = currentTurnEntry();
+    if(!entry) return;
+    turnState.rolled = true;
+    if(verdict === 'erro'){ autoEndTurnOnRollFailure(entry); return; }
     pushTurnState();
     renderTurnBars();
   }
@@ -9359,19 +9409,36 @@ body{
   // rollHabilidadeAtributo()/rollTalento()/rollAtributoIconSelected() mais abaixo — todas convergem
   // pro mesmo rollBtn.click()). Identifica a ficha da vez comparando o NOME da ficha aberta agora
   // neste navegador (els.nome) com o nome BASE (sem numeração de instância) do token que está na
-  // vez — mesmo padrão já usado dentro de handleLiveBoardDrop() pro efeito SANGRANDO.
-  function markActionRollFromOpenSheet(){
+  // vez — mesmo padrão já usado dentro de handleLiveBoardDrop() pro efeito SANGRANDO. verdict vem
+  // direto de finishRoll() (mesma rolagem que acabou de decidir acerto/erro).
+  function markActionRollFromOpenSheet(verdict){
     if(!turnState.active) return;
     const entry = currentTurnEntry();
     if(!entry || (entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha')) return;
     const sheetName = ((els.nome && els.nome.value) || '').trim();
     if(!sheetName || sheetName !== entry.baseNome) return;
-    markTurnActionPart('rolled');
+    markTurnRolled(verdict);
+  }
+
+  // Encerramento AUTOMÁTICO do turno por erro de rolagem (pedido explícito) — avisa no Discord
+  // (mesmo padrão maiúsculo dos outros avisos de turno), dispara o efeito local da ampulheta
+  // girando em sentido ANTI-horário + a explosão de caveirinhas "como fogos" (ver
+  // spinEndTurnBtn()/spawnSkullFireworksAt() mais abaixo, perto dos outros efeitos de partícula) e
+  // aí sim encerra o turno de verdade (advanceTurn() já publica o novo estado e avisa quem é o
+  // próximo da vez, igual sempre fez). Efeito visual é só LOCAL, pra quem está com a tela aberta
+  // no momento exato da rolagem — mesmo espírito de qualquer outra animação/som deste arquivo
+  // (nunca sincronizado entre abas, só o ESTADO em si, ver turnState/pushTurnState()).
+  function autoEndTurnOnRollFailure(entry){
+    if(!isBlankName(entry.nome)) postToDiscord(`💀 ${entry.nome} ERROU A ROLAGEM — O TURNO FOI ENCERRADO AUTOMATICAMENTE`.toUpperCase(), null);
+    spinEndTurnBtn('ccw');
+    spawnSkullFireworksAt($('boardEndTurnBtn'));
+    spawnSkullFireworksAt($('liveEndTurnBtn'));
+    advanceTurn();
   }
 
   function advanceTurn(){
     if(!turnState.active || !turnState.order || !turnState.order.length) return;
-    turnState.moved = false; turnState.rolled = false; turnState.actionsLeft = 2;
+    turnState.moved = false; turnState.rolled = false;
     turnState.turnIndex = (turnState.turnIndex || 0) + 1;
     if(turnState.turnIndex >= turnState.order.length){
       turnState.turnIndex = 0;
@@ -9401,21 +9468,31 @@ body{
     const tok = findTurnEntryToken(entry);
     return !!tok && isMyLiveToken(tok);
   }
-  // Pedido explícito: quando alguém pula o turno (Encerrar Turno sem usar as 2 ações), avisar no
-  // chat/Discord "NOME DO PERSONAGEM encerrou o turno" — só neste fluxo (o avanço "natural", ao
-  // completar as 2 ações, já ganha seu próprio aviso de "agora é a vez de" em advanceTurn()).
+  // Pedido explícito: quando o turno é encerrado por este botão (manual — inclui tanto "pular"
+  // sem ter feito nada quanto o caso normal de fechar depois de um ACERTO, já que agora isso nunca
+  // acontece sozinho, ver markTurnRolled()), avisar no chat/Discord "NOME DO PERSONAGEM encerrou o
+  // turno" (o avanço automático por ERRO de rolagem ganha seu PRÓPRIO aviso, distinto, ver
+  // autoEndTurnOnRollFailure()) e girar a ampulheta em sentido HORÁRIO uma vez (pedido explícito —
+  // ver spinEndTurnBtn(), efeito só local).
   function handleEndTurnClick(){
     const entry = currentTurnEntry();
     if(!entry || !canEndCurrentTurn()) return;
     if(!isBlankName(entry.nome)) postToDiscord(`⏹️ ${entry.nome} encerrou o turno`.toUpperCase(), null);
+    spinEndTurnBtn('cw');
     advanceTurn();
   }
 
   function turnStatusText(){
     const entry = currentTurnEntry();
     if(!entry) return 'Nenhuma iniciativa rodada ainda.';
-    const acoes = turnState.actionsLeft != null ? turnState.actionsLeft : 2;
-    return `Rodada ${turnState.round} — vez de ${entry.nome} (${acoes} ação${acoes===1?'':'ões'} restante${acoes===1?'':'s'})`;
+    // REDESENHO desta rodada: sem contador de "ações restantes" — mostra o estado de cada uma das
+    // 2 ações independentes (movimento/rolagem) desta vez (ver canMoveThisTurnToken()/
+    // canRollThisTurnToken()). Peça SEM ficha (isFreeform) nunca tem rolagem pra mostrar.
+    const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha';
+    const bits = [];
+    bits.push(turnState.rolled ? 'movimento travado (já rolou)' : (turnState.moved ? 'movimento já usado' : 'movimento disponível'));
+    if(!isFreeform) bits.push(turnState.rolled ? 'rolagem já usada' : 'rolagem disponível');
+    return `Rodada ${turnState.round} — vez de ${entry.nome} (${bits.join(' · ')})`;
   }
   function renderTurnBars(){
     [['boardTurnStatus','boardEndTurnBtn'], ['liveTurnStatus','liveEndTurnBtn']].forEach(([textId, btnId])=>{
@@ -9462,7 +9539,7 @@ body{
         const j = Math.floor(Math.random() * (i + 1));
         [itens[i], itens[j]] = [itens[j], itens[i]];
       }
-      turnState = { active:true, round:1, order:itens, turnIndex:0, actionsLeft:2, moved:false, rolled:false };
+      turnState = { active:true, round:1, order:itens, turnIndex:0, moved:false, rolled:false };
       pushTurnState();
       renderTurnBars();
       const linhas = itens.map((it, idx) => `${idx+1}. **${it.nome}**`).join('\n');
@@ -9703,6 +9780,65 @@ body{
     tonto: 'TONTO', ferido: 'FERIDO',
   };
   function hasActiveEffect(key){ return !!(effectsState && effectsState[key]); }
+
+  // ---------- ⏳ ampulheta do "Encerrar Turno" (pedido explícito) ----------
+  // Gira a ampulheta (#boardEndTurnBtn/#liveEndTurnBtn, ver troca de ⏹️ pra ⏳ no HTML) uma volta
+  // completa (360°) na hora que o turno encerra -- sentido HORÁRIO (.end-turn-spin-cw) quando é um
+  // clique manual de verdade (ver handleEndTurnClick()), sentido ANTI-horário
+  // (.end-turn-spin-ccw) quando é o encerramento AUTOMÁTICO por erro de rolagem (ver
+  // autoEndTurnOnRollFailure()) -- classes/keyframes em .end-turn-spin-cw/-ccw no <style>. Gira os
+  // DOIS botões sempre juntos (o de dentro da aba Mesa do Mestre e o do Tabuleiro ao Vivo do
+  // jogador) -- cada navegador só tem os SEUS próprios elementos na tela, então isto aqui só afeta
+  // visualmente quem clicou/rolou (mesmo espírito de qualquer outra animação deste arquivo: nunca
+  // sincronizada entre abas, só o ESTADO em si viaja pelo Firebase). Remove a classe antes de
+  // reaplicar (com um reflow forçado no meio) pra poder repetir a mesma animação em cliques
+  // seguidos -- sem isso, girar duas vezes seguidas rápido demais não reiniciava a animação.
+  function spinEndTurnBtn(direction){
+    const cls = direction === 'ccw' ? 'end-turn-spin-ccw' : 'end-turn-spin-cw';
+    [$('boardEndTurnBtn'), $('liveEndTurnBtn')].forEach(btn=>{
+      if(!btn) return;
+      btn.classList.remove('end-turn-spin-cw', 'end-turn-spin-ccw');
+      void btn.offsetWidth;
+      btn.classList.add(cls);
+    });
+  }
+
+  // "Explosão de caveirinhas, como fogos" (pedido explícito) -- dispara só no encerramento
+  // AUTOMÁTICO do turno por erro de rolagem (ver autoEndTurnOnRollFailure()), ancorada em cima do
+  // botão de Encerrar Turno de verdade (mesma técnica de spawnEffectToggleBurst()/
+  // diceExplosionAngle() logo abaixo: .dice-particle/.dice-particle-fixed, position:fixed via
+  // getBoundingClientRect(), leque de 360° completo) -- só que em 3 LEVAS escalonadas (delay
+  // crescente por leva, não tudo de uma vez), pra imitar o estouro em sequência de fogos de
+  // artifício de verdade, e com mais partículas/alcance que o efeito de Efeito (mais "espetáculo",
+  // já que é um evento raro/automático, não algo clicado o tempo todo). Não faz nada se o botão não
+  // estiver desenhado na tela agora (rect 0x0 — painel fechado/minimizado nesta aba).
+  function spawnSkullFireworksAt(btn){
+    if(!btn) return;
+    const rect = btn.getBoundingClientRect();
+    if(!rect.width && !rect.height) return;
+    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+    for(let wave=0; wave<3; wave++){
+      setTimeout(()=>{
+        const count = 8 + Math.floor(Math.random()*5);
+        for(let i=0;i<count;i++){
+          const span = document.createElement('span');
+          span.className = 'dice-particle dice-particle-explosion dice-particle-fixed';
+          span.textContent = '💀';
+          const angle = diceExplosionAngle('normal');
+          const dist = 34 + Math.random()*70;
+          span.style.left = cx.toFixed(1)+'px';
+          span.style.top = cy.toFixed(1)+'px';
+          span.style.setProperty('--dx', (Math.cos(angle)*dist).toFixed(1)+'px');
+          span.style.setProperty('--dy', (Math.sin(angle)*dist).toFixed(1)+'px');
+          span.style.setProperty('--rot', (Math.random()*180-90).toFixed(1)+'deg');
+          span.style.animationDelay = Math.floor(Math.random()*80)+'ms';
+          document.body.appendChild(span);
+          setTimeout(()=> span.remove(), 1200);
+        }
+      }, wave*180);
+    }
+  }
+
   // "fogos de caveirinhas" ao LIGAR um Efeito, estrelinhas na cor do elemento/divindade ao
   // DESLIGAR (pedido explícito) -- reaproveita literalmente o mesmo mecanismo de partículas já
   // usado pela "explosão de dados" ao clicar num ícone de rolagem (spawnDiceExplosionAtElement()/
@@ -12968,7 +13104,15 @@ body{
           // navegador conseguir iniciar o arrasto nativo do token (ver draggable=true/dragstart em
           // renderBoardCell()). Chamar preventDefault() no mousedown, mesmo que só na casa por
           // baixo, cancela o gesto de arrastar do token que está em cima dela.
-          if(e.target.closest('.board-token')) return;
+          // BUG corrigido nesta rodada ("as setas para as fichas do mestre não estão funcionando"):
+          // faltava esta mesma exceção pro seletor de 8 direções (.board-facing-picker/-btn, ver
+          // buildFacingPickerEl()) -- sem ela, o próprio mousedown de clicar numa seta já disparava
+          // cycleMark()/setMark() aqui embaixo, que chama renderBoardCell() e RECRIA o seletor do
+          // zero antes do 'click' do botão conseguir disparar chooseBoardFacing() -- o navegador não
+          // completa o clique num elemento que já foi removido do DOM no meio do gesto, então a
+          // direção nunca era gravada (e a casa ainda ganhava uma marcação verde/amarela/vermelha
+          // de brinde, sem querer).
+          if(e.target.closest('.board-token') || e.target.closest('.board-facing-picker')) return;
           e.preventDefault();
           boardPainting = true;
           boardPaintValue = cycleMark(r, c);
@@ -13474,6 +13618,13 @@ body{
         announceOutOfTurn(turnEntryForToken(tok));
         return;
       }
+      // REDESENHO desta rodada (pedido explícito): só 1 movimento por turno, e nenhum movimento
+      // depois de já ter rolado neste turno (mesmo que ainda não tivesse se movido) — ver
+      // canMoveThisTurnToken()/markTurnRolled() lá em cima.
+      if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken()){
+        alert(turnState.rolled ? 'Você já rolou o dado de ação neste turno — não é mais possível se mover.' : 'Você já usou o movimento deste turno.');
+        return;
+      }
       // NOVO: inimigo_ficha e ficha do próprio mestre passam a respeitar o alcance de movimento de
       // verdade (ver isBoardMoveRestrictedToken()/computeBoardReachable() logo acima) -- ficha de
       // jogador continua livre, sem checagem nenhuma aqui.
@@ -13500,9 +13651,9 @@ body{
       oldCells.forEach(([or,oc]) => renderBoardCell(or,oc));
       footprintCells(r, c, sizeR, sizeC).forEach(([fr,fc]) => renderBoardCell(fr,fc));
       if(tok.kind === 'hero'){ renderHeroTray(); renderMestreTray(); }
-      // fila de iniciativa: este movimento acabou de completar a parte "moveu" da ação da vez (ver
-      // markTurnActionPart() lá em cima) — só conta se esta MESMA peça é quem está na vez agora.
-      if(turnState.active && isCurrentTurnToken(tok)) markTurnActionPart('moved');
+      // fila de iniciativa: este movimento acabou de usar a AÇÃO DE MOVIMENTO da vez (ver
+      // markTurnMoved() lá em cima) — só conta se esta MESMA peça é quem está na vez agora.
+      if(turnState.active && isCurrentTurnToken(tok)) markTurnMoved();
     }
     scheduleBoardTokensPush();
   }
@@ -13953,6 +14104,9 @@ body{
     scheduleBoardMarksPush();
     scheduleBoardTokensPush();
     applyBoardBackground(null);
+    // pedido explícito: resetar o tabuleiro também desliga o Revelar (senão o próximo tabuleiro
+    // já nasceria "revelado" pros jogadores, mostrando tudo antes do mestre montar a cena de novo).
+    if(boardRevealMode) setBoardRevealMode(false);
   });
 
   boardResizeBtn.addEventListener('click', ()=>{
@@ -15933,6 +16087,13 @@ body{
       announceOutOfTurn(turnEntryForToken(tok));
       return;
     }
+    // REDESENHO desta rodada (pedido explícito): só 1 movimento por turno, e nenhum movimento
+    // depois de já ter rolado neste turno (mesmo que ainda não tivesse se movido) — mesma trava de
+    // handleBoardDrop(), aqui do lado do jogador.
+    if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken()){
+      liveBoardHintEl.textContent = turnState.rolled ? 'Você já rolou o dado de ação neste turno — não é mais possível se mover.' : 'Você já usou o movimento deste turno.';
+      return;
+    }
     const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
     if(r < 0 || c < 0 || r >= rows || c >= cols) return;
     const newKey = liveBoardKey(r, c);
@@ -16002,9 +16163,9 @@ body{
     const sangrandoTxt = ((tok.efeitos||{}).sangrando && passosMovidos > 0) ? ` E PERDEU ${passosMovidos} DE VIDA (SANGRANDO)` : '';
     if(!isBlankName(tok.name)) postToDiscord(`🚶 **${tok.name}** SE MOVIMENTOU${sangrandoTxt}`, null);
     pushMoveLog({ nome: tok.name, tipo:'movimento', de: fromLabel, para: toLabel, ts: Date.now() });
-    // fila de iniciativa: este movimento acabou de completar a parte "moveu" da ação da vez (ver
-    // markTurnActionPart() na aba Mesa) — só conta se esta MESMA peça é quem está na vez agora.
-    if(turnState.active && isCurrentTurnToken(tok)) markTurnActionPart('moved');
+    // fila de iniciativa: este movimento acabou de usar a AÇÃO DE MOVIMENTO da vez (ver
+    // markTurnMoved() na aba Mesa) — só conta se esta MESMA peça é quem está na vez agora.
+    if(turnState.active && isCurrentTurnToken(tok)) markTurnMoved();
   }
 
   // Além de alimentar o mini-tabuleiro, essa mesma leitura de mesa/liveBoard/tokens também
@@ -16179,7 +16340,7 @@ body{
     if(liveBoardTokensRef){ liveBoardTokensRef.off('value', liveBoardTokensCb); liveBoardTokensRef = null; liveBoardTokensCb = null; }
     // fila de iniciativa/turno (ver turnState lá em cima) — mesmo padrão dos outros 3 acima.
     if(liveBoardTurnRef){ liveBoardTurnRef.off('value', liveBoardTurnCb); liveBoardTurnRef = null; liveBoardTurnCb = null; }
-    turnState = { active:false, round:1, order:[], turnIndex:0, actionsLeft:2, moved:false, rolled:false };
+    turnState = { active:false, round:1, order:[], turnIndex:0, moved:false, rolled:false };
     renderTurnBars();
     // desliga o listener único de mesa/live (Vida/Mana/Escudo/XP ao vivo — ver onLiveVitalsChanged()
     // mais acima) — senão ele fica pendurado pra sempre no mesmo navegador: como o Firebase Auth
@@ -16236,9 +16397,8 @@ body{
         active: !!val.active, round: val.round || 1,
         order: Array.isArray(val.order) ? val.order : [],
         turnIndex: val.turnIndex || 0,
-        actionsLeft: val.actionsLeft != null ? val.actionsLeft : 2,
         moved: !!val.moved, rolled: !!val.rolled,
-      } : { active:false, round:1, order:[], turnIndex:0, actionsLeft:2, moved:false, rolled:false };
+      } : { active:false, round:1, order:[], turnIndex:0, moved:false, rolled:false };
       renderTurnBars();
     });
     liveBoardTokensRef = fbDb.ref('mesa40k/liveBoard/tokens');
