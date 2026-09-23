@@ -3793,13 +3793,26 @@ body{
   transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;transform-origin:left center;
 }
 /* aba Elemento: cada linha de Habilidade ganha um contorno iluminado na cor do próprio elemento
-   (1º elemento = els.deidade.value, 2º elemento = selectedElemento2, legado do antigo Rank S -- ver
-   o comentário grande em maybeOfferRankUpgrade()) por cima do fundo
+   (1º elemento = els.deidade.value, o elemento ATIVO agora -- 2º elemento = selectedElemento2, o
+   "outro" guardado, ganho pelo talento DUPLO ELEMENTO ou legado do antigo Rank S -- ver
+   trocarElementoPara()/o comentário grande em maybeOfferRankUpgrade()) por cima do fundo
    preto de sempre, em vez do preenchimento colorido que existia antes -- pedido explícito ("pinte
    de preto mas deixe um contorno iluminado na borda... na cor de cada elemento"). Ver __corFundo
    em renderHabilidades()/renderHabilidadesTab() no <script>; a aba Armamento nunca seta
    __corFundo, então suas linhas ficam só com a borda dourada padrão, sem brilho nenhum. */
 .hab-row.hab-row-elemento-glow{border-width:2px;}
+/* linha fixa "⚔️ TROCAR ARMA"/"🔥 TROCAR ELEMENTO" (rodada nova, ver renderArmaSwitchRow()/
+   renderElementoSwitchRow()) -- mesmo .hab-row de sempre, só com um contorno dourado mais forte (em
+   vez do glow por elemento) pra se destacar como uma AÇÃO, não uma Habilidade rolável comum. Sempre
+   a 1ª linha da aba quando aparece (inserida via insertBefore(...firstChild)). */
+.hab-switch-row{border-width:2px;border-color:var(--gold-bright);box-shadow:0 0 8px rgba(224,182,86,.35);}
+.hab-switch-btn{
+  font-family:'Cinzel Decorative',serif;font-size:11px;letter-spacing:.04em;
+  padding:4px 14px;border-radius:5px;cursor:pointer;flex:0 0 auto;
+  background:linear-gradient(180deg,#2a2210,#000);border:1px solid var(--gold-text);color:var(--gold-bright);
+  transition:border-color .15s ease,color .15s ease;
+}
+.hab-switch-btn:hover{border-color:#e0b656;color:#fff;}
 /* painel "Escolha uma Habilidade" que abre pro JOGADOR sempre que sobra 1+ ponto de Habilidade pra
    gastar (subida de nível, ou os 3 pontos do nível 1 assim que a ficha é criada) -- substitui os
    botões +/- que saíram da visão dele; ver openHabLevelUpPanel() no <script>. */
@@ -7687,20 +7700,22 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       .catch(err=> console.error('Não foi possível definir a divindade dessa ficha:', err));
   }
 
-  // pedido explícito: mini-seletor de 2º Elemento dentro do resumo ao vivo de MESA (ver
-  // opts.deidadeControl em makeFichasListLoader() mais abaixo -- reaproveita a mesma div
+  // pedido explícito (rodada antiga): mini-seletor de 2º Elemento dentro do resumo ao vivo de MESA
+  // (ver opts.deidadeControl em makeFichasListLoader() mais abaixo -- reaproveita a mesma div
   // .mc-deidade-control, um segundo bloco irmão). Mesmo esquema de ESTADO simples do 1º elemento
   // acima (.set() em mesa40k/deidade2/{uid}, nunca push), só que só fica DISPONÍVEL (não
-  // desabilitado) pra personagens que já tenham um 2º elemento de verdade (data.elemento2 --
-  // ver collectState()/applyState(), campo "elemento2"; hoje só existe em fichas legadas que já
-  // tinham ganho isso do antigo Rank S -- ver o comentário grande em maybeOfferRankUpgrade(),
-  // esvaziada numa rodada mais recente, sem nenhum jeito de ganhar um 2º elemento novo por
-  // enquanto) -- até lá o seletor fica travado mostrando "-" (pedido explícito:
-  // "até o personagem poder usar um segundo elemento mantenha esse seletor como -"). Sem
-  // contraparte de <select> na própria ficha (diferente do 1º elemento, que tem #f_deidade
-  // editável pelo mestre na ficha aberta) -- o único jeito de mexer nisso é por aqui mesmo, então
-  // só existe este caminho de escrita (ver handleElemento2Change() perto de handleDeidadeChange()
-  // pro lado do jogador, que só LÊ).
+  // desabilitado) pra personagens que já tenham um 2º elemento de verdade (data.elemento2 -- ver
+  // collectState()/applyState(), campo "elemento2"; hoje pode vir tanto do talento DUPLO ELEMENTO,
+  // guia GERAL -- ver TALENTO_CATALOG -- quanto de fichas legadas que já tinham ganho isso do
+  // antigo Rank S, ver o comentário grande em maybeOfferRankUpgrade()) -- sem nenhum dos dois, o
+  // seletor fica travado mostrando "-" (pedido explícito: "até o personagem poder usar um segundo
+  // elemento mantenha esse seletor como -"). Sem contraparte de <select> na própria ficha (diferente
+  // do 1º elemento, que tem #f_deidade editável pelo mestre na ficha aberta) -- o único jeito de
+  // mexer nisso POR AQUI é este mini-seletor mesmo (separado da habilidade fixa "🔥 TROCAR
+  // ELEMENTO" que o próprio jogador usa direto na ficha, ver trocarElementoPara() -- os dois
+  // caminhos escrevem em nós diferentes do Firebase e não se sincronizam automaticamente um com o
+  // outro), então só existe este caminho de escrita por aqui (ver handleElemento2Change() perto de
+  // handleDeidadeChange() pro lado do jogador, que só LÊ).
   function setHeroElemento2(ownerUid, elemento2, nome){
     if(!fbReady || !fbDb || !ownerUid || !elemento2) return;
     fbDb.ref('mesa40k/deidade2/' + ownerUid).set(elemento2)
@@ -10931,51 +10946,211 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // junta as habilidades de uma arma específica já marcando __iconImg (o ícone da PRÓPRIA arma,
   // WEAPON_ICON_IMG -- não confundir com hab.imagem, a ilustração de alcance/área de cada
   // habilidade) -- usado pelo painel "Escolha uma Habilidade" (openHabLevelUpPanel()) pra mostrar
-  // de qual arma cada opção vem.
+  // de qual arma cada opção vem. __armaKey (rodada nova) guarda a própria chave da arma (ex.:
+  // 'ESPADA_PESADA') em cada linha -- é o que permite à aba Armamento da ficha filtrar só as
+  // habilidades da arma ATUALMENTE equipada (ver renderHabilidades()/selectedArmaAtual).
   function tagArmaAbilities(weaponKey){
     if(!weaponKey || !WEAPON_ABILITIES[weaponKey]) return [];
     const icon = WEAPON_ICON_IMG[weaponKey] || null;
-    return WEAPON_ABILITIES[weaponKey].map(hab => Object.assign({}, hab, { __iconImg: icon }));
+    return WEAPON_ABILITIES[weaponKey].map(hab => Object.assign({}, hab, { __iconImg: icon, __armaKey: weaponKey }));
   }
   function getAllHabAbilitiesForFicha(){
-    // Armamento: junta a 1ª arma com a 2ª (ganha pelo talento SEGUNDA ARMA, guia GERAL -- ver
-    // openTalentoLevelUpPanel()) e a 3ª (legado, só existe em fichas salvas de antes do antigo
-    // Rank A parar de conceder isso sozinho -- ver o comentário grande em maybeOfferRankUpgrade())
-    // -- todas na mesma aba, sem distinção visual entre elas (só as próprias habilidades de cada
-    // uma).
-    const armaAbilities = []
-      .concat(tagArmaAbilities(typeof selectedArma !== 'undefined' ? selectedArma : null))
-      .concat(tagArmaAbilities(typeof selectedArma2 !== 'undefined' ? selectedArma2 : null))
-      .concat(tagArmaAbilities(typeof selectedArma3 !== 'undefined' ? selectedArma3 : null));
-    // Elemento: TODAS as linhas (1º elemento E 2º elemento -- este último legado, só existe em
-    // fichas de antes do antigo Rank S parar de conceder isso sozinho) ganham __corFundo = cor do
-    // respectivo elemento -- renderHabilidadesTab() usa isso pra desenhar um contorno iluminado
-    // (borda + brilho) na cor de cada uma, por cima do fundo preto padrão (pedido explícito,
-    // Rodada 7). As cores reativas da ficha inteira (--deity-eye-color etc, aba inteira inclusive)
-    // continuam presas só ao 1º elemento -- isto aqui nunca toca nelas, só pinta o contorno. Cada
-    // linha também ganha __iconImg (ELEMENT_ICON_IMG do respectivo elemento) pelo mesmo motivo do
-    // __iconImg de Armamento acima.
+    // Armamento: junta a 1ª arma com TODAS as extras (selectedArmasExtra -- ganhas pelo talento
+    // SEGUNDA ARMA, guia GERAL, agora repetível: cada escolha soma mais uma arma aqui, ver
+    // openTalentoLevelUpPanel(); um array migrado automaticamente a partir do antigo par fixo
+    // selectedArma2/selectedArma3 numa ficha salva de antes desta rodada, ver applyState()) --
+    // continua sendo a lista COMPLETA (todas as armas possuídas, nível 0 incluso), usada tanto pelo
+    // painel de subida de nível (openHabLevelUpPanel(), que precisa oferecer habilidade de QUALQUER
+    // arma possuída como opção, não só a equipada) quanto pela visão de administração do Mestre
+    // (isMestreView, ver renderHabilidades() mais abaixo) -- a aba Armamento do JOGADOR (e do
+    // Mestre na própria ficha) é quem filtra essa lista pra mostrar só a arma equipada, usando
+    // __armaKey (ver tagArmaAbilities() acima).
+    const armaAbilities = [selectedArma].concat(selectedArmasExtra)
+      .reduce((acc, chave) => acc.concat(tagArmaAbilities(chave)), []);
+    // Elemento: TODAS as linhas (1º elemento E 2º elemento -- ganho pelo talento DUPLO ELEMENTO,
+    // guia GERAL, uso único, OU legado do antigo Rank S -- ver o comentário grande em
+    // maybeOfferRankUpgrade()) ganham __corFundo = cor do respectivo elemento -- renderHabilidadesTab()
+    // usa isso pra desenhar um contorno iluminado (borda + brilho) na cor de cada uma, por cima do
+    // fundo preto padrão. Cada linha também ganha __iconImg (ELEMENT_ICON_IMG do respectivo
+    // elemento) e __elementoKey (a própria chave do elemento, ex.: 'FOGO') -- mesmo espírito do
+    // __armaKey de Armamento acima: __elementoKey é o que permite à aba Elemento da ficha filtrar
+    // só as habilidades do elemento ATIVO (els.deidade.value -- ver renderHabilidades()). Como
+    // elemento1Abilities já é montada a partir de els.deidade.value (o elemento ATIVO agora, depois
+    // de qualquer troca feita por trocarElementoPara()), ela sozinha já É a lista filtrada -- não
+    // precisa nenhum filtro a mais além de pegar só elemento1Abilities pra essa exibição.
     const elemento1Cor = DEITY_EYE_COLOR[els.deidade.value] || null;
     const elemento1Icon = ELEMENT_ICON_IMG[els.deidade.value] || null;
     const elemento1Abilities = (ELEMENT_ABILITIES[els.deidade.value] || [])
-      .map(hab => Object.assign({}, hab, { __corFundo: elemento1Cor, __iconImg: elemento1Icon }));
-    const elemento2Cor = (typeof selectedElemento2 !== 'undefined' && selectedElemento2) ? DEITY_EYE_COLOR[selectedElemento2] : null;
-    const elemento2Icon = (typeof selectedElemento2 !== 'undefined' && selectedElemento2) ? (ELEMENT_ICON_IMG[selectedElemento2] || null) : null;
-    const elemento2Abilities = ((typeof selectedElemento2 !== 'undefined' && selectedElemento2) ? (ELEMENT_ABILITIES[selectedElemento2] || []) : [])
-      .map(hab => Object.assign({}, hab, { __corFundo: elemento2Cor, __iconImg: elemento2Icon }));
+      .map(hab => Object.assign({}, hab, { __corFundo: elemento1Cor, __iconImg: elemento1Icon, __elementoKey: els.deidade.value }));
+    const elemento2Cor = selectedElemento2 ? DEITY_EYE_COLOR[selectedElemento2] : null;
+    const elemento2Icon = selectedElemento2 ? (ELEMENT_ICON_IMG[selectedElemento2] || null) : null;
+    const elemento2Abilities = (selectedElemento2 ? (ELEMENT_ABILITIES[selectedElemento2] || []) : [])
+      .map(hab => Object.assign({}, hab, { __corFundo: elemento2Cor, __iconImg: elemento2Icon, __elementoKey: selectedElemento2 }));
     const elementoAbilities = elemento1Abilities.concat(elemento2Abilities);
     const armaEmptyMsg = (typeof selectedArma !== 'undefined' && selectedArma)
       ? 'Nenhuma habilidade definida ainda para esta arma.'
       : 'Escolha uma arma (em "Nova ficha") para ver as habilidades de Armamento.';
-    return { armaAbilities, elementoAbilities, armaEmptyMsg };
+    return { armaAbilities, elementoAbilities, elemento1Abilities, armaEmptyMsg };
   }
   function renderHabilidades(){
-    const { armaAbilities, elementoAbilities, armaEmptyMsg } = getAllHabAbilitiesForFicha();
-    renderHabilidadesTab(habTabArmamento, armaAbilities, armaEmptyMsg);
-    renderHabilidadesTab(habTabElemento, elementoAbilities, 'Nenhuma habilidade definida ainda para este elemento.');
+    const { armaAbilities, elementoAbilities, elemento1Abilities, armaEmptyMsg } = getAllHabAbilitiesForFicha();
+    // Visão restrita (JOGADOR, e também o MESTRE na própria ficha/NPC -- mesma regra de sempre, ver
+    // isMestreView em renderHabilidadesTab()/renderTalentos()): a partir desta rodada, mostra só as
+    // habilidades da arma/elemento ATUALMENTE equipados (pedido explícito: "deve ser exibida na
+    // tela de habilidades apenas as habilidades do armamento selecionado"), com uma habilidade fixa
+    // "⚔️ TROCAR ARMA"/"🔥 TROCAR ELEMENTO" no topo pra trocar (ver renderArmaSwitchRow()/
+    // renderElementoSwitchRow() logo abaixo). O MESTRE administrando a ficha de OUTRA pessoa
+    // continua vendo TODAS as armas/elementos possuídos juntos, sem filtro nenhum -- mesmo espírito
+    // de sempre, acesso total pra administrar.
+    const isMestreView = currentRole === 'mestre' && !isMestreFichaPropria();
+    const armaParaExibir = isMestreView ? armaAbilities : armaAbilities.filter(hab => hab.__armaKey === (selectedArmaAtual || selectedArma));
+    const elementoParaExibir = isMestreView ? elementoAbilities : elemento1Abilities;
+    renderHabilidadesTab(habTabArmamento, armaParaExibir, armaEmptyMsg);
+    renderHabilidadesTab(habTabElemento, elementoParaExibir, 'Nenhuma habilidade definida ainda para este elemento.');
+    renderArmaSwitchRow();
+    renderElementoSwitchRow();
     if(habPointsBadge) habPointsBadge.textContent = String(Math.max(0, habPointsTotal() - habPointsUsedTotal()));
     updateHabTabElementoColor();
   }
+
+  // ---------- TROCAR ARMA / TROCAR ELEMENTO (rodada nova) ----------
+  // Pedido explícito: com o talento SEGUNDA ARMA (repetível) ou DUPLO ELEMENTO (uso único), o
+  // personagem passa a ter mais de uma arma/elemento -- mas só UM de cada fica "equipado"/ativo por
+  // vez. As duas habilidades fixas abaixo ("⚔️ TROCAR ARMA"/"🔥 TROCAR ELEMENTO", sempre a
+  // PRIMEIRA linha da respectiva aba quando aparecem) resolvem a troca, reaproveitando os MESMOS
+  // seletores de cartão com lore já usados na escolha inicial (openWeaponPicker()/
+  // openElementPicker()), só filtrados pra mostrar apenas o que o personagem já possui.
+  function armasPossuidas(){ return [selectedArma].concat(selectedArmasExtra).filter(Boolean); }
+  function elementosPossuidos(){ return [els.deidade.value, selectedElemento2].filter(Boolean); }
+  // "Esta ficha (aberta neste navegador) faz parte da fila de iniciativa AGORA?" -- mesmo casamento
+  // por NOME BASE já usado em rollBtn/markActionRollFromOpenSheet() lá em cima (turnState/
+  // isCurrentTurnToken() são function declarations, disponíveis aqui por hoisting mesmo definidas
+  // mais abaixo no <script>). null quando não há fila ativa OU esta ficha nunca entrou nela --
+  // nesses casos a troca é sempre livre, sem custo de turno nenhum (pedido explícito: "enquanto não
+  // estiver em um tabuleiro... pode trocar o armamento à vontade").
+  function turnEntryDaFichaAberta(){
+    if(!turnState.active || !turnState.order) return null;
+    const sheetName = ((els.nome && els.nome.value) || '').trim();
+    if(!sheetName) return null;
+    return turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha') && it.baseNome === sheetName) || null;
+  }
+  // linha fixa "⚔️ TROCAR ARMA", só aparece com 2+ armas possuídas E na visão restrita (JOGADOR, ou
+  // MESTRE na própria ficha/NPC -- ver isMestreView em renderHabilidades()) -- o Mestre
+  // administrando a ficha de outra pessoa já vê todas as armas juntas, sem precisar trocar nada.
+  function renderArmaSwitchRow(){
+    const isMestreView = currentRole === 'mestre' && !isMestreFichaPropria();
+    if(isMestreView) return;
+    const owned = armasPossuidas();
+    if(owned.length < 2) return;
+    const atual = selectedArmaAtual || selectedArma;
+    const row = document.createElement('div');
+    row.className = 'hab-row hab-switch-row';
+    const head = document.createElement('div');
+    head.className = 'hab-row-head';
+    const nomeEl = document.createElement('span');
+    nomeEl.className = 'hab-nome';
+    nomeEl.textContent = '⚔️ TROCAR ARMA';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'hab-switch-btn';
+    btn.textContent = 'Trocar';
+    btn.addEventListener('click', abrirTrocaDeArma);
+    head.append(nomeEl, btn);
+    const desc = document.createElement('div');
+    desc.className = 'hab-desc-inline';
+    desc.textContent = `Arma equipada agora: ${WEAPON_LABEL[atual] || atual || '(nenhuma)'}. Escolha outra arma que você já possui pra equipar.`;
+    row.append(head, desc);
+    habTabArmamento.insertBefore(row, habTabArmamento.firstChild);
+  }
+  // linha fixa "🔥 TROCAR ELEMENTO", mesmo espírito de renderArmaSwitchRow() acima, só que com 2+
+  // ELEMENTOS possuídos (1º elemento + selectedElemento2, ganho pelo talento DUPLO ELEMENTO ou
+  // legado de Rank S).
+  function renderElementoSwitchRow(){
+    const isMestreView = currentRole === 'mestre' && !isMestreFichaPropria();
+    if(isMestreView) return;
+    const owned = elementosPossuidos();
+    if(owned.length < 2) return;
+    const row = document.createElement('div');
+    row.className = 'hab-row hab-switch-row';
+    const head = document.createElement('div');
+    head.className = 'hab-row-head';
+    const nomeEl = document.createElement('span');
+    nomeEl.className = 'hab-nome';
+    nomeEl.textContent = '🔥 TROCAR ELEMENTO';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'hab-switch-btn';
+    btn.textContent = 'Trocar';
+    btn.addEventListener('click', abrirTrocaDeElemento);
+    head.append(nomeEl, btn);
+    const desc = document.createElement('div');
+    desc.className = 'hab-desc-inline';
+    desc.textContent = `Elemento ativo agora: ${els.deidade.value}. Escolha o outro elemento que você já possui pra ativar (muda a coloração da ficha inteira).`;
+    row.append(head, desc);
+    habTabElemento.insertBefore(row, habTabElemento.firstChild);
+  }
+  // abre o seletor de cartões de Arma (o MESMO de sempre, com lore e tudo) filtrado pra mostrar só
+  // as armas já possuídas -- opts.exclude esconde tudo que NÃO estiver na lista de possuídas.
+  function abrirTrocaDeArma(){
+    const owned = armasPossuidas();
+    openWeaponPicker(trocarArmaPara, {
+      exclude: Object.keys(WEAPON_ICON_IMG).filter(chave => !owned.includes(chave)),
+      title: 'Trocar Arma',
+      intro: 'Escolha qual das suas armas fica equipada agora.',
+    });
+  }
+  function abrirTrocaDeElemento(){
+    const owned = elementosPossuidos();
+    openElementPicker(trocarElementoPara, {
+      exclude: Object.keys(ELEMENT_ICON_IMG).filter(nome => nome !== '-' && !owned.includes(nome)),
+      title: 'Trocar Elemento',
+      intro: 'Escolha qual dos seus elementos fica ativo agora.',
+    });
+  }
+  // confirma a troca de arma de verdade (chamado pelo OK do seletor, via abrirTrocaDeArma() acima).
+  // Pedido explícito: fora de uma fila de iniciativa ativa (ou numa ficha que nunca entrou nela), a
+  // troca é sempre livre; DENTRO de uma fila, só na própria vez, e a ação ENCERRA O TURNO NA HORA
+  // (igual peça avulsa que só se move -- ver markTurnMoved()) -- EXCETO trocando de/para ESPADA
+  // LEVE, que não custa turno nenhum. Em TODOS os casos (custando turno ou não), sai um aviso no
+  // Discord com a imagem do personagem + a imagem da arma nova, lado a lado (mesmo esquema de
+  // postToDiscord(content, img1, img2) já usado pra rolagem+habilidade).
+  function trocarArmaPara(novaArma){
+    if(!novaArma || novaArma === (selectedArmaAtual || selectedArma)) return; // clicou na mesma, nada muda
+    const entry = turnEntryDaFichaAberta();
+    if(entry && !isCurrentTurnToken(entry)){ announceOutOfTurn(entry); return; }
+    const semExcecaoEspadaLeve = !((selectedArmaAtual || selectedArma) === 'ESPADA_LEVE' || novaArma === 'ESPADA_LEVE');
+    selectedArmaAtual = novaArma;
+    renderHabilidades();
+    const nome = (els.nome.value || '').trim();
+    if(!isBlankName(nome)){
+      postToDiscord(`${nome} TROCA A ARMA PARA ${WEAPON_LABEL[novaArma] || novaArma}`.toUpperCase(), buildLevelUpImageDataUrl(), buildWeaponIconDataUrl(novaArma));
+    }
+    if(entry && semExcecaoEspadaLeve) advanceTurn();
+  }
+  // idem trocarArmaPara() acima, só que pro Elemento -- SEM exceção nenhuma (não foi pedida), custa
+  // turno sempre que houver fila ativa e for a vez dele. A troca de verdade é um SWAP entre
+  // els.deidade.value (o elemento ativo) e selectedElemento2 (o "outro" guardado) -- reaproveita
+  // toda a reatividade de cor/CSS/board já presa a els.deidade (dispatchEvent('change')), em vez de
+  // duplicar essa lógica.
+  function trocarElementoPara(novoElemento){
+    if(!novoElemento || novoElemento === els.deidade.value) return; // clicou no mesmo, nada muda
+    const entry = turnEntryDaFichaAberta();
+    if(entry && !isCurrentTurnToken(entry)){ announceOutOfTurn(entry); return; }
+    const anterior = els.deidade.value;
+    selectedElemento2 = anterior;
+    els.deidade.value = novoElemento;
+    els.deidade.dispatchEvent(new Event('change', { bubbles:true }));
+    if(fbReady && fbDb && currentUser && currentRole === 'jogador'){
+      fbDb.ref('mesa40k/deidade/' + currentUser.uid).set(novoElemento)
+        .catch(err=> console.error('Não foi possível publicar a troca de elemento:', err));
+    }
+    const nome = (els.nome.value || '').trim();
+    if(!isBlankName(nome)){
+      postToDiscord(`${nome} TROCA O ELEMENTO PARA ${novoElemento}`.toUpperCase(), buildLevelUpImageDataUrl(), buildElementIconDataUrl(novoElemento));
+    }
+    if(entry) advanceTurn();
+  }
+
   habTabsEl.addEventListener('click', (e)=>{
     const btn = e.target.closest('.hab-tab-btn');
     if(!btn) return;
@@ -11229,7 +11404,14 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // ficha (ver updateFormFrameUnlockVisibility() lá em cima) -- antes dependiam de Rank, agora
   // dependem só de ter o talento. SEGUNDA ARMA abre o seletor de Arma na hora que é escolhido (ver
   // o handler de OK de openTalentoLevelUpPanel() mais abaixo) -- era um ganho automático do Rank B
-  // antes desta rodada (maybeOfferRankUpgrade(), agora esvaziada), virou escolha do jogador.
+  // antes desta rodada (maybeOfferRankUpgrade(), agora esvaziada), virou escolha do jogador, e
+  // agora (rodada nova) pode ser escolhido VÁRIAS vezes, uma arma nova por escolha (ver
+  // selectedArmasExtra/talentoSegundaArmaExtra lá em cima) -- por isso é tratado como REPETÍVEL em
+  // renderTalentoLevelUpList() (continua na lista mesmo já possuído, só some quando as 11 armas já
+  // tiverem sido escolhidas). DUPLO ELEMENTO é uso ÚNICO (normal, como qualquer outro talento) e
+  // funciona do mesmo jeito que SEGUNDA ARMA, só que com Elemento em vez de Arma -- abre o seletor
+  // de Elemento na hora, e a partir daí "🔥 TROCAR ELEMENTO" (aba Elemento) alterna qual dos dois
+  // fica ativo, mudando a coloração da ficha inteira (ver trocarElementoPara()).
   const TALENTO_CATALOG = [
     { id:'talento_salto', attr:'FOR', nome:'SALTO', desc:'O PERSONAGEM PODE EXECUTAR UM SALTO A LONGA DISTÂNCIA PARA ALCANÇAR UM LUGAR MAIS DISTANTE.' },
     { id:'talento_arrombar', attr:'FOR', nome:'ARROMBAR', desc:'O PERSONAGEM PODE DERRUBAR UMA PORTA TRANCADA COM UM TESTE DE FORÇA.' },
@@ -11258,7 +11440,8 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     { id:'talento_intimidar', attr:'CAR', nome:'INTIMIDAR', desc:'O PERSONAGEM CONSEGUE AMEAÇAR OUTROS PERSONAGENS.' },
     { id:'talento_forma_animal', attr:'GERAL', nome:'FORMA ANIMAL', desc:'LIBERA O QUADRO "FORMA ANIMAL" NO VERSO DA FICHA -- O PERSONAGEM PODE ENVIAR UMA IMAGEM PRÓPRIA PRA USAR NAS ROLAGENS QUANDO ESTIVER NESSA FORMA.' },
     { id:'talento_forma_humana', attr:'GERAL', nome:'FORMA HUMANA', desc:'LIBERA O QUADRO "FORMA HUMANA" NO VERSO DA FICHA -- O PERSONAGEM PODE ENVIAR UMA IMAGEM PRÓPRIA PRA USAR NAS ROLAGENS QUANDO ESTIVER NESSA FORMA.' },
-    { id:'talento_segunda_arma', attr:'GERAL', nome:'SEGUNDA ARMA', desc:'O PERSONAGEM ESCOLHE UMA SEGUNDA ARMA NA HORA. AS HABILIDADES DELA PASSAM A APARECER COMO OPÇÃO NA ABA DE HABILIDADES SEMPRE QUE SOBRAR UM PONTO PRA GASTAR.' },
+    { id:'talento_segunda_arma', attr:'GERAL', nome:'SEGUNDA ARMA', desc:'O PERSONAGEM ESCOLHE UMA ARMA NOVA NA HORA (PODE SER ESCOLHIDO VÁRIAS VEZES, UMA ARMA NOVA POR VEZ). A ABA ARMAMENTO GANHA A HABILIDADE "TROCAR ARMA" PRA ALTERNAR QUAL DELAS FICA EQUIPADA; AS HABILIDADES DE TODAS ELAS PASSAM A APARECER COMO OPÇÃO SEMPRE QUE SOBRAR UM PONTO PRA GASTAR.' },
+    { id:'talento_duplo_elemento', attr:'GERAL', nome:'DUPLO ELEMENTO', desc:'O PERSONAGEM ESCOLHE UM SEGUNDO ELEMENTO NA HORA, ENTRE OS 5 SELECIONÁVEIS (SÓ PODE SER ESCOLHIDO UMA VEZ). A ABA ELEMENTO GANHA A HABILIDADE "TROCAR ELEMENTO" PRA ALTERNAR QUAL DOS DOIS FICA ATIVO -- A COR DA FICHA INTEIRA MUDA JUNTO -- E AS HABILIDADES DO ELEMENTO NOVO PASSAM A APARECER COMO OPÇÃO SEMPRE QUE SOBRAR UM PONTO PRA GASTAR.' },
   ];
   function talentoAttrCode(attr){ return String(attr||'FOR').toLowerCase(); }
   function hasTalento(id){ return !!talentosOwned[id]; }
@@ -11271,7 +11454,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   function talentoPointsTotal(){
     return TALENTO_POINTS_INITIAL + (Number(talentoPointsExtra) || 0);
   }
-  function talentoPointsUsedTotal(){ return Object.keys(talentosOwned).length; }
+  // pontos de Talento gastos -- 1 por talento DISTINTO possuído (Object.keys(talentosOwned).length,
+  // igual sempre foi) MAIS talentoSegundaArmaExtra (rodada nova: cada escolha de SEGUNDA ARMA além
+  // da 1ª custa +1 ponto também, mesmo continuando a mesma UMA linha em talentosOwned -- ver o
+  // comentário grande perto de "let talentoSegundaArmaExtra" lá em cima).
+  function talentoPointsUsedTotal(){ return Object.keys(talentosOwned).length + (Number(talentoSegundaArmaExtra) || 0); }
   function grantTalento(id){
     if(!id || talentosOwned[id]) return;
     if(talentoPointsUsedTotal() >= talentoPointsTotal()) return; // sem ponto sobrando
@@ -11283,11 +11470,26 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     updateFormFrameUnlockVisibility();
   }
   // só pro MESTRE (ver botão ✕ em renderTalentos() abaixo) -- devolve o ponto, mesmo espírito do
-  // botão "−" de nível que o mestre tem nas Habilidades fixas.
+  // botão "−" de nível que o mestre tem nas Habilidades fixas. Revogar SEGUNDA ARMA/DUPLO ELEMENTO
+  // (rodada nova) também desfaz o que eles deram: SEGUNDA ARMA devolve TODAS as armas extras
+  // ganhas por ele (não dá pra saber qual arma veio de qual escolha, então tira todas de uma vez) e
+  // zera o contador extra de pontos; DUPLO ELEMENTO devolve o 2º elemento guardado. Nos dois casos,
+  // se a arma/elemento removido era justamente o EQUIPADO/ATIVO no momento, volta pro 1º (a ficha
+  // nunca fica sem nada selecionado).
   function revokeTalento(id){
     if(!talentosOwned[id]) return;
     delete talentosOwned[id];
+    if(id === 'talento_segunda_arma'){
+      selectedArmasExtra = [];
+      talentoSegundaArmaExtra = 0;
+      if(!armasPossuidas().includes(selectedArmaAtual)) selectedArmaAtual = selectedArma;
+      updateArmaBadge();
+    }
+    if(id === 'talento_duplo_elemento'){
+      selectedElemento2 = '';
+    }
     renderTalentos();
+    renderHabilidades(); // idem grantTalento() -- as linhas TROCAR ARMA/TROCAR ELEMENTO podem ter acabado de sumir
     updateFormFrameUnlockVisibility(); // idem grantTalento() acima -- revogar FORMA ANIMAL/HUMANA esconde o quadro de novo
   }
   // desenha só os talentos POSSUÍDOS (pedido explícito: "os talentos que o personagem não possui
@@ -11458,10 +11660,25 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       : 'Você ganhou um Talento! Selecione um atributo e depois o Talento.';
     talentoLevelUpList.innerHTML = '';
     // talentos já escolhidos em passos ANTERIORES deste mesmo wizard (ainda pendentes, não
-    // gravados em talentosOwned de verdade até o OK do último passo) -- somem da lista igual os
-    // já possuídos, pra não repetir o mesmo talento duas vezes num só lote.
-    const pendingIds = new Set(talentoWizardPicks.slice(0, talentoWizardIndex));
-    const opcoes = TALENTO_CATALOG.filter(t=> t.attr === talentoLevelUpActiveAttr && !hasTalento(t.id) && !pendingIds.has(t.id));
+    // gravados em talentosOwned de verdade até o OK do último passo) -- CONTADOS (não só um Set),
+    // porque SEGUNDA ARMA agora é REPETÍVEL (rodada nova) e precisa poder ser escolhido mais de uma
+    // vez dentro do MESMO lote (ex.: os 3 talentos iniciais do nível 1, todos SEGUNDA ARMA).
+    const pendingCounts = {};
+    talentoWizardPicks.slice(0, talentoWizardIndex).forEach(id=>{ pendingCounts[id] = (pendingCounts[id]||0) + 1; });
+    const totalArmasExistentes = Object.keys(WEAPON_ICON_IMG).length;
+    const opcoes = TALENTO_CATALOG.filter(t=>{
+      if(t.attr !== talentoLevelUpActiveAttr) return false;
+      // SEGUNDA ARMA é o ÚNICO talento repetível (rodada nova) -- continua na lista mesmo já
+      // possuído (e mesmo escolhido em passos anteriores deste lote), até esgotar as 11 armas
+      // existentes (contando as já possuídas + as reservadas por picks pendentes deste mesmo lote).
+      if(t.id === 'talento_segunda_arma'){
+        const reservadas = armasPossuidas().length + (pendingCounts[t.id] || 0);
+        return reservadas < totalArmasExistentes;
+      }
+      if(hasTalento(t.id)) return false; // não-repetível, já possuído -- some
+      if(pendingCounts[t.id]) return false; // não-repetível, já escolhido num passo anterior deste lote -- some
+      return true;
+    });
     if(!opcoes.length){
       const p = document.createElement('div');
       p.className = 'hab-empty-msg';
@@ -11527,36 +11744,68 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       renderTalentoLevelUpList();
       return;
     }
+    // captura ANTES de grantTalento() rodar -- é o que diz se a 1ª escolha de SEGUNDA ARMA (se
+    // houver) neste lote é a 1ª de TODAS (já contada de graça em talentosOwned) ou uma repetição
+    // (cada uma custa +1 ponto extra, ver talentoSegundaArmaExtra/talentoPointsUsedTotal() lá em
+    // cima).
+    const jaTinhaSegundaArmaAntes = hasTalento('talento_segunda_arma');
     // último passo -- agora sim grava TODOS os Talentos escolhidos neste wizard de uma vez na
     // ficha (pedido explícito: "botão de OK no final das seleções pra ter certeza das escolhas").
+    // grantTalento() é seguro de chamar repetido pro MESMO id (SEGUNDA ARMA) -- só a 1ª chamada faz
+    // alguma coisa, as seguintes são no-op (talentosOwned[id] já true), sem duplicar nada.
     talentoWizardPicks.forEach(id=> grantTalento(id));
     talentoLevelUpModal.hidden = true;
-    // talento SEGUNDA ARMA (GERAL, pedido explícito) -- ao ser escolhido, abre na hora o seletor
-    // de Arma pra 2ª arma (reaproveita selectedArma2/openWeaponPicker(), o MESMO campo que antes
-    // era preenchido automaticamente no Rank B -- ver o comentário grande em
-    // maybeOfferRankUpgrade(), esvaziada nesta rodada). Se SEGUNDA ARMA foi um dos 3 Talentos
-    // iniciais do nível 1 (escolhidos ANTES do lote de Habilidade, ver maybeOpenLevelUpPanels()
-    // logo abaixo), a nova arma já fica pronta a tempo das habilidades dela aparecerem no painel
-    // de Habilidade que vem em seguida, no mesmo nível -- exatamente o pedido ("poder selecionar
-    // as habilidades dela ainda nesse nível"). Escolhida num nível POSTERIOR (via
-    // nivelChoiceModal, 1 Talento de cada vez), as habilidades da nova arma só ficam selecionáveis
-    // a partir da PRÓXIMA vez que sobrar um ponto de Habilidade pra gastar -- não sobra nenhum
-    // ponto de Habilidade nesse MESMO nível pra gastar nelas na hora (o nível só deu 1 ponto no
-    // total, e foi pro Talento).
-    if(talentoWizardPicks.includes('talento_segunda_arma') && !selectedArma2){
+
+    // quantas vezes SEGUNDA ARMA apareceu NESTE lote -- rodada nova: repetível, cada uma abre o
+    // seletor de Arma uma vez (em sequência, excluindo as já possuídas + as já escolhidas nesta
+    // mesma sequência). A 1ª vez de TODAS (se for o caso) já está coberta pelo próprio talento (1
+    // ponto), então só as EXTRAS somam em talentoSegundaArmaExtra.
+    const qtdSegundaArma = talentoWizardPicks.filter(id=> id === 'talento_segunda_arma').length;
+    if(qtdSegundaArma > 0){
+      const qtdPagas = qtdSegundaArma - (jaTinhaSegundaArmaAntes ? 0 : 1);
+      if(qtdPagas > 0) talentoSegundaArmaExtra = (Number(talentoSegundaArmaExtra) || 0) + qtdPagas;
+    }
+    const temDuploElemento = talentoWizardPicks.includes('talento_duplo_elemento');
+
+    // Se SEGUNDA ARMA foi um dos Talentos iniciais do nível 1 (escolhidos ANTES do lote de
+    // Habilidade, ver maybeOpenLevelUpPanels() logo abaixo), a(s) arma(s) nova(s) já ficam prontas
+    // a tempo das habilidades delas aparecerem no painel de Habilidade que vem em seguida, no mesmo
+    // nível -- exatamente o pedido ("poder selecionar as habilidades dela ainda nesse nível").
+    // Escolhida num nível POSTERIOR (via nivelChoiceModal, 1 Talento de cada vez), a arma nova
+    // também fica disponível na hora -- só que, como aquele nível só deu 1 ponto no total e ele foi
+    // pro Talento, as habilidades dela ficam esperando selecionáveis a partir da PRÓXIMA vez que
+    // sobrar um ponto de Habilidade pra investir.
+    function abrirArmasPendentes(restantes){
+      if(restantes <= 0){ continuarComDuploElemento(); return; }
       openWeaponPicker(arma=>{
-        selectedArma2 = arma;
+        selectedArmasExtra.push(arma);
         updateArmaBadge();
+        renderHabilidades();
+        abrirArmasPendentes(restantes - 1);
+      }, {
+        exclude: armasPossuidas(),
+        title: 'Segunda Arma!',
+        intro: 'Você escolheu o talento SEGUNDA ARMA. Escolha agora qual arma nova entra pra ficha -- as habilidades dela entram na mesma aba de Armamento que você já tinha.',
+      });
+    }
+    // DUPLO ELEMENTO (uso único, mesmo espírito de SEGUNDA ARMA -- confirmado explicitamente: abre
+    // o seletor de Elemento NA HORA, ainda neste mesmo nível, não espera o próximo) -- só dispara
+    // se ainda não tiver um 2º elemento (guarda de segurança, não deveria disparar duas vezes já
+    // que o talento não é repetível).
+    function continuarComDuploElemento(){
+      if(!temDuploElemento || selectedElemento2){ maybeOpenLevelUpPanels(); return; }
+      openElementPicker(nome=>{
+        selectedElemento2 = nome;
         renderHabilidades();
         maybeOpenLevelUpPanels();
       }, {
-        exclude: [selectedArma, selectedArma2, selectedArma3].filter(Boolean),
-        title: 'Segunda Arma!',
-        intro: 'Você escolheu o talento Segunda Arma. Escolha agora qual é essa 2ª arma -- as habilidades dela entram na mesma aba de Armamento que você já tinha.',
+        exclude: [els.deidade.value],
+        title: 'Duplo Elemento!',
+        intro: 'Você escolheu o talento DUPLO ELEMENTO. Escolha agora seu segundo elemento -- as habilidades dele passam a aparecer como opção sempre que sobrar um ponto de Habilidade pra gastar.',
       });
-      return;
     }
-    maybeOpenLevelUpPanels(); // decide o que vem a seguir (mais Talentos/Habilidades iniciais, a tela de escolha, ou nada)
+    if(qtdSegundaArma > 0) abrirArmasPendentes(qtdSegundaArma);
+    else continuarComDuploElemento();
   });
   talentoLevelUpBackBtn.addEventListener('click', ()=>{
     if(talentoWizardIndex === 0){
@@ -11614,13 +11863,20 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       // arma escolhida pelo seletor de "Nova ficha" (ver openWeaponPicker()/selectedArma mais
       // abaixo) -- só guardada por enquanto, os efeitos de cada arma ficam pra depois.
       arma: selectedArma,
-      // 2ª arma (ganha pelo talento SEGUNDA ARMA, guia GERAL -- ver openTalentoLevelUpPanel()) e
-      // 3ª arma/2º elemento (LEGADO -- ganhos automáticos do antigo sistema de upgrade de Rank,
-      // ver o comentário grande em maybeOfferRankUpgrade(), esvaziada numa rodada mais recente:
-      // continuam funcionando normalmente pra quem já tinha, só não tem mais como ganhar de novo).
-      // '' numa ficha que nunca teve nenhuma dessas.
-      arma2: selectedArma2,
-      arma3: selectedArma3,
+      // armas EXTRAS (ganhas pelo talento SEGUNDA ARMA, guia GERAL, repetível -- ver
+      // openTalentoLevelUpPanel()) -- array, uma chave de arma por escolha. arma2/arma3 (campos
+      // antigos, um par fixo) não são mais escritos por uma ficha salva a partir desta rodada --
+      // ainda são LIDOS em applyState() por compatibilidade com fichas salvas ANTES dela (migrados
+      // pra este mesmo array na hora de abrir, sem perder nenhuma arma já ganha).
+      armasExtra: selectedArmasExtra.slice(),
+      // arma "equipada" agora (ver trocarArmaPara()) -- decide o que a aba Armamento mostra.
+      armaAtual: selectedArmaAtual,
+      // quantas vezes SEGUNDA ARMA foi escolhido ALÉM da 1ª -- ver o comentário grande perto de
+      // "let talentoSegundaArmaExtra" lá em cima.
+      talentoSegundaArmaExtra: talentoSegundaArmaExtra,
+      // 2º elemento -- ganho pelo talento DUPLO ELEMENTO (guia GERAL, uso único) OU legado do
+      // antigo sistema de upgrade de Rank S (ver o comentário grande em maybeOfferRankUpgrade(),
+      // esvaziada numa rodada mais recente) -- '' numa ficha que nunca teve nenhum dos dois.
       elemento2: selectedElemento2,
       inventory: [...inventoryRows.children].map(r=>{
         const inputs = r.querySelectorAll('input');
@@ -11724,8 +11980,17 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // deveria disparar de verdade, mas não custa proteger.
     try{
       selectedArma = s.arma || '';
-      selectedArma2 = s.arma2 || '';
-      selectedArma3 = s.arma3 || '';
+      // armas extras: ficha salva a partir desta rodada já traz s.armasExtra (array) direto. Ficha
+      // salva ANTES dela só tem o par antigo fixo s.arma2/s.arma3 (do talento de uso único OU do
+      // extinto sistema de Rank, ver o comentário grande em maybeOfferRankUpgrade()) -- migrado pra
+      // este mesmo array na hora de abrir, sem perder nenhuma arma já ganha. talentoSegundaArmaExtra
+      // NUNCA é cobrado retroativamente por essa migração (fica 0 -- essas armas já vieram de
+      // graça, ou já foram pagas com o próprio talento antes desta rodada).
+      selectedArmasExtra = Array.isArray(s.armasExtra) ? s.armasExtra.slice() : [s.arma2, s.arma3].filter(Boolean);
+      // arma equipada: ficha nova nesta rodada traz s.armaAtual salvo; ficha mais antiga (sem esse
+      // campo ainda) simplesmente começa equipada com a 1ª arma.
+      selectedArmaAtual = s.armaAtual || selectedArma;
+      talentoSegundaArmaExtra = Number(s.talentoSegundaArmaExtra) || 0;
       selectedElemento2 = s.elemento2 || '';
       updateArmaBadge();
     }catch(e){}
@@ -12135,9 +12400,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     weaponPickerLoreText.textContent = '';
     weaponPickerPendingChave = null;
     weaponPickerGrid.querySelectorAll('.weapon-card').forEach(b=> b.classList.remove('weapon-card-selected'));
-    // esconde cartas já escolhidas antes (a 1ª arma, e uma eventual 3ª arma legada -- ver
-    // selectedArma3/o comentário grande em maybeOfferRankUpgrade()) -- sem opts.exclude, nada fica
-    // escondido (fluxo normal de "Nova ficha").
+    // esconde cartas já escolhidas antes (armasPossuidas(), passada como opts.exclude por quem
+    // chama pra trocar/ganhar arma -- ver trocarArmaPara()/abrirArmasPendentes() no handler de OK
+    // do Talento) -- sem opts.exclude, nada fica escondido (fluxo normal de "Nova ficha").
     const exclude = (opts && opts.exclude) || [];
     weaponPickerGrid.querySelectorAll('.weapon-card-wrap').forEach(wrap=>{
       wrap.hidden = exclude.includes(wrap.dataset.arma);
@@ -12171,18 +12436,38 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // seletor ainda (fichas de mestre/NPC, ou fichas de jogador salvas ANTES desta rodada). Ver
   // collectState()/applyState() pra persistência e updateArmaBadge() pro selo no retrato.
   let selectedArma = '';
-  // 2ª arma: ganha pelo talento SEGUNDA ARMA (guia GERAL da aba Talentos -- ver
-  // openTalentoLevelUpPanel(), que grava aqui). 3ª arma e 2º elemento: LEGADO do antigo sistema de
-  // "upgrade de Rank" (Rank A/S, ver o comentário grande em maybeOfferRankUpgrade(), esvaziada
-  // numa rodada mais recente) -- só existem em fichas que já tinham ganho isso antes; não há mais
-  // nenhum jeito de ganhar uma 3ª arma ou um 2º elemento novo por enquanto. As habilidades de cada
-  // uma entram na MESMA aba (Armamento/Elemento) que já existe, junto com a da 1ª -- ver
-  // renderHabilidades(). As cores
-  // reativas da ficha inteira (--deity-eye-color etc.) continuam presas só ao 1º elemento
-  // (els.deidade.value) -- selectedElemento2 nunca mexe nisso, só tinge as próprias linhas de
-  // habilidade dele (ver __corFundo em renderHabilidades()/renderHabilidadesTab()).
-  let selectedArma2 = '';
-  let selectedArma3 = '';
+  // Armas EXTRAS (além da 1ª, selectedArma acima): TROCADO nesta rodada -- o talento SEGUNDA ARMA
+  // (guia GERAL da aba Talentos) agora pode ser escolhido VÁRIAS vezes, cada escolha soma mais uma
+  // arma nesta lista (era um par fixo selectedArma2/selectedArma3 antes, um pra cada Rank -- ver o
+  // comentário grande em maybeOfferRankUpgrade() pra entender por que Rank não concede mais nada
+  // sozinho). Uma ficha salva ANTES desta rodada, com selectedArma2/selectedArma3 antigos (do
+  // talento de uso único OU do antigo sistema de Rank), é migrada pra este array na hora de abrir
+  // (ver applyState()) -- ninguém perde nenhuma arma já ganha. As habilidades de TODAS as armas
+  // (1ª + extras) continuam contando como opção pro painel de subida de nível (ver
+  // getAllHabAbilitiesForFicha()), mas a aba Armamento da ficha em si só MOSTRA as habilidades da
+  // arma ATUALMENTE equipada (selectedArmaAtual, logo abaixo) -- pedido explícito desta rodada:
+  // "deve ser exibida na tela de habilidades apenas as habilidades do armamento selecionado".
+  let selectedArmasExtra = [];
+  // arma "equipada" agora -- decide o que aparece na aba Armamento (ver renderHabilidades()) e o
+  // texto do aviso no Discord ao trocar (ver trocarArmaPara()). Começa igual à 1ª arma
+  // (selectedArma) assim que ela é escolhida; só muda de verdade pela habilidade fixa "⚔️ TROCAR
+  // ARMA" (ver renderArmaSwitchRow()/abrirTrocaDeArma()), nunca sozinha.
+  let selectedArmaAtual = '';
+  // quantas vezes SEGUNDA ARMA foi escolhido ALÉM da 1ª vez -- a 1ª já é contada normalmente (1
+  // entrada em talentosOwned, igual qualquer outro Talento); cada escolha seguinte soma +1 aqui e
+  // custa +1 ponto de Talento (ver talentoPointsUsedTotal()), mesmo o Talento continuando a
+  // aparecer só como UMA linha na aba Talentos (pedido explícito: "uma linha só, sem contador").
+  // Nunca é debitado de fichas legadas (selectedArmasExtra migrado do antigo Rank não pagou Talento
+  // nenhum, e continua sem pagar).
+  let talentoSegundaArmaExtra = 0;
+  // 2º elemento: ganho pelo talento DUPLO ELEMENTO (guia GERAL, uso ÚNICO -- diferente de SEGUNDA
+  // ARMA, este não é repetível) OU legado do antigo sistema de Rank S (ver o comentário grande em
+  // maybeOfferRankUpgrade()). Igual a selectedArmasExtra acima, entra como opção a mais no painel
+  // de subida de nível (getAllHabAbilitiesForFicha()) sem nunca virar o elemento ATIVO sozinho --
+  // só a habilidade fixa "🔥 TROCAR ELEMENTO" troca de verdade (ver trocarElementoPara()), e nessa
+  // troca é justamente els.deidade.value e selectedElemento2 que TROCAM DE LUGAR entre si (o que
+  // era o 1º elemento vira o "outro" guardado aqui, e vice-versa) -- reaproveita toda a reatividade
+  // de cor/CSS/board que já existe em cima de els.deidade, sem precisar duplicar nada disso.
   let selectedElemento2 = '';
   const armaBadge = $('armaBadge');
   const armaBadgeImg = $('armaBadgeImg');
@@ -12197,22 +12482,23 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     }
   }
 
-  // GUTADA nesta rodada (pedido explícito: "o ganho de coisas por nível vai ser feito de uma
-  // forma diferente") -- antes, subir de Rank concedia sozinho: 2ª arma (Rank B), 3ª arma (Rank
-  // A) e 2º Elemento (Rank S), cada um com seu próprio painel de escolha automático. Isso saiu por
-  // completo: a 2ª arma agora só vem do talento SEGUNDA ARMA (guia GERAL, ver TALENTO_CATALOG/
-  // openTalentoLevelUpPanel() mais abaixo, que grava em selectedArma2 -- MESMA variável de antes,
-  // só que atribuída por escolha do jogador em vez de automático por Rank). Não existe mais
-  // nenhum jeito de ganhar uma 3ª arma ou um 2º Elemento (decisão explícita, sabendo que fica
-  // assim até que apareça algum talento novo pra isso). Rank (C/B/A/S) continua existindo só como
+  // GUTADA numa rodada anterior (pedido explícito: "o ganho de coisas por nível vai ser feito de
+  // uma forma diferente") -- antes, subir de Rank concedia sozinho: 2ª arma (Rank B), 3ª arma
+  // (Rank A) e 2º Elemento (Rank S), cada um com seu próprio painel de escolha automático. Isso
+  // saiu por completo: armas extras agora só vêm do talento SEGUNDA ARMA (guia GERAL -- ver
+  // TALENTO_CATALOG/openTalentoLevelUpPanel(), que grava em selectedArmasExtra) e um 2º elemento só
+  // vem do talento DUPLO ELEMENTO (mesma guia, grava em selectedElemento2) -- os dois escolhidos
+  // pelo jogador, nunca mais automático por Rank. Rank (C/B/A/S) continua existindo só como
   // título/cor visual (ver recalc()), sem conceder mais nada sozinho.
-  // selectedArma3/selectedElemento2 (declaradas ali embaixo) continuam existindo no modelo de
-  // dados (collectState()/applyState()/getAllHabAbilitiesForFicha()) só por compatibilidade com
-  // fichas salvas ANTES desta rodada que já tinham ganho essas coisas pelo Rank -- continuam
-  // funcionando normalmente pra quem já tinha, só não tem mais como ganhar de novo. Função mantida
-  // como um no-op vazio (em vez de apagada/desreferenciada) pra não precisar caçar e remover a
-  // única chamada dela por aí (ela não é mais chamada de lugar nenhum de propósito, mas fica aqui
-  // sem quebrar nada se algo ainda a invocar).
+  // Numa rodada mais recente, SEGUNDA ARMA passou a ser REPETÍVEL (uma arma nova por escolha,
+  // quantas vezes o jogador quiser até esgotar as 11 armas existentes -- ver
+  // talentoSegundaArmaExtra/renderTalentoLevelUpList()), então o antigo limite de "só uma 2ª arma"
+  // também não existe mais. selectedArmasExtra/selectedElemento2 (declaradas mais abaixo) migram
+  // automaticamente, na hora de abrir (ver applyState()), o antigo par fixo arma2/arma3 de uma
+  // ficha salva ANTES dessas mudanças -- ninguém perde nenhuma arma/elemento já ganho pelo Rank
+  // antigo. Função mantida como um no-op vazio (em vez de apagada/desreferenciada) pra não precisar
+  // caçar e remover a única chamada dela por aí (ela não é mais chamada de lugar nenhum de
+  // propósito, mas fica aqui sem quebrar nada se algo ainda a invocar).
   function maybeOfferRankUpgrade(){
     return;
   }
@@ -12252,6 +12538,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         }
         openWeaponPicker(arma=>{
           selectedArma = arma;
+          selectedArmaAtual = arma; // arma "equipada" por padrão = a 1ª escolhida (ver trocarArmaPara())
           updateArmaBadge();
           renderHabilidades(); // aba Armamento passa a valer pra arma recém-escolhida
           // ficha nova já nasce no nível 1 = 3 Talentos + 3 pontos de Habilidade garantidos, pra
@@ -12572,6 +12859,72 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     drawImageCoveringCircle(ctx, portraitImg, cx, cy, r);
     drawRollFrameRing(ctx, cx, cy, r, deityColor);
 
+    return canvas.toDataURL('image/png');
+  }
+
+  // imagens da ARMA/ELEMENTO pro aviso de troca no Discord (trocarArmaPara()/trocarElementoPara(),
+  // rodada nova: "com uma imagem do personagem e ao lado a imagem do armamento") -- mesmo padrão de
+  // pré-carregamento de getRollIconImg()/ROLL_ICON_SOURCES logo acima (um <img> por chave, criado
+  // uma vez e reaproveitado), só que a partir de WEAPON_ICON_IMG/ELEMENT_ICON_IMG em vez de
+  // ROLL_ICON_SOURCES -- precisa disso porque <canvas>.drawImage() exige um <img> já carregado, não
+  // aceita a string do data URL direto.
+  const weaponIconImgCache = {};
+  function getWeaponIconImg(key){
+    if(weaponIconImgCache[key]) return weaponIconImgCache[key];
+    const img = new Image();
+    img.src = WEAPON_ICON_IMG[key];
+    weaponIconImgCache[key] = img;
+    return img;
+  }
+  Object.keys(WEAPON_ICON_IMG).forEach(getWeaponIconImg);
+  const elementIconImgCache = {};
+  function getElementIconImg(key){
+    if(elementIconImgCache[key]) return elementIconImgCache[key];
+    const img = new Image();
+    img.src = ELEMENT_ICON_IMG[key];
+    elementIconImgCache[key] = img;
+    return img;
+  }
+  Object.keys(ELEMENT_ICON_IMG).forEach(getElementIconImg);
+  // mesma moldura circular (fundo + anel na cor da Deidade ATUAL) das outras imagens de Discord
+  // desta ficha (buildRollIconDataUrl()/buildLevelUpImageDataUrl() acima), só com o ícone da arma
+  // (sem o retrato por baixo -- aqui quem é o protagonista é a ARMA) centralizado dentro. Devolve
+  // null se a imagem ainda não tiver carregado (raríssimo, mesma cautela de buildRollIconDataUrl()).
+  function buildWeaponIconDataUrl(weaponKey){
+    const img = weaponKey ? getWeaponIconImg(weaponKey) : null;
+    if(!img || !img.complete || !img.naturalWidth) return null;
+    const SIZE = 320;
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE; canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    const deityColor = DEITY_EYE_COLOR[els.deidade.value] || '#e0b656';
+    const cx = SIZE/2, cy = SIZE/2, r = SIZE/2 - 12;
+    drawRollFrameBg(ctx, cx, cy, r);
+    drawRollFrameRing(ctx, cx, cy, r, deityColor);
+    const box = SIZE * 0.72;
+    const scale = Math.min(box/img.naturalWidth, box/img.naturalHeight);
+    const iw = img.naturalWidth*scale, ih = img.naturalHeight*scale;
+    ctx.drawImage(img, cx-iw/2, cy-ih/2, iw, ih);
+    return canvas.toDataURL('image/png');
+  }
+  // idem buildWeaponIconDataUrl() acima, só que pro ícone do ELEMENTO (trocarElementoPara()) --
+  // molduras na cor do PRÓPRIO elemento sendo anunciado (deityColor de "elementoKey", não da
+  // Deidade atual da ficha), já que aqui o ícone É o elemento em questão.
+  function buildElementIconDataUrl(elementoKey){
+    const img = elementoKey ? getElementIconImg(elementoKey) : null;
+    if(!img || !img.complete || !img.naturalWidth) return null;
+    const SIZE = 320;
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE; canvas.height = SIZE;
+    const ctx = canvas.getContext('2d');
+    const deityColor = DEITY_EYE_COLOR[elementoKey] || '#e0b656';
+    const cx = SIZE/2, cy = SIZE/2, r = SIZE/2 - 12;
+    drawRollFrameBg(ctx, cx, cy, r);
+    drawRollFrameRing(ctx, cx, cy, r, deityColor);
+    const box = SIZE * 0.72;
+    const scale = Math.min(box/img.naturalWidth, box/img.naturalHeight);
+    const iw = img.naturalWidth*scale, ih = img.naturalHeight*scale;
+    ctx.drawImage(img, cx-iw/2, cy-ih/2, iw, ih);
     return canvas.toDataURL('image/png');
   }
 
@@ -15677,9 +16030,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
             }
             // 2º elemento (pedido explícito, Rodada 7) -- ver setHeroElemento2() acima. Só fica
             // ativo (não desabilitado, ver disabled no template acima) quando data.elemento2 já
-            // existe de verdade (hoje só em fichas legadas -- ver o comentário grande em
-            // maybeOfferRankUpgrade()); sem isso o seletor mostra "-" travado, exatamente como
-            // pedido, e nem o listener de Firebase é conectado (nada pra sincronizar ainda).
+            // existe de verdade (hoje pode vir do talento DUPLO ELEMENTO, guia GERAL, ou de fichas
+            // legadas -- ver o comentário grande em maybeOfferRankUpgrade()); sem isso o seletor
+            // mostra "-" travado, exatamente como pedido, e nem o listener de Firebase é conectado
+            // (nada pra sincronizar ainda).
             const elemento2Sel = card.querySelector('.mc-elemento2-select');
             if(elemento2Sel){
               elemento2Sel.value = data.elemento2 || '-';
@@ -18432,10 +18786,12 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // ---------- 2º elemento definido pelo mestre pelo mini-seletor de MESA (ver setHeroElemento2()/
   // mc-elemento2-control em makeFichasListLoader()) ---------- mesmo esquema do 1º elemento logo
   // acima, só que sem contraparte de <select> na própria ficha (selectedElemento2 não tem um campo
-  // editável direto -- hoje só existe em fichas legadas, ver o comentário grande em
-  // maybeOfferRankUpgrade()), então não
-  // existe "suppress push" pra fazer aqui: este listener só LÊ mesa40k/deidade2/{uid} e aplica em
-  // selectedElemento2 + renderHabilidades() (pra reetiquetar/recolorir a aba Elemento na hora).
+  // editável direto na ficha em si -- hoje pode vir do talento DUPLO ELEMENTO, guia GERAL, de
+  // fichas legadas, ou desta escrita do mestre por aqui, ver o comentário grande em
+  // maybeOfferRankUpgrade()), então não existe "suppress push" pra fazer aqui: este listener só LÊ
+  // mesa40k/deidade2/{uid} e aplica em selectedElemento2 + renderHabilidades() (pra
+  // reetiquetar/recolorir a aba Elemento e atualizar a linha "🔥 TROCAR ELEMENTO", se for o caso,
+  // na hora).
   let elemento2ListenerRef = null;
   function disconnectElemento2Listener(){
     if(elemento2ListenerRef){
