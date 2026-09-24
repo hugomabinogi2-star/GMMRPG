@@ -2,13 +2,6 @@
   {
     "nome": "Oi",
     "tipo": "movimento",
-    "de": "C5",
-    "para": "D4",
-    "ts": 1789407595697
-  },
-  {
-    "nome": "Oi",
-    "tipo": "movimento",
     "de": "D4",
     "para": "E4",
     "ts": 1789407601055
@@ -283,5 +276,16 @@
     "ts": 1789926880870,
     "habilidade": "Golpe de Espada",
     "habilidadeDesc": "Ataca com a espada.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "int",
+    "statValor": 1,
+    "resultado": 12,
+    "resultLabel": "Erro",
+    "ts": 1790260282829,
+    "habilidade": "Disparo de Besta Pesada",
+    "habilidadeDesc": "Dispara um projétil pesado perfurante em linha reta, a até 4 casas de distância. Consome 1 de Munição para Besta Pesada por uso.\nDano: 1d6 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível)."
   }
 ]
