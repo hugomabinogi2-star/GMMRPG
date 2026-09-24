@@ -2823,7 +2823,7 @@ body{
    sendVitalPrint()/barreiraShieldWrapBtn no <script>), no lugar dos 3 botões antigos do cabeçalho
    do chat.
 */
-.barreira-shield-wrap:hover{ transform:scale(1.16); z-index:6; }
+.barreira-shield-wrap:hover{ transform:scale(1.32); z-index:6; }
 /* anel de luz girando ao redor do escudo, na cor da Deidade (--deity-eye-color): o traçado
    (.barreira-ring-fill) usa stroke-dasharray/stroke-dashoffset pra "encher" ou "esvaziar" o anel
    conforme --barreira-ratio (0 a 1, atualizada em updateBarreiraShield() a cada recalc()) — cheio
@@ -6829,16 +6829,24 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       desc: 'TROCAR DE QUALQUER ARMA PARA ARMA E ESCUDO, OU DE ARMA E ESCUDO PARA QUALQUER OUTRA ARMA, NÃO ENCERRA O TURNO.',
     },
     // pedido explícito do doc: "-3 casas de movimento para trás e para os lados... não se aplica ao
-    // movimento na direção para a qual o personagem está olhando" -- ficha SIMPLIFICA isso pra um
-    // -3 fixo (isotrópico, em qualquer direção), igual toda outra arma com passivo de movimento --
-    // ver weaponMovDelta()/computeEffectiveMoveLimit(); construir a versão de verdade (limite
-    // diferente por direção, usando o facing do token) exigiria replicar o mesmo esquema de
-    // computeFogReachableKeys()/closestFacingDirection() dentro das DUAS malhas de movimento
-    // (Tabuleiro Mesa e Tabuleiro ao Vivo), plumbing bem maior que o resto desta rodada -- avisado
-    // no changelog desta entrega, fica pra uma rodada futura se for pedido.
+    // movimento na direção para a qual o personagem está olhando" -- versão de VERDADE, direcional,
+    // implementada nesta rodada (a rodada anterior tinha simplificado pra um -3 isotrópico e avisado
+    // no changelog que ficaria pra depois, se fosse pedido -- foi). `dirMovPenalty` (em vez de
+    // `movDelta`, que é isotrópico/aplicado sempre) é o quanto essa arma reduz o alcance de
+    // movimento em toda direção EXCETO a que o personagem estiver apontando (tok.facing, ver
+    // FACING_VECTORS/closestFacingDirection() no <script>) -- ver weaponDirMovPenalty() logo abaixo
+    // e applyDirMovPenalty() (mais adiante no <script>, perto de closestFacingDirection()), que
+    // aplica essa regra de fato dentro do BFS de movimento das DUAS malhas (Tabuleiro Mesa e
+    // Tabuleiro ao Vivo). Pedido explícito do usuário sobre como a regra binária funciona: "reduz as
+    // direções apenas para os lados para os quais a setinha do personagem não está apontando na
+    // última movimentação; se não houver uma setinha apontando não se aplica o -3" -- ou seja, SEM
+    // nenhuma direção escolhida (tok.facing vazio, inclusive logo após qualquer movimento — ver
+    // handleLiveBoardDrop()/handleBoardDrop(), que sempre limpam tok.facing ao mover), a penalidade
+    // não se aplica em NENHUMA direção; assim que uma direção é escolhida, só ELA mantém o alcance
+    // cheio, as outras 7 (as 6 laterais + a oposta) perdem as 3 casas (nunca menos que 0).
     'LANCA_ESCUDO': {
-      desc: 'ENQUANTO EQUIPADO COM ESTA ARMA, O MOVIMENTO DO PERSONAGEM DIMINUI EM TRÊS CASAS PARA TRÁS E PARA OS LADOS (O MOVIMENTO PARA FRENTE NÃO É AFETADO). NA FICHA, POR SIMPLICIDADE, ESSA PENALIDADE É APLICADA COMO -3 CASAS EM QUALQUER DIREÇÃO.',
-      movDelta: -3,
+      desc: 'ENQUANTO EQUIPADO COM ESTA ARMA, O MOVIMENTO DO PERSONAGEM DIMINUI EM TRÊS CASAS PARA TRÁS E PARA OS LADOS. O MOVIMENTO NA DIREÇÃO PARA A QUAL O PERSONAGEM ESTIVER APONTANDO (SETINHA DE DIREÇÃO, ESCOLHIDA APÓS CADA MOVIMENTO NO TABULEIRO) NÃO É AFETADO. SEM NENHUMA DIREÇÃO ESCOLHIDA, A PENALIDADE NÃO SE APLICA.',
+      dirMovPenalty: 3,
     },
     'LANCARMA_ESCUDO': {
       desc: 'ENQUANTO EQUIPADO COM ESTA ARMA, O MOVIMENTO DO PERSONAGEM DIMINUI EM TRÊS CASAS.',
@@ -6863,6 +6871,18 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   function weaponMovDelta(armaKey){
     const passivo = WEAPON_PASSIVES[armaKey];
     return (passivo && passivo.movDelta) || 0;
+  }
+  // Penalidade DIRECIONAL de movimento do passivo da arma informada (ver `dirMovPenalty` em
+  // WEAPON_PASSIVES/LANCA_ESCUDO acima) -- ao contrário de weaponMovDelta() (isotrópico, somado
+  // direto no bonusMov do token), este valor NUNCA entra no bonusMov -- fica guardado à parte, no
+  // campo tok.dirMovPenalty de cada token (ver pushLiveVitals()/makeRosterLoader(), que gravam este
+  // valor no mesmo lugar/mesma hora que gravam bonusMov), e só é de fato aplicado por
+  // applyDirMovPenalty() (mais adiante no <script>) -- que reduz o alcance nas direções para as
+  // quais tok.facing NÃO está apontando, ou não aplica nada se tok.facing estiver vazio. 0 pra
+  // qualquer arma sem `dirMovPenalty` definido (todas, exceto Lança Pesada e Escudo).
+  function weaponDirMovPenalty(armaKey){
+    const passivo = WEAPON_PASSIVES[armaKey];
+    return (passivo && passivo.dirMovPenalty) || 0;
   }
   // Bônus FIXO de Defesa (#val_ar) de estar com um escudo equipado -- pedido explícito: "estar
   // usando Arma e Escudo adiciona +3 em Defesa" / "estar usando Lança e Escudo ou Lançarma e Escudo
@@ -6924,35 +6944,35 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         desc:'Realiza dois golpes contundentes a uma casa de distância da posição do personagem (a casa bem à frente dele, em linha reta) — um com cada espada.\nDano de cada ataque: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).' },
     ],
     'ARCO_FLECHA': [
-      { id:'disparar_flecha', nome:'Disparar Flecha', attr:'DES', dieSides:3, tipo:'perfurante',
+      { id:'disparar_flecha', nome:'Disparar Flecha', attr:'DES', dieSides:3, tipo:'perfurante', danoIcone:'🏹',
         municaoArma:'ARCO_FLECHA', municaoCusto:1,
         desc:'Dispara uma flecha perfurante em linha reta, a até 4 casas de distância — não pode atingir um alvo a apenas 1 casa de distância. Consome 1 Aljava de Flechas por uso.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
-      { id:'disparo_duplo', nome:'Disparo Duplo', attr:'DES', dieSides:3, tipo:'perfurante',
+      { id:'disparo_duplo', nome:'Disparo Duplo', attr:'DES', dieSides:3, tipo:'perfurante', danoIcone:'🏹',
         municaoArma:'ARCO_FLECHA', municaoCusto:2,
         desc:'Dispara duas flechas perfurantes ao mesmo tempo, atingindo dois alvos que estejam a até 1 casa de distância um do outro, ambos dentro do alcance de 4 casas — não pode atingir alvos a apenas 1 casa de distância. Consome 2 de Aljava de Flechas por uso. Efeito de área — a ficha não aplica dano automaticamente ao segundo alvo, cabe a quem estiver mestrando a cena registrar manualmente.\nDano de cada flecha: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
-      { id:'chuva_de_flechas', nome:'Chuva de Flechas', attr:'DES', dieSides:3, tipo:'perfurante',
+      { id:'chuva_de_flechas', nome:'Chuva de Flechas', attr:'DES', dieSides:3, tipo:'perfurante', danoIcone:'🏹',
         municaoArma:'ARCO_FLECHA', municaoCusto:9,
         desc:'Dispara uma chuva de flechas perfurantes sobre uma área de 3x3 casas, dentro do alcance de 4 casas. Consome 9 de Aljava de Flechas por uso. Efeito de área — a ficha não aplica dano automaticamente a quem estiver na área, cabe a quem estiver mestrando a cena registrar manualmente.\nDano: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
     ],
     'BESTA_LEVE': [
-      { id:'disparo_besta_leve', nome:'Disparo de Besta Leve', attr:'INT', dieSides:3, tipo:'perfurante',
+      { id:'disparo_besta_leve', nome:'Disparo de Besta Leve', attr:'INT', dieSides:3, tipo:'perfurante', danoIcone:'🏹',
         municaoArma:'BESTA_LEVE', municaoCusto:1,
         desc:'Dispara um projétil perfurante em linha reta, a até 6 casas de distância. Consome 1 de Munição para Besta Leve por uso.\nDano: 1d3 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível).' },
-      { id:'disparo_besta_leve_multiplo', nome:'Disparo de Besta Leve Múltiplo', attr:'INT', dieSides:6, tipo:'perfurante',
+      { id:'disparo_besta_leve_multiplo', nome:'Disparo de Besta Leve Múltiplo', attr:'INT', dieSides:6, tipo:'perfurante', danoIcone:'🏹',
         municaoArma:'BESTA_LEVE', municaoCusto:5,
         desc:'Dispara uma rajada de projéteis perfurantes contra um único alvo. Consome 5 de Munição para Besta Leve por uso.\nDano: 1d6 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível).' },
-      { id:'disparo_besta_leve_concentrado', nome:'Disparo de Besta Leve Concentrado', attr:'INT', dieSides:3, tipo:'perfurante',
+      { id:'disparo_besta_leve_concentrado', nome:'Disparo de Besta Leve Concentrado', attr:'INT', dieSides:3, tipo:'perfurante', danoIcone:'🏹',
         municaoArma:'BESTA_LEVE', municaoCusto:7,
         desc:'Dispara uma linha concentrada de projéteis perfurantes, atingindo todos que estiverem numa linha reta de até 6 casas à frente do personagem. Consome 7 de Munição para Besta Leve por uso. Efeito de área — a ficha não aplica dano automaticamente a quem estiver na linha, cabe a quem estiver mestrando a cena registrar manualmente.\nDano: 1d3 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível).' },
     ],
     'BESTA_PESADA': [
-      { id:'disparo_besta_pesada', nome:'Disparo de Besta Pesada', attr:'INT', dieSides:6, tipo:'perfurante',
+      { id:'disparo_besta_pesada', nome:'Disparo de Besta Pesada', attr:'INT', dieSides:6, tipo:'perfurante', danoIcone:'🏹',
         municaoArma:'BESTA_PESADA', municaoCusto:1,
         desc:'Dispara um projétil pesado perfurante em linha reta, a até 4 casas de distância. Consome 1 de Munição para Besta Pesada por uso.\nDano: 1d6 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível).' },
-      { id:'disparo_besta_pesada_contundente', nome:'Disparo de Besta Pesada Contundente', attr:'INT', dieSides:6, tipo:'contundente',
+      { id:'disparo_besta_pesada_contundente', nome:'Disparo de Besta Pesada Contundente', attr:'INT', dieSides:6, tipo:'contundente', danoIcone:'🏹',
         municaoArma:'BESTA_PESADA', municaoCusto:2,
         desc:'Dispara um projétil rombudo contundente em linha reta, a até 4 casas de distância. Consome 2 de Munição para Besta Pesada por uso.\nDano: 1d6 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível).' },
-      { id:'disparo_besta_pesada_real', nome:'Disparo de Besta Pesada Real', attr:'INT', dieSides:6, tipo:'real',
+      { id:'disparo_besta_pesada_real', nome:'Disparo de Besta Pesada Real', attr:'INT', dieSides:6, tipo:'real', danoIcone:'🏹',
         municaoArma:'BESTA_PESADA', municaoCusto:5,
         desc:'Dispara um projétil perfurante especial que atravessa tudo em seu caminho, causando Dano Real (ignora qualquer defesa) em linha reta, atingindo TODOS os inimigos numa linha de até 3 casas à frente do personagem. Consome 5 de Munição para Besta Pesada por uso. Efeito de área — a ficha não aplica dano automaticamente a quem estiver na linha, cabe a quem estiver mestrando a cena registrar manualmente.\nDano: 1d6 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível).' },
     ],
@@ -7692,6 +7712,13 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       // WEAPON_PASSIVES/weaponMovDelta() no <script>) soma/subtrai por cima do Modificador de
       // Movimento manual, igual pedido explícito desta rodada ("de verdade agora").
       payload.bonusMov = (num(els.mMov) || 0) + weaponMovDelta(selectedArmaAtual || selectedArma);
+      // Penalidade DIRECIONAL de movimento da arma equipada (só Lança Pesada e Escudo, por ora --
+      // ver WEAPON_PASSIVES/weaponDirMovPenalty() no <script>) -- ao contrário do bonusMov acima,
+      // este valor NUNCA se aplica sozinho: fica guardado à parte no token (tok.dirMovPenalty) e só
+      // é de fato descontado do alcance nas direções para as quais tok.facing não estiver apontando
+      // (ver applyDirMovPenalty(), aplicado tanto na prévia azul quanto na validação de verdade do
+      // movimento nas duas malhas de tabuleiro) -- sem direção nenhuma escolhida, nenhuma penalidade.
+      payload.dirMovPenalty = weaponDirMovPenalty(selectedArmaAtual || selectedArma);
       // Bug relatado DE NOVO depois da correção anterior (syncBoardTokenBonusFromLiveVitals(),
       // acima): aquela correção só roda pro MESTRE (currentRole === 'mestre', dentro de
       // onLiveVitalsChanged()) — então só propaga pra peça já colocada se o MESTRE estiver com a
@@ -7710,7 +7737,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       // computeEffectiveMoveLimit()) e SANGRANDO/ENVENENADO/QUEIMANDO/TONTO funcionarem sem
       // precisar de nenhum recarregamento.
       payload.efeitos = Object.assign({}, effectsState);
-      syncOwnPlacedTokenBonus(ownerUid, payload.bonusDes, payload.bonusMov, payload.efeitos);
+      syncOwnPlacedTokenBonus(ownerUid, payload.bonusDes, payload.bonusMov, payload.dirMovPenalty, payload.efeitos);
       // divindade atual da ficha — mesmo motivo do bonusDes acima: sem isto, uma ficha nunca salva
       // (liveOnlyRosterEntries()) não teria como a seta de direção do tabuleiro ao vivo saber a cor.
       payload.deidade = els.deidade ? (els.deidade.value || '') : '';
@@ -7803,7 +7830,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // campo, em vez de {} -- o Realtime Database de verdade não lida bem com objeto vazio) pra
   // computeEffectiveMoveLimit() no <script> (movimento) e a mensagem de rolagem (buildEffectTag(),
   // já embutida na mensagem antes de chegar aqui) sempre lerem o estado certo.
-  function syncOwnPlacedTokenBonus(ownerUid, freshDes, freshMov, freshEfeitos){
+  // freshDirPenalty (novo parâmetro, penalidade direcional de arma -- ver weaponDirMovPenalty()):
+  // mesmo tratamento do bonusMov, corrigido direto na(s) peça(s) já colocada(s) -- sem isso, trocar
+  // pra/de Lança Pesada e Escudo numa ficha já colocada no tabuleiro só valeria depois de removida/
+  // recolocada, mesmo bug que o bonusDes/bonusMov tinham antes desta correção existir.
+  function syncOwnPlacedTokenBonus(ownerUid, freshDes, freshMov, freshDirPenalty, freshEfeitos){
     if(!ownerUid || !fbDb || !liveBoardState || !liveBoardState.tokens) return;
     const efeitosVal = (freshEfeitos && Object.keys(freshEfeitos).length) ? freshEfeitos : null;
     const efeitosKey = efeitosVal ? Object.keys(efeitosVal).sort().join(',') : '';
@@ -7812,14 +7843,16 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     Object.keys(liveBoardState.tokens).forEach(key=>{
       const tok = liveBoardState.tokens[key];
       if(!tok || tok.kind !== 'hero' || tok.ownerUid !== ownerUid) return;
-      const curDes = tok.bonusDes || 0, curMov = tok.bonusMov || 0;
+      const curDes = tok.bonusDes || 0, curMov = tok.bonusMov || 0, curDirPenalty = tok.dirMovPenalty || 0;
       const curEfeitosKey = tok.efeitos ? Object.keys(tok.efeitos).sort().join(',') : '';
-      if(curDes === (freshDes || 0) && curMov === (freshMov || 0) && curEfeitosKey === efeitosKey) return;
+      if(curDes === (freshDes || 0) && curMov === (freshMov || 0) && curDirPenalty === (freshDirPenalty || 0) && curEfeitosKey === efeitosKey) return;
       tok.bonusDes = freshDes || 0;
       tok.bonusMov = freshMov || 0;
+      tok.dirMovPenalty = freshDirPenalty || 0;
       if(efeitosVal) tok.efeitos = efeitosVal; else delete tok.efeitos;
       patch[key + '/bonusDes'] = freshDes || 0;
       patch[key + '/bonusMov'] = freshMov || 0;
+      patch[key + '/dirMovPenalty'] = freshDirPenalty || 0;
       patch[key + '/efeitos'] = efeitosVal;
       any = true;
     });
@@ -10490,7 +10523,15 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     });
     descEl.addEventListener('input', refreshHasDesc);
     function qtyStep(delta){
-      qtyEl.value = Math.max(0, num(qtyEl) + delta);
+      // Munição (ver WEAPON_MUNICAO/rowEl.dataset.municaoArma, atribuído pelo chamador logo depois
+      // que addItemRow() devolve essa mesma linha -- por isso lido daqui, do dataset, em vez de
+      // capturado como argumento) ganha um TETO nesta rodada (pedido explícito: "as munições no
+      // inventário precisam ter um limite") -- só essas 4 linhas travadas, nenhum outro item do
+      // Inventário (nem OURO/Poções, nem item livre) tem limite máximo nenhum.
+      const municaoInfo = entry.dataset.municaoArma ? WEAPON_MUNICAO[entry.dataset.municaoArma] : null;
+      let next = Math.max(0, num(qtyEl) + delta);
+      if(municaoInfo) next = Math.min(next, municaoInfo.max);
+      qtyEl.value = next;
       // mantém os botões de pote (refill_vida/refill_mana) em dia assim que a quantidade de uma das
       // Poções muda pelos botões do próprio Inventário (não só quando usePotion() consome uma).
       if(isPotion) refreshPotionButtons();
@@ -10518,8 +10559,8 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   const WEAPON_MUNICAO = {
     'ARCO_FLECHA': { nome:'ALJAVA DE FLECHAS', max:100 },
     'BESTA_LEVE': { nome:'MUNIÇÃO PARA BESTA LEVE', max:60 },
-    'BESTA_PESADA': { nome:'MUNIÇÃO PARA BESTA PESADA', max:50 },
-    'LANCARMA_ESCUDO': { nome:'MUNIÇÃO CARREGADA PARA LANÇARMA', max:10 },
+    'BESTA_PESADA': { nome:'MUNIÇÃO PARA BESTA PESADA', max:40 },
+    'LANCARMA_ESCUDO': { nome:'MUNIÇÃO CARREGADA PARA LANÇARMA', max:20 },
   };
   // ---------- starting rows ----------
   // OURO, POÇÃO DE VIDA e POÇÃO DE MANA são as 3 linhas fixas/travadas, sempre nessa ordem, antes
@@ -14612,7 +14653,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       const t = boardTokens[key];
       tokensOut[key] = {
         id:t.id, kind:t.kind, name:t.name, size:t.size||1, sizeC:t.sizeC||t.size||1, anchorR:t.anchorR, anchorC:t.anchorC, seq:t.seq || null,
-        donoChave: t.donoChave || null, ownerUid: t.ownerUid || null, bonusDes: t.bonusDes || 0, bonusMov: t.bonusMov || 0, pvp: !!t.pvp,
+        // dirMovPenalty (rodada nova, ver WEAPON_PASSIVES/LANCA_ESCUDO e applyDirMovPenalty() no
+        // <script>): precisa sobreviver a este overwrite cheio junto do bonusDes/bonusMov, senão a
+        // penalidade direcional de movimento sumiria da peça toda vez que o mestre mexesse em
+        // qualquer outra coisa do tabuleiro.
+        donoChave: t.donoChave || null, ownerUid: t.ownerUid || null, bonusDes: t.bonusDes || 0, bonusMov: t.bonusMov || 0, dirMovPenalty: t.dirMovPenalty || 0, pvp: !!t.pvp,
         // facing/deidade: precisam sobreviver a este overwrite cheio (ver comentário grande logo
         // abaixo sobre o debounce) senão a seta de direção e a cor dela somem toda vez que o mestre
         // mexe em qualquer outra coisa do tabuleiro — ver FACING_ANGLES/DEITY_EYE_COLOR no <script>.
@@ -15192,7 +15237,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
           // aqui é só a segunda trava, direto no drop.
           if(prevToken) return;
           if(!canPlace(r, c, heroSize, heroSize, null)) return;
-          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, deidade: hero.deidade || '', pvp: true};
+          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || '', pvp: true};
           placeToken(r, c, token);
           footprintCells(r, c, heroSize).forEach(([fr,fc]) => renderBoardCell(fr,fc));
           renderHeroTray();
@@ -15201,7 +15246,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
           if(!canPlace(r, c, heroSize, heroSize, prevToken ? prevToken.id : null)) return;
           let prevCells = [];
           if(prevToken){ const [pSizeR, pSizeC] = tokenFootprintSize(prevToken); prevCells = footprintCells(prevToken.anchorR, prevToken.anchorC, pSizeR, pSizeC); clearTokenFootprint(prevToken); }
-          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, deidade: hero.deidade || ''};
+          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || ''};
           placeToken(r, c, token);
           prevCells.forEach(([pr,pc]) => renderBoardCell(pr,pc));
           footprintCells(r, c, heroSize).forEach(([fr,fc]) => renderBoardCell(fr,fc));
@@ -15223,7 +15268,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         const token = {
           id: 'inimigo_ficha:' + hero.id + '-' + (spawnCounter++), kind: 'inimigo_ficha',
           name: hero.name, portrait: hero.portrait, size: 1,
-          heroId: hero.id, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, deidade: hero.deidade || '',
+          heroId: hero.id, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || '',
         };
         // numera igual aliado/inimigo/monstro/boss (ex: "Goblin Batedor 1", "Goblin Batedor 2"),
         // agrupado pelo NOME da ficha (não por "Inimigo" genérico) -- ver tokenTooltipText().
@@ -15288,9 +15333,14 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       const restricted = isBoardMoveRestrictedToken(tok);
       if(restricted){
         const limit = computeEffectiveMoveLimit(tok);
-        const reachableMap = computeBoardReachable(tok.anchorR, tok.anchorC, limit);
+        // applyDirMovPenalty() (ver definição, perto de closestFacingDirection(), no <script>): corta
+        // as casas que só davam pra alcançar nas direções para as quais tok.facing não está
+        // apontando (ex.: Lança Pesada e Escudo) -- mesma função/mesmo raciocínio usado nas duas
+        // validações do Tabuleiro ao Vivo (highlightLiveBoardReachable()/handleLiveBoardDrop()).
+        const reachableMap = applyDirMovPenalty(computeBoardReachable(tok.anchorR, tok.anchorC, limit), tok.anchorR, tok.anchorC, tok, limit);
         if(!reachableMap.has(boardKey(r, c))){
-          alert(`Muito longe (ou bloqueado por um bloco no caminho)! O limite de movimento desta peça agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES + Movimento).`);
+          const dirPenaltyTxt = (tok.dirMovPenalty && tok.facing) ? ' (reduzido nas direções para as quais a peça não está apontando, por causa do passivo da arma equipada)' : '';
+          alert(`Muito longe (ou bloqueado por um bloco no caminho)! O limite de movimento desta peça agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES + Movimento)${dirPenaltyTxt}.`);
           return;
         }
       }
@@ -15338,7 +15388,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       .filter(({live})=> live && live.nome)
       .map(({uid, live})=> ({
         id: idPrefix + slugify(live.nome), name: live.nome, portrait: null,
-        donoChave: null, ownerUid: uid, bonusDes: live.bonusDes || 0, bonusMov: live.bonusMov || 0, deidade: live.deidade || '', liveOnly: true,
+        donoChave: null, ownerUid: uid, bonusDes: live.bonusDes || 0, bonusMov: live.bonusMov || 0, dirMovPenalty: live.dirMovPenalty || 0, deidade: live.deidade || '', liveOnly: true,
       }));
   }
 
@@ -15395,9 +15445,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       if(!live || live.bonusDes == null) return;
       const freshDes = live.bonusDes || 0;
       const freshMov = live.bonusMov || 0;
-      if((t.bonusDes || 0) !== freshDes || (t.bonusMov || 0) !== freshMov){
+      const freshDirPenalty = live.dirMovPenalty || 0;
+      if((t.bonusDes || 0) !== freshDes || (t.bonusMov || 0) !== freshMov || (t.dirMovPenalty || 0) !== freshDirPenalty){
         t.bonusDes = freshDes;
         t.bonusMov = freshMov;
+        t.dirMovPenalty = freshDirPenalty;
         changed = true;
       }
     });
@@ -15662,6 +15714,12 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
             // — mesmo raciocínio de pushLiveVitals(), só que a partir do JSON salvo em vez da ficha
             // aberta agora).
             bonusMov: (parseFloat(data.mods && data.mods.mov) || 0) + weaponMovDelta(data.armaAtual || data.arma),
+            // penalidade DIRECIONAL de movimento (só Lança Pesada e Escudo, por ora -- ver
+            // WEAPON_PASSIVES/weaponDirMovPenalty() no <script>) da arma equipada nessa ficha salva
+            // -- mesmo raciocínio do bonusMov acima, só que este valor nunca soma sozinho: fica
+            // guardado à parte pra applyDirMovPenalty() aplicar conforme a direção escolhida
+            // (tok.facing) no momento de cada movimento.
+            dirMovPenalty: weaponDirMovPenalty(data.armaAtual || data.arma),
             // divindade salva na ficha — fonte da cor da seta de direção no tabuleiro ao vivo (ver
             // DEITY_EYE_COLOR/buildFacingArrowEl() no <script>).
             deidade: data.deidade || '',
@@ -15893,7 +15951,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         // resolveTokenPortrait() já resolve certo sozinho pra qualquer kind (Barreira/materiais
         // legados continuam null, por não terem nenhum `img` em nenhum catálogo).
         portrait: resolveTokenPortrait(rt),
-        donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0, bonusMov: rt.bonusMov || 0,
+        donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0, bonusMov: rt.bonusMov || 0, dirMovPenalty: rt.dirMovPenalty || 0,
       };
       if(rt.pvp) token.pvp = true;
       if(rt.seq) token.seq = rt.seq;
@@ -17406,6 +17464,36 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     return FACING_ORDER[(idx + 4) % 8];
   }
 
+  // Penalidade DIRECIONAL de movimento de arma (por ora só Lança Pesada e Escudo -- ver
+  // WEAPON_PASSIVES/tok.dirMovPenalty, gravado em cada token junto do bonusDes/bonusMov) -- aplicada
+  // POR CIMA de um alcance já calculado por BFS (computeBoardReachable()/computeLiveBoardReachable(),
+  // que continuam sendo quem decide "dá pra chegar até lá andando", respeitando bloco/barreira no
+  // caminho). Reaproveita o MESMO closestFacingDirection() do Fog+ (computeFogReachableKeys() acima)
+  // só pra classificar a direção de cada casa a partir da âncora, mas com uma regra bem mais simples
+  // (binária, sem os 3 degraus do Fog+): pedido explícito do usuário -- "reduz as direções apenas
+  // para os lados para os quais a setinha do personagem não está apontando na última movimentação;
+  // se não houver uma setinha apontando não se aplica o -3" -- ou seja, SEM tok.facing definido
+  // (inclusive logo após qualquer movimento, que sempre limpa facing — ver handleLiveBoardDrop()/
+  // handleBoardDrop()), devolve o reachableMap tal como veio, sem tirar nenhuma casa; COM tok.facing
+  // definido, só a própria direção mantém o alcance (baseLimit) cheio -- as outras 7 (as 6 laterais +
+  // a oposta) perdem tok.dirMovPenalty casas (nunca menos que 0), e qualquer casa que só era
+  // alcançável usando esse alcance maior sai do resultado. anchorR/anchorC são a casa de ONDE a peça
+  // está partindo (não a casa pra onde está indo) -- mesma referência usada pelo BFS que gerou
+  // reachableMap, pra cada direção ser calculada em relação ao ponto de partida do movimento.
+  function applyDirMovPenalty(reachableMap, anchorR, anchorC, tok, baseLimit){
+    const penalty = (tok && tok.dirMovPenalty) || 0;
+    const facing = tok && tok.facing;
+    if(!penalty || !facing) return reachableMap;
+    const filtered = new Map();
+    reachableMap.forEach((dist, key)=>{
+      const [rr, rc] = key.split('_').map(Number);
+      const dir = closestFacingDirection(rr - anchorR, rc - anchorC);
+      const cellLimit = (dir === facing) ? baseLimit : Math.max(0, baseLimit - penalty);
+      if(dist <= cellLimit) filtered.set(key, dist);
+    });
+    return filtered;
+  }
+
   // Traça a linha reta (Bresenham) entre duas casas do grid — devolve a lista de casas cruzadas,
   // do começo (EXCLUSIVE) até o fim (inclusive). Usada só pra checagem de linha de visão logo
   // abaixo (hasLineOfSight) — não tem nada a ver com o BFS de alcance (computeLiveBoardReachable),
@@ -17780,7 +17868,12 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // mais acima, continua usando só bonusDes puro, sem bonusMov). computeEffectiveMoveLimit()
     // ainda aplica PARALIZADO/CONGELADO/ENJOADO/FERIDO por cima (ver EFEITOS).
     const limit = computeEffectiveMoveLimit(tok);
-    computeLiveBoardReachable(tok.anchorR, tok.anchorC, limit).forEach((dist, key)=>{
+    // applyDirMovPenalty() (ver definição, perto de closestFacingDirection()): corta desta prévia
+    // qualquer casa que só era alcançável nas direções para as quais tok.facing NÃO está apontando
+    // (ex.: Lança Pesada e Escudo) -- sem isso, a prévia azul mentiria pro jogador mostrando casas
+    // que handleLiveBoardDrop() recusaria na hora de soltar de verdade.
+    const reachableMap = applyDirMovPenalty(computeLiveBoardReachable(tok.anchorR, tok.anchorC, limit), tok.anchorR, tok.anchorC, tok, limit);
+    reachableMap.forEach((dist, key)=>{
       const occupant = liveBoardState.tokens[key];
       if(occupant && occupant.id !== tok.id) return; // casa ocupada por outra peça, não alcançável de verdade
       const [r, c] = key.split('_').map(Number);
@@ -17842,10 +17935,14 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // computeLiveBoardReachable() já leva bloco em conta (ver comentário na definição dela, lá em
     // cima) — uma casa que só dava pra alcançar "pulando" por cima de um bloco simplesmente não
     // aparece nesse Map, então o movimento é recusado igual a "longe demais", mesmo estando perto
-    // em linha reta.
-    const reachableMap = computeLiveBoardReachable(payload.r, payload.c, limit);
+    // em linha reta. applyDirMovPenalty() por cima (mesma função/mesmo raciocínio de
+    // highlightLiveBoardReachable() acima) corta as casas que só davam pra alcançar nas direções
+    // para as quais tok.facing não está apontando (ex.: Lança Pesada e Escudo) -- a validação de
+    // verdade, aqui, precisa ficar em sincronia com o que a prévia azul já mostrou.
+    const reachableMap = applyDirMovPenalty(computeLiveBoardReachable(payload.r, payload.c, limit), payload.r, payload.c, tok, limit);
     if(!reachableMap.has(newKey)){
-      liveBoardHintEl.textContent = `Muito longe (ou bloqueado por um bloco no caminho)! Seu limite agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES${bonusMov ? (bonusMov > 0 ? ' + ' : ' - ') + Math.abs(bonusMov) + ' de Movimento' : ''}).`;
+      const dirPenaltyTxt = (tok.dirMovPenalty && tok.facing) ? ` (reduzido nas direções para as quais o personagem não está apontando, por causa do passivo da arma equipada)` : '';
+      liveBoardHintEl.textContent = `Muito longe (ou bloqueado por um bloco no caminho)! Seu limite agora é ${limit} casa${limit===1?'':'s'} (1 + bônus de DES${bonusMov ? (bonusMov > 0 ? ' + ' : ' - ') + Math.abs(bonusMov) + ' de Movimento' : ''})${dirPenaltyTxt}.`;
       return;
     }
     // SANGRANDO: "o personagem recebe 1 de dano para cada casa que se mover" -- distância real
@@ -17933,9 +18030,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         // a primeira vez que o mestre mexer em QUALQUER outra coisa do tabuleiro depois disso, o
         // push dele (ainda com o bonusDes/bonusMov ANTIGO guardado aqui) apagaria de volta a
         // correção que o jogador acabou de gravar, trazendo o bug de volta escondido.
-        if((localTok.bonusDes || 0) !== (rt.bonusDes || 0) || (localTok.bonusMov || 0) !== (rt.bonusMov || 0)){
+        if((localTok.bonusDes || 0) !== (rt.bonusDes || 0) || (localTok.bonusMov || 0) !== (rt.bonusMov || 0) || (localTok.dirMovPenalty || 0) !== (rt.dirMovPenalty || 0)){
           localTok.bonusDes = rt.bonusDes || 0;
           localTok.bonusMov = rt.bonusMov || 0;
+          localTok.dirMovPenalty = rt.dirMovPenalty || 0;
         }
         // mesmo raciocínio de novo, agora pro painel EFEITOS -- setEffectActive() já corrige a peça
         // já colocada na hora (mesmo caminho do bonusDes/bonusMov, ver pushLiveVitals()), então o
@@ -17955,7 +18053,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       }
       const token = {
         id: rt.id, kind: 'hero', name: rt.name, size: 1,
-        portrait: resolveTokenPortrait(rt), donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0, bonusMov: rt.bonusMov || 0,
+        portrait: resolveTokenPortrait(rt), donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0, bonusMov: rt.bonusMov || 0, dirMovPenalty: rt.dirMovPenalty || 0,
         facing: rt.facing || null, deidade: rt.deidade || '',
       };
       if(rt.efeitos && Object.keys(rt.efeitos).length) token.efeitos = rt.efeitos;
