@@ -6819,6 +6819,13 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     const passivo = WEAPON_PASSIVES[armaKey];
     return (passivo && passivo.movDelta) || 0;
   }
+  // Erguer Escudo Pesado -- pedido explícito: "a habilidade é compartilhada entre Lança e Escudo e
+  // Lançarma e Escudo" -- MESMO objeto (mesmo `id`, mesma referência) usado nas duas listas abaixo,
+  // então o nível investido nela (habNiveis['erguer_escudo_pesado']) vale nas duas armas ao mesmo
+  // tempo, sem duplicar progresso: subir de nível com Lança e Escudo equipada já vale se o jogador
+  // trocar pra Lançarma e Escudo (e vice-versa).
+  const HAB_ERGUER_ESCUDO_PESADO = { id:'erguer_escudo_pesado', nome:'Erguer Escudo Pesado', attr:'CON', dieSides:10, setEscudo:true,
+    desc:'Ergue o escudo pesado, reforçando sua defesa: o resultado da rolagem SUBSTITUI o valor atual de Escudo do personagem, em vez de somar a ele. Usar Erguer Escudo Pesado de novo troca o valor anterior pelo novo, sem acumular.\nValor: 1d10 + bônus de CON (aumenta 1 dado por nível).' };
   const WEAPON_ABILITIES = {
     'ESPADA_PESADA': [
       { id:'corte_pesado', nome:'Corte Pesado', attr:'FOR', dieSides:6, baseDados:2, tipo:'cortante', imagem:HAB_IMG_AREA_CORTE_PESADO,
@@ -6903,8 +6910,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         desc:'Realiza um golpe perfurante para frente, afetando até duas casas de distância à frente do personagem, em linha reta (a casa logo à frente e a próxima depois dela).\nDano: 1d6 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível).' },
       { id:'golpe_de_escudo_pesado', nome:'Golpe de Escudo Pesado', attr:'FOR', dieSides:6, tipo:'contundente',
         desc:'Golpeia com o escudo pesado a uma casa de distância da posição do personagem (a casa bem à frente dele, em linha reta).\nDano: 1d6 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).' },
-      { id:'erguer_escudo_pesado', nome:'Erguer Escudo Pesado', attr:'CON', dieSides:10, setEscudo:true,
-        desc:'Ergue o escudo pesado, reforçando sua defesa: o resultado da rolagem SUBSTITUI o valor atual de Escudo do personagem, em vez de somar a ele. Usar Erguer Escudo Pesado de novo troca o valor anterior pelo novo, sem acumular.\nValor: 1d10 + bônus de CON (aumenta 1 dado por nível).' },
+      HAB_ERGUER_ESCUDO_PESADO,
     ],
     'LANCARMA_ESCUDO': [
       { id:'estocada_pesada_lancarma', nome:'Estocada Pesada', attr:'DES', dieSides:6, tipo:'perfurante',
@@ -6912,6 +6918,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       { id:'disparo_lancarma', nome:'Disparo de Lançarma', attr:'INT', dieSides:6, tipo:'real',
         municaoArma:'LANCARMA_ESCUDO', municaoCusto:1,
         desc:'Dispara a lançarma num cone à frente do personagem, causando Dano Real (ignora qualquer defesa). Consome 1 de Munição Carregada para Lançarma por uso, acerte ou erre — só pode ser usada com ao menos 1 unidade carregada. Efeito de área — a ficha não aplica dano automaticamente a quem estiver no cone, cabe a quem estiver mestrando a cena registrar manualmente.\nDano: 1d6 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível).' },
+      HAB_ERGUER_ESCUDO_PESADO,
     ],
     'INSTRUMENTO': [
       { id:'kabong', nome:'KABONG', attr:'FOR', dieSides:3, tipo:'contundente',
@@ -11614,7 +11621,16 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     habWizardPicks.slice(0, habWizardIndex).forEach(id=>{ pendingCounts[id] = (pendingCounts[id]||0) + 1; });
     function nivelHipotetico(id){ return habNivel(id) + (pendingCounts[id]||0); }
     const { armaAbilities, elementoAbilities } = getAllHabAbilitiesForFicha();
-    const opcoes = armaAbilities.concat(elementoAbilities).filter(hab => nivelHipotetico(hab.id) < HAB_NIVEL_MAX);
+    // Erguer Escudo Pesado (pedido explícito: "a habilidade é compartilhada entre Lança e Escudo e
+    // Lançarma e Escudo") é o MESMO id nas duas armas (ver HAB_ERGUER_ESCUDO_PESADO acima) -- quem
+    // possuir as duas (via SEGUNDA ARMA) veria o mesmo id 2x nesta lista (uma cópia tagueada por
+    // arma, ver tagArmaAbilities()) -- dedupe por id aqui, mesmo espírito de "SEGUNDA ARMA aparece
+    // só uma linha em Talentos", pra não oferecer a MESMA Habilidade como se fossem 2 escolhas
+    // diferentes neste wizard.
+    const idsVistos = new Set();
+    const opcoes = armaAbilities.concat(elementoAbilities)
+      .filter(hab => nivelHipotetico(hab.id) < HAB_NIVEL_MAX)
+      .filter(hab => { if(idsVistos.has(hab.id)) return false; idsVistos.add(hab.id); return true; });
     if(!opcoes.length){
       const p = document.createElement('div');
       p.className = 'hab-empty-msg';
