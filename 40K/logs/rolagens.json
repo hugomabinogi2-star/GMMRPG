@@ -1,19 +1,5 @@
 [
   {
-    "nome": "Oi",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 6,
-    "resultado": 15,
-    "resultLabel": "Acerto — Vantagem",
-    "ts": 1789407662422,
-    "mode": "vantagem",
-    "rolls": [
-      15,
-      10
-    ]
-  },
-  {
     "nome": "efreet",
     "tipo": "atributo",
     "statKey": "des",
@@ -297,5 +283,16 @@
     "danoTipo": "perfurante",
     "setEscudo": null,
     "ts": 1790260295245
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "int",
+    "statValor": 1,
+    "resultado": 18,
+    "resultLabel": "Erro",
+    "ts": 1790260309944,
+    "habilidade": "Disparo de Besta Pesada Contundente",
+    "habilidadeDesc": "Dispara um projétil rombudo contundente em linha reta, a até 4 casas de distância. Consome 2 de Munição para Besta Pesada por uso.\nDano: 1d6 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível)."
   }
 ]
