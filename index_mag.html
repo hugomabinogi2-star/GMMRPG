@@ -1095,9 +1095,13 @@ body{
 /* contorno verde nos ícones de aliado (padrão e a variante "Aliado (Fera)") — pulsa suavemente,
    igual ao brilho já usado em outros elementos da ficha (cristais, joia de Nível, tampas das
    garrafas). O token em si tem overflow:hidden, mas isso só corta o CONTEÚDO dele (a imagem por
-   dentro), não o próprio box-shadow do elemento — por isso o brilho aparece por fora normalmente. */
+   dentro), não o próprio box-shadow do elemento — por isso o brilho aparece por fora normalmente.
+   token-aliado_ficha (rodada nova) é o mesmo tratamento pras fichas de NPC marcadas "Aliados"
+   (ver #f_publica/renderAliadoFichaCoins() no <script>) colocadas no tabuleiro como peça de
+   verdade -- entra no mesmo grupo visual verde dos ícones de aliado. */
 .board-token.token-aliado,
-.board-token.token-aliado_fera{
+.board-token.token-aliado_fera,
+.board-token.token-aliado_ficha{
   animation:boardTokenGlowGreen 2.2s ease-in-out infinite;
 }
 @keyframes boardTokenGlowGreen{
@@ -1134,7 +1138,7 @@ body{
   50%{ box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 1.5px rgba(255,244,214,.85), 0 0 0 2.5px var(--enemy-ring-color), 0 0 0 4.5px #000, 0 0 12px 3px rgba(176,74,54,.95); }
 }
 @media (prefers-reduced-motion: reduce){
-  .board-token.token-aliado, .board-token.token-aliado_fera,
+  .board-token.token-aliado, .board-token.token-aliado_fera, .board-token.token-aliado_ficha,
   .board-token.token-inimigo, .board-token.token-monstro, .board-token.token-boss, .board-token.token-inimigo_ficha,
   .board-token.token-hero.token-hero-pvp, .board-token.token-hero.token-hero-pvp.token-hero-mestre{
     animation:none !important;
@@ -4590,6 +4594,12 @@ body{
        Inimigo/Monstro/Chefe) e repetida quantas vezes o mestre quiser -- ver
        renderInimigoFichaCoins()/handleBoardDrop() no <script>. -->
   <button id="masterEnemiesBtn" class="mestre-only">👹 Fichas de Inimigos</button>
+  <!-- FICHAS DE ALIADOS: rodada nova, mesmíssimo esquema do botão de Inimigos acima, só que pro
+       lado dos aliados (#f_publica = "Aliados", ícone com contorno verde no tabuleiro em vez de
+       vermelho) -- ver alliesModal/loadMasterAlliesList mais abaixo no <script>. Nasceu junto com a
+       remoção dos ícones genéricos de Aliado/Aliado (Fera): toda peça aliada colocável no tabuleiro
+       agora vem de uma ficha de verdade, gerada pelo mestre. -->
+  <button id="masterAlliesBtn" class="mestre-only">🧝 Fichas de Aliados</button>
   <button id="newBtn">Nova ficha</button>
   <button id="tokenBtn" title="Salvar, atualizar ou remover seu token do GitHub neste navegador">🔑 Meu token do GitHub</button>
   <button id="webhookConfigBtn" class="mestre-only" title="Configurar o webhook do Discord (rolagens e mensagens espelhadas pra lá)">🔗 Webhook do Discord</button>
@@ -4931,13 +4941,19 @@ body{
                  "Inimigos" (ver .mestre-only #masterEnemiesBtn/#enemiesModal e
                  renderInimigoFichaCoins() no <script>): fichas marcadas assim saem da lista
                  "🔒 Fichas do Mestre" e só aparecem em "👹 Fichas de Inimigos", de onde o mestre
-                 pode colocá-las (repetidas vezes) no tabuleiro como peças de verdade. -->
+                 pode colocá-las (repetidas vezes) no tabuleiro como peças de verdade. Rodada
+                 nova: ganhou também a 4ª opção "Aliados" (ver .mestre-only #masterAlliesBtn/
+                 #alliesModal e renderAliadoFichaCoins() no <script>) -- mesmíssimo esquema,
+                 só que pro lado dos aliados (ícone com contorno verde no tabuleiro em vez de
+                 vermelho): fichas marcadas assim saem de "🔒 Fichas do Mestre" e só aparecem em
+                 "🧝 Fichas de Aliados". -->
             <div class="field mestre-ficha-only" id="publicaField" hidden style="margin-top:10px;">
               <label for="f_publica">Ficha de NPC</label>
               <select id="f_publica">
                 <option value="Privado">🔒 Privado</option>
                 <option value="Publico">🌐 Público (aparece em "Fichas de NPC" pra qualquer um consultar)</option>
                 <option value="Inimigos">👹 Inimigos (some de "Fichas do Mestre", vira peça repetível no tabuleiro)</option>
+                <option value="Aliados">🧝 Aliados (some de "Fichas do Mestre", vira peça repetível no tabuleiro)</option>
               </select>
             </div>
             <!-- Habilidades: substituiu a lista livre antiga (nome/atributo/descrição digitados à
@@ -5440,6 +5456,11 @@ body{
           <button type="button" class="board-menu-tab" data-panel="boardPanelGeral">Geral</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelBlocos">Barreiras</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelPvp">⚔️ PVP</button>
+          <!-- Aba nova (rodada nova): acompanha em tempo real Vida/Mana/Escudo de cada instância de
+               Inimigos/Aliados JÁ COLOCADA no tabuleiro (ver renderBoardInstancesPanel() no
+               <script>) -- resposta direta a "é possível ter uma guia em mesa com as fichas dos
+               inimigos postas no tabuleiro pra acompanhar eles... vendo o HP e os status deles?". -->
+          <button type="button" class="board-menu-tab" data-panel="boardPanelInstancias">🩸 Instâncias no Tabuleiro</button>
         </div>
 
         <div class="board-menu-panel active" id="boardPanelJogadores">
@@ -5449,16 +5470,30 @@ body{
           <div class="board-tray-coins" id="boardTrayMestreCoins"></div>
         </div>
         <div class="board-menu-panel" id="boardPanelGeral">
-          <div class="board-enemy-coins" id="boardEnemyCoins"></div>
-          <!-- Fichas de NPC marcadas "Inimigos" (ver #f_publica/👹 Fichas de Inimigos) viram peças
-               de verdade aqui, na mesma aba dos ícones genéricos acima -- cada uma pode ser
-               arrastada quantas vezes o mestre quiser (repetível, ao contrário das fichas de
-               jogador/mestre normais das outras abas, que só entram uma vez cada). Fica escondida
-               (ver renderInimigoFichaCoins() no <script>) quando não há nenhuma ficha marcada
-               assim ainda, pra não deixar um título "Fichas de Inimigos" solto e vazio aqui. -->
+          <!-- Rodada nova: os ícones genéricos de Aliado/Aliado (Fera)/Inimigo/Monstro/Boss (antigo
+               #boardEnemyCoins/ENEMY_KINDS/renderEnemyCoins()) foram REMOVIDOS daqui -- pedido
+               explícito ("todas as fichas em index_mag terão que ser geradas pelo mestre"). Toda
+               peça de aliado/inimigo colocável agora vem de uma ficha de verdade (ver os dois
+               blocos logo abaixo), nunca mais de um ícone solto sem ficha. ENEMY_KINDS continua
+               existindo só no <script> (não mais renderizado aqui) pra resolver o retrato de peças
+               desse tipo que JÁ estejam em tabuleiros salvos antes desta rodada (compatibilidade
+               retroativa, ver resolveTokenPortrait()) -- não é mais possível criar peças novas
+               assim, só as que já existiam continuam aparecendo normalmente.
+               Fichas de NPC marcadas "Inimigos" (ver #f_publica/👹 Fichas de Inimigos) viram peças
+               de verdade aqui -- cada uma pode ser arrastada quantas vezes o mestre quiser
+               (repetível, ao contrário das fichas de jogador/mestre normais das outras abas, que só
+               entram uma vez cada). Fica escondida (ver renderInimigoFichaCoins() no <script>)
+               quando não há nenhuma ficha marcada assim ainda, pra não deixar um título "Fichas de
+               Inimigos" solto e vazio aqui. -->
           <div id="boardInimigoFichaWrap" hidden style="margin-top:14px;">
             <div class="board-tray-title">Fichas de Inimigos</div>
             <div class="board-enemy-coins" id="boardInimigoFichaCoins"></div>
+          </div>
+          <!-- Fichas de NPC marcadas "Aliados" (ver #f_publica/🧝 Fichas de Aliados) -- mesmíssimo
+               esquema do bloco de Inimigos acima, ver renderAliadoFichaCoins() no <script>. -->
+          <div id="boardAliadoFichaWrap" hidden style="margin-top:14px;">
+            <div class="board-tray-title">Fichas de Aliados</div>
+            <div class="board-enemy-coins" id="boardAliadoFichaCoins"></div>
           </div>
         </div>
         <!-- mesmas fichas de jogador/mestre das abas acima, só que colocadas aqui no tabuleiro
@@ -5492,15 +5527,30 @@ body{
             <input type="number" id="boardBlockColsInput" min="1" max="12" value="1" title="Número de colunas">
           </div>
           <div class="board-enemy-coins" id="boardObstacleCoins"></div>
-          <!-- Baú (novo, CHEST_KINDS no <script>) — pedido explícito: colocação igual às fichas de
-               Aliado/Inimigo/Monstro/Boss (repete quantas vezes o mestre quiser, numerado sozinho),
-               mas NÃO bloqueia movimento nem visão (não é uma barreira, é só um objeto no chão) — 3
-               variantes de material, puramente visuais. Descrição (o que tem dentro) é escrita
-               clicando no baú já colocado no tabuleiro de verdade (ver o listener de 'click' em
-               renderBoardCell() no <script>), não aqui na bandeja. -->
-          <div class="board-tray-title" style="margin-top:14px;">Baú / Objetos</div>
-          <p class="board-tray-hint">Baú, Arbusto, Armadilha e Poça de Água: nenhum bloqueia movimento nem visão — clique num já colocado no tabuleiro pra escrever a descrição (o que tem dentro, ou o efeito da armadilha, por exemplo), que aparece pra todo mundo ao passar o mouse em cima.</p>
+          <!-- Objetos (Arbusto/Armadilha/Poça de Água, CHEST_KINDS_PLACEABLE no <script>) — não
+               bloqueiam movimento nem visão (não são barreira, são só objetos/terreno no chão),
+               repetem quantas vezes o mestre quiser, numerados sozinhos. Descrição (o que tem
+               dentro, ou o efeito da armadilha) é escrita clicando na peça já colocada no tabuleiro
+               de verdade (ver o listener de 'click' em renderBoardCell() no <script>), não aqui na
+               bandeja. Rodada nova: os 3 Baús (madeira/metal/ouro) saíram daqui -- pedido explícito
+               ("todas as fichas... geradas pelo mestre") -- um "baú" que precise de conteúdo de
+               verdade agora é uma ficha marcada Aliados/Inimigos, não mais um ícone solto; CHEST_KINDS
+               continua reconhecendo Baús que já estejam em tabuleiros salvos antes desta rodada. -->
+          <div class="board-tray-title" style="margin-top:14px;">Objetos</div>
+          <p class="board-tray-hint">Arbusto, Armadilha e Poça de Água: nenhum bloqueia movimento nem visão — clique num já colocado no tabuleiro pra escrever a descrição (o que tem dentro, ou o efeito da armadilha, por exemplo), que aparece pra todo mundo ao passar o mouse em cima.</p>
           <div class="board-enemy-coins" id="boardChestCoins"></div>
+        </div>
+        <!-- "🩸 Instâncias no Tabuleiro" (rodada nova, ver renderBoardInstancesPanel() no <script>)
+             -- lista, ao vivo, cada peça de Inimigos/Aliados JÁ colocada no tabuleiro agora (cada
+             cópia contada separadamente, mesmo repetindo a mesma ficha várias vezes), com a PRÓPRIA
+             Vida/Mana/Escudo dessa instância (ver buildFichaInstanceToken()) e botões −10/−1/+1/+10
+             pra ajustar cada um na hora -- pensado pra acompanhar dano/cura durante o combate sem
+             precisar abrir a ficha-molde (que nunca muda por causa disso) nem contar na mão quantos
+             goblins ainda estão de pé. Só o mestre vê essa aba (mesmo tabuleiro/mesma aba MESA que
+             já é mestre-only). -->
+        <div class="board-menu-panel" id="boardPanelInstancias">
+          <p class="board-tray-hint">Cada peça de Inimigos/Aliados colocada no tabuleiro agora aparece aqui com a própria Vida/Mana/Escudo — independente da ficha-molde e de qualquer outra cópia da mesma ficha. Use os botões pra ajustar depois de um ataque, cura, etc.</p>
+          <div id="boardInstancesList" class="master-list"></div>
         </div>
       </div>
 
@@ -5680,6 +5730,27 @@ body{
     <p class="modal-sub">Fichas de NPC marcadas como "Inimigos" (ver seletor "Ficha de NPC", abaixo do Nome) aparecem aqui em vez de em "Fichas do Mestre". Pra colocar uma no tabuleiro, abra 🖥️ Mesa → aba "Geral": cada uma aparece como um retrato arrastável ali, junto dos ícones de Inimigo/Monstro/Chefe, e pode ser solta quantas vezes quiser.</p>
     <button id="refreshMasterEnemies" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
     <div id="masterEnemiesList" class="master-list"></div>
+  </div>
+</div>
+
+<!-- Modal da "🧝 Fichas de Aliados" (botão novo, ver #masterAlliesBtn no topo da barra --
+     mestre-only, igual "👹 Fichas de Inimigos" acima). Mesma pasta do GitHub (FICHAS_MESTRE_PATH),
+     mesma makeFichasListLoader() (com "Ver ficha"/"Apagar" iguais às outras listas), só que com um
+     filtro novo (opts.allyFilter) que mostra SÓ as fichas com #f_publica = "Aliados" -- o filtro
+     espelhado (opts.excludeEnemies, agora excluindo Inimigos E Aliados) roda em masterMestreList
+     lá em cima, pra elas saírem de lá. A parte de "virar peça repetível no tabuleiro" NÃO mora
+     neste modal -- é a aba "Geral" de dentro de 🖥️ Mesa que ganha um retrato arrastável por ficha
+     de Aliados (ver renderAliadoFichaCoins() no <script>), do mesmo jeito que já faz pra
+     Inimigos. -->
+<div class="modal-overlay" id="alliesModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>🧝 Fichas de Aliados</h2>
+      <button id="closeMasterAllies" class="modal-close">✕</button>
+    </div>
+    <p class="modal-sub">Fichas de NPC marcadas como "Aliados" (ver seletor "Ficha de NPC", abaixo do Nome) aparecem aqui em vez de em "Fichas do Mestre". Pra colocar uma no tabuleiro, abra 🖥️ Mesa → aba "Geral": cada uma aparece como um retrato arrastável ali, e pode ser solta quantas vezes quiser.</p>
+    <button id="refreshMasterAllies" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
+    <div id="masterAlliesList" class="master-list"></div>
   </div>
 </div>
 
@@ -9385,7 +9456,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // pra rolar, mesmo com a fila ativa -- mesmo critério já usado pro movimento.
     if(turnState.active && turnState.order){
       const sheetName = ((els.nome && els.nome.value) || '').trim();
-      const turnEntry = sheetName ? turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha') && it.baseNome === sheetName) : null;
+      const turnEntry = sheetName ? turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha' || it.kind === 'aliado_ficha') && it.baseNome === sheetName) : null;
       if(turnEntry && !isCurrentTurnToken(turnEntry)){
         expandDicePanelIfCollapsed();
         diceHint.textContent = `Não é a sua vez! Turno atual (Rodada ${turnState.round}): ${(currentTurnEntry()||{}).nome || '—'}.`;
@@ -10069,7 +10140,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     const entry = currentTurnEntry();
     if(!entry) return;
     turnState.moved = true;
-    const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha';
+    const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha' && entry.kind !== 'aliado_ficha';
     if(isFreeform){
       if(!isBlankName(entry.nome)) postToDiscord(`⏭️ ${entry.nome} SE MOVEU E O TURNO FOI ENCERRADO AUTOMATICAMENTE (SEM FICHA PRA ROLAR)`.toUpperCase(), null);
       advanceTurn();
@@ -10106,7 +10177,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   function markActionRollFromOpenSheet(verdict){
     if(!turnState.active) return;
     const entry = currentTurnEntry();
-    if(!entry || (entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha')) return;
+    if(!entry || (entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha' && entry.kind !== 'aliado_ficha')) return;
     const sheetName = ((els.nome && els.nome.value) || '').trim();
     if(!sheetName || sheetName !== entry.baseNome) return;
     markTurnRolled(verdict);
@@ -10248,7 +10319,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // REDESENHO desta rodada: sem contador de "ações restantes" — mostra o estado de cada uma das
     // 2 ações independentes (movimento/rolagem) desta vez (ver canMoveThisTurnToken()/
     // canRollThisTurnToken()). Peça SEM ficha (isFreeform) nunca tem rolagem pra mostrar.
-    const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha';
+    const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha' && entry.kind !== 'aliado_ficha';
     const bits = [];
     bits.push(turnState.rolled ? 'movimento travado (já rolou)' : (turnState.moved ? 'movimento já usado' : 'movimento disponível'));
     if(!isFreeform) bits.push(turnState.rolled ? 'rolagem já usada' : 'rolagem disponível');
@@ -11444,7 +11515,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     if(!turnState.active || !turnState.order) return null;
     const sheetName = ((els.nome && els.nome.value) || '').trim();
     if(!sheetName) return null;
-    return turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha') && it.baseNome === sheetName) || null;
+    return turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha' || it.kind === 'aliado_ficha') && it.baseNome === sheetName) || null;
   }
   // linha fixa "⚔️ TROCAR ARMA", só aparece com 2+ armas possuídas E na visão restrita (JOGADOR, ou
   // MESTRE na própria ficha/NPC -- ver isMestreView em renderHabilidades()) -- o Mestre
@@ -14346,9 +14417,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   const boardTrayMestreCoins = $('boardTrayMestreCoins');
   const boardTrayCoinsPvp = $('boardTrayCoinsPvp');
   const boardTrayMestreCoinsPvp = $('boardTrayMestreCoinsPvp');
-  const boardEnemyCoins  = $('boardEnemyCoins');
   const boardInimigoFichaWrap  = $('boardInimigoFichaWrap');
   const boardInimigoFichaCoins = $('boardInimigoFichaCoins');
+  const boardAliadoFichaWrap  = $('boardAliadoFichaWrap');
+  const boardAliadoFichaCoins = $('boardAliadoFichaCoins');
   const boardObstacleCoins = $('boardObstacleCoins');
   const boardChestCoins = $('boardChestCoins');
   const boardBlockRowsInput = $('boardBlockRowsInput');
@@ -14590,6 +14662,15 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   ];
   const CHEST_KIND_SET = new Set(CHEST_KINDS.map(k=> k.kind));
   function isChestKind(kind){ return CHEST_KIND_SET.has(kind); }
+  // Rodada nova: os 3 Baús (bau_madeira/bau_metal/bau_ouro) saíram da bandeja de arrasto -- pedido
+  // explícito ("todas as fichas em index_mag terão que ser geradas pelo mestre"), mesmo raciocínio
+  // que tirou ENEMY_KINDS de #boardEnemyCoins. Arbusto/Armadilha/Poça de Água CONTINUAM colocáveis
+  // (não são "fichas" nem criaturas, são só objetos/terreno decorativo, fora do pedido). CHEST_KINDS
+  // continua com os 6 (não só esses 3) pra isChestKind()/resolveTokenPortrait() continuarem
+  // reconhecendo e desenhando Baús que já estejam em tabuleiros salvos antes desta rodada
+  // (compatibilidade retroativa) -- só a bandeja de arrasto (renderChestCoins() logo abaixo) usa o
+  // subconjunto filtrado aqui, pra não oferecer Baú como opção NOVA de colocação.
+  const CHEST_KINDS_PLACEABLE = CHEST_KINDS.filter(k=> k.kind !== 'bau_madeira' && k.kind !== 'bau_metal' && k.kind !== 'bau_ouro');
   function tokenSizeClass(size){ return size === 3 ? ' token-size3' : size === 2 ? ' token-size2' : ''; }
 
   function applyBlockFootprintStyle(el, sizeR, sizeC){
@@ -14662,15 +14743,25 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         // abaixo sobre o debounce) senão a seta de direção e a cor dela somem toda vez que o mestre
         // mexe em qualquer outra coisa do tabuleiro — ver FACING_ANGLES/DEITY_EYE_COLOR no <script>.
         facing: t.facing || null, deidade: t.deidade || '',
-        // heroId: só usado por kind 'inimigo_ficha' (fichas de Inimigos colocáveis várias vezes —
-        // ver payload.kind==='inimigo_ficha' em handleBoardDrop()) — id da ficha de origem em
-        // mestreRoster, pra resolveTokenPortrait() achar o retrato do lado de quem só recebe (o
-        // jogador). Peças 'hero' de verdade não precisam disso porque o próprio t.id JÁ é o heroId.
+        // heroId: usado por kind 'inimigo_ficha'/'aliado_ficha' (fichas de Inimigos/Aliados
+        // colocáveis várias vezes — ver payload.kind==='inimigo_ficha'/'aliado_ficha' em
+        // handleBoardDrop()) — id da ficha de origem em mestreRoster, pra resolveTokenPortrait()
+        // achar o retrato do lado de quem só recebe (o jogador). Peças 'hero' de verdade não
+        // precisam disso porque o próprio t.id JÁ é o heroId.
         heroId: t.heroId || null,
         // desc: só usado por Baú (CHEST_KINDS) até agora — escrito pelo mestre clicando no baú já
         // colocado (ver renderBoardCell()) — mas fica disponível de graça pra qualquer kind futura
         // que precise do mesmo tipo de texto livre, já que tokenTooltipText() lê genericamente.
         desc: t.desc || null,
+        // Vida/Mana/Escudo "ao vivo" de cada instância de Inimigos/Aliados (rodada nova, ver
+        // buildFichaInstanceToken()/applyBoardData()/renderBoardInstancesPanel()) -- precisa
+        // sobreviver a este overwrite cheio igual dirMovPenalty/facing acima, senão o dano/cura já
+        // aplicado numa peça voltaria pro valor de fábrica toda vez que o mestre mexesse em
+        // qualquer outra coisa do tabuleiro. null (em vez de 0) em qualquer outro kind, pra não
+        // sujar o JSON salvo de campos sem sentido nenhum pra ele.
+        vidaMax: t.vidaMax != null ? t.vidaMax : null, vidaAtual: t.vidaAtual != null ? t.vidaAtual : null,
+        manaMax: t.manaMax != null ? t.manaMax : null, manaAtual: t.manaAtual != null ? t.manaAtual : null,
+        escudoMax: t.escudoMax != null ? t.escudoMax : null, escudoAtual: t.escudoAtual != null ? t.escudoAtual : null,
       };
     });
     return tokensOut;
@@ -15016,7 +15107,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       // também pode aparecer nesta função, não só a seta já fixada.
       if(pendingBoardFacingTokenIds.has(token.id) && isBoardMoveRestrictedToken(token)){
         cell.appendChild(buildFacingPickerEl(token, chooseBoardFacing));
-      } else if((token.kind === 'hero' || token.kind === 'inimigo_ficha') && token.facing){
+      } else if((token.kind === 'hero' || token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha') && token.facing){
         cell.appendChild(buildFacingArrowEl(token));
       }
     }
@@ -15089,7 +15180,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // dourado pra fichas de jogador/mestre, verde pra aliados, vermelho pra inimigo/monstro/boss.
   function tokenRingColorHex(kind){
     if(kind === 'hero') return '#ffd700';
-    if(kind === 'aliado' || kind === 'aliado_fera') return '#2f8d3e';
+    if(kind === 'aliado' || kind === 'aliado_fera' || kind === 'aliado_ficha') return '#2f8d3e';
     if(kind === 'inimigo' || kind === 'monstro' || kind === 'boss' || kind === 'inimigo_ficha') return '#b04a36';
     return null;
   }
@@ -15106,7 +15197,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     if(!token) return false;
     if(token.kind === 'aliado' || token.kind === 'aliado_fera'
       || token.kind === 'inimigo' || token.kind === 'monstro' || token.kind === 'boss'
-      || token.kind === 'inimigo_ficha') return true;
+      || token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha') return true;
     if(token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0) return true;
     if(token.kind === 'hero' && token.pvp) return true;
     return false;
@@ -15136,6 +15227,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     clearTokenFootprint(token);
     cells.forEach(([cr,cc])=> renderBoardCell(cr,cc));
     if(token.kind === 'hero'){ renderHeroTray(); renderMestreTray(); }
+    // instância de Inimigos/Aliados removida do tabuleiro -- some da aba "🩸 Instâncias no
+    // Tabuleiro" também (ver renderBoardInstancesPanel()); no-op pra qualquer outro kind.
+    if(token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha') renderBoardInstancesPanel();
     scheduleBoardTokensPush();
   }
 
@@ -15160,7 +15254,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // amarrada").
   function isBoardMoveRestrictedToken(tok){
     if(!tok) return false;
-    if(tok.kind === 'inimigo_ficha') return true;
+    if(tok.kind === 'inimigo_ficha' || tok.kind === 'aliado_ficha') return true;
     if(tok.kind === 'hero' && typeof tok.id === 'string' && tok.id.indexOf('mestre:') === 0) return true;
     return false;
   }
@@ -15211,6 +15305,31 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     scheduleBoardTokensPush();
   }
 
+  // Monta uma peça NOVA e independente a partir de uma ficha marcada "Inimigos" ou "Aliados" (ver
+  // #f_publica) -- usada tanto por payload.kind==='inimigo_ficha' quanto 'aliado_ficha' em
+  // handleBoardDrop() logo abaixo (mesmíssima lógica dos dois lados, só muda o kind/prefixo do id).
+  // Vida/Mana/Escudo "ao vivo" desta peça (rodada nova, resposta a "como fica quando tem uma mesma
+  // ficha de inimigo repetida do tabuleiro?"): cada instância nasce com a PRÓPRIA cópia dos valores
+  // atuais da ficha-molde (hero.curVida/curMana/barreiraCur, hero.vidaMax/manaMax/barreiraMax --
+  // ver os dois calculados em makeRosterLoader()) e passa a viver 100% separada dali em diante --
+  // dano/cura numa peça nunca afeta a ficha-molde nem qualquer outra peça da mesma ficha, mesmo que
+  // várias cópias do mesmo goblin estejam no tabuleiro ao mesmo tempo. Ver renderBoardInstancesPanel()
+  // (aba "🩸 Instâncias no Tabuleiro") pra acompanhar/editar esses valores depois de colocada.
+  function buildFichaInstanceToken(kind, hero){
+    const token = {
+      id: kind + ':' + hero.id + '-' + (spawnCounter++), kind,
+      name: hero.name, portrait: hero.portrait, size: 1,
+      heroId: hero.id, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || '',
+      vidaMax: hero.vidaMax || 0, vidaAtual: hero.curVida ?? hero.vidaMax ?? 0,
+      manaMax: hero.manaMax || 0, manaAtual: hero.curMana ?? hero.manaMax ?? 0,
+      escudoMax: hero.barreiraMax || 0, escudoAtual: hero.barreiraCur || 0,
+    };
+    // numera igual aliado/inimigo/monstro/boss (ex: "Goblin Batedor 1", "Goblin Batedor 2"),
+    // agrupado pelo NOME da ficha (não por "Inimigo"/"Aliado" genérico) -- ver tokenTooltipText().
+    token.seq = nextSeqForLabel(hero.name);
+    return token;
+  }
+
   function handleBoardDrop(r, c, e){
     let payload;
     try{ payload = JSON.parse(e.dataTransfer.getData('text/plain')); }catch(err){ return; }
@@ -15259,22 +15378,28 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         // ficha, sempre movida), aqui CADA drop cria uma peça NOVA e independente (id sempre único,
         // com um contador -- nunca reaproveita/move uma peça já existente), porque essa ficha pode
         // "se repetir no tabuleiro" (a pedido) — várias instâncias do mesmo goblin, por exemplo.
-        // Nome/retrato/DES/Elemento vêm da ficha de verdade (mestreRoster), não de um ícone
-        // genérico -- token.heroId guarda de qual ficha essa peça veio (ver collectBoardTokensOut()
-        // /resolveTokenPortrait()), útil se um dia precisar reconciliar com a ficha de origem.
+        // Nome/retrato/DES/Elemento/Vida/Mana/Escudo vêm da ficha de verdade (mestreRoster), não de
+        // um ícone genérico -- token.heroId guarda de qual ficha essa peça veio (ver
+        // collectBoardTokensOut()/resolveTokenPortrait()), útil se um dia precisar reconciliar com
+        // a ficha de origem. Ver buildFichaInstanceToken() logo acima.
         const hero = mestreRoster.find(h => h.id === payload.heroId && isInimigosValue(h.publica));
         if(!hero) return;
         if(!canPlace(r, c, 1, 1, null)) return;
-        const token = {
-          id: 'inimigo_ficha:' + hero.id + '-' + (spawnCounter++), kind: 'inimigo_ficha',
-          name: hero.name, portrait: hero.portrait, size: 1,
-          heroId: hero.id, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || '',
-        };
-        // numera igual aliado/inimigo/monstro/boss (ex: "Goblin Batedor 1", "Goblin Batedor 2"),
-        // agrupado pelo NOME da ficha (não por "Inimigo" genérico) -- ver tokenTooltipText().
-        token.seq = nextSeqForLabel(hero.name);
+        const token = buildFichaInstanceToken('inimigo_ficha', hero);
         placeToken(r, c, token);
         footprintCells(r, c, 1, 1).forEach(([fr,fc]) => renderBoardCell(fr,fc));
+        renderBoardInstancesPanel();
+      } else if(payload.kind === 'aliado_ficha'){
+        // Ficha de NPC marcada "Aliados" (ver #f_publica/renderAliadoFichaCoins()) -- mesmíssimo
+        // esquema do branch 'inimigo_ficha' logo acima, só que pro lado dos aliados (contorno verde
+        // no tabuleiro, ver boardTokenGlowGreen no <style>, em vez de vermelho).
+        const hero = mestreRoster.find(h => h.id === payload.heroId && isAliadosValue(h.publica));
+        if(!hero) return;
+        if(!canPlace(r, c, 1, 1, null)) return;
+        const token = buildFichaInstanceToken('aliado_ficha', hero);
+        placeToken(r, c, token);
+        footprintCells(r, c, 1, 1).forEach(([fr,fc]) => renderBoardCell(fr,fc));
+        renderBoardInstancesPanel();
       } else {
         const enemyCfg = ENEMY_KINDS.find(k => k.kind === payload.kind);
         // Baú (CHEST_KINDS): mesmo esquema de numeração/repetição do enemyCfg acima (ver
@@ -15527,10 +15652,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   function renderHeroTray(){ renderHeroTrayNormal(); renderHeroTrayPvp(); }
 
   // fichas do mestre: allowLarge=true (último argumento) — cada NPC ganha as duas moedas (1 casa e
-  // 2x2), ver comentário de makeRosterTrayRenderer() acima. Fichas marcadas "Inimigos" (ver
-  // #f_publica) saem daqui de propósito -- elas ficam SEPARADAS, só na bandeja de
-  // renderInimigoFichaCoins() (aba Geral), não nas duas abas de fichas do mestre abaixo.
-  const mestreRosterSemInimigos = ()=> mestreRoster.filter(h => !isInimigosValue(h.publica));
+  // 2x2), ver comentário de makeRosterTrayRenderer() acima. Fichas marcadas "Inimigos" ou
+  // "Aliados" (ver #f_publica) saem daqui de propósito -- elas ficam SEPARADAS, só nas bandejas de
+  // renderInimigoFichaCoins()/renderAliadoFichaCoins() (aba Geral), não nas duas abas de fichas do
+  // mestre abaixo.
+  const mestreRosterSemInimigos = ()=> mestreRoster.filter(h => !isInimigosValue(h.publica) && !isAliadosValue(h.publica));
   const renderMestreTrayNormal = makeRosterTrayRenderer(
     mestreRosterSemInimigos, boardTrayMestreCoins,
     'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".', false, true
@@ -15539,35 +15665,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     mestreRosterSemInimigos, boardTrayMestreCoinsPvp,
     'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".', true, true
   );
-  // renderInimigoFichaCoins() depende do mesmo mestreRoster que as duas linhas acima -- chamada
-  // sempre junto, pra bandeja de "Fichas de Inimigos" (aba Geral) nunca ficar desatualizada em
-  // relação à de "Fichas do Mestre" (ex: mestre marca uma ficha como Inimigos e salva de novo).
-  function renderMestreTray(){ renderMestreTrayNormal(); renderMestreTrayPvp(); renderInimigoFichaCoins(); }
-
-  function renderEnemyCoins(){
-    boardEnemyCoins.innerHTML = '';
-    ENEMY_KINDS.forEach(cfg=>{
-      const wrap = document.createElement('div');
-      wrap.className = 'tray-coin-wrap';
-      const coin = document.createElement('div');
-      coin.className = 'tray-coin token-' + cfg.kind;
-      coin.draggable = true;
-      coin.style.backgroundImage = `url("${cfg.img}")`;
-      coin.title = 'Arraste para o tabuleiro' + (cfg.size === 2 ? ' (ocupa 2x2 casas)' : ' — pode repetir quantas vezes quiser');
-      coin.addEventListener('dragstart', (e)=>{
-        e.dataTransfer.setData('text/plain', JSON.stringify({source:'tray', kind: cfg.kind}));
-      });
-      const lbl = document.createElement('div');
-      lbl.className = 'tray-coin-name';
-      // trayLabel é opcional — usado quando dois ícones diferentes representam a mesma categoria
-      // (ex: "Aliado" padrão e "Aliado (Fera)"), pra distinguir na hora de escolher o ícone, mas os
-      // dois continuam contando junto como "Aliado" na numeração do tabuleiro (cfg.label).
-      lbl.textContent = cfg.trayLabel || cfg.label;
-      wrap.appendChild(coin);
-      wrap.appendChild(lbl);
-      boardEnemyCoins.appendChild(wrap);
-    });
-  }
+  // renderInimigoFichaCoins()/renderAliadoFichaCoins() dependem do mesmo mestreRoster que as duas
+  // linhas acima -- chamadas sempre junto, pra bandeja de "Fichas de Inimigos"/"Fichas de Aliados"
+  // (aba Geral) nunca ficar desatualizada em relação à de "Fichas do Mestre" (ex: mestre marca uma
+  // ficha como Inimigos/Aliados e salva de novo).
+  function renderMestreTray(){ renderMestreTrayNormal(); renderMestreTrayPvp(); renderInimigoFichaCoins(); renderAliadoFichaCoins(); }
 
   // Fichas de NPC marcadas "Inimigos" (ver #f_publica) viram moedas REPETÍVEIS aqui, dentro da aba
   // "Geral" -- mesmo esquema de renderEnemyCoins() acima (sempre arrastáveis, nunca ficam
@@ -15604,6 +15706,120 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       wrap.appendChild(lbl);
       boardInimigoFichaCoins.appendChild(wrap);
     });
+  }
+
+  // Fichas de NPC marcadas "Aliados" (ver #f_publica) viram moedas REPETÍVEIS aqui, dentro da aba
+  // "Geral" -- mesmíssimo esquema de renderInimigoFichaCoins() logo acima (sempre arrastáveis,
+  // nunca ficam "placed"/travadas depois de soltas no tabuleiro), só que pro lado dos aliados: kind
+  // 'aliado_ficha' (contorno verde no tabuleiro, ver boardTokenGlowGreen no <style>) em vez de
+  // 'inimigo_ficha'.
+  function renderAliadoFichaCoins(){
+    if(!boardAliadoFichaCoins) return;
+    const allies = mestreRoster.filter(h => isAliadosValue(h.publica));
+    boardAliadoFichaWrap.hidden = allies.length === 0;
+    boardAliadoFichaCoins.innerHTML = '';
+    allies.forEach(hero=>{
+      const wrap = document.createElement('div');
+      wrap.className = 'tray-coin-wrap';
+      const coin = document.createElement('div');
+      coin.className = 'tray-coin token-aliado_ficha';
+      coin.draggable = true;
+      if(hero.portrait){
+        coin.style.backgroundImage = `url("${hero.portrait}")`;
+      } else {
+        coin.innerHTML = `<span class="token-fallback">${escapeHtml((hero.name||'?').slice(0,2).toUpperCase())}</span>`;
+      }
+      coin.title = `${hero.name} — pode repetir quantas vezes quiser`;
+      coin.addEventListener('dragstart', (e)=>{
+        e.dataTransfer.setData('text/plain', JSON.stringify({source:'tray', kind:'aliado_ficha', heroId: hero.id}));
+      });
+      const lbl = document.createElement('div');
+      lbl.className = 'tray-coin-name';
+      lbl.textContent = hero.name;
+      wrap.appendChild(coin);
+      wrap.appendChild(lbl);
+      boardAliadoFichaCoins.appendChild(wrap);
+    });
+  }
+
+  // "🩸 Instâncias no Tabuleiro" (rodada nova, ver comentário grande no HTML de
+  // #boardPanelInstancias) -- resposta direta a "é possível ter uma guia em mesa com as fichas dos
+  // inimigos postas no tabuleiro pra acompanhar eles em tempo real... vendo o HP e os status
+  // deles?". Diferente de makeFichasListLoader() (que busca fichas-molde no GitHub), esta lista lê
+  // direto de boardTokens -- a fonte de verdade LOCAL do mestre -- então "tempo real" aqui não
+  // depende de nenhum listener do Firebase: cada chamada já reflete o estado atual assim que uma
+  // peça é colocada/removida/editada (ver os pontos que chamam renderBoardInstancesPanel():
+  // handleBoardDrop(), removeTokenAt(), applyBoardData(), os resets/redimensionamento do tabuleiro
+  // logo abaixo, e os próprios botões desta função).
+  function renderBoardInstancesPanel(){
+    const listEl = $('boardInstancesList');
+    if(!listEl) return;
+    const seen = new Set();
+    const instances = Object.keys(boardTokens)
+      .map(key=> boardTokens[key])
+      .filter(tok=> tok && (tok.kind === 'inimigo_ficha' || tok.kind === 'aliado_ficha'))
+      // uma peça sempre ocupa 1 única casa (size:1) hoje, mas boardTokens indexa por CASA, não por
+      // peça -- dedup por id, por segurança, pra nunca listar a mesma instância duas vezes.
+      .filter(tok=>{ if(seen.has(tok.id)) return false; seen.add(tok.id); return true; })
+      .sort((a,b)=> (a.name||'').localeCompare(b.name||'') || (a.seq||0) - (b.seq||0));
+    if(instances.length === 0){
+      listEl.innerHTML = '<div class="master-empty">Nenhuma ficha de Inimigos/Aliados colocada no tabuleiro ainda.</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    instances.forEach(tok=>{
+      const vidaMax = tok.vidaMax || 0, manaMax = tok.manaMax || 0, escudoMax = tok.escudoMax || 0;
+      const card = document.createElement('div');
+      card.className = 'master-card';
+      const statRow = (label, stat)=> `
+              <div class="mc-xp-controls">
+                <span class="mc-xp-controls-label">${label}:</span>
+                <button type="button" class="mini-btn mc-inst-btn" data-stat="${stat}" data-delta="-10">−10</button>
+                <button type="button" class="mini-btn mc-inst-btn" data-stat="${stat}" data-delta="-1">−1</button>
+                <button type="button" class="mini-btn mc-inst-btn" data-stat="${stat}" data-delta="1">+1</button>
+                <button type="button" class="mini-btn mc-inst-btn" data-stat="${stat}" data-delta="10">+10</button>
+              </div>`;
+      card.innerHTML = `
+            <div>
+              <div class="mc-name">${escapeHtml(tokenTooltipText(tok))}</div>
+              <div class="mc-meta">${tok.kind === 'aliado_ficha' ? '🧝 Aliado' : '👹 Inimigo'}</div>
+              <div class="mc-vitals">
+                Vida <span class="mc-inst-vida">${escapeHtml(String(tok.vidaAtual ?? 0))}</span> / <span class="mc-inst-vidamax">${vidaMax}</span> ·
+                Mana <span class="mc-inst-mana">${escapeHtml(String(tok.manaAtual ?? 0))}</span> / <span class="mc-inst-manamax">${manaMax}</span> ·
+                Escudo <span class="mc-inst-escudo">${escapeHtml(String(tok.escudoAtual ?? 0))}</span> / <span class="mc-inst-escudomax">${escudoMax}</span>
+              </div>
+              ${statRow('Vida', 'vida')}
+              ${statRow('Mana', 'mana')}
+              ${statRow('Escudo', 'escudo')}
+            </div>
+            <div class="mc-actions">
+              <button class="mc-delete mestre-only mc-inst-remove">Remover do tabuleiro</button>
+            </div>`;
+      card.querySelectorAll('.mc-inst-btn').forEach(btn=>{
+        btn.addEventListener('click', ()=> adjustBoardInstanceStat(tok, btn.dataset.stat, parseInt(btn.dataset.delta, 10)));
+      });
+      const removeBtn = card.querySelector('.mc-inst-remove');
+      if(removeBtn){
+        removeBtn.addEventListener('click', ()=>{
+          if(!confirm(`Remover "${tokenTooltipText(tok)}" do tabuleiro?`)) return;
+          removeTokenAt(tok.anchorR, tok.anchorC);
+        });
+      }
+      listEl.appendChild(card);
+    });
+  }
+
+  // Ajusta Vida/Mana/Escudo de UMA instância específica (peça já colocada no tabuleiro) -- chamado
+  // pelos botões −10/−1/+1/+10 de renderBoardInstancesPanel() acima. Trava em [0, máximo] (mesmo
+  // teto/piso simples de uma barra de vida de combate) -- nunca mexe na ficha-molde (mestreRoster)
+  // nem em nenhuma outra instância da mesma ficha.
+  function adjustBoardInstanceStat(tok, stat, delta){
+    const maxKey = stat + 'Max', curKey = stat + 'Atual';
+    const max = tok[maxKey] || 0;
+    const cur = tok[curKey] || 0;
+    tok[curKey] = Math.max(0, Math.min(max, cur + delta));
+    renderBoardInstancesPanel();
+    scheduleBoardTokensPush();
   }
 
   // tamanho da Barreira (a única entrada resizable:true de OBSTACLE_KINDS) não é fixo — vem dos
@@ -15651,13 +15867,14 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   boardBlockRowsInput.addEventListener('input', renderObstacleCoins);
   boardBlockColsInput.addEventListener('input', renderObstacleCoins);
 
-  // Baú (CHEST_KINDS acima): mesmo esquema de renderEnemyCoins() (moeda fixa por entrada do
-  // catálogo, sempre arrastável, nunca "placed"/travada, repete quantas vezes o mestre quiser) —
-  // só a categoria de destino (#boardChestCoins, dentro da aba Barreiras) muda.
+  // Baú/Arbusto/Armadilha/Poça de Água (CHEST_KINDS_PLACEABLE acima): moeda fixa por entrada do
+  // catálogo, sempre arrastável, nunca "placed"/travada, repete quantas vezes o mestre quiser —
+  // usa o subconjunto PLACEABLE (sem os 3 Baús, removidos da bandeja nesta rodada), não o
+  // CHEST_KINDS cheio (esse continua só pra reconhecer/desenhar Baús salvos antes desta rodada).
   function renderChestCoins(){
     if(!boardChestCoins) return;
     boardChestCoins.innerHTML = '';
-    CHEST_KINDS.forEach(cfg=>{
+    CHEST_KINDS_PLACEABLE.forEach(cfg=>{
       const wrap = document.createElement('div');
       wrap.className = 'tray-coin-wrap';
       const coin = document.createElement('div');
@@ -15723,11 +15940,33 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
             // divindade salva na ficha — fonte da cor da seta de direção no tabuleiro ao vivo (ver
             // DEITY_EYE_COLOR/buildFacingArrowEl() no <script>).
             deidade: data.deidade || '',
-            // Privado/Público/Inimigos (ver #f_publica) — só existe em fichas do mestre
+            // Privado/Público/Inimigos/Aliados (ver #f_publica) — só existe em fichas do mestre
             // (idPrefix 'mestre:'), mas carregado sempre (sem custo extra: já vem no mesmo JSON)
-            // pra renderMestreTray()/renderInimigoFichaCoins() poderem filtrar localmente quem é
-            // "Fichas do Mestre" normal e quem é "Fichas de Inimigos", sem precisar buscar de novo.
+            // pra renderMestreTray()/renderInimigoFichaCoins()/renderAliadoFichaCoins() poderem
+            // filtrar localmente quem é "Fichas do Mestre" normal e quem é Inimigos/Aliados, sem
+            // precisar buscar de novo.
             publica: data.publica || null,
+            // Vida/Mana/Escudo "de fábrica" da ficha salva (rodada nova, ver comentário grande em
+            // isBoardMoveRestrictedToken()/handleBoardDrop() sobre "peça repetida no tabuleiro" —
+            // cada peça de Inimigos/Aliados colocada no tabuleiro agora ganha o PRÓPRIO estado vivo
+            // de Vida/Mana/Escudo, independente desta ficha-molde, inicializado a partir destes
+            // valores no instante em que é colocada). vidaMax/manaMax NÃO vêm salvos direto no JSON
+            // (são só um valor calculado/exibido na tela, ver recalc()) -- reproduz aqui a MESMA
+            // conta (vidaMax = 10 + totFor + totCon + mods.vida; manaMax = totInt + totVon +
+            // mods.mana, com totX = base.x + mods.x), pra não precisar abrir a ficha de verdade só
+            // pra saber o teto de Vida/Mana dela. curVida/curMana/barreiraCur/barreiraMax já vêm
+            // salvos como estão na ficha (o "ponto de partida" de cada peça nova).
+            vidaMax: 10
+              + ((parseFloat(data.base && data.base.for) || 0) + (parseFloat(data.mods && data.mods.for) || 0))
+              + ((parseFloat(data.base && data.base.con) || 0) + (parseFloat(data.mods && data.mods.con) || 0))
+              + (parseFloat(data.mods && data.mods.vida) || 0),
+            manaMax: ((parseFloat(data.base && data.base.int) || 0) + (parseFloat(data.mods && data.mods.int) || 0))
+              + ((parseFloat(data.base && data.base.von) || 0) + (parseFloat(data.mods && data.mods.von) || 0))
+              + (parseFloat(data.mods && data.mods.mana) || 0),
+            curVida: data.curVida ?? 10,
+            curMana: data.curMana ?? 10,
+            barreiraMax: parseFloat(data.barreiraMax) || 0,
+            barreiraCur: parseFloat(data.barreiraCur) || 0,
           }));
         roster.sort((a,b)=> a.name.localeCompare(b.name));
         setRoster(roster);
@@ -15818,6 +16057,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     for(let r=0;r<BOARD_ROWS;r++) for(let c=0;c<BOARD_COLS;c++) renderBoardCell(r,c);
     renderHeroTray();
     renderMestreTray();
+    renderBoardInstancesPanel();
     boardSendHint.textContent = '';
     scheduleBoardMarksPush();
     scheduleBoardTokensPush();
@@ -15863,6 +16103,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     buildBoardGrid();
     renderHeroTray();
     renderMestreTray();
+    renderBoardInstancesPanel();
     boardSendHint.textContent = '';
     scheduleBoardMetaPush();
     scheduleBoardMarksPush();
@@ -15956,6 +16197,15 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       if(rt.pvp) token.pvp = true;
       if(rt.seq) token.seq = rt.seq;
       if(rt.desc) token.desc = rt.desc;
+      // Vida/Mana/Escudo "ao vivo" de cada instância de Inimigos/Aliados (rodada nova, ver
+      // buildFichaInstanceToken()/collectBoardTokensOut()) -- carrega de volta o que já estava
+      // salvo pra essa peça específica. Tabuleiro salvo ANTES desta rodada não tem esses campos
+      // (rt.vidaMax undefined) -- fica sem eles mesmo (renderBoardInstancesPanel() já trata isso
+      // como "sem dados", sem quebrar nada); só passa a existir na próxima vez que a peça for
+      // recriada do zero (arrastada de novo da bandeja) ou se o mestre editar na aba de instâncias.
+      if(rt.vidaMax != null){ token.vidaMax = rt.vidaMax; token.vidaAtual = rt.vidaAtual || 0; }
+      if(rt.manaMax != null){ token.manaMax = rt.manaMax; token.manaAtual = rt.manaAtual || 0; }
+      if(rt.escudoMax != null){ token.escudoMax = rt.escudoMax; token.escudoAtual = rt.escudoAtual || 0; }
       placeToken(rt.anchorR, rt.anchorC, token);
     });
     applyBoardBackground(data.background || null);
@@ -15964,6 +16214,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     for(let r=0;r<BOARD_ROWS;r++) for(let c=0;c<BOARD_COLS;c++) renderBoardCell(r,c);
     renderHeroTray();
     renderMestreTray();
+    renderBoardInstancesPanel();
     boardSendHint.textContent = '';
     scheduleBoardMarksPush();
     scheduleBoardTokensPush();
@@ -16294,9 +16545,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   buildBoardGrid();
   renderHeroTray();
   renderMestreTray();
-  renderEnemyCoins();
   renderObstacleCoins();
   renderChestCoins();
+  renderBoardInstancesPanel();
 
   // ---------- salvar na mesa ----------
   const cloudSaveBtn = $('cloudSaveBtn');
@@ -16372,6 +16623,8 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   const masterMestreList = $('masterMestreList');
   const enemiesModal = $('enemiesModal');
   const masterEnemiesList = $('masterEnemiesList');
+  const alliesModal = $('alliesModal');
+  const masterAlliesList = $('masterAlliesList');
   const npcModal = $('npcModal');
   const npcList = $('npcList');
 
@@ -16415,6 +16668,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // antes desta rodada), pra nenhuma ficha já salva no GitHub quebrar ou ficar "Inimigos" à toa.
   function isPublicaValue(v){ return v === 'Publico' || v === true; }
   function isInimigosValue(v){ return v === 'Inimigos'; }
+  // Aliados: mesmíssimo esquema de isInimigosValue() acima, ver comentário grande logo acima --
+  // não existe formato legado (boolean antigo) pra tratar aqui, é um valor totalmente novo.
+  function isAliadosValue(v){ return v === 'Aliados'; }
 
   // Gera a função que busca/renderiza uma lista de fichas do GitHub — reaproveitada tanto para
   // "Fichas de Jogador" (pasta FICHAS_PATH) quanto para "Fichas do Mestre"/"Fichas de Inimigos"
@@ -16449,7 +16705,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // "Atualizar lista" -- é essa a parte "tempo real" pedida pra esse recurso.
     const npcPublicFilter = !!(opts && opts.npcPublicFilter);
     // opts.excludeEnemies (usado só por "🔒 Fichas do Mestre") -- tira da lista as fichas marcadas
-    // como "Inimigos" (elas têm sua própria lista separada, ver opts.enemyFilter logo abaixo).
+    // como "Inimigos" OU "Aliados" (cada uma tem sua própria lista separada, ver opts.enemyFilter/
+    // opts.allyFilter logo abaixo -- rodada nova: passou a excluir também Aliados, mesmo nome de
+    // opção pra não precisar caçar/trocar o call site já existente de "Fichas do Mestre").
     const excludeEnemies = !!(opts && opts.excludeEnemies);
     // opts.enemyFilter (usado só por "👹 Fichas de Inimigos") -- o espelho de excludeEnemies:
     // mostra SÓ as fichas marcadas como "Inimigos", escondendo todo o resto. Ao contrário de
@@ -16458,6 +16716,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // pra "Inimigos"/pra fora dele só reflete aqui na próxima vez que a lista for aberta ou em
     // "Atualizar lista", igual "Fichas do Mestre" já sempre funcionou.
     const enemyFilter = !!(opts && opts.enemyFilter);
+    // opts.allyFilter (usado só por "🧝 Fichas de Aliados") -- mesmíssimo esquema de enemyFilter
+    // acima, só que pro lado dos aliados (#f_publica === 'Aliados').
+    const allyFilter = !!(opts && opts.allyFilter);
     // "ao vivo": enquanto a lista estiver na tela, cada ficha com dono (ownerUid) escuta
     // mesa/live/{uid} (ver pushLiveVitals() lá em cima, perto de recalc()) e atualiza Vida/Mana/
     // Escudo na hora, sem precisar que ninguém clique em SALVAR nem reabra a lista. Preciso
@@ -16491,12 +16752,14 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         );
         const sheets = sheetResults.filter(Boolean).filter(({data})=>{
           const isEnemy = isInimigosValue(data.publica);
+          const isAlly = isAliadosValue(data.publica);
           if(enemyFilter) return isEnemy;
-          if(excludeEnemies) return !isEnemy;
+          if(allyFilter) return isAlly;
+          if(excludeEnemies) return !isEnemy && !isAlly;
           return true;
         });
         if(sheets.length === 0){
-          listEl.innerHTML = `<div class="master-empty">${enemyFilter ? 'Nenhuma ficha marcada como "Inimigos" ainda.' : emptyMsg}</div>`;
+          listEl.innerHTML = `<div class="master-empty">${enemyFilter ? 'Nenhuma ficha marcada como "Inimigos" ainda.' : (allyFilter ? 'Nenhuma ficha marcada como "Aliados" ainda.' : emptyMsg)}</div>`;
           return;
         }
         sheets.sort((a,b)=> (a.data.nome||'').localeCompare(b.data.nome||''));
@@ -16837,6 +17100,15 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     'Nenhuma ficha marcada como "Inimigos" ainda.',
     { npcFicha: true, enemyFilter: true }
   );
+  // "🧝 Fichas de Aliados" -- mesma pasta de "🔒 Fichas do Mestre" acima (FICHAS_MESTRE_PATH), só
+  // que com opts.allyFilter (espelho de enemyFilter acima: mostra SÓ quem tem publica ===
+  // 'Aliados'). "Ver ficha"/"Apagar" continuam funcionando igual às outras listas do mestre; a
+  // parte de virar peça no tabuleiro é feita de dentro de 🖥️ Mesa (aba Geral), não aqui.
+  const loadMasterAlliesList = makeFichasListLoader(
+    FICHAS_MESTRE_PATH, masterAlliesList, alliesModal,
+    'Nenhuma ficha marcada como "Aliados" ainda.',
+    { npcFicha: true, allyFilter: true }
+  );
   // "🧚 Fichas de NPC" -- mesma pasta de "🔒 Fichas do Mestre" acima (FICHAS_MESTRE_PATH), só que
   // com opts.npcPublicFilter (só mostra as marcadas como "Publico", ao vivo) pra qualquer um
   // consultar; "Ver ficha" continua funcionando (carrega na tela principal), mas
@@ -16889,6 +17161,20 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   $('closeMasterEnemies').addEventListener('click', ()=>{ enemiesModal.hidden = true; loadMasterEnemiesList.detachLiveListeners(); });
   enemiesModal.addEventListener('click', (e)=>{ if(e.target === enemiesModal){ enemiesModal.hidden = true; loadMasterEnemiesList.detachLiveListeners(); } });
   $('refreshMasterEnemies').addEventListener('click', loadMasterEnemiesList);
+
+  // "🧝 Fichas de Aliados" -- mesma wiring de "👹 Fichas de Inimigos" acima, botão/modal/lista
+  // próprios (masterAlliesBtn/alliesModal/loadMasterAlliesList).
+  $('masterAlliesBtn').addEventListener('click', ()=>{
+    if(fbReady && currentRole !== 'mestre'){
+      alert('Só o mestre da mesa pode acessar as fichas de aliados.');
+      return;
+    }
+    alliesModal.hidden = false;
+    loadMasterAlliesList();
+  });
+  $('closeMasterAllies').addEventListener('click', ()=>{ alliesModal.hidden = true; loadMasterAlliesList.detachLiveListeners(); });
+  alliesModal.addEventListener('click', (e)=>{ if(e.target === alliesModal){ alliesModal.hidden = true; loadMasterAlliesList.detachLiveListeners(); } });
+  $('refreshMasterAllies').addEventListener('click', loadMasterAlliesList);
 
   // "🧚 Fichas de NPC" -- o botão em si já fica escondido do mestre por CSS/JS (.jogador-only, ver
   // applyRoleVisibility()); a lista já vem filtrada pra só mostrar as fichas marcadas como
@@ -17278,12 +17564,13 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       if(isMyLiveToken(tok) && portraitData) return portraitData;
       return null;
     }
-    // Ficha de Inimigos (ver handleBoardDrop()/renderInimigoFichaCoins()): o retrato não é um
-    // ícone fixo (ENEMY_KINDS), vem da própria ficha -- collectBoardTokensOut() não manda o
-    // portrait pela rede (economiza banda, igual já fazia pra 'hero'), só o heroId; resolve aqui
-    // pelo mesmo mestreRoster que o mestre já usa (jogador também busca essa pasta inteira, ver
-    // makeRosterLoader() -- não depende de ver a ficha em si, só do roster já carregado).
-    if(tok.kind === 'inimigo_ficha'){
+    // Ficha de Inimigos/Aliados (ver handleBoardDrop()/renderInimigoFichaCoins()/
+    // renderAliadoFichaCoins()): o retrato não é um ícone fixo (ENEMY_KINDS), vem da própria ficha
+    // -- collectBoardTokensOut() não manda o portrait pela rede (economiza banda, igual já fazia
+    // pra 'hero'), só o heroId; resolve aqui pelo mesmo mestreRoster que o mestre já usa (jogador
+    // também busca essa pasta inteira, ver makeRosterLoader() -- não depende de ver a ficha em si,
+    // só do roster já carregado).
+    if(tok.kind === 'inimigo_ficha' || tok.kind === 'aliado_ficha'){
       const hero = mestreRoster.find(h => h.id === tok.heroId);
       return hero ? hero.portrait : null;
     }
@@ -17746,12 +18033,12 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     if(revealed){
       Object.keys(liveBoardState.tokens).forEach(key=>{
         const tok = liveBoardState.tokens[key];
-        // inimigo_ficha entra aqui também (pedido explícito: "as setas... precisam aparecer em
-        // todas as fichas e para todo mundo") -- só que nunca é "minha" (isMyLiveToken() só
-        // reconhece kind 'hero'), então só cai no ramo "else if(tok.facing)" logo abaixo: o
+        // inimigo_ficha/aliado_ficha entram aqui também (pedido explícito: "as setas... precisam
+        // aparecer em todas as fichas e para todo mundo") -- só que nunca é "minha" (isMyLiveToken()
+        // só reconhece kind 'hero'), então só cai no ramo "else if(tok.facing)" logo abaixo: o
         // jogador vê a seta já escolhida pelo mestre (ver chooseBoardFacing(), aba Mesa), nunca o
         // seletor de 8 direções -- essa peça só é movida pela aba Mesa, nunca por aqui.
-        if(!tok || (tok.kind !== 'hero' && tok.kind !== 'inimigo_ficha')) return;
+        if(!tok || (tok.kind !== 'hero' && tok.kind !== 'inimigo_ficha' && tok.kind !== 'aliado_ficha')) return;
         if(key !== liveBoardKey(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça
         if(fogActive && fogReachable && !fogReachable.has(key)) return;
         const cellEl = liveBoardGridEl.children[tok.anchorR * cols + tok.anchorC];
