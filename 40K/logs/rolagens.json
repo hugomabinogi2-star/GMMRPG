@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 10,
-    "resultado": 9,
-    "resultLabel": "Erro",
-    "ts": 1789426687556
-  },
-  {
-    "nome": "efreet",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 10,
     "resultado": 4,
     "resultLabel": "Erro — Desvantagem",
     "ts": 1789426725005,
@@ -292,6 +283,17 @@
     "resultado": 18,
     "resultLabel": "Erro",
     "ts": 1790260309944,
+    "habilidade": "Disparo de Besta Pesada Contundente",
+    "habilidadeDesc": "Dispara um projétil rombudo contundente em linha reta, a até 4 casas de distância. Consome 2 de Munição para Besta Pesada por uso.\nDano: 1d6 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "oi",
+    "tipo": "atributo",
+    "statKey": "int",
+    "statValor": 1,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1790260346367,
     "habilidade": "Disparo de Besta Pesada Contundente",
     "habilidadeDesc": "Dispara um projétil rombudo contundente em linha reta, a até 4 casas de distância. Consome 2 de Munição para Besta Pesada por uso.\nDano: 1d6 + Modificador de Arma + bônus de INT (aumenta 1 dado por nível)."
   }
