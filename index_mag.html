@@ -2812,7 +2812,18 @@ body{
   margin:0;
   width:150px;
   height:150px;
+  cursor:pointer;
+  transition:transform .18s ease;
+  z-index:1;
 }
+/* pedido explícito: zoom só na imagem (Vida/Mana/Escudo, o "coração" + o escudo ao redor) ao passar
+   o mouse -- transform:scale() não mexe no layout ao redor (sem reflow) e escala TUDO dentro do
+   wrap junto (anéis, brilho, coração) -- "mantendo os efeitos" already funciona sozinho, já que
+   nada aqui é desligado, só ampliado. Clicar manda o mesmo print de sempre pro chat (ver
+   sendVitalPrint()/barreiraShieldWrapBtn no <script>), no lugar dos 3 botões antigos do cabeçalho
+   do chat.
+*/
+.barreira-shield-wrap:hover{ transform:scale(1.16); z-index:6; }
 /* anel de luz girando ao redor do escudo, na cor da Deidade (--deity-eye-color): o traçado
    (.barreira-ring-fill) usa stroke-dasharray/stroke-dashoffset pra "encher" ou "esvaziar" o anel
    conforme --barreira-ratio (0 a 1, atualizada em updateBarreiraShield() a cada recalc()) — cheio
@@ -3842,7 +3853,22 @@ body{
 /* painel "Escolha uma Habilidade" que abre pro JOGADOR sempre que sobra 1+ ponto de Habilidade pra
    gastar (subida de nível, ou os 3 pontos do nível 1 assim que a ficha é criada) -- substitui os
    botões +/- que saíram da visão dele; ver openHabLevelUpPanel() no <script>. */
-.hab-levelup-box{max-width:640px;}
+.hab-levelup-box{max-width:640px;position:relative;}
+/* contador decrescente de canto (3, 2, 1...) mostrado enquanto o wizard de Habilidade/Talento tem
+   mais de 1 passo -- pedido explícito. Fixo no canto superior direito da caixa do modal, por cima
+   de tudo, sem empurrar o resto do layout (position:absolute). */
+.wizard-countdown-badge{
+  position:absolute;top:10px;right:14px;
+  min-width:34px;height:34px;padding:0 6px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#3a2a10,#0c0904 75%);
+  border:2px solid var(--gold-bright);
+  color:var(--gold-bright);
+  font-family:'Cinzel Decorative',serif;font-size:17px;font-weight:700;
+  box-shadow:0 0 8px rgba(224,182,86,.55), inset 0 0 6px rgba(0,0,0,.6);
+  z-index:5;
+}
 .hab-levelup-list{
   display:flex;flex-direction:column;gap:8px;
   max-height:52vh;overflow-y:auto;
@@ -3881,7 +3907,9 @@ body{
 .hab-levelup-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
 .hab-levelup-card-nome{font-family:'Cinzel Decorative',serif;font-size:14px;color:var(--ink);}
 .hab-levelup-card-nivel{font-size:11px;color:var(--ink-faint);white-space:nowrap;}
-.hab-levelup-card-desc{font-size:12px;color:var(--ink-soft);line-height:1.4;margin-top:4px;}
+/* mesmo pedido "textos menores e mais claros" aplicado aqui: fonte discretamente menor com
+   line-height maior, pra descrição comprida (nível alto) não pesar visualmente no card de escolha. */
+.hab-levelup-card-desc{font-size:11px;color:var(--ink-soft);line-height:1.48;margin-top:4px;}
 /* space-between (troca de flex-end nesta rodada) pro botão "◀ Voltar" novo (habLevelUpBackBtn/
    talentoLevelUpBackBtn, ver openHabLevelUpPanel()/openTalentoLevelUpPanel() no <script>) ficar na
    esquerda e o "OK" continuar na direita -- pedido explícito: "botão de voltar... e um botão de OK
@@ -3965,11 +3993,17 @@ body{
    (hab-nivel-extra-empty), já que aí a Habilidade nem custa nem tem dado nenhum pra rolar ainda,
    mesmo espírito do ícone de dano desabilitado (.hab-icon-dano:disabled) logo abaixo. */
 .hab-nivel-extra{
-  display:flex;justify-content:space-between;gap:8px;font-size:10.5px;color:var(--gold-bright);
+  display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 8px;font-size:10.5px;color:var(--gold-bright);
   opacity:.85;margin-bottom:6px;padding-bottom:6px;border-bottom:1px dashed var(--gold-text);
 }
 .hab-nivel-extra-empty{opacity:.4;font-style:italic;justify-content:flex-start;}
-.hab-nivel-custo, .hab-nivel-faixa{white-space:nowrap;}
+.hab-nivel-custo{white-space:nowrap;}
+/* pedido explícito "alinhar melhor os textos dentro dos cards de habilidade": a faixa de dano (ex.
+   "Dano: 2d6+3 a 4d6+3") cresce bastante em níveis altos -- antes ficava nowrap igual o Custo, o
+   que podia transbordar pra fora da borda do card em telas estreitas por causa do
+   justify-content:space-between sem flex-wrap. Agora ela pode quebrar linha (o flex-wrap acima cuida
+   de acomodar) e fica alinhada à direita mesmo quebrada, em vez de vazar do quadro. */
+.hab-nivel-faixa{white-space:normal;text-align:right;}
 .hab-row-icons{display:flex;align-items:center;gap:10px;}
 .hab-icon{
   background:none;border:none;cursor:pointer;font-size:17px;line-height:1;padding:2px;
@@ -3996,7 +4030,12 @@ body{
   display:flex;flex-direction:column;gap:10px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--gold-text);
 }
 .hab-desc-inline[hidden]{display:none;}
-.hab-desc-top-row{display:flex;gap:10px;}
+/* pedido explícito "alinhar melhor os textos dentro dos cards de habilidade": align-items:flex-start
+   explícito (em vez de depender do stretch padrão) garante que a miniatura 64x64 e o texto da
+   descrição sempre comecem alinhados no topo, mesmo quando a descrição é bem mais alta que a
+   imagem (texto longo) -- sem isso, o stretch padrão já dava esse resultado na prática, mas de
+   forma implícita/frágil a qualquer mudança futura de layout. */
+.hab-desc-top-row{display:flex;gap:10px;align-items:flex-start;}
 /* espaço reservado pra imagem/informação visual de cada Habilidade (pedido explícito) -- fica À
    ESQUERDA do texto. Nem toda Habilidade tem uma imagem definida ainda (só as 3 de Espada e Escudo
    por enquanto, ver WEAPON_ABILITIES/HAB_IMG_* no <script>) -- sem uma, mostra uma moldura vazia
@@ -4007,7 +4046,10 @@ body{
 }
 .hab-desc-img-wrap.hab-desc-img-empty{border-style:dashed;}
 .hab-desc-img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;}
-.hab-desc-text-inline{flex:1 1 auto;min-width:0;font-size:12.5px;line-height:1.5;color:var(--gold-bright);white-space:pre-line;}
+/* pedido explícito "se puder deixe os textos menores e mais claros": fonte um pouco menor (12.5px
+   -> 11.5px) compensada por mais espaçamento entre linhas (1.5 -> 1.58), pra caber mais descrição
+   sem poluir visualmente o card e ficar mais fácil de ler de uma vez. */
+.hab-desc-text-inline{flex:1 1 auto;min-width:0;font-size:11.5px;line-height:1.58;color:var(--gold-bright);white-space:pre-line;}
 /* campo de texto livre do jogador ("grito" ao rolar a Habilidade, pedido explícito) -- fundo/borda
    seguem o mesmo preto+dourado do resto do resumo. */
 .hab-grito-wrap{display:flex;flex-direction:column;gap:4px;}
@@ -4793,9 +4835,6 @@ body{
           <h2>💬 Chat da Mesa<span class="chat-panel-head-actions">
             <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
             <button id="chatImageBtn" class="chat-min-btn" title="Enviar imagem no chat" type="button">🖼️</button>
-            <button id="chatEscudoPrintBtn" class="chat-min-btn" title="Mandar um print do Escudo atual" type="button">🛡️</button>
-            <button id="chatVidaPrintBtn" class="chat-min-btn" title="Mandar um print da Vida atual" type="button">🔴</button>
-            <button id="chatManaPrintBtn" class="chat-min-btn" title="Mandar um print da Mana atual" type="button">🔵</button>
             <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
           </span></h2>
           <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
@@ -6005,6 +6044,10 @@ body{
      lugar. -->
 <div class="modal-overlay" id="habLevelUpModal" hidden>
   <div class="modal-box hab-levelup-box">
+    <!-- pedido explícito: quando há mais de 1 Habilidade pra escolher neste wizard, um contador
+         decrescente aparece fixo no canto da tela (3, 2, 1...) -- ver renderHabLevelUpStep() no
+         <script>, que atualiza o texto/visibilidade dele a cada passo. -->
+    <div class="wizard-countdown-badge" id="habLevelUpCountdown" hidden></div>
     <div class="modal-head">
       <h2 id="habLevelUpTitle">Escolha uma Habilidade</h2>
     </div>
@@ -6030,6 +6073,8 @@ body{
      "+ Escolher Talento" do próprio painel Talentos. -->
 <div class="modal-overlay" id="talentoLevelUpModal" hidden>
   <div class="modal-box hab-levelup-box">
+    <!-- mesmo contador decrescente de canto do #habLevelUpModal acima, ver renderTalentoLevelUpStep(). -->
+    <div class="wizard-countdown-badge" id="talentoLevelUpCountdown" hidden></div>
     <div class="modal-head">
       <h2 id="talentoLevelUpTitle">Escolha um Talento</h2>
     </div>
@@ -6819,13 +6864,27 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     const passivo = WEAPON_PASSIVES[armaKey];
     return (passivo && passivo.movDelta) || 0;
   }
+  // Bônus FIXO de Defesa (#val_ar) de estar com um escudo equipado -- pedido explícito: "estar
+  // usando Arma e Escudo adiciona +3 em Defesa" / "estar usando Lança e Escudo ou Lançarma e Escudo
+  // adiciona +6 em Defesa". Fixo de propósito -- soma sempre por cima do Modificador de Defesa
+  // manual (#m_ar) sem ser afetado por ele (nunca reduzido), e só existe enquanto uma dessas 3
+  // armas estiver REALMENTE equipada agora (ver recalc()) -- nenhuma outra arma ganha nada aqui.
+  function weaponDefesaBonus(armaKey){
+    if(armaKey === 'ARMA_ESCUDO') return 3;
+    if(armaKey === 'LANCA_ESCUDO' || armaKey === 'LANCARMA_ESCUDO') return 6;
+    return 0;
+  }
   // Erguer Escudo Pesado -- pedido explícito: "a habilidade é compartilhada entre Lança e Escudo e
   // Lançarma e Escudo" -- MESMO objeto (mesmo `id`, mesma referência) usado nas duas listas abaixo,
   // então o nível investido nela (habNiveis['erguer_escudo_pesado']) vale nas duas armas ao mesmo
   // tempo, sem duplicar progresso: subir de nível com Lança e Escudo equipada já vale se o jogador
   // trocar pra Lançarma e Escudo (e vice-versa).
-  const HAB_ERGUER_ESCUDO_PESADO = { id:'erguer_escudo_pesado', nome:'Erguer Escudo Pesado', attr:'CON', dieSides:10, setEscudo:true,
-    desc:'Ergue o escudo pesado, reforçando sua defesa: o resultado da rolagem SUBSTITUI o valor atual de Escudo do personagem, em vez de somar a ele. Usar Erguer Escudo Pesado de novo troca o valor anterior pelo novo, sem acumular.\nValor: 1d10 + bônus de CON (aumenta 1 dado por nível).' };
+  const HAB_ERGUER_ESCUDO_PESADO = { id:'erguer_escudo_pesado', nome:'Erguer Escudo Pesado', attr:'CON', dieSides:10, setEscudo:true, danoIcone:'🛡️',
+    desc:'Rolamento de Atributo (🎲, CON): em caso de ERRO, remove totalmente o Escudo do personagem (o máximo vai pra 0). Em caso de ACERTO, clique no 🛡️ pra ERGUER o Escudo: o resultado vira o novo valor MÁXIMO de Escudo, já preenchido no atual. Erguer de novo SUBSTITUI o valor anterior, não soma.\nValor: 1d10 + bônus de CON (aumenta 1 dado por nível).' };
+  // pedido explícito: as duas usam o MESMO mecanismo (ícone 🛡️ em vez de dano, Erro zera o Escudo,
+  // Acerto ergue) -- um Set só com os dois ids, consultado em finishRoll() (zera no Erro) e
+  // finishDanoRoll() (substitui Máximo+Atual no Acerto, ver pendingDanoSetEscudo).
+  const ERGUER_ESCUDO_HAB_IDS = new Set(['erguer_escudo', 'erguer_escudo_pesado']);
   const WEAPON_ABILITIES = {
     'ESPADA_PESADA': [
       { id:'corte_pesado', nome:'Corte Pesado', attr:'FOR', dieSides:6, baseDados:2, tipo:'cortante', imagem:HAB_IMG_AREA_CORTE_PESADO,
@@ -6902,8 +6961,8 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         desc:'Realiza um golpe cortante a uma casa de distância da posição do personagem (a casa bem à frente dele, em linha reta).\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).' },
       { id:'golpe_de_escudo', nome:'Golpe de Escudo', attr:'FOR', dieSides:3, tipo:'contundente',
         desc:'Golpeia com o escudo a uma casa de distância da posição do personagem (a casa bem à frente dele, em linha reta).\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível).' },
-      { id:'erguer_escudo', nome:'Erguer Escudo', attr:'CON', dieSides:5, setEscudo:true,
-        desc:'Ergue o escudo, reforçando sua defesa: o resultado da rolagem SUBSTITUI o valor atual de Escudo do personagem, em vez de somar a ele. Usar Erguer Escudo de novo troca o valor anterior pelo novo, sem acumular.\nValor: 1d5 + bônus de CON (aumenta 1 dado por nível).' },
+      { id:'erguer_escudo', nome:'Erguer Escudo', attr:'CON', dieSides:5, setEscudo:true, danoIcone:'🛡️',
+        desc:'Rolamento de Atributo (🎲, CON): em caso de ERRO, remove totalmente o Escudo do personagem (o máximo vai pra 0). Em caso de ACERTO, clique no 🛡️ pra ERGUER o Escudo: o resultado vira o novo valor MÁXIMO de Escudo, já preenchido no atual. Erguer de novo SUBSTITUI o valor anterior, não soma.\nValor: 1d5 + bônus de CON (aumenta 1 dado por nível).' },
     ],
     'LANCA_ESCUDO': [
       { id:'estocada_pesada_lanca', nome:'Estocada Pesada', attr:'DES', dieSides:6, tipo:'perfurante',
@@ -7495,7 +7554,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
 
     const ar = num(els.mAr);
     const ap = num(els.mAp);
-    els.valAr.textContent = Math.floor(ar);
+    // pedido explícito: Arma e Escudo (+3)/Lança ou Lançarma e Escudo (+6) somam um bônus FIXO de
+    // Defesa por cima do modificador manual, só enquanto uma dessas estiver equipada agora (ver
+    // weaponDefesaBonus() acima).
+    els.valAr.textContent = Math.floor(ar) + weaponDefesaBonus(selectedArmaAtual || selectedArma);
     els.valAp.textContent = Math.floor(ap);
     // ARMA (painel "Armamento e Armadura", ver #val_arma no HTML) -- mesmo padrão de DEFESA/
     // RESISTÊNCIA logo acima: só espelha o modificador de Dano (#m_dano) direto, sem nenhuma conta
@@ -7663,6 +7725,18 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       // sem isso, o resumo do mestre em MESA (mc-attrs, ver makeFichasListLoader()) só atualizava
       // ao salvar a ficha no GitHub, podendo ficar bem desatualizado numa sessão longa.
       payload.totals = { for: totals.for, con: totals.con, des: totals.des, int: totals.int, von: totals.von, car: totals.car };
+      // Poções/Munição ao vivo (pedido explícito: "a atualização de poções e munição deve ocorrer
+      // pra todos que estiverem observando a ficha em tempo real") -- mesmo caminho de sempre
+      // (mesa40k/live/{uid}, já escutado pelos cartões de "📜 Fichas de Jogador"/"🔒 Fichas do
+      // Mestre" em MESA, ver makeFichasListLoader() mais abaixo) -- getLockedItemQty() já lê o
+      // valor certo direto do Inventário, mesmo se a linha estiver escondida agora (ver
+      // updateMunicaoVisibility()/renderHabilidades() -- some da TELA, mas o valor continua ali).
+      // armaAtual junto: é o que deixa o cartão saber QUAL munição mostrar (só a da arma equipada
+      // agora), sem precisar abrir a ficha inteira pra descobrir.
+      payload.armaAtual = selectedArmaAtual || selectedArma || '';
+      payload.pocoes = { vida: getLockedItemQty('POÇÃO DE VIDA'), mana: getLockedItemQty('POÇÃO DE MANA') };
+      payload.municao = {};
+      Object.keys(WEAPON_MUNICAO).forEach(arma=>{ payload.municao[arma] = getLockedItemQty(WEAPON_MUNICAO[arma].nome); });
       // RETRATO ao vivo (painel/pedido novo -- ver livePortraits/resolveTokenPortrait() no
       // <script>) -- só reenvia quando o retrato realmente MUDOU desde a última publicação
       // (lastPublishedPortrait): pushLiveVitals() já roda a cada recalc() (cada tecla/clique na
@@ -9463,6 +9537,16 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       logEntry.habilidade = pendingHabilidadeRoll.nome;
       if(pendingHabilidadeRoll.desc) logEntry.habilidadeDesc = pendingHabilidadeRoll.desc;
       if(pendingHabilidadeRoll.grito) logEntry.grito = pendingHabilidadeRoll.grito;
+      // Erguer Escudo / Erguer Escudo Pesado (pedido explícito): um ERRO neste rolamento de
+      // Atributo (CON) remove totalmente o Escudo do personagem, zerando o MÁXIMO (o atual cai
+      // sozinho pra 0 junto, já que updateBarreiraShield() sempre trava o atual no máximo -- ver
+      // recalc() acima). Só o ERRO mexe aqui; o ACERTO não faz nada sozinho -- quem levanta o
+      // Escudo de verdade é o ícone 🛡️ (ver hab.danoIcone/finishDanoRoll() mais abaixo).
+      if(ERGUER_ESCUDO_HAB_IDS.has(pendingHabilidadeRoll.id) && verdict === 'erro'){
+        els.barreiraMax.value = 0;
+        recalc();
+        logEntry.escudoRemovido = true;
+      }
       pendingHabilidadeRoll = null;
     }
     pushRollLog(logEntry);
@@ -9650,14 +9734,18 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     pendingDanoGrito = '';
     pendingDanoTipo = null;
     pendingDanoSetEscudo = false;
-    // Erguer Escudo/Erguer Escudo Pesado (ver pendingDanoSetEscudo acima): SUBSTITUI o Escudo atual
-    // pelo resultado desta rolagem, em vez de somar -- recalc() já chama updateBarreiraShield() por
-    // baixo dos panos, que trava o valor entre 0 e o Máximo sozinho.
+    // Erguer Escudo/Erguer Escudo Pesado (pedido explícito, rodada nova): o resultado vira o novo
+    // valor MÁXIMO de Escudo (substitui, nunca soma ao anterior) -- e já entra preenchido no atual
+    // também (escudo "erguido" cheio na hora, não só o teto). recalc() chama updateBarreiraShield()
+    // por baixo dos panos, que trava atual entre 0 e o novo máximo sozinho.
     if(setEscudo){
+      els.barreiraMax.value = total;
       els.barreiraCur.value = total;
       recalc();
     }
-    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, bonus, rolls: rollsSorted, resultado: total, habilidade: habilidadeNome, atributo: atributoNome, grito: gritoTxt || null, danoTipo: danoTipoNome || null, ts: Date.now() });
+    // setEscudo junto no log (rodada nova): formatRollMessage() usa isso pra chamar esta rolagem de
+    // "ESCUDO" em vez de "DANO" na mensagem do chat/Discord (não é dano de verdade).
+    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, bonus, rolls: rollsSorted, resultado: total, habilidade: habilidadeNome, atributo: atributoNome, grito: gritoTxt || null, danoTipo: danoTipoNome || null, setEscudo: setEscudo || null, ts: Date.now() });
   }
 
   // ---------- rolagem de sorte (moeda grega — cara ou coroa) ----------
@@ -10414,6 +10502,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     });
     if(!locked) entry.querySelector('.remove-btn').addEventListener('click', ()=> entry.remove());
     inventoryRows.appendChild(entry);
+    return entry;
   }
   $('addItem').addEventListener('click', ()=> addItemRow());
 
@@ -10439,7 +10528,14 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   addItemRow('OURO', 0, true);
   addItemRow('POÇÃO DE VIDA', 0, true);
   addItemRow('POÇÃO DE MANA', 0, true);
-  Object.keys(WEAPON_MUNICAO).forEach(arma=> addItemRow(WEAPON_MUNICAO[arma].nome, 0, true));
+  // pedido explícito: cada linha de Munição só aparece no Inventário enquanto a arma dela estiver
+  // EQUIPADA agora (não só possuída) -- ver updateMunicaoVisibility()/renderHabilidades() mais
+  // abaixo. data-municao-arma marca qual arma cada linha pertence, pra essa função achar/escondê-la
+  // sem apagar o valor guardado no <input> (só hidden -- o valor continua intacto por baixo).
+  Object.keys(WEAPON_MUNICAO).forEach(arma=>{
+    const rowEl = addItemRow(WEAPON_MUNICAO[arma].nome, 0, true);
+    rowEl.dataset.municaoArma = arma;
+  });
   for(let i=0;i<2;i++) addItemRow();
 
   // ---------- Habilidades fixas (abas Armamento/Elemento) ----------
@@ -10885,7 +10981,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // Espadas Gêmeas dobra TODO rolamento de ataque, este incluso (o ⚔️/🎲 de Atributo é quem decide
   // Acerto/Erro do golpe). Custo consumido uma vez só (mesma ação, dois ataques).
   function performHabilidadeAtributoRoll(hab, modo, iconEl, vezesRestantes){
-    pendingHabilidadeRoll = { nome: hab.nome, desc: hab.desc, grito: habGritos[hab.id] || '' };
+    // id junto (rodada nova): finishRoll() usa isso pra saber se este rolamento é de Erguer Escudo/
+    // Erguer Escudo Pesado (ver ERGUER_ESCUDO_HAB_IDS), pra zerar o Escudo sozinho num Erro.
+    pendingHabilidadeRoll = { id: hab.id, nome: hab.nome, desc: hab.desc, grito: habGritos[hab.id] || '' };
     pendingRollSourceIcon = iconEl || null; // ver spawnDiceExplosionAtElement() no rollBtn
     diceStat.value = habAttrCode(hab.attr);
     diceMode.value = modo;
@@ -11038,11 +11136,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       head.className = 'hab-row-head';
       const nomeEl = document.createElement('span');
       nomeEl.className = 'hab-nome';
-      nomeEl.textContent = hab.nome + ' ';
-      const attrEl = document.createElement('span');
-      attrEl.className = 'hab-nome-attr';
-      attrEl.textContent = `(${hab.attr})`;
-      nomeEl.appendChild(attrEl);
+      // pedido explícito: o título da Habilidade não leva mais o atributo entre parênteses (ex.:
+      // "Corte Pesado (FOR)" virou só "Corte Pesado") -- o atributo continua disponível em outro
+      // lugar de cada linha (rótulo "Rolar" nos ícones de dado, texto de custo, etc.).
+      nomeEl.textContent = hab.nome;
 
       const stepper = document.createElement('div');
       stepper.className = 'hab-nivel-stepper';
@@ -11253,7 +11350,20 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       : 'Escolha uma arma (em "Nova ficha") para ver as habilidades de Armamento.';
     return { armaAbilities, elementoAbilities, elemento1Abilities, armaEmptyMsg };
   }
+  // pedido explícito: cada linha de Munição (Aljava de Flechas/Munição para Besta Leve/Munição para
+  // Besta Pesada/Munição Carregada para Lançarma) só fica visível no Inventário enquanto a arma dela
+  // estiver EQUIPADA no momento -- some quando o personagem não tem aquela arma OU quando ela não é
+  // a equipada agora. Some via `hidden` (não remove/recria a linha), então o valor guardado no
+  // próprio <input> continua intacto por baixo -- ao reequipar a arma depois, a linha reaparece com
+  // a quantidade de munição exatamente como estava antes de sumir.
+  function updateMunicaoVisibility(){
+    const atual = selectedArmaAtual || selectedArma;
+    document.querySelectorAll('.item-entry[data-municao-arma]').forEach(rowEl=>{
+      rowEl.hidden = (rowEl.dataset.municaoArma !== atual);
+    });
+  }
   function renderHabilidades(){
+    updateMunicaoVisibility();
     const { armaAbilities, elementoAbilities, elemento1Abilities, armaEmptyMsg } = getAllHabAbilitiesForFicha();
     // Visão restrita (JOGADOR, e também o MESTRE na própria ficha/NPC -- mesma regra de sempre, ver
     // isMestreView em renderHabilidadesTab()/renderTalentos()): a partir desta rodada, mostra só as
@@ -11319,7 +11429,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     head.className = 'hab-row-head';
     const nomeEl = document.createElement('span');
     nomeEl.className = 'hab-nome';
-    nomeEl.textContent = '⚔️ TROCAR ARMA';
+    nomeEl.textContent = '⚔️ ARMAMENTO EQUIPADO'; // pedido explícito -- o botão continua "Trocar"
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'hab-switch-btn';
@@ -11602,6 +11712,18 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     if(habPointsUsedTotal() < HAB_POINTS_INITIAL){ openHabLevelUpPanel(); return; }
     if(pontosNivelPendentes() > 0){ openNivelChoiceModal(); return; }
   }
+  // pedido explícito: quando o wizard (Habilidade OU Talento) tem mais de 1 passo, um contador
+  // decrescente aparece fixo no canto do modal -- "3, dai seleciona a próxima exibe 2...". Mostra
+  // quantas escolhas AINDA faltam a partir deste passo (steps - index), incluindo a atual -- some
+  // (hidden) de novo quando o wizard só tinha 1 passo desde o início.
+  function updateWizardCountdownBadge(badgeEl, stepsTotal, stepIndex){
+    if(!badgeEl) return;
+    if(stepsTotal <= 1){ badgeEl.hidden = true; return; }
+    badgeEl.hidden = false;
+    badgeEl.textContent = String(stepsTotal - stepIndex);
+  }
+  const habLevelUpCountdown = $('habLevelUpCountdown');
+  const talentoLevelUpCountdown = $('talentoLevelUpCountdown');
   function renderHabLevelUpStep(){
     habLevelUpSelectedId = habWizardPicks[habWizardIndex] || null;
     habLevelUpOkBtn.disabled = !habLevelUpSelectedId;
@@ -11610,6 +11732,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     habLevelUpIntro.textContent = habWizardSteps > 1
       ? `Escolha ${habWizardIndex+1} de ${habWizardSteps}: qual Habilidade recebe o próximo nível?`
       : 'Você ganhou um ponto de Habilidade! Escolha qual Habilidade recebe o novo nível.';
+    updateWizardCountdownBadge(habLevelUpCountdown, habWizardSteps, habWizardIndex);
     habLevelUpList.innerHTML = '';
     // nível "hipotético" de cada Habilidade considerando também as escolhas já feitas em passos
     // ANTERIORES deste mesmo wizard (ainda não gravadas em habNiveis de verdade -- só entram na
@@ -11671,7 +11794,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       head.className = 'hab-levelup-card-head';
       const nomeEl = document.createElement('span');
       nomeEl.className = 'hab-levelup-card-nome';
-      nomeEl.textContent = `${hab.nome} (${hab.attr})`;
+      nomeEl.textContent = hab.nome; // pedido explícito: sem o atributo entre parênteses no título
       const nivelEl = document.createElement('span');
       nivelEl.className = 'hab-levelup-card-nivel';
       nivelEl.textContent = `Nível atual: ${nivel}`;
@@ -11886,13 +12009,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         head.className = 'hab-row-head';
         const nomeEl = document.createElement('span');
         nomeEl.className = 'hab-nome';
-        nomeEl.textContent = tal.nome + ' ';
-        if(!isGeral){
-          const attrEl = document.createElement('span');
-          attrEl.className = 'hab-nome-attr';
-          attrEl.textContent = `(${tal.attr})`;
-          nomeEl.appendChild(attrEl);
-        }
+        // pedido explícito: o título do Talento também não leva mais o atributo entre parênteses --
+        // continua disponível no corpo do card ("ATRIBUTO ROLADO: X", ver textWrap abaixo) e nos
+        // rótulos aria-label dos ícones de dado.
+        nomeEl.textContent = tal.nome;
         head.appendChild(nomeEl);
         if(isMestreView){
           const removeBtn = document.createElement('button');
@@ -12015,6 +12135,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     talentoLevelUpIntro.textContent = talentoWizardSteps > 1
       ? `Escolha ${talentoWizardIndex+1} de ${talentoWizardSteps}: selecione um atributo e depois o Talento.`
       : 'Você ganhou um Talento! Selecione um atributo e depois o Talento.';
+    updateWizardCountdownBadge(talentoLevelUpCountdown, talentoWizardSteps, talentoWizardIndex);
     talentoLevelUpList.innerHTML = '';
     // talentos já escolhidos em passos ANTERIORES deste mesmo wizard (ainda pendentes, não
     // gravados em talentosOwned de verdade até o OK do último passo) -- CONTADOS (não só um Set),
@@ -12055,9 +12176,8 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       headEl.className = 'hab-levelup-card-head';
       const nomeEl = document.createElement('span');
       nomeEl.className = 'hab-levelup-card-nome';
-      // GERAL (utilitário, ver TALENTO_CATALOG/renderTalentos()) não ganha "(ATRIBUTO)" no nome --
-      // não representa um teste que se rola no dado.
-      nomeEl.textContent = tal.attr === 'GERAL' ? tal.nome : `${tal.nome} (${tal.attr})`;
+      // pedido explícito: sem o atributo entre parênteses no título, nem pros Talentos com teste.
+      nomeEl.textContent = tal.nome;
       headEl.appendChild(nomeEl);
       const descEl = document.createElement('div');
       descEl.className = 'hab-levelup-card-desc';
@@ -12375,8 +12495,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // então nasce com 0, igual uma ficha nova.
     Object.keys(WEAPON_MUNICAO).forEach(arma=>{
       const nome = WEAPON_MUNICAO[arma].nome;
-      const entry = takeLockedByName(nome);
-      addItemRow(nome, entry.qtd || 0, true, entry.desc || '');
+      const saved = takeLockedByName(nome);
+      const rowEl = addItemRow(nome, saved.qtd || 0, true, saved.desc || '');
+      rowEl.dataset.municaoArma = arma;
     });
     invList.forEach(it=> addItemRow((it && it.nome) || '', (it && it.qtd) || 0, false, (it && it.desc) || ''));
     // níveis das Habilidades fixas (ver collectState() acima/renderHabilidades() na seção
@@ -13642,6 +13763,12 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       // ou só o nome puro (Cortante). entry.danoTipo vem null em qualquer rolagem sem tipo definido
       // (rolagem solta, Atributo, Habilidade antiga sem o campo) -- não muda a mensagem nesse caso.
       const tipoTxt = entry.danoTipo && DANO_TIPO_LABEL[entry.danoTipo] ? ` — Dano ${DANO_TIPO_LABEL[entry.danoTipo]}` : '';
+      // Erguer Escudo/Erguer Escudo Pesado (pedido explícito): não é dano de verdade -- a mensagem
+      // chama de "ROLOU ESCUDO" em vez de "ROLOU DANO", com o ícone 🛡️ no lugar do 🎲, e sem o
+      // sufixo de tipo de dano (essas duas nunca têm hab.tipo definido).
+      if(entry.setEscudo){
+        return `🛡️ **${nome}** ROLOU ESCUDO — ${dadosTxt} = **${entry.resultado}**`;
+      }
       return `🎲 **${nome}** ROLOU DANO — ${dadosTxt} = **${entry.resultado}**${tipoTxt}`;
     }
     if(entry.tipo === 'sorte'){
@@ -13668,7 +13795,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       : '1d20';
     const threshold = (entry.statValor !== undefined && entry.statValor !== null) ? Math.max(2, 20 - entry.statValor) : null;
     const formulaTxt = threshold !== null ? `\nFórmula: ${modeFormulaTxt} — acerto a partir de **${threshold}** (${statNome}${statValorTxt})` : '';
-    return `${gritoPrefixo}🎲 "**${nome}**" ROLOU ${habilidadeAtributoTxt}"${statNome}${statValorTxt}"${formulaTxt}\nRESULTADO: **${entry.resultado}**${label}${rollsDetalhe}${habilidadeDescTxt}`;
+    // Erguer Escudo/Erguer Escudo Pesado (pedido explícito): um ERRO neste rolamento já zera o
+    // Escudo sozinho (ver finishRoll()/ERGUER_ESCUDO_HAB_IDS) -- avisa isso na própria mensagem,
+    // pra ficar claro pra mesa o que aconteceu além do "Erro" de sempre.
+    const escudoRemovidoTxt = entry.escudoRemovido ? '\n🛡️ ESCUDO REMOVIDO — o Erro zerou o Escudo máximo do personagem.' : '';
+    return `${gritoPrefixo}🎲 "**${nome}**" ROLOU ${habilidadeAtributoTxt}"${statNome}${statValorTxt}"${formulaTxt}\nRESULTADO: **${entry.resultado}**${label}${rollsDetalhe}${habilidadeDescTxt}${escudoRemovidoTxt}`;
   }
 
   // Espelha a entrada no Firebase (mesa40k/rollLogFeed) só pra empurrar a ATUALIZAÇÃO EM TEMPO REAL
@@ -13850,7 +13981,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         : `1d${escapeHtml(String(entry.maxVal))}${bonusTxtLog}: resultado ${escapeHtml(String(entry.resultado))}`;
       const habilidadeTxtLog = entry.habilidade ? ` de "${escapeHtml(entry.habilidade)}"` : '';
       const atributoTxtLog = entry.atributo ? ` (${escapeHtml(entry.atributo)})` : '';
-      texto = `"${nome}" ROLOU DANO${habilidadeTxtLog}${atributoTxtLog} — ${detalhe}`;
+      // Erguer Escudo/Erguer Escudo Pesado: mesmo relabel do chat/Discord (ver formatRollMessage()),
+      // pro Histórico na tela não continuar chamando de "DANO" o que na verdade ergue o Escudo.
+      const rotuloRolagem = entry.setEscudo ? 'ESCUDO' : 'DANO';
+      texto = `"${nome}" ROLOU ${rotuloRolagem}${habilidadeTxtLog}${atributoTxtLog} — ${detalhe}`;
     } else if(entry.tipo === 'sorte'){
       const escolhaLabel = entry.escolha === 'coroa' ? 'Coroa' : 'Cara';
       const resultadoLabel = entry.resultado === 'coroa' ? 'Coroa' : 'Cara';
@@ -13865,7 +13999,8 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         : '';
       const habilidadeAtributoTxtLog = entry.habilidade ? `${escapeHtml(entry.habilidade)} ` : '';
       const habilidadeDescTxtLog = entry.habilidadeDesc ? `<br><em>${escapeHtml(entry.habilidadeDesc)}</em>` : '';
-      texto = `"${nome}" ROLOU ${habilidadeAtributoTxtLog}"${escapeHtml(statNomeRaw)}${statValorTxt}" — RESULTADO ${escapeHtml(String(entry.resultado))}${label}${rollsDetalhe}${habilidadeDescTxtLog}`;
+      const escudoRemovidoTxtLog = entry.escudoRemovido ? ' — 🛡️ ESCUDO REMOVIDO' : '';
+      texto = `"${nome}" ROLOU ${habilidadeAtributoTxtLog}"${escapeHtml(statNomeRaw)}${statValorTxt}" — RESULTADO ${escapeHtml(String(entry.resultado))}${label}${rollsDetalhe}${habilidadeDescTxtLog}${escudoRemovidoTxtLog}`;
     }
     const hora = entry.ts ? new Date(entry.ts).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
     const row = document.createElement('div');
@@ -16326,6 +16461,20 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
           const curManaVal = (data.curMana === undefined || data.curMana === null || data.curMana === '') ? manaMaxCalc : data.curMana;
           const escudoMaxVal = parseFloat(data.barreiraMax) || 0;
           const escudoCurVal = (data.barreiraCur === undefined || data.barreiraCur === null || data.barreiraCur === '') ? escudoMaxVal : data.barreiraCur;
+          // Poções/Munição (pedido explícito, ver payload.pocoes/payload.municao em
+          // pushLiveVitals()) -- valor inicial vem do último SALVO (data.inventory, mesmo esquema
+          // do Ouro logo abaixo, só que buscando pelo NOME em vez de um índice fixo, já que ficha
+          // salva antes desta rodada não tem as linhas de Munição no meio do array); o listener ao
+          // vivo mais abaixo troca pelos valores/arma atuais assim que a ficha publica algo novo.
+          const findInvQty = (nome)=>{
+            const it = (data.inventory || []).find(x => x && x.nome === nome);
+            return (it && it.qtd) || 0;
+          };
+          const pocaoVidaVal = findInvQty('POÇÃO DE VIDA');
+          const pocaoManaVal = findInvQty('POÇÃO DE MANA');
+          const armaAtualVal = data.armaAtual || '';
+          const municaoInfoVal = WEAPON_MUNICAO[armaAtualVal] || null;
+          const municaoQtyVal = municaoInfoVal ? findInvQty(municaoInfoVal.nome) : 0;
           const card = document.createElement('div');
           card.className = 'master-card';
           // avisa de cara, na lista, quando a ficha já tem dono e não é a de quem está olhando —
@@ -16343,6 +16492,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
                 Ouro ${escapeHtml(String((data.inventory && data.inventory[0] && data.inventory[0].qtd) || 0))} ·
                 XP <span class="mc-live-xp">${Math.round(levelInfo.xpInBlock)}</span>/<span class="mc-live-xp-needed">${levelInfo.xpNeeded}</span>
                 <span class="mc-live-badge" hidden title="Estes valores estão sendo atualizados ao vivo, sem precisar salvar a ficha">● ao vivo</span>
+              </div>
+              <div class="mc-vitals mc-vitals-inventario">
+                Poção de Vida <span class="mc-live-pocaovida">${escapeHtml(String(pocaoVidaVal))}</span> ·
+                Poção de Mana <span class="mc-live-pocaomana">${escapeHtml(String(pocaoManaVal))}</span>
+                <span class="mc-municao-line"${municaoInfoVal ? '' : ' hidden'}> · <span class="mc-municao-label">${escapeHtml((municaoInfoVal && municaoInfoVal.nome) || '')}</span> <span class="mc-live-municao">${escapeHtml(String(municaoQtyVal))}</span></span>
               </div>
               <div class="mc-attrs">${attrsHtml}</div>
               ${(xpControls && data.ownerUid) ? `<div class="mc-xp-controls">
@@ -16562,6 +16716,28 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
                   const attrEl = card.querySelector(`[data-attr-live="${k}"] strong`);
                   if(attrEl && live.totals[k] !== undefined && live.totals[k] !== null) attrEl.textContent = live.totals[k];
                 });
+              }
+              // Poções/Munição ao vivo (ver payload.pocoes/payload.municao/payload.armaAtual em
+              // pushLiveVitals()) -- pedido explícito: "a atualização de poções e munição deve
+              // ocorrer pra todos que estiverem observando a ficha em tempo real". A Munição é a
+              // única que também precisa trocar de RÓTULO (não só o número) quando a arma equipada
+              // muda ao vivo -- por isso mostra/esconde a linha inteira, não só troca um número.
+              if(live.pocoes){
+                setTxt('.mc-live-pocaovida', live.pocoes.vida);
+                setTxt('.mc-live-pocaomana', live.pocoes.mana);
+              }
+              if(live.armaAtual !== undefined){
+                const municaoLineEl = card.querySelector('.mc-municao-line');
+                const municaoInfoLive = WEAPON_MUNICAO[live.armaAtual];
+                if(municaoLineEl){
+                  municaoLineEl.hidden = !municaoInfoLive;
+                  if(municaoInfoLive){
+                    const labelEl = municaoLineEl.querySelector('.mc-municao-label');
+                    if(labelEl) labelEl.textContent = municaoInfoLive.nome;
+                    const valEl = municaoLineEl.querySelector('.mc-live-municao');
+                    if(valEl) valEl.textContent = (live.municao && live.municao[live.armaAtual]) || 0;
+                  }
+                }
               }
               const badge = card.querySelector('.mc-live-badge');
               if(badge) badge.hidden = false;
@@ -19562,35 +19738,30 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // mais acima, usada pelos 3 botões agora (Escudo/Vida/Mana saem todos na mesma imagem).
   // Isso é um "evento" de app (igual uma rolagem), não um texto digitado, então usa postToDiscord
   // (que já cuida de espelhar no chat E mandar pro Discord, respeitando SILENCIAR).
-  async function sendVitalPrint(kind){
+  // pedido explícito: os 3 botões antigos do cabeçalho do chat (🛡️/🔴/🔵, um print pra cada stat)
+  // saem -- no lugar, um clique só na PRÓPRIA imagem (o "coração" de Vida/Mana dentro do escudo,
+  // ver .barreira-shield-wrap/buildEscudoPrintDataUrl()) manda um print ÚNICO com as 3 stats juntas
+  // (a imagem já era idêntica nos 3 botões antigos -- só o texto da mensagem mudava).
+  async function sendVitalPrint(){
     if(!fbReady || !currentUser){ alert('Entre na sua conta pra mandar esse print.'); return; }
     const nome = els.nome.value.trim() || '(sem nome)';
-    let img, label, cur, max;
-    if(kind === 'escudo'){
-      img = await buildEscudoPrintDataUrl();
-      label = 'ESCUDO ATUAL';
-      cur = num(els.barreiraCur); max = num(els.barreiraMax);
-    } else if(kind === 'vida'){
-      // Vida agora mora dentro do próprio Escudo (metade direita do coração) — mesma imagem.
-      img = await buildEscudoPrintDataUrl();
-      label = 'VIDA ATUAL';
-      cur = num(els.curVida); max = parseFloat(els.maxVida.textContent) || 0;
-    } else {
-      // Mana idem, metade esquerda do coração.
-      img = await buildEscudoPrintDataUrl();
-      label = 'MANA ATUAL';
-      cur = num(els.curMana); max = parseFloat(els.maxMana.textContent) || 0;
-    }
     if(isBlankName(nome)) return; // ficha sem nome não avisa ninguém
-    const content = `${label} DE "${nome}" (${cur} / ${max})`;
+    const img = await buildEscudoPrintDataUrl();
+    const vida = `${num(els.curVida)} / ${parseFloat(els.maxVida.textContent) || 0}`;
+    const mana = `${num(els.curMana)} / ${parseFloat(els.maxMana.textContent) || 0}`;
+    const escudo = `${num(els.barreiraCur)} / ${num(els.barreiraMax)}`;
+    const content = `STATUS ATUAL DE "${nome}" — VIDA: ${vida} · MANA: ${mana} · ESCUDO: ${escudo}`;
     postToDiscord(content, img);
   }
-  const chatEscudoPrintBtn = $('chatEscudoPrintBtn');
-  const chatVidaPrintBtn = $('chatVidaPrintBtn');
-  const chatManaPrintBtn = $('chatManaPrintBtn');
-  if(chatEscudoPrintBtn) chatEscudoPrintBtn.addEventListener('click', ()=> sendVitalPrint('escudo'));
-  if(chatVidaPrintBtn) chatVidaPrintBtn.addEventListener('click', ()=> sendVitalPrint('vida'));
-  if(chatManaPrintBtn) chatManaPrintBtn.addEventListener('click', ()=> sendVitalPrint('mana'));
+  const barreiraShieldWrapEl = document.querySelector('.barreira-shield-wrap');
+  if(barreiraShieldWrapEl){
+    barreiraShieldWrapEl.setAttribute('role', 'button');
+    barreiraShieldWrapEl.setAttribute('tabindex', '0');
+    barreiraShieldWrapEl.setAttribute('aria-label', 'Mandar print da Vida/Mana/Escudo atuais pro chat');
+    barreiraShieldWrapEl.title = 'Clique pra mandar um print da Vida/Mana/Escudo atuais pro chat';
+    barreiraShieldWrapEl.addEventListener('click', sendVitalPrint);
+    barreiraShieldWrapEl.addEventListener('keydown', (e)=>{ if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); sendVitalPrint(); } });
+  }
 
   chatInputEl.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') sendChatMessage(); });
 
