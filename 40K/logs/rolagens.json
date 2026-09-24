@@ -4,17 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 10,
-    "resultado": 3,
-    "resultLabel": "Erro",
-    "ts": 1789426747153,
-    "habilidade": "Ataque de Espada Pesada",
-    "habilidadeDesc": "Ataca com a espada pesada afetando até 3 inimigos à sua frente.\nDano: 1d3 + Modificador de Arma + bônus de FOR (aumenta 1 dado por nível)."
-  },
-  {
-    "nome": "efreet",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 10,
     "resultado": 2,
     "resultLabel": "Erro — Vantagem",
     "ts": 1789426752655,
@@ -293,5 +282,22 @@
     "ts": 1790260507182,
     "habilidade": "Corte Duplo",
     "habilidadeDesc": "Realiza dois golpes cortantes a uma casa de distância da posição do personagem (a casa bem à frente dele, em linha reta) — um com cada espada.\nDano de cada ataque: 1d3 + Modificador de Arma + bônus de DES (aumenta 1 dado por nível)."
+  },
+  {
+    "nome": "oi",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 5,
+    "bonus": 0,
+    "rolls": [
+      1
+    ],
+    "resultado": 1,
+    "habilidade": "Erguer Escudo",
+    "atributo": null,
+    "grito": null,
+    "danoTipo": null,
+    "setEscudo": true,
+    "ts": 1790260529040
   }
 ]
