@@ -59,5 +59,16 @@
     "habilidade": "Chuva de Flechas",
     "alvo": "Dummy 1",
     "ts": 1790338768063
+  },
+  {
+    "nome": "Allana",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 13,
+    "resultLabel": "Erro",
+    "habilidade": "Disparar Flecha",
+    "alvo": "Dummy 1",
+    "ts": 1790338859129
   }
 ]
