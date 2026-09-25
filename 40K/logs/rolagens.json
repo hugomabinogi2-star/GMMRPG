@@ -48,5 +48,16 @@
     "de": "B3",
     "para": "C2",
     "ts": 1790338750434
+  },
+  {
+    "nome": "Allana",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 10,
+    "resultLabel": "Erro",
+    "habilidade": "Chuva de Flechas",
+    "alvo": "Dummy 1",
+    "ts": 1790338768063
   }
 ]
