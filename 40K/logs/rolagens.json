@@ -41,5 +41,12 @@
     "habilidade": "Disparo Duplo",
     "alvo": "Dummy 1",
     "ts": 1790338684514
+  },
+  {
+    "nome": "Allana",
+    "tipo": "movimento",
+    "de": "B3",
+    "para": "C2",
+    "ts": 1790338750434
   }
 ]
