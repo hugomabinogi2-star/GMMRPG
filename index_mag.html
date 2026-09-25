@@ -1248,19 +1248,35 @@ body{
    resolveTokenVitalsForCard() no <script>). Mesmo gatilho/filosofia do tip e da barrinha de Vida
    logo acima (filho da CASA, não do token, pelo mesmo motivo: o token tem overflow:hidden), só que
    aparece do LADO do ícone em vez de em cima/embaixo dele (pedido explícito: "mostre ao lado").
-   Em % (não valor real), ordem Escudo, Vida, Mana, sem nenhum texto/número -- ver o <script> pros
-   3 valores. */
+   As barrinhas em si continuam em % (ordem Escudo, Vida, Mana); embaixo de cada uma aparece só o
+   número do valor ATUAL (rodada nova, pedido explícito: "somente o numero atual", sem o máximo) --
+   ver .bvc-col/.bvc-nums/.bvc-num abaixo. align-items:flex-start (não mais flex-end) pra alinhar as
+   DUAS barrinhas pelo topo, já que agora cada coluna tem uma altura total diferente (a de
+   Escudo+Vida tem 2 linhas de número embaixo, a de Mana só 1). */
 .board-token-vitalscard{
   position:absolute;
   top:50%;left:100%;
   transform:translate(10px,-50%);
-  display:flex;align-items:flex-end;gap:9px;
+  display:flex;align-items:flex-start;gap:9px;
   z-index:50;
   opacity:0;visibility:hidden;
   transition:opacity .12s;
   pointer-events:none;
 }
 .board-cell:hover .board-token-vitalscard{opacity:1;visibility:visible;}
+.bvc-col{display:flex;flex-direction:column;align-items:center;gap:3px;}
+/* Números do card: só o valor atual, texto pequeno com contorno escuro (pra ler em cima de
+   qualquer fundo do tabuleiro) -- Escudo e Vida empilhados (mesma ordem da coluna acima, Escudo
+   primeiro) embaixo da barrinha de Vida+anel; Mana embaixo da própria barrinha de Mana. A cor de
+   cada número é definida inline no <script> (Vida sempre no vermelho do "coração" da ficha; Escudo
+   e Mana na cor da Divindade, mesma lógica de cor que a própria barrinha/anel já usam). */
+.bvc-nums{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.bvc-num{
+  font-size:10px;line-height:1;font-weight:700;
+  text-shadow:0 1px 2px #000, 0 0 3px #000;
+  white-space:nowrap;
+}
+.bvc-num-vida{color:#ff8a6e;}
 /* Vida: mesma barrinha vertical da Mana logo abaixo, só que ao invés de trocar a cor da barra
    inteira (Mana é cor sólida da Divindade), o fundo JÁ nasce pintado com o degradê fixo de Vida da
    própria ficha (heartVidaGradRed no HTML: escuro embaixo -> claro em cima) e uma "cortina" escura
@@ -15546,6 +15562,12 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     return Math.max(0, Math.min(100, (atualN / maxN) * 100));
   }
 
+  // Só o valor ATUAL, arredondado e nunca negativo -- usado pelos números que aparecem embaixo de
+  // cada barrinha do card (rodada nova, pedido explícito: "somente o numero atual", sem o máximo).
+  function roundedAtualValor(atual){
+    return Math.max(0, Math.round(parseFloat(atual) || 0));
+  }
+
   // Lê Vida/Mana/Escudo (convertidos pra %) + a cor da Divindade da peça, pra montar o card de uma
   // peça do tabuleiro -- devolve null quando não há dado nenhum publicado/gravado ainda pra essa
   // peça específica (o card fica de fora nesse caso, em vez de aparecer com as 3 barrinhas zeradas
@@ -15567,6 +15589,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         vidaPct: pctFromValores(token.vidaAtual, token.vidaMax),
         manaPct: pctFromValores(token.manaAtual, token.manaMax),
         escudoPct: pctFromValores(token.escudoAtual, token.escudoMax),
+        vidaAtual: roundedAtualValor(token.vidaAtual),
+        manaAtual: roundedAtualValor(token.manaAtual),
+        escudoAtual: roundedAtualValor(token.escudoAtual),
         deidade: token.deidade || '',
       };
     }
@@ -15577,6 +15602,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         vidaPct: pctFromValores(live.vida, live.vidaMax),
         manaPct: pctFromValores(live.mana, live.manaMax),
         escudoPct: pctFromValores(live.escudo, live.escudoMax),
+        vidaAtual: roundedAtualValor(live.vida),
+        manaAtual: roundedAtualValor(live.mana),
+        escudoAtual: roundedAtualValor(live.escudo),
         deidade: live.deidade || '',
       };
     }
@@ -15598,6 +15626,12 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     const deityColor = DEITY_EYE_COLOR[vitals.deidade] || '#e0b656';
     const card = document.createElement('div');
     card.className = 'board-token-vitalscard';
+
+    // Coluna Escudo+Vida: a barrinha de Vida (com o anel de Escudo ao redor) por cima, e os 2
+    // números ATUAIS (rodada nova: "somente o numero atual", sem o máximo) empilhados embaixo dela
+    // -- Escudo primeiro, Vida depois, mesma ordem (Escudo, Vida, Mana) do pedido original do card.
+    const colVida = document.createElement('div');
+    colVida.className = 'bvc-col';
 
     const vidaSlot = document.createElement('div');
     vidaSlot.className = 'bvc-vida-slot';
@@ -15626,8 +15660,24 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     ringRect.style.filter = `drop-shadow(0 0 3px ${deityColor})`;
     ring.appendChild(ringRect);
     vidaSlot.appendChild(ring);
-    card.appendChild(vidaSlot);
+    colVida.appendChild(vidaSlot);
 
+    const vidaNums = document.createElement('div');
+    vidaNums.className = 'bvc-nums';
+    const escudoNum = document.createElement('div');
+    escudoNum.className = 'bvc-num bvc-num-escudo';
+    escudoNum.textContent = vitals.escudoAtual;
+    escudoNum.style.color = deityColor;
+    vidaNums.appendChild(escudoNum);
+    const vidaNum = document.createElement('div');
+    vidaNum.className = 'bvc-num bvc-num-vida';
+    vidaNum.textContent = vitals.vidaAtual;
+    vidaNums.appendChild(vidaNum);
+    colVida.appendChild(vidaNums);
+    card.appendChild(colVida);
+
+    const colMana = document.createElement('div');
+    colMana.className = 'bvc-col';
     const manaWrap = document.createElement('div');
     manaWrap.className = 'bvc-mana-wrap';
     const manaFill = document.createElement('div');
@@ -15635,7 +15685,13 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     manaFill.style.height = vitals.manaPct + '%';
     manaFill.style.background = deityColor;
     manaWrap.appendChild(manaFill);
-    card.appendChild(manaWrap);
+    colMana.appendChild(manaWrap);
+    const manaNum = document.createElement('div');
+    manaNum.className = 'bvc-num bvc-num-mana';
+    manaNum.textContent = vitals.manaAtual;
+    manaNum.style.color = deityColor;
+    colMana.appendChild(manaNum);
+    card.appendChild(colMana);
 
     return card;
   }
@@ -18754,6 +18810,22 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
               tip.style.color = tokenRingColorHex(token.kind) || 'var(--ink)';
             }
             cell.appendChild(tip);
+            // Card de Vida/Mana/Escudo ao passar o mouse (rodada nova -- mesmo
+            // buildBoardVitalsCard()/resolveTokenVitalsForCard() já usado na aba Mesa do mestre em
+            // renderBoardCell(), ver comentário grande deles) -- pedido explícito: "essas barras
+            // precisam aparecer para os jogadores também e para as fichas deles na mesa". Reaproveita
+            // as MESMAS classes CSS (.board-token-vitalscard/.board-cell:hover, ver <style>), então o
+            // zoom + card já funcionam aqui de graça, sem precisar de nenhuma regra nova. Os dados já
+            // chegam prontos pra qualquer um que estiver vendo este mini-tabuleiro (mestre OU
+            // jogador, ver connectLiveBoard()): inimigo_ficha/aliado_ficha trazem a própria
+            // Vida/Mana/Escudo/Divindade dentro do PRÓPRIO token (mesmo formato de
+            // collectBoardTokensOut(), publicado ao vivo em mesa40k/liveBoard/tokens); hero (jogador)
+            // usa liveVitalsAll[ownerUid] (mesmo nó mesa40k/live que já alimenta isHeroDead() poucas
+            // linhas acima) -- os dois já chegam em tempo real pra QUALQUER conta logada, sem
+            // precisar de nenhum nó novo no Firebase. Respeita Fog automaticamente por só rodar
+            // dentro deste "if" (a peça já não teria chegado até aqui se estivesse fora do alcance).
+            const vitals = resolveTokenVitalsForCard(token);
+            if(vitals) cell.appendChild(buildBoardVitalsCard(vitals));
           }
         }
         liveBoardGridEl.appendChild(cell);
