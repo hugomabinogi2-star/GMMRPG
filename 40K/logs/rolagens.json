@@ -30,5 +30,16 @@
     "habilidade": "Disparar Flecha",
     "alvo": "Dummy 1",
     "ts": 1790338634863
+  },
+  {
+    "nome": "Allana",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 6,
+    "resultLabel": "Erro",
+    "habilidade": "Disparo Duplo",
+    "alvo": "Dummy 1",
+    "ts": 1790338684514
   }
 ]
