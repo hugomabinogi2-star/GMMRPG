@@ -1081,6 +1081,19 @@ body{
   z-index:2;
   display:flex;align-items:center;justify-content:center;
   overflow:hidden;
+  transition:transform .15s ease;
+}
+/* Zoom ao passar o mouse (rodada nova, pedido explícito: "quando passar o mouse em cima de uma
+   ficha no tabuleiro e ela der zoom mostre ao lado um card resumo..."). Nunca em Barreira/Porta/
+   Objeto (.token-block -- isso é cenário/obstáculo, não "uma ficha") nem enquanto a peça está
+   sendo arrastada (.board-token[draggable]:active não existe em CSS puro, mas o navegador já
+   solta um :hover "fantasma" durante o drag em alguns casos -- por segurança, exclui only-block
+   mesmo, sem tentar detectar o próprio arrasto). transform-origin:center (padrão) mantém o zoom
+   centrado no próprio ícone. z-index bem alto durante o hover pra cobrir vizinhos, inclusive peças
+   maiores (token-size2/3 já usam z-index:3 normalmente). */
+.board-cell:hover .board-token:not(.token-block){
+  transform:scale(1.35);
+  z-index:20;
 }
 .board-token.token-hero{
   background-color:#c9a227;
@@ -1231,6 +1244,60 @@ body{
 }
 .board-token-hpbar-fill{height:100%;transition:width .2s, background-color .2s;}
 .board-cell:hover .board-token-hpbar{opacity:1;visibility:visible;}
+/* Card de Vida/Mana/Escudo ao passar o mouse (rodada nova -- ver buildBoardVitalsCard()/
+   resolveTokenVitalsForCard() no <script>). Mesmo gatilho/filosofia do tip e da barrinha de Vida
+   logo acima (filho da CASA, não do token, pelo mesmo motivo: o token tem overflow:hidden), só que
+   aparece do LADO do ícone em vez de em cima/embaixo dele (pedido explícito: "mostre ao lado").
+   Em % (não valor real), ordem Escudo, Vida, Mana, sem nenhum texto/número -- ver o <script> pros
+   3 valores. */
+.board-token-vitalscard{
+  position:absolute;
+  top:50%;left:100%;
+  transform:translate(10px,-50%);
+  display:flex;align-items:flex-end;gap:9px;
+  z-index:50;
+  opacity:0;visibility:hidden;
+  transition:opacity .12s;
+  pointer-events:none;
+}
+.board-cell:hover .board-token-vitalscard{opacity:1;visibility:visible;}
+/* Vida: mesma barrinha vertical da Mana logo abaixo, só que ao invés de trocar a cor da barra
+   inteira (Mana é cor sólida da Divindade), o fundo JÁ nasce pintado com o degradê fixo de Vida da
+   própria ficha (heartVidaGradRed no HTML: escuro embaixo -> claro em cima) e uma "cortina" escura
+   por cima (.bvc-vida-mask) encolhe de cima pra baixo conforme a Vida sobe -- revela mais do
+   degradê por baixo, em vez de mudar a cor da barra. Mesmo efeito visual do recorte SVG da ficha. */
+.bvc-vida-slot{position:relative;width:12px;height:54px;}
+.bvc-vida-wrap{
+  position:absolute;inset:0;
+  overflow:hidden;border-radius:4px;
+  background:linear-gradient(to top, #5c0f0f 0%, #c22626 55%, #ff8a6e 100%);
+  box-shadow:0 1px 4px rgba(0,0,0,.7), inset 0 0 0 1px rgba(0,0,0,.55);
+}
+.bvc-vida-mask{
+  position:absolute;top:0;left:0;right:0;
+  background:rgba(8,7,6,.95);
+  transition:height .2s;
+}
+/* Escudo: NÃO é uma 3ª barrinha (pedido explícito) -- é este anel de luz contornando a própria
+   barrinha de Vida (por fora do .bvc-vida-wrap acima, com folga -- ver BVC_RING_PAD no <script>),
+   "preenchendo" o contorno de baixo pra cima conforme o Escudo sobe, técnica idêntica ao anel de
+   Escudo de VERDADE da ficha (stroke-dasharray/dashoffset, ver BARREIRA_RING_CIRC no <script>).
+   pointer-events:none pra nunca atrapalhar o :hover da própria casa por baixo dela. */
+.bvc-escudo-ring{position:absolute;inset:-4px;overflow:visible;pointer-events:none;}
+.bvc-escudo-ring-fill{fill:none;stroke-width:2.4px;stroke-linecap:round;transition:stroke-dashoffset .2s, stroke .2s;}
+/* Mana: barrinha vertical simples, cor sólida da Divindade (mesma cor de .heart-fill-mana/
+   .barreira-ring-fill na própria ficha), enchendo de baixo pra cima -- última da ordem pedida
+   (Escudo, Vida, Mana). */
+.bvc-mana-wrap{
+  position:relative;width:12px;height:54px;
+  overflow:hidden;border-radius:4px;
+  background:rgba(0,0,0,.55);
+  box-shadow:0 1px 4px rgba(0,0,0,.7), inset 0 0 0 1px rgba(0,0,0,.55);
+}
+.bvc-mana-fill{
+  position:absolute;left:0;right:0;bottom:0;
+  transition:height .2s, background-color .2s;
+}
 .board-token.token-size2{
   inset:auto;
   top:6%;left:6%;
@@ -4980,34 +5047,31 @@ body{
                 </div>
               </div>
             </div>
-            <!-- Público/Privado/Inimigos: só em fichas CRIADAS PELO MESTRE (NPC, sem ownerUid) --
-                 .mestre-ficha-only/updateMestreFichaControls() no <script>, a pedido. Toda ficha
-                 de NPC nasce Privada (ver applyState(), que só marca "Publico"/"Inimigos" quando
-                 s.publica já vier assim de uma ficha salva antes) e só o mestre vê/mexe aqui -- pro
-                 jogador, tanto a própria ficha (nunca é NPC) quanto uma ficha de NPC pública
-                 aberta pelo botão "🧚 Fichas de NPC" (travada só-leitura, ver
-                 loadedFichaIsNpc/isFichaEditable()) esse campo some junto com o resto de
-                 .mestre-ficha-only. Muda em tempo real (ver o listener de #f_publica perto de
+            <!-- Fichas do Mestre/Aliados/Inimigos: só em fichas CRIADAS PELO MESTRE (NPC, sem
+                 ownerUid) -- .mestre-ficha-only/updateMestreFichaControls() no <script>, a pedido.
+                 Rodada nova: lógica refeita de 4 opções (Privado/Público/Inimigos/Aliados) pra só
+                 3, cada uma definida por 2 características -- o que ela CONTA COMO no tabuleiro
+                 (Aliado ou Inimigo) e se ela APARECE na consulta pública "🧚 Fichas de NPC" que
+                 qualquer jogador pode abrir:
+                   🔒 Fichas do Mestre (era "Privado", o padrão de toda ficha nova) -- conta como
+                     Aliado no tabuleiro (mesma mecânica de "🧝 Aliados" abaixo, incl. peça
+                     repetível/Vida-Mana-Escudo própria), mas NÃO aparece na consulta.
+                   🧝 Aliados -- conta como Aliado no tabuleiro E aparece na consulta.
+                   👹 Inimigos -- conta como Inimigo no tabuleiro, NÃO aparece na consulta.
+                 A opção "🌐 Público" (que só controlava a consulta, sem mecânica de aliado/inimigo
+                 nenhuma) saiu -- ver applyState() pro que acontece com uma ficha antiga que ainda
+                 tenha esse valor salvo. Muda em tempo real (ver o listener de #f_publica perto de
                  collectState() no <script>): assim que o mestre troca aqui, quem já estiver com o
                  modal "🧚 Fichas de NPC" aberto vê a ficha aparecer/sumir da lista na hora, sem
-                 precisar dar "Atualizar lista". Rodada nova: saiu de perto do XP (Coluna 3) e
-                 voltou pra cá, logo abaixo do Nome/Elemento (a pedido) -- e ganhou a 3ª opção
-                 "Inimigos" (ver .mestre-only #masterEnemiesBtn/#enemiesModal e
-                 renderInimigoFichaCoins() no <script>): fichas marcadas assim saem da lista
-                 "🔒 Fichas do Mestre" e só aparecem em "👹 Fichas de Inimigos", de onde o mestre
-                 pode colocá-las (repetidas vezes) no tabuleiro como peças de verdade. Rodada
-                 nova: ganhou também a 4ª opção "Aliados" (ver .mestre-only #masterAlliesBtn/
-                 #alliesModal e renderAliadoFichaCoins() no <script>) -- mesmíssimo esquema,
-                 só que pro lado dos aliados (ícone com contorno verde no tabuleiro em vez de
-                 vermelho): fichas marcadas assim saem de "🔒 Fichas do Mestre" e só aparecem em
-                 "🧝 Fichas de Aliados". -->
+                 precisar dar "Atualizar lista" -- e o tabuleiro (aba Mesa) reflete a peça
+                 repetível certa nas abas "🧝 Aliados"/"👹 Inimigos" (ver renderMestreTray() no
+                 <script>) assim que a ficha for salva de novo. -->
             <div class="field mestre-ficha-only" id="publicaField" hidden style="margin-top:10px;">
               <label for="f_publica">Ficha de NPC</label>
               <select id="f_publica">
-                <option value="Privado">🔒 Privado</option>
-                <option value="Publico">🌐 Público (aparece em "Fichas de NPC" pra qualquer um consultar)</option>
-                <option value="Inimigos">👹 Inimigos (some de "Fichas do Mestre", vira peça repetível no tabuleiro)</option>
-                <option value="Aliados">🧝 Aliados (some de "Fichas do Mestre", vira peça repetível no tabuleiro)</option>
+                <option value="Privado">🔒 Fichas do Mestre (conta como Aliado no tabuleiro, não aparece em "Fichas de NPC")</option>
+                <option value="Aliados">🧝 Aliados (conta como Aliado no tabuleiro, aparece em "Fichas de NPC" pra qualquer um consultar)</option>
+                <option value="Inimigos">👹 Inimigos (conta como Inimigo no tabuleiro, não aparece em "Fichas de NPC")</option>
               </select>
             </div>
             <!-- Habilidades: substituiu a lista livre antiga (nome/atributo/descrição digitados à
@@ -5506,8 +5570,23 @@ body{
       <div class="board-menu">
         <div class="board-menu-tabs">
           <button type="button" class="board-menu-tab active" data-panel="boardPanelJogadores">Fichas dos Jogadores</button>
-          <button type="button" class="board-menu-tab" data-panel="boardPanelMestre">Fichas do Mestre</button>
-          <button type="button" class="board-menu-tab" data-panel="boardPanelGeral">Geral</button>
+          <!-- Rodada nova: as antigas abas "Fichas do Mestre" (peça única, mecanismo de
+               makeRosterTrayRenderer) e "Geral" (só continha as bandejas repetíveis de
+               Inimigos/Aliados) saíram daqui -- motivo do pedido: "a guia de Aliados e de Inimigos
+               precisa existir no tabuleiro ou eu não consigo adicionar as fichas deles lá" (só
+               existiam escondidas dentro de "Geral", sem nome próprio). Viraram estas duas abas de
+               verdade abaixo, "🧝 Aliados"/"👹 Inimigos", cada uma com nome e ícone próprios igual
+               à "🩸 Instâncias no Tabuleiro". Lógica de categorização também refeita nesta rodada
+               (ver #f_publica no formulário de ficha e applyState()/isPublicaValue()/
+               isInimigosValue()/isAliadosValue() no <script>): toda ficha "🔒 Fichas do Mestre"
+               (antigo "Privado", o padrão de toda ficha nova) agora CONTA COMO ALIADO no tabuleiro
+               -- por isso ela entra direto na bandeja "🧝 Aliados" abaixo, junto com as fichas
+               marcadas "Aliados" de verdade (ver mestreRoster.filter(h => !isInimigosValue(...))
+               em renderAliadoFichaCoins() no <script> -- tudo que NÃO é Inimigos conta como
+               Aliado). A aba PVP (mais abaixo) tem sua PRÓPRIA seção separada "Fichas do mestre",
+               que continua mostrando só fichas realmente Privadas/Mestre -- não mexida aqui. -->
+          <button type="button" class="board-menu-tab" data-panel="boardPanelAliados">🧝 Aliados</button>
+          <button type="button" class="board-menu-tab" data-panel="boardPanelInimigos">👹 Inimigos</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelBlocos">Barreiras</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelPvp">⚔️ PVP</button>
           <!-- Aba nova (rodada nova): acompanha em tempo real Vida/Mana/Escudo de cada instância de
@@ -5520,34 +5599,32 @@ body{
         <div class="board-menu-panel active" id="boardPanelJogadores">
           <div class="board-tray-coins" id="boardTrayCoins"></div>
         </div>
-        <div class="board-menu-panel" id="boardPanelMestre">
-          <div class="board-tray-coins" id="boardTrayMestreCoins"></div>
-        </div>
-        <div class="board-menu-panel" id="boardPanelGeral">
-          <!-- Rodada nova: os ícones genéricos de Aliado/Aliado (Fera)/Inimigo/Monstro/Boss (antigo
-               #boardEnemyCoins/ENEMY_KINDS/renderEnemyCoins()) foram REMOVIDOS daqui -- pedido
-               explícito ("todas as fichas em index_mag terão que ser geradas pelo mestre"). Toda
-               peça de aliado/inimigo colocável agora vem de uma ficha de verdade (ver os dois
-               blocos logo abaixo), nunca mais de um ícone solto sem ficha. ENEMY_KINDS continua
-               existindo só no <script> (não mais renderizado aqui) pra resolver o retrato de peças
-               desse tipo que JÁ estejam em tabuleiros salvos antes desta rodada (compatibilidade
-               retroativa, ver resolveTokenPortrait()) -- não é mais possível criar peças novas
-               assim, só as que já existiam continuam aparecendo normalmente.
-               Fichas de NPC marcadas "Inimigos" (ver #f_publica/👹 Fichas de Inimigos) viram peças
-               de verdade aqui -- cada uma pode ser arrastada quantas vezes o mestre quiser
-               (repetível, ao contrário das fichas de jogador/mestre normais das outras abas, que só
-               entram uma vez cada). Fica escondida (ver renderInimigoFichaCoins() no <script>)
-               quando não há nenhuma ficha marcada assim ainda, pra não deixar um título "Fichas de
-               Inimigos" solto e vazio aqui. -->
-          <div id="boardInimigoFichaWrap" hidden style="margin-top:14px;">
-            <div class="board-tray-title">Fichas de Inimigos</div>
-            <div class="board-enemy-coins" id="boardInimigoFichaCoins"></div>
-          </div>
-          <!-- Fichas de NPC marcadas "Aliados" (ver #f_publica/🧝 Fichas de Aliados) -- mesmíssimo
-               esquema do bloco de Inimigos acima, ver renderAliadoFichaCoins() no <script>. -->
+        <!-- Rodada nova: os ícones genéricos de Aliado/Aliado (Fera)/Inimigo/Monstro/Boss (antigo
+             #boardEnemyCoins/ENEMY_KINDS/renderEnemyCoins()) foram REMOVIDOS daqui -- pedido
+             explícito ("todas as fichas em index_mag terão que ser geradas pelo mestre"). Toda peça
+             de aliado/inimigo colocável agora vem de uma ficha de verdade (ver os dois painéis
+             abaixo), nunca mais de um ícone solto sem ficha. ENEMY_KINDS continua existindo só no
+             <script> (não mais renderizado aqui) pra resolver o retrato de peças desse tipo que JÁ
+             estejam em tabuleiros salvos antes desta rodada (compatibilidade retroativa, ver
+             resolveTokenPortrait()) -- não é mais possível criar peças novas assim, só as que já
+             existiam continuam aparecendo normalmente.
+             Fichas de NPC marcadas "Aliados" OU "🔒 Fichas do Mestre" (ver #f_publica) viram peças
+             de verdade aqui -- cada uma pode ser arrastada quantas vezes o mestre quiser (repetível,
+             ao contrário das fichas de jogador/mestre normais das outras abas, que só entram uma
+             vez cada). Fica escondida (ver renderAliadoFichaCoins() no <script>) quando não há
+             nenhuma ficha marcada assim ainda, pra não deixar a aba com um título solto e vazio. -->
+        <div class="board-menu-panel" id="boardPanelAliados">
           <div id="boardAliadoFichaWrap" hidden style="margin-top:14px;">
             <div class="board-tray-title">Fichas de Aliados</div>
             <div class="board-enemy-coins" id="boardAliadoFichaCoins"></div>
+          </div>
+        </div>
+        <!-- Fichas de NPC marcadas "Inimigos" (ver #f_publica) -- mesmíssimo esquema da aba
+             "🧝 Aliados" acima, ver renderInimigoFichaCoins() no <script>. -->
+        <div class="board-menu-panel" id="boardPanelInimigos">
+          <div id="boardInimigoFichaWrap" hidden style="margin-top:14px;">
+            <div class="board-tray-title">Fichas de Inimigos</div>
+            <div class="board-enemy-coins" id="boardInimigoFichaCoins"></div>
           </div>
         </div>
         <!-- mesmas fichas de jogador/mestre das abas acima, só que colocadas aqui no tabuleiro
@@ -8190,7 +8267,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // "Atualizar lista" (mesma limitação de qualquer ficha nova ainda não salva).
   els.publica.addEventListener('change', ()=>{
     if(!fbReady || !fbDb || !loadedFichaPath) return;
-    fbDb.ref('mesa40k/npcPublica/' + sanitizeFbKey(loadedFichaPath)).set(els.publica.value === 'Publico')
+    fbDb.ref('mesa40k/npcPublica/' + sanitizeFbKey(loadedFichaPath)).set(els.publica.value === 'Aliados')
       .catch(err=> console.error('Não foi possível avisar em tempo real a mudança de Público/Privado desta ficha de NPC:', err));
   });
 
@@ -12774,13 +12851,19 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // NPC realmente tiver um). Pro JOGADOR (que É a própria ficha) continua nascendo em FOGO, já
     // que "-" é mestre-only e não faria sentido como padrão de uma ficha de herói de verdade.
     els.deidade.value = (s.deidade === 'HUMANO') ? '-' : (s.deidade || (currentRole === 'mestre' ? '-' : 'FOGO'));
-    // Público/Privado/Inimigos: "Privado" é o padrão sempre que a ficha não trouxer um valor
+    // Fichas do Mestre/Aliados/Inimigos (rodada nova -- refeita a lógica de 4 opções pra 3):
+    // "Privado" ("Fichas do Mestre") é o padrão sempre que a ficha não trouxer um valor
     // reconhecido -- cobre tanto "Nova ficha" (s={}, nasce Privada) quanto uma ficha de NPC salva
-    // antes desse recurso existir (legada, sem o campo). s.publica pode chegar em dois formatos:
-    // a STRING de verdade ('Publico'/'Inimigos', gravada a partir desta rodada — ver
-    // collectState()) OU o boolean antigo (true = Publico, de fichas salvas ANTES desta rodada,
-    // quando "Inimigos" nem existia) -- os dois são aceitos aqui pra nenhuma ficha antiga quebrar.
-    els.publica.value = (s.publica === 'Publico' || s.publica === 'Inimigos') ? s.publica : (s.publica === true ? 'Publico' : 'Privado');
+    // antes desse recurso existir (legada, sem o campo). CORREÇÃO desta rodada: antes desta linha
+    // só reconhecia 'Publico'/'Inimigos' como válidos -- reabrir uma ficha marcada 'Aliados' e
+    // salvar de novo resetava ela pra 'Privado' sem querer (bug real, causa provável de fichas
+    // marcadas Aliados sumirem da bandeja depois de reeditadas). s.publica pode chegar em dois
+    // formatos: a STRING de verdade ('Aliados'/'Inimigos', ou a legada 'Publico' de fichas salvas
+    // ANTES desta rodada -- a opção "Público" saiu do seletor, mas uma ficha antiga com esse valor
+    // salvo vira 'Aliados' aqui, já que "aparecer na consulta" era a característica mais marcante
+    // dela) OU o boolean bem antigo (true = era Publico, de fichas salvas antes de "Inimigos"
+    // existir) -- todos aceitos aqui pra nenhuma ficha antiga quebrar.
+    els.publica.value = (s.publica === 'Aliados' || s.publica === 'Inimigos') ? s.publica : ((s.publica === 'Publico' || s.publica === true) ? 'Aliados' : 'Privado');
     // suprime o push em mesa40k/deidade/{uid} pra esse dispatch programático -- ver comentário em
     // "let suppressDeidadePush" mais acima.
     suppressDeidadePush = true;
@@ -15251,6 +15334,12 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     if(existingToken) existingToken.remove();
     const existingTip = cell.querySelector('.board-token-tip');
     if(existingTip) existingTip.remove();
+    // card de Vida/Mana/Escudo ao passar o mouse (rodada nova, ver buildBoardVitalsCard() mais
+    // abaixo) -- outro elemento À PARTE do próprio token, mesma lógica de limpeza do tip logo
+    // acima (senão fica um card órfão/duplicado toda vez que a peça é redesenhada, ex: a cada
+    // ajuste de Vida/Mana/Escudo em combate).
+    const existingVitalsCard = cell.querySelector('.board-token-vitalscard');
+    if(existingVitalsCard) existingVitalsCard.remove();
     // a seta (ver mais abaixo) é um elemento À PARTE do próprio token (não fica aninhada dentro
     // dele) -- precisa ser limpa aqui também, senão fica órfã na casa quando o token se move pra
     // outra casa, muda de direção pra "nenhuma" (facing null) ou é removido do tabuleiro.
@@ -15365,6 +15454,17 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         cell.appendChild(hpBar);
         applyBoardHpBar(hpBar);
       }
+      // Card de Vida/Mana/Escudo ao passar o mouse (rodada nova, ver buildBoardVitalsCard()/
+      // resolveTokenVitalsForCard() mais abaixo) -- pedido explícito: "quando passar o mouse em
+      // cima de uma ficha no tabuleiro e ela der zoom mostre ao lado um card resumo de vida, mana
+      // e escudo". Nunca em Barreira/Porta/Objeto (isBlock, sem Vida/Mana/Escudo nenhum) -- pras
+      // demais peças (hero de jogador, inimigo_ficha, aliado_ficha), resolveTokenVitalsForCard()
+      // devolve null quando ainda não há nenhum dado publicado/gravado pra essa peça específica, e
+      // o card simplesmente não nasce nesse caso (evita 3 barrinhas zeradas por engano).
+      if(!isBlock){
+        const vitals = resolveTokenVitalsForCard(token);
+        if(vitals) cell.appendChild(buildBoardVitalsCard(vitals));
+      }
       // Seta de direção (ver FACING_ANGLES/buildFacingArrowEl() lá embaixo). Ficha de JOGADOR: o
       // jogador escolhe pra onde está olhando pelo PRÓPRIO painel "Tabuleiro ao Vivo" (mini, dentro
       // da ficha dele, ver chooseLiveBoardFacing()) -- aqui no tabuleiro DE VERDADE (aba Mesa) o
@@ -15418,6 +15518,126 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     fill.style.width = pct + '%';
     fill.style.background = pct <= 20 ? '#e0433a' : (pct <= 50 ? '#e0b23c' : '#3fbf5e');
     hpBar.title = `Vida ${vida} / ${vidaMax}`;
+  }
+
+  // ---------- Rodada nova: card de Vida/Mana/Escudo ao passar o mouse numa peça no tabuleiro
+  // (pedido explícito: "quando passar o mouse em cima de uma ficha no tabuleiro e ela der zoom
+  // mostre ao lado um card resumo de vida, mana e escudo do personagem... em %... barrinha lateral
+  // na ordem escudo, vida, mana... escudo sendo uma barrinha de luz ao redor da de vida,
+  // contornando ela") ----------
+  // Geometria fixa das barrinhas (ver .bvc-* no <style>) -- calculada uma vez aqui, em vez de
+  // espalhar os mesmos números em vários lugares, pra CSS e JS nunca ficarem dessincronizados.
+  const BVC_BAR_W = 12, BVC_BAR_H = 54;                    // tamanho de cada barrinha (Vida/Mana)
+  const BVC_RING_PAD = 4, BVC_RING_STROKE = 2.4, BVC_RING_RADIUS = 6.5; // anel de Escudo ao redor da de Vida
+  const BVC_RING_W = BVC_BAR_W + BVC_RING_PAD * 2, BVC_RING_H = BVC_BAR_H + BVC_RING_PAD * 2;
+  // perímetro aproximado do retângulo arredondado do anel -- 2 lados retos por eixo (descontando
+  // os 4 cantos) + os 4 cantos virando, juntos, um círculo completo de raio BVC_RING_RADIUS. Mesma
+  // técnica de stroke-dasharray/dashoffset que o anel de Escudo de VERDADE da própria ficha usa
+  // (ver BARREIRA_RING_CIRC mais acima), só que num retângulo em vez de num círculo, por isso o
+  // cálculo do perímetro é diferente (BARREIRA_RING_CIRC é só 2*PI*raio, um círculo puro).
+  const BVC_RING_PERIMETER = 2 * (BVC_RING_W - BVC_RING_STROKE - 2 * BVC_RING_RADIUS)
+                            + 2 * (BVC_RING_H - BVC_RING_STROKE - 2 * BVC_RING_RADIUS)
+                            + 2 * Math.PI * BVC_RING_RADIUS;
+
+  function pctFromValores(atual, max){
+    const maxN = parseFloat(max);
+    if(!(maxN > 0)) return 0;
+    const atualN = Math.max(0, parseFloat(atual) || 0);
+    return Math.max(0, Math.min(100, (atualN / maxN) * 100));
+  }
+
+  // Lê Vida/Mana/Escudo (convertidos pra %) + a cor da Divindade da peça, pra montar o card de uma
+  // peça do tabuleiro -- devolve null quando não há dado nenhum publicado/gravado ainda pra essa
+  // peça específica (o card fica de fora nesse caso, em vez de aparecer com as 3 barrinhas zeradas
+  // por engano):
+  //  - kind 'inimigo_ficha'/'aliado_ficha' (peça repetível, ver buildFichaInstanceToken() mais
+  //    abaixo): sempre tem os 3 valores E a divindade gravados na PRÓPRIA peça, independente de
+  //    qualquer outra cópia da mesma ficha -- nunca precisa de liveVitalsAll aqui.
+  //  - kind 'hero' com token.ownerUid (ficha de JOGADOR de verdade): usa liveVitalsAll[ownerUid],
+  //    o mesmo dado ao vivo que já alimenta a barrinha de Vida (applyBoardHpBar()) e a troca pra
+  //    caveira (isHeroDead()) logo acima.
+  //  - kind 'hero' SEM ownerUid (ficha do mestre colocada só na aba PVP -- ver payload.pvp em
+  //    handleBoardDrop(), a única forma hoje de uma peça 'hero' ficar sem ownerUid): pushLiveVitals()
+  //    nunca publica pra essa peça (só publica pra ficha de JOGADOR, ver comentário perto de
+  //    recalc() lá em cima) e ela também não guarda Vida/Mana/Escudo própria (só bonusDes/bonusMov/
+  //    deidade, ver handleBoardDrop()) -- sem card aqui, não tem de onde tirar um valor confiável.
+  function resolveTokenVitalsForCard(token){
+    if(token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha'){
+      return {
+        vidaPct: pctFromValores(token.vidaAtual, token.vidaMax),
+        manaPct: pctFromValores(token.manaAtual, token.manaMax),
+        escudoPct: pctFromValores(token.escudoAtual, token.escudoMax),
+        deidade: token.deidade || '',
+      };
+    }
+    if(token.kind === 'hero' && token.ownerUid){
+      const live = liveVitalsAll[token.ownerUid];
+      if(!live) return null;
+      return {
+        vidaPct: pctFromValores(live.vida, live.vidaMax),
+        manaPct: pctFromValores(live.mana, live.manaMax),
+        escudoPct: pctFromValores(live.escudo, live.escudoMax),
+        deidade: live.deidade || '',
+      };
+    }
+    return null;
+  }
+
+  // Monta o card em si (DOM) a partir dos 3 % já calculados + a cor da Divindade (mesmo
+  // DEITY_EYE_COLOR usado na própria ficha pra Mana/Escudo, ver comentário grande dele lá em cima).
+  // Vida usa a MESMA dupla de cores do "coração" de cristal da ficha (ver heartVidaGradRed no HTML:
+  // #5c0f0f escuro -> #c22626 -> #ff8a6e claro, de baixo pra cima) -- pintada FIXA no fundo da
+  // barrinha (.bvc-vida-wrap) e revelada de baixo pra cima por uma "cortina" escura por cima dela
+  // (.bvc-vida-mask, encolhendo conforme a Vida sobe) -- mesmo efeito visual do recorte SVG da
+  // ficha (mais gradiente fica visível conforme enche), sem precisar de outro gradiente SVG só pra
+  // isso. Escudo NÃO vira uma 3ª barrinha (pedido explícito) -- vira este anel de luz
+  // (.bvc-escudo-ring, técnica de stroke-dasharray/dashoffset, ver BVC_RING_PERIMETER acima)
+  // contornando a barrinha de Vida. Mana continua uma barrinha simples (cor sólida da Divindade,
+  // sem gradiente), a 3ª e última na ordem pedida (Escudo, Vida, Mana).
+  function buildBoardVitalsCard(vitals){
+    const deityColor = DEITY_EYE_COLOR[vitals.deidade] || '#e0b656';
+    const card = document.createElement('div');
+    card.className = 'board-token-vitalscard';
+
+    const vidaSlot = document.createElement('div');
+    vidaSlot.className = 'bvc-vida-slot';
+    const vidaWrap = document.createElement('div');
+    vidaWrap.className = 'bvc-vida-wrap';
+    const vidaMask = document.createElement('div');
+    vidaMask.className = 'bvc-vida-mask';
+    vidaMask.style.height = (100 - vitals.vidaPct) + '%';
+    vidaWrap.appendChild(vidaMask);
+    vidaSlot.appendChild(vidaWrap);
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const ring = document.createElementNS(svgNS, 'svg');
+    ring.setAttribute('class', 'bvc-escudo-ring');
+    ring.setAttribute('viewBox', `0 0 ${BVC_RING_W} ${BVC_RING_H}`);
+    const ringRect = document.createElementNS(svgNS, 'rect');
+    ringRect.setAttribute('x', BVC_RING_STROKE / 2);
+    ringRect.setAttribute('y', BVC_RING_STROKE / 2);
+    ringRect.setAttribute('width', BVC_RING_W - BVC_RING_STROKE);
+    ringRect.setAttribute('height', BVC_RING_H - BVC_RING_STROKE);
+    ringRect.setAttribute('rx', BVC_RING_RADIUS);
+    ringRect.setAttribute('class', 'bvc-escudo-ring-fill');
+    ringRect.setAttribute('stroke-dasharray', BVC_RING_PERIMETER.toFixed(2));
+    ringRect.setAttribute('stroke-dashoffset', (BVC_RING_PERIMETER * (1 - vitals.escudoPct / 100)).toFixed(2));
+    ringRect.style.stroke = deityColor;
+    ringRect.style.filter = `drop-shadow(0 0 3px ${deityColor})`;
+    ring.appendChild(ringRect);
+    vidaSlot.appendChild(ring);
+    card.appendChild(vidaSlot);
+
+    const manaWrap = document.createElement('div');
+    manaWrap.className = 'bvc-mana-wrap';
+    const manaFill = document.createElement('div');
+    manaFill.className = 'bvc-mana-fill';
+    manaFill.style.height = vitals.manaPct + '%';
+    manaFill.style.background = deityColor;
+    manaWrap.appendChild(manaFill);
+    card.appendChild(manaWrap);
+
+    return card;
   }
 
   // chamado sempre que mesa/live muda (ver onLiveVitalsChanged() mais abaixo) — refaz cada casa do
@@ -15665,7 +15885,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         // Ficha de NPC marcada "Aliados" (ver #f_publica/renderAliadoFichaCoins()) -- mesmíssimo
         // esquema do branch 'inimigo_ficha' logo acima, só que pro lado dos aliados (contorno verde
         // no tabuleiro, ver boardTokenGlowGreen no <style>, em vez de vermelho).
-        const hero = mestreRoster.find(h => h.id === payload.heroId && isAliadosValue(h.publica));
+        const hero = mestreRoster.find(h => h.id === payload.heroId && !isInimigosValue(h.publica));
         if(!hero) return;
         if(!canPlace(r, c, 1, 1, null)) return;
         const token = buildFichaInstanceToken('aliado_ficha', hero);
@@ -15923,28 +16143,26 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // (normal + PVP) juntas, pra não precisar caçar e duplicar cada chamada existente.
   function renderHeroTray(){ renderHeroTrayNormal(); renderHeroTrayPvp(); }
 
-  // fichas do mestre: allowLarge=true (último argumento) — cada NPC ganha as duas moedas (1 casa e
-  // 2x2), ver comentário de makeRosterTrayRenderer() acima. Fichas marcadas "Inimigos" ou
-  // "Aliados" (ver #f_publica) saem daqui de propósito -- elas ficam SEPARADAS, só nas bandejas de
-  // renderInimigoFichaCoins()/renderAliadoFichaCoins() (aba Geral), não nas duas abas de fichas do
-  // mestre abaixo.
+  // fichas do mestre (aba PVP, seção própria "Fichas do mestre"): allowLarge=true (último
+  // argumento) — cada NPC ganha as duas moedas (1 casa e 2x2), ver comentário de
+  // makeRosterTrayRenderer() acima. Fichas marcadas "Inimigos" ou "Aliados" (ver #f_publica) saem
+  // daqui de propósito -- só sobram as fichas realmente Privadas/"🔒 Fichas do Mestre". A antiga
+  // aba normal "Fichas do Mestre" (fora do PVP) saiu nesta rodada -- toda ficha "🔒 Fichas do
+  // Mestre" agora conta como Aliado e entra direto na bandeja repetível da aba "🧝 Aliados" (ver
+  // renderAliadoFichaCoins() abaixo), então mestreRosterSemInimigos só é usado pela seção PVP.
   const mestreRosterSemInimigos = ()=> mestreRoster.filter(h => !isInimigosValue(h.publica) && !isAliadosValue(h.publica));
-  const renderMestreTrayNormal = makeRosterTrayRenderer(
-    mestreRosterSemInimigos, boardTrayMestreCoins,
-    'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".', false, true
-  );
   const renderMestreTrayPvp = makeRosterTrayRenderer(
     mestreRosterSemInimigos, boardTrayMestreCoinsPvp,
     'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".', true, true
   );
-  // renderInimigoFichaCoins()/renderAliadoFichaCoins() dependem do mesmo mestreRoster que as duas
-  // linhas acima -- chamadas sempre junto, pra bandeja de "Fichas de Inimigos"/"Fichas de Aliados"
-  // (aba Geral) nunca ficar desatualizada em relação à de "Fichas do Mestre" (ex: mestre marca uma
-  // ficha como Inimigos/Aliados e salva de novo).
-  function renderMestreTray(){ renderMestreTrayNormal(); renderMestreTrayPvp(); renderInimigoFichaCoins(); renderAliadoFichaCoins(); }
+  // renderInimigoFichaCoins()/renderAliadoFichaCoins() dependem do mesmo mestreRoster que a linha
+  // acima -- chamadas sempre junto, pra bandeja das abas "🧝 Aliados"/"👹 Inimigos" nunca ficar
+  // desatualizada em relação à seção PVP (ex: mestre marca uma ficha como Inimigos/Aliados e salva
+  // de novo).
+  function renderMestreTray(){ renderMestreTrayPvp(); renderInimigoFichaCoins(); renderAliadoFichaCoins(); }
 
-  // Fichas de NPC marcadas "Inimigos" (ver #f_publica) viram moedas REPETÍVEIS aqui, dentro da aba
-  // "Geral" -- mesmo esquema de renderEnemyCoins() acima (sempre arrastáveis, nunca ficam
+  // Fichas de NPC marcadas "Inimigos" (ver #f_publica) viram moedas REPETÍVEIS aqui, na aba
+  // "👹 Inimigos" -- mesmo esquema de renderEnemyCoins() acima (sempre arrastáveis, nunca ficam
   // "placed"/travadas depois de soltas no tabuleiro, ao contrário das moedas de ficha de
   // jogador/mestre normais em makeRosterTrayRenderer(), que só entram uma vez cada), mas usando o
   // retrato/nome de verdade de cada ficha (vindo de mestreRoster) em vez de um ícone genérico —
@@ -15980,14 +16198,15 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     });
   }
 
-  // Fichas de NPC marcadas "Aliados" (ver #f_publica) viram moedas REPETÍVEIS aqui, dentro da aba
-  // "Geral" -- mesmíssimo esquema de renderInimigoFichaCoins() logo acima (sempre arrastáveis,
+  // Fichas de NPC marcadas "Aliados" OU "🔒 Fichas do Mestre" (ver #f_publica -- toda ficha que
+  // NÃO é Inimigos conta como Aliado nesta rodada) viram moedas REPETÍVEIS aqui, na aba
+  // "🧝 Aliados" -- mesmíssimo esquema de renderInimigoFichaCoins() logo acima (sempre arrastáveis,
   // nunca ficam "placed"/travadas depois de soltas no tabuleiro), só que pro lado dos aliados: kind
   // 'aliado_ficha' (contorno verde no tabuleiro, ver boardTokenGlowGreen no <style>) em vez de
   // 'inimigo_ficha'.
   function renderAliadoFichaCoins(){
     if(!boardAliadoFichaCoins) return;
-    const allies = mestreRoster.filter(h => isAliadosValue(h.publica));
+    const allies = mestreRoster.filter(h => !isInimigosValue(h.publica));
     boardAliadoFichaWrap.hidden = allies.length === 0;
     boardAliadoFichaCoins.innerHTML = '';
     allies.forEach(hero=>{
@@ -16969,15 +17188,22 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   }
 
   // Público/Privado/Inimigos (#f_publica): até esta rodada, o campo salvo (`publica`) era só um
-  // BOOLEAN (true = Publico, false/ausente = Privado — nunca existia um terceiro estado). Rodada
-  // nova: passou a salvar a STRING de verdade do <select> ('Privado'/'Publico'/'Inimigos'), pra
-  // caber o novo estado "Inimigos" (ver collectState()/applyState() mais abaixo). As duas funções
-  // a seguir tratam os dois formatos ao mesmo tempo (string nova OU boolean antigo de ficha salva
-  // antes desta rodada), pra nenhuma ficha já salva no GitHub quebrar ou ficar "Inimigos" à toa.
-  function isPublicaValue(v){ return v === 'Publico' || v === true; }
+  // BOOLEAN (true = Publico, false/ausente = Privado — nunca existia um terceiro estado). Depois
+  // passou a salvar a STRING de verdade do <select> ('Privado'/'Publico'/'Inimigos'/'Aliados').
+  // Rodada nova: a lógica de 4 opções virou 3 (🔒 Fichas do Mestre = 'Privado' / 🧝 Aliados /
+  // 👹 Inimigos -- ver o comentário grande em #publicaField no <body> e em applyState()). A opção
+  // "Publico" saiu do <select>, mas "aparecer na consulta pública" (isPublicaValue, usada só pro
+  // filtro ao vivo de "🧚 Fichas de NPC") agora é exatamente a mesma coisa que "ser Aliado" --
+  // então isPublicaValue() abaixo aceita 'Aliados' (novo) e também os dois formatos legados
+  // ('Publico' string, ou o boolean antigo true) de fichas salvas antes desta rodada, pra nenhuma
+  // ficha já salva no GitHub sumir da consulta à toa.
+  function isPublicaValue(v){ return v === 'Aliados' || v === 'Publico' || v === true; }
   function isInimigosValue(v){ return v === 'Inimigos'; }
-  // Aliados: mesmíssimo esquema de isInimigosValue() acima, ver comentário grande logo acima --
-  // não existe formato legado (boolean antigo) pra tratar aqui, é um valor totalmente novo.
+  // Aliados: conta como Aliado no tabuleiro E aparece na consulta -- ver isPublicaValue() acima.
+  // Não existe formato legado boolean pra tratar aqui, é um rótulo totalmente novo (a ficha antiga
+  // que tinha true/'Publico' cai em isPublicaValue()==true mas isAliadosValue()==false; como ela
+  // é sempre uma ficha de NPC sem isInimigosValue(), o restante do código (ex.: bandeja do
+  // tabuleiro, que passa a filtrar por !isInimigosValue()) já trata ela como aliada mesmo assim).
   function isAliadosValue(v){ return v === 'Aliados'; }
 
   // Gera a função que busca/renderiza uma lista de fichas do GitHub — reaproveitada tanto para
