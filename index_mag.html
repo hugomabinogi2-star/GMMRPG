@@ -438,6 +438,18 @@ body{
   display:flex;flex-direction:column;max-height:560px;
 }
 .chat-panel[hidden]{display:none;}
+/* Rodada nova, pedido explícito ("o fundo da guia inteira onde fica o tabuleiro e o chat... ela
+   não pode ser transparente"): igual .panel.live-board-panel já fazia (ver comentário grande dela
+   mais acima), fundo CHAPADO com --paper em vez de herdar o rgba(120,85,40,.08) translúcido do
+   .panel genérico -- precisa ser ".panel.chat-panel" (as 2 classes juntas, especificidade 0-2-0)
+   e não só ".chat-panel" sozinho (0-1-0): #chatPanel tem as DUAS classes ("panel chat-panel" no
+   HTML), e a regra base .panel (mais abaixo no arquivo) tem a MESMA especificidade de um
+   ".chat-panel" sozinho -- nesse empate, quem vem depois no arquivo ganha (.panel, que é
+   definida bem mais abaixo), então um ".chat-panel{background:...}" isolado nunca teria efeito
+   nenhum aqui. Reage a dark/light mode sozinho, já que --paper é redefinida junto. */
+.panel.chat-panel{
+  background:var(--paper);
+}
 .chat-panel h2{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   text-transform:uppercase;flex:none;
@@ -449,6 +461,18 @@ body{
 }
 .chat-min-btn:hover{border-color:var(--gold-bright);color:var(--ink);}
 .chat-panel-body{display:flex;flex-direction:column;min-height:0;flex:1;position:relative;}
+/* Rodada nova, pedido explícito ("as guias no chat para histórico e resumo de fichas devem
+   funcionar como gavetas, exibindo apenas 'uma gaveta aberta por vez' ocultando as outras duas"):
+   faltava exatamente esta linha -- setChatActiveTab() já marca #chatPanelBody com o atributo
+   hidden ao trocar pra outra aba (ver CHAT_TABS/setChatActiveTab() no <script>), mas SEM um
+   [hidden]{display:none} próprio, o display:flex desta mesma regra (origem "author", que sempre
+   ganha do display:none padrão do navegador pro atributo hidden, também "author" mas de
+   especificidade/ordem menor) continuava valendo por cima -- a aba Chat nunca chegava a
+   desaparecer de verdade ao abrir Histórico/Resumos, só encolhia dividindo espaço no flex,
+   dando a impressão de mais de uma "gaveta" aberta ao mesmo tempo. .chat-tab-body (as outras 2
+   abas, logo abaixo) já tinha esse mesmo cuidado (.chat-tab-body[hidden]{display:none;}) desde a
+   Fase 4 -- só faltava replicar aqui pra aba Chat também. */
+.chat-panel-body[hidden]{display:none;}
 /* Fase 4 do "tabuleiro único": minimizar o chat (ver setChatMinimized() no <script>) agora esconde
    as 3 abas junto (#chatTabs) e o conteúdo de QUALQUER uma delas que esteja ativa no momento
    (.chat-panel-body é só a aba "Chat" -- .chat-tab-body são as outras duas, "Histórico de
@@ -672,29 +696,47 @@ body{
 
 /* ---------- faixa fixa de Tabuleiro+Chat, FORA do cartão que vira (rodada nova) ---------- */
 /* Pedido explícito, com referência visual própria: tabuleiro e chat saem de dentro da ficha (que
-   virava junto pro verso/Mesa, sumindo da tela) e passam pra esta faixa fixa, irmã de #card dentro
-   de .stage -- nunca gira, fica sempre visível não importa a ficha estar de frente, de verso
-   (História) ou com o painel de Gerenciar tabuleiro aberto (ver #boardManagePanel mais abaixo e
-   openMesaModal()/closeMesaModal() no <script>, que pararam de virar o cartão). #liveBoardPanel/
-   #chatPanel continuam sendo os MESMOS elementos de sempre (mesmos ids, mesma lógica de
-   mostrar/esconder no login -- ver "$('liveBoardPanel').hidden"/"$('chatPanel').hidden" no
-   <script>), só que agora filhos de #mesaFixedBody em vez de filhos de .ribbon dentro de
-   .face.front -- por isso o CSS deles lá em cima (.live-board-panel/.chat-panel) continua valendo
-   sem mudar nada. Só um tabuleiro visível por padrão (o Tabuleiro ao Vivo, pra Mestre e jogadores
-   igual já era) -- o tabuleiro grande de edição do Mestre virou o painel "📂 Gerenciar tabuleiro"
-   (continua sendo o mesmo #mesaContent de sempre, só reposicionado -- ver comentário grande dele
-   mais abaixo), que abre/fecha LOGO ABAIXO desta faixa (empurra a ficha pra baixo enquanto aberto),
-   sem nunca esconder o tabuleiro ao vivo/chat que ficam sempre visíveis por cima dele. */
+   virava junto pro verso/Mesa, sumindo da tela) e passam pra esta faixa fixa -- nunca gira, fica
+   sempre visível não importa a ficha estar de frente, de verso (História) ou com o painel de
+   Gerenciar tabuleiro aberto (ver #boardManagePanel mais abaixo e openMesaModal()/closeMesaModal()
+   no <script>, que pararam de virar o cartão). #liveBoardPanel/#chatPanel continuam sendo os
+   MESMOS elementos de sempre (mesmos ids, mesma lógica de mostrar/esconder no login -- ver
+   "$('liveBoardPanel').hidden"/"$('chatPanel').hidden" no <script>), só que agora filhos de
+   #mesaFixedBody em vez de filhos de .ribbon dentro de .face.front -- por isso o CSS deles lá em
+   cima (.live-board-panel/.chat-panel) continua valendo sem mudar nada. Só um tabuleiro visível
+   por padrão (o Tabuleiro ao Vivo, pra Mestre e jogadores igual já era) -- o tabuleiro grande de
+   edição do Mestre virou o painel "📂 Gerenciar tabuleiro" (continua sendo o mesmo #mesaContent de
+   sempre, só reposicionado -- ver comentário grande dele mais abaixo), que abre/fecha LOGO ABAIXO
+   desta faixa (empurra a ficha pra baixo enquanto aberto), sem nunca esconder o tabuleiro ao
+   vivo/chat que ficam sempre visíveis por cima dele.
+
+   Rodada nova, pedido explícito ("podemos usar a página inteira em vez de centralizar o espaço da
+   guia do tabuleiro deixando ele do mesmo tamanho que a ficha?"): esta faixa deixou de ser filha de
+   .stage (que trava em max-width:960px, o teto de leitura da própria ficha) -- ver o HTML, ela
+   agora é IRMÃ de .stage, direto no <body>. Isso é o que finalmente destrava o max-width bem maior
+   abaixo: antes, mesmo se este valor aqui subisse, .mesa-fixed-panel{width:100%} resolvia contra a
+   largura DISPONÍVEL do pai (.stage, já travado em 960px) antes de aplicar seu próprio teto -- o
+   próprio max-width nunca tinha chance de entrar em ação. Escolha explícita do usuário: só esta
+   faixa (tabuleiro+chat) fica larga, a ficha (.stage/.card) continua no tamanho de sempre. */
 .mesa-fixed-panel{
-  width:100%;max-width:1500px;
+  width:100%;max-width:1800px;
   margin:0 auto 18px;
   position:relative;
 }
 .mesa-fixed-panel[hidden]{display:none;}
+/* Rodada nova, pedido explícito ("corrige também o fundo da guia inteira onde fica o tabuleiro e o
+   chat, ela não pode ser transparente"): as 3 faixas abaixo (toolbar/body/bottom) usavam um marrom
+   translúcido (rgba(120,85,40,...)) sobrando de antes do reskin 40k -- olhando --paper/--ink etc.
+   redefinidas lá em cima (ver comentário grande "RESKIN GERAL 40K"), esse marrom nunca foi trocado
+   por essas variáveis, então continuava um véu quase transparente por cima do fundo preto da
+   página. Troca pelas MESMAS variáveis já usadas no resto da ficha/painéis (--paper-l/--paper/
+   --paper-d, 3 tons pra dar uma leve profundidade entre toolbar/corpo/faixa de baixo, iguaizinho ao
+   que .panel.live-board-panel já fazia com --paper sozinho, ver comentário dela mais acima) --
+   opacas de verdade, reagem a dark/light mode automaticamente junto com o resto. */
 .mesa-fixed-toolbar{
   display:flex;align-items:center;flex-wrap:wrap;gap:14px;
   border:1px solid var(--ink-faint);border-radius:5px 5px 0 0;
-  background:rgba(120,85,40,.14);
+  background:var(--paper-l);
   padding:6px 10px;
 }
 .mesa-fixed-toolbar-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
@@ -713,7 +755,7 @@ body{
 .mesa-fixed-body{
   display:flex;align-items:flex-start;gap:12px;
   border:1px solid var(--ink-faint);border-top:none;
-  background:rgba(120,85,40,.08);
+  background:var(--paper);
   padding:10px;
 }
 /* dentro da faixa fixa, os próprios .panel (live-board-panel/chat-panel) perdem a margem inferior
@@ -738,7 +780,7 @@ body{
   min-height:34px;
   display:flex;align-items:center;flex-wrap:wrap;gap:8px;
   border:1px solid var(--ink-faint);border-top:none;border-radius:0 0 5px 5px;
-  background:rgba(120,85,40,.05);
+  background:var(--paper-d);
   padding:6px 10px;
 }
 
@@ -4966,17 +5008,21 @@ body{
   <button class="logout-btn" id="logoutBtn">🚪 Sair</button>
 </div>
 
-<div class="stage">
-  <div class="ficha-lock-banner" id="fichaLockBanner" hidden>🔒 Ficha de outro jogador — somente visualização. Peça pro dono ou pro mestre editar.</div>
-  <div class="sheet-glow" id="sheetGlowAll"></div>
-
-  <!-- Rodada nova: faixa FIXA de Tabuleiro ao Vivo + Chat, irmã de #card (fora do giro 3D da
-       ficha) -- ver comentário grande de .mesa-fixed-panel no <style>. #liveBoardPanel/#chatPanel
-       são os MESMOS elementos/ids de sempre (só realocados pra cá, de dentro de .ribbon), então
-       toda a lógica de mostrar/esconder no login, conectar ao Firebase, zoom, minimizar etc
-       continua funcionando sem nenhuma mudança no <script> além do wiring novo dos botões de
-       ocultar/do painel de Gerenciar tabuleiro (ver perto de "hideBoardColBtn" no <script>). -->
-  <div class="mesa-fixed-panel" id="mesaFixedPanel" hidden>
+<!-- Rodada nova: faixa FIXA de Tabuleiro ao Vivo + Chat -- pedido explícito ("podemos usar a
+     página inteira em vez de centralizar o espaço da guia do tabuleiro deixando ele do mesmo
+     tamanho que a ficha?") de deixar tabuleiro+chat bem mais largos que a ficha sem esbarrar no
+     teto de leitura dela. Por isso esta faixa SAIU de dentro de .stage (que tem max-width:960px,
+     o mesmo teto confortável da ficha, ver .stage no <style> -- decisão explícita: só o
+     tabuleiro+chat ficam largos, a ficha continua no tamanho de sempre) e passou a ser IRMÃ de
+     .stage, direto no <body>, logo depois da .toolbar -- .mesa-fixed-panel ganha seu próprio teto
+     bem maior (ver comentário grande dela no <style>, max-width subiu pra ~1800px), sem mais
+     herdar o limite da ficha. #liveBoardPanel/#chatPanel são os MESMOS elementos/ids de sempre (só
+     realocados de novo, primeiro de dentro de .ribbon pra dentro de .stage numa rodada anterior,
+     agora só trocando de PAI mais uma vez), então toda a lógica de mostrar/esconder no login,
+     conectar ao Firebase, zoom, minimizar etc continua funcionando sem nenhuma mudança no
+     <script> além do wiring dos botões de ocultar/do painel de Gerenciar tabuleiro (ver perto de
+     "hideBoardColBtn" no <script>) -- nada disso dependia de estar dentro de .stage. -->
+<div class="mesa-fixed-panel" id="mesaFixedPanel" hidden>
     <div class="mesa-fixed-toolbar" id="mesaFixedToolbar">
       <div class="mesa-fixed-toolbar-group">
         <span class="mesa-fixed-label">🗺️ Tabuleiro</span>
@@ -5193,6 +5239,10 @@ body{
       <button id="rollSorteBtn" type="button" class="dice-roll-btn mesa-fixed-sorte-btn">🪙 Jogar a Sorte</button>
     </div>
   </div>
+
+<div class="stage">
+  <div class="ficha-lock-banner" id="fichaLockBanner" hidden>🔒 Ficha de outro jogador — somente visualização. Peça pro dono ou pro mestre editar.</div>
+  <div class="sheet-glow" id="sheetGlowAll"></div>
 
         <div class="mesa-content" id="mesaContent" hidden>
     <div class="modal-head">
