@@ -5,5 +5,12 @@
     "resultado": "jogador",
     "verdict": "acerto",
     "ts": 1790448108138
+  },
+  {
+    "nome": "Dummy",
+    "tipo": "sorte",
+    "resultado": "mesa",
+    "verdict": "erro",
+    "ts": 1790448113601
   }
 ]
