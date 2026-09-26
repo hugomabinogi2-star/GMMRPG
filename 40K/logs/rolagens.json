@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "nome": "Arqueira",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 10,
+    "resultLabel": "Erro",
+    "ts": 1790459136947
+  }
+]
