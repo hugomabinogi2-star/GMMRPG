@@ -540,7 +540,15 @@ body{
    .chat-messages e .chat-input-row precisam de position:relative + z-index:1 pra ficarem sempre
    por cima dela, legíveis. */
 .chat-messages{
-  flex:1;min-height:220px;max-height:440px;overflow-y:auto;
+  /* Rodada nova, pedido explícito ("o chat deveria ir ate a parte de baixo da gaveta dele"): o
+     max-height:440px fixo (sobra de quando o chat era uma caixa isolada, antes da faixa fixa) tirou
+     -- as outras 2 gavetas (.chat-tab-body, Histórico de Rolagens/Resumos de ficha) já eram flex:1
+     sem teto próprio nenhum, e por isso já preenchiam toda a altura disponível; só esta aba (Chat)
+     ainda tinha esse teto sobrando, deixando espaço vazio embaixo das mensagens mesmo com a gaveta
+     inteira mais alta (ver align-items:stretch em .mesa-fixed-body, no <style>). flex:1 sozinho já
+     cresce até ocupar toda a altura que a gaveta tiver -- min-height continua como piso mínimo pra
+     não colapsar demais numa janela bem baixa. */
+  flex:1;min-height:220px;overflow-y:auto;
   padding:2px 2px 8px;display:flex;flex-direction:column;gap:7px;
   position:relative;z-index:1;
 }
@@ -674,7 +682,10 @@ body{
      Rodada anterior: teto (max-width) subiu de 640px pra acompanhar a coluna bem mais larga de
      agora (ver .mesa-fixed-body .live-board-panel{flex-grow:4} acima) -- sem isso, a coluna
      ficaria maior só de fachada, com o tabuleiro em si preso do mesmo tamanho pequeno de antes,
-     sobrando moldura vazia dos dois lados. */
+     sobrando moldura vazia dos dois lados. Rodada nova (pedido explícito: "o quadro maior da guia
+     era para ser o do tabuleiro"): subiu de novo, de 1100px pra 1350px, acompanhando a coluna do
+     tabuleiro que agora cresce livre (flex:1 1 0) pra ocupar a maior parte da faixa, com o chat
+     virando a coluna pequena (ver .mesa-fixed-body .chat-panel{max-width:400px} acima). */
   /* height FIXA (não mais max-height): a "câmera" (.board-zoom-spacer) agora é position:absolute
      (pra o transform:translate() poder posicioná-la livremente, ver comentário dela mais abaixo) --
      um elemento absolutamente posicionado sai do fluxo normal e NÃO contribui mais pra altura do
@@ -685,7 +696,7 @@ body{
      na coluna, já passava de 560px de altura em 100% de zoom (por isso o teto/scroll já entrava em
      ação quase sempre) -- só ficou explícito agora. */
   overflow:hidden;height:560px;
-  max-width:1100px;min-width:360px;
+  max-width:1350px;min-width:360px;
   margin:4px 0 0;padding:2px;
   position:relative;z-index:1;
   cursor:grab;
@@ -753,27 +764,36 @@ body{
 .mesa-hide-btn:hover{border-color:var(--gold-bright);color:var(--ink);}
 .mesa-hide-btn[aria-pressed="true"]{background:rgba(178,59,46,.25);border-color:#b23b2e;color:#fff;}
 .mesa-fixed-body{
-  display:flex;align-items:flex-start;gap:12px;
+  /* Rodada nova, pedido explícito ("o chat deveria ir ate a parte de baixo da gaveta dele"):
+     align-items:flex-start deixava cada coluna com a própria altura de conteúdo -- como o
+     tabuleiro (câmera de altura fixa, ver .live-board-wrap{height:560px} mais acima) sempre acaba
+     um pouco mais alto que o chat sozinho, a gaveta do chat parava ANTES do fim da faixa, com um
+     vão vazio embaixo dela. align-items:stretch faz as 2 colunas ocuparem a MESMA altura (a maior
+     das duas) -- combinado com .chat-messages/.chat-tab-body não terem mais teto próprio de altura
+     (ver os dois mais abaixo), o conteúdo de dentro da gaveta agora estica até preencher essa
+     altura de verdade, em vez de sobrar espaço morto. */
+  display:flex;align-items:stretch;gap:12px;
   border:1px solid var(--ink-faint);border-top:none;
   background:var(--paper);
   padding:10px;
 }
 /* dentro da faixa fixa, os próprios .panel (live-board-panel/chat-panel) perdem a margem inferior
    de .panel genérico (senão sobra um respiro estranho embaixo deles aqui dentro) e viram colunas
-   flex lado a lado -- tabuleiro mais largo (60%), chat mais estreito (40%), nunca encostando um no
-   outro (gap acima). Escondendo uma coluna (hideBoardColBtn/hideChatColBtn), a outra ocupa a faixa
-   inteira sozinha (flex:1 nas duas, min-width:0 evita que o conteúdo interno force a coluna a ficar
-   mais larga que isso). */
+   flex lado a lado, nunca encostando uma na outra (gap acima). Escondendo uma coluna
+   (hideBoardColBtn/hideChatColBtn), a outra ocupa a faixa inteira sozinha (min-width:0 evita que o
+   conteúdo interno force a coluna a ficar mais larga que isso). */
 .mesa-fixed-body .live-board-panel, .mesa-fixed-body .chat-panel{
-  margin-bottom:0;flex:1 1 0;min-width:0;
+  margin-bottom:0;min-width:0;
 }
-/* Rodada nova, pedido explícito: "a guia onde fica o tabuleiro pode ser bem mais larga para
-   contemplar melhor a visualização de tudo" -- de 60% (flex-grow:1.5) pra ~80% da faixa fixa,
-   já que agora é o ÚNICO tabuleiro que existe (ver comentário grande de #mesaContent mais abaixo)
-   e vai precisar de espaço extra pra caber os controles do mestre por baixo dele numa rodada
-   futura. .mesa-fixed-panel acima também cresceu (960px -> 1500px) pra essa largura extra ter
-   onde ir de verdade, em vez de só apertar o chat sem ganhar espaço nenhum no total. */
-.mesa-fixed-body .live-board-panel{flex-grow:4;}
+/* Rodada nova, pedido explícito ("os tamanhos estão invertidos, o quadro maior da guia era para
+   ser o do tabuleiro e o menor o das gavetas"): a rodada anterior tinha deixado o TABULEIRO travado
+   num teto (max-width:1160px) e o CHAT crescendo livre pra ocupar o resto -- exatamente o contrário
+   do pedido original. Agora é o tabuleiro que cresce (flex:1 1 0, sem teto próprio aqui — só o teto
+   de sempre do .live-board-wrap por dentro dele, que subiu junto pra acompanhar, ver comentário
+   dela no <style>) e o chat (as 4 gavetas: Chat/Histórico/Resumos/Gerenciar Tabuleiro) que passa a
+   ser a coluna PEQUENA, com uma largura confortável fixa (max-width abaixo) em vez de esticar. */
+.mesa-fixed-body .live-board-panel{flex:1 1 0;}
+.mesa-fixed-body .chat-panel{flex:0 1 400px;max-width:400px;}
 .mesa-fixed-body .live-board-panel[hidden], .mesa-fixed-body .chat-panel[hidden]{display:none;}
 .mesa-fixed-body .chat-panel{max-height:none;}
 .mesa-fixed-bottom{
@@ -1049,14 +1069,17 @@ body{
    tabuleiro fica visível por padrão -- o ao vivo; este aqui só entra quando o Mestre abre pra
    editar). "Ver Verso" (história) continua sendo o único conteúdo que ainda vira com o cartão --
    ver #versoContent/setBackFaceMode() no <script>, que perdeu o modo 'mesa'. */
-.verso-content[hidden], .mesa-content[hidden]{display:none;}
+.verso-content[hidden]{display:none;}
+/* Rodada nova, pedido explícito ("passa a guia de gerenciamento do tabuleiro para esse espaço do
+   chat como mais uma gaveta"): #mesaContent deixou de ser um painel PRÓPRIO abaixo da faixa fixa
+   (com moldura/fundo/sombra próprios, teto de 960px, centralizado sozinho) e virou só mais uma
+   `.chat-tab-body` dentro de #chatPanel -- a moldura/fundo/sombra que tinha aqui ficaria duplicada
+   por cima do fundo já opaco do próprio #chatPanel (ver .panel.chat-panel no <style>), então saiu;
+   [hidden] também passou a ser responsabilidade só de .chat-tab-body[hidden] (ver mais acima), não
+   precisa mais de uma regra própria aqui. Só sobrou um respiro interno (padding) pro conteúdo não
+   colar nas bordas da aba. */
 .mesa-content{
-  width:100%;max-width:960px;
-  margin:0 auto 18px;
-  border:1px solid var(--border-brown);border-radius:6px;
-  background:var(--paper-l, #f3e6c8);
-  box-shadow:var(--shadow);
-  padding:14px 18px 18px;
+  padding:4px 2px 10px;
 }
 .board-section{margin-top:20px;padding-top:16px;border-top:1px dashed var(--border-brown);}
 .board-title{font-family:'Cinzel Decorative',serif;font-size:16px;color:var(--ink);margin:0 0 4px;}
@@ -4498,9 +4521,12 @@ body{
    necessário só pra Talentos. */
 /* linha com "Atualizar histórico" e "Limpar histórico" lado a lado, no modal de Histórico de
    Rolagens — o de limpar usa o mesmo tom de vermelho já usado em outras ações destrutivas
-   (apagar ficha/tabuleiro, botão Sair). */
-.roll-log-actions{display:flex;gap:8px;margin-bottom:14px;}
-.roll-log-actions .add-row-btn{width:auto;flex:1;}
+   (apagar ficha/tabuleiro, botão Sair). .chat-panel-actions (rodada nova: #chatClearBtn/
+   #chatImageBtn saíram da barra de ferramentas fixa e vieram morar dentro da própria gaveta do
+   chat, ver #chatPanelBody no HTML) reaproveita exatamente a mesma moldura. */
+.roll-log-actions, .chat-panel-actions{display:flex;gap:8px;margin-bottom:14px;}
+.roll-log-actions .add-row-btn,
+.chat-panel-actions .add-row-btn{width:auto;flex:1;}
 .danger-row-btn{border-color:var(--wax);color:var(--wax-dark);}
 .danger-row-btn:hover{border-color:var(--wax-bright);color:var(--wax-dark);background:rgba(138,45,33,.1);}
 .danger-row-btn[disabled]{opacity:.5;cursor:not-allowed;}
@@ -5029,15 +5055,24 @@ body{
         <button id="liveBoardZoomOutBtn" class="chat-min-btn" title="Diminuir zoom" type="button">−</button>
         <span class="board-zoom-readout" id="liveBoardZoomReadout">100%</span>
         <button id="liveBoardZoomInBtn" class="chat-min-btn" title="Aumentar zoom" type="button">+</button>
-        <button id="liveBoardMinimizeBtn" class="chat-min-btn" title="Minimizar tabuleiro" type="button">▾</button>
       </div>
-      <div class="mesa-fixed-toolbar-group">
-        <span class="mesa-fixed-label">💬 Chat</span>
-        <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
-        <button id="chatImageBtn" class="chat-min-btn" title="Enviar imagem no chat" type="button">🖼️</button>
-        <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar chat" type="button">▾</button>
-      </div>
+      <!-- Rodada nova, pedido explícito ("joga os botões de interação com o chat para dentro da
+           gaveta do chat, deixa eles acima do campo do chat em si"): #chatClearBtn/#chatImageBtn
+           saíram deste grupo da barra de ferramentas fixa e foram morar dentro da própria gaveta
+           "💬 Chat" (#chatPanelBody), acima de #chatMessages -- ver .chat-panel-actions dentro de
+           #chatPanelBody, mais abaixo neste mesmo arquivo. IDs/lógica dos 2 botões no <script>
+           continuam exatamente os mesmos, só o endereço no HTML mudou. -->
       <div class="mesa-fixed-toolbar-hide">
+        <!-- Rodada nova, pedido explícito ("pode remover o botão de minimizar individual de chat e
+             tabuleiro mantem so o de minimizar a guia inteira"): os 2 botões de minimizar que
+             ficavam um em cada grupo acima (#liveBoardMinimizeBtn/#chatMinimizeBtn) saíram -- viram
+             este botão único, que minimiza a faixa INTEIRA (tabuleiro+chat+faixa de baixo de uma
+             vez, ver setMesaFixedMinimized() no <script>). Os mecanismos antigos de
+             setLiveBoardMinimized()/setChatMinimized() continuam existindo por baixo dos panos
+             (ainda usados em vários lugares que não são este botão -- ex.: o tabuleiro sempre nasce
+             minimizado pro jogador a cada ficha aberta, ou se expande sozinho quando um dado rola
+             escondido, ver expandDicePanelIfCollapsed()) -- só o botão MANUAL de cada um sumiu daqui. -->
+        <button id="mesaFixedMinimizeBtn" class="chat-min-btn" title="Minimizar tabuleiro+chat" type="button">▾</button>
         <button id="hideBoardColBtn" class="mesa-hide-btn" type="button" aria-pressed="false" title="Ocultar/mostrar o tabuleiro">🗺️</button>
         <button id="hideChatColBtn" class="mesa-hide-btn" type="button" aria-pressed="false" title="Ocultar/mostrar o chat">💬</button>
       </div>
@@ -5187,13 +5222,35 @@ body{
            histórico é novo pro jogador, mas apagá-lo continua sendo uma decisão do mestre. -->
       <div class="panel chat-panel" id="chatPanel" hidden>
         <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
+        <!-- Rodada nova, pedido explícito ("pra economizar espaço remove o nome dos botões das
+             gavetas e deixa só o ícone que vc escolheu para cada uma"): as 4 abas passam a mostrar
+             só o emoji de sempre (mesmo ícone que cada uma já tinha) -- o nome sai do texto visível
+             e vira só o `title` do botão (dica ao passar o mouse), pra não perder de vez a
+             identificação de qual aba é qual. -->
         <div class="chat-tabs" id="chatTabs">
-          <button type="button" class="chat-tab-btn" id="chatTabBtnChat" data-chat-tab="chat" aria-pressed="false">💬 Chat</button>
-          <button type="button" class="chat-tab-btn" id="chatTabBtnRollLog" data-chat-tab="rolllog" aria-pressed="false">🎲 Histórico de Rolagens</button>
-          <button type="button" class="chat-tab-btn" id="chatTabBtnFichas" data-chat-tab="fichas" aria-pressed="false">🧾 Resumos de ficha</button>
+          <button type="button" class="chat-tab-btn" id="chatTabBtnChat" data-chat-tab="chat" aria-pressed="false" title="Chat">💬</button>
+          <button type="button" class="chat-tab-btn" id="chatTabBtnRollLog" data-chat-tab="rolllog" aria-pressed="false" title="Histórico de Rolagens">🎲</button>
+          <button type="button" class="chat-tab-btn" id="chatTabBtnFichas" data-chat-tab="fichas" aria-pressed="false" title="Resumos de ficha">🧾</button>
+          <!-- Rodada nova, pedido explícito ("passa a guia de gerenciamento do tabuleiro para esse
+               espaço do chat como mais uma gaveta mas essa só aparece para o mestre"): 4ª aba, só
+               pro Mestre (mestre-only, mesmo mecanismo genérico de sempre -- ver applyRoleVisibility()
+               no <script>) -- é o MESMO #mesaContent de sempre (ver comentário grande dele mais
+               abaixo, dentro deste mesmo #chatPanel), só que agora reaberto/fechado como mais uma
+               aba (setChatActiveTab('mesa')) em vez de um painel próprio abaixo da faixa fixa. -->
+          <button type="button" class="chat-tab-btn mestre-only" id="chatTabBtnMesa" data-chat-tab="mesa" aria-pressed="false" title="Gerenciar Tabuleiro">📂</button>
         </div>
         <div class="chat-panel-body" id="chatPanelBody">
           <div class="chat-bg-fx" id="chatBgFx" aria-hidden="true"></div>
+          <!-- Pedido explícito desta rodada: os botões de interação com o chat (antes na barra de
+               ferramentas fixa, ver comentário grande perto de #mesaFixedToolbar) vieram pra dentro
+               da própria gaveta, acima do campo de mensagens -- mesma moldura de botão-linha-cheia
+               já usada em #rollLogTabBody (.roll-log-actions/.add-row-btn/.danger-row-btn no
+               <style>), reaproveitada aqui como .chat-panel-actions, já que agora ocupam uma gaveta
+               larga em vez de um botão-ícone apertado na barra de ferramentas. -->
+          <div class="chat-panel-actions">
+            <button id="chatImageBtn" class="add-row-btn" title="Enviar imagem no chat" type="button">🖼️ Enviar imagem</button>
+            <button id="chatClearBtn" class="add-row-btn danger-row-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹 Limpar chat</button>
+          </div>
           <div class="chat-messages" id="chatMessages">
             <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
           </div>
@@ -5222,29 +5279,7 @@ body{
         <div class="chat-tab-body" id="fichaSummaryTabBody" hidden>
           <div id="fichaSummaryList" class="ficha-bubble-list"></div>
         </div>
-      </div>
-    </div>
-    <!-- faixa reservada embaixo do tabuleiro+chat -- zoom do tabuleiro já subiu pra barra de cima;
-         Fase 3 (rodada anterior) ocupou ela com o botão de Rolagem de Sorte (pedido explícito:
-         "move o botão de rolagem de sorte para o espaço abaixo do tabuleiro"), que saiu da ficha
-         por completo -- a MOEDA em si (grande, no centro do tabuleiro) mora em #boardCoinZone,
-         dentro de #boardDiceOverlay, ver comentário grande perto dela. Rodada nova: "Gerenciar
-         tabuleiro" (#mesaBtn) saiu da barra de cima e se mudou pra cá também (pedido explícito:
-         "o botão para abrir a guia MESA fica no espaco em baixo do tabuleiro apenas no acesso do
-         mestre") -- continua mestre-only, e continua abrindo/fechando o mesmo #mesaContent de
-         sempre (ver openMesaModal()/closeMesaModal() no <script>). Ainda reservada pra outros
-         botões futuros também. -->
-    <div class="mesa-fixed-bottom" id="mesaFixedBottom">
-      <button id="mesaBtn" class="mestre-only dice-roll-btn mesa-fixed-sorte-btn" type="button" title="Gerenciar tabuleiro — bandejas de fichas, tamanho, salvar/carregar">📂 Gerenciar tabuleiro</button>
-      <button id="rollSorteBtn" type="button" class="dice-roll-btn mesa-fixed-sorte-btn">🪙 Jogar a Sorte</button>
-    </div>
-  </div>
-
-<div class="stage">
-  <div class="ficha-lock-banner" id="fichaLockBanner" hidden>🔒 Ficha de outro jogador — somente visualização. Peça pro dono ou pro mestre editar.</div>
-  <div class="sheet-glow" id="sheetGlowAll"></div>
-
-        <div class="mesa-content" id="mesaContent" hidden>
+        <div class="mesa-content chat-tab-body mestre-only" id="mesaContent" hidden>
     <div class="modal-head">
       <!-- Fase 1b do projeto "tabuleiro único" (pedido explícito: "a opção MESA some" -- esclarecido
            como "o título/cabeçalho '🖥️ Mesa' some"): este painel deixou de se apresentar como um
@@ -5518,6 +5553,27 @@ body{
     </div>
     <div id="mesaSendHint" class="mesa-hint"></div>
         </div>
+
+      </div>
+    </div>
+    <!-- faixa reservada embaixo do tabuleiro+chat -- zoom do tabuleiro já subiu pra barra de cima;
+         Fase 3 ocupou ela com o botão de Rolagem de Sorte (pedido explícito: "move o botão de
+         rolagem de sorte para o espaço abaixo do tabuleiro"), que saiu da ficha por completo -- a
+         MOEDA em si (grande, no centro do tabuleiro) mora em #boardCoinZone, dentro de
+         #boardDiceOverlay, ver comentário grande perto dela. "Gerenciar tabuleiro" (#mesaBtn)
+         morou aqui por uma rodada, mestre-only -- rodada nova, pedido explícito ("passa a guia de
+         gerenciamento do tabuleiro para esse espaço do chat como mais uma gaveta"): saiu daqui de
+         vez e virou a 4ª aba do chat (#chatTabBtnMesa, mestre-only, ver comentário grande dela no
+         HTML e openMesaModal()/closeMesaModal() no <script>, que agora só trocam de aba em vez de
+         abrir/fechar um painel próprio). Ainda reservada pra outros botões futuros também. -->
+    <div class="mesa-fixed-bottom" id="mesaFixedBottom">
+      <button id="rollSorteBtn" type="button" class="dice-roll-btn mesa-fixed-sorte-btn">🪙 Jogar a Sorte</button>
+    </div>
+  </div>
+
+<div class="stage">
+  <div class="ficha-lock-banner" id="fichaLockBanner" hidden>🔒 Ficha de outro jogador — somente visualização. Peça pro dono ou pro mestre editar.</div>
+  <div class="sheet-glow" id="sheetGlowAll"></div>
 
   <div class="card" id="card">
 
@@ -8844,7 +8900,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   //    nasce minimizado ao acessar qualquer ficha, ver setLiveBoardMinimized(true) e o comentário
   //    grande perto dela, bem mais abaixo no <script>) -- sem isso, o tabuleiro ficaria com
   //    display:none por dentro (.live-board-panel.minimized .live-board-panel-body) e os dados
-  //    ricocheteariam escondidos, invisíveis.
+  //    ricocheteariam escondidos, invisíveis. Rodada nova: o botão único que minimiza
+  //    tabuleiro+chat juntos (ver setMesaFixedMinimized() mais abaixo) comanda essa MESMA
+  //    setLiveBoardMinimized() por baixo -- continua coberto por este item 2 sem precisar de nada
+  //    a mais aqui.
   function expandDicePanelIfCollapsed(){
     const panel = $('liveBoardPanel'), btn = $('hideBoardColBtn');
     if(panel && panel.hidden){
@@ -11047,6 +11106,13 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     if(delayBtn) delayBtn.disabled = !(turnState.active && currentTurnEntry());
     if(undoBtn) undoBtn.disabled = !turnUndoHistory.length;
     renderTurnQueuePanel();
+    // Pedido explícito desta rodada: a aba "🧾 Resumos de ficha" do chat também deve respeitar a
+    // ordem de iniciativa (quem está NA VEZ sempre no topo, girando conforme os turnos passam) --
+    // ver sortSummaryEntriesByTurn()/renderFichaSummaryBubbles() mais abaixo. renderTurnBars() já é
+    // o ÚNICO ponto central chamado depois de QUALQUER mutação de turnState (rodar iniciativa,
+    // avançar, segurar ação, voltar, encerrar por erro de rolagem...), então basta redesenhar as
+    // bolhas aqui pra cobrir todos os jeitos de o turno mudar, sem precisar caçar cada chamador.
+    if(typeof renderFichaSummaryBubbles === 'function') renderFichaSummaryBubbles();
   }
   $('boardEndTurnBtn').addEventListener('click', handleEndTurnClick);
   $('liveEndTurnBtn').addEventListener('click', handleEndTurnClick);
@@ -14915,21 +14981,23 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     btn.disabled = true;
     btn.textContent = 'Limpando...';
     try{
-      const existing = await githubGetFileContent(ROLL_LOG_PATH).catch(()=>null);
-      const body = {
-        message: 'Limpa histórico de rolagens',
-        content: b64EncodeUnicode(JSON.stringify([], null, 2))
-      };
-      if(existing && existing.sha) body.sha = existing.sha;
-      await fetch(apiUrl(ROLL_LOG_PATH), {
-        method:'PUT',
-        headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
-        body: JSON.stringify(body)
-      });
+      // Bug reportado ("o botao de apagar o historico de rolagem nao esta funcionando"): este PUT
+      // era feito com um fetch() cru, sem checar res.ok -- fetch() só rejeita em falha de REDE, não
+      // em erro HTTP (401 token inválido/expirado, 409 conflito de sha por escrita concorrente de
+      // pushRollLogFeed() enquanto alguém rolava dado, 422, etc.), então uma escrita que falhasse do
+      // lado do GitHub passava batido como se tivesse dado certo, sem NENHUM aviso pro usuário --
+      // exatamente o "parece que não faz nada" relatado. Corrigido reaproveitando githubPutFile()
+      // (mesmo helper robusto já usado em outros pontos do código), que checa res.ok de verdade e
+      // ainda tenta de novo automaticamente 1x com um sha recém-buscado se o GitHub responder 409/
+      // 422 (exatamente o caso da escrita concorrente) antes de desistir e lançar um erro real.
+      await githubPutFile(ROLL_LOG_PATH, [], 'Limpa histórico de rolagens');
       await loadRollLog();
     }catch(err){
       console.warn('Não foi possível limpar o histórico compartilhado:', err);
-      alert('Não foi possível limpar o histórico. Tente novamente.');
+      // Mensagem original ("Tente novamente.") sem detalhe nenhum tornava esse bug quase impossível
+      // de diagnosticar de fora -- agora inclui err.message (o texto de erro real que o GitHub
+      // devolveu, via githubPutFile()) sempre que disponível.
+      alert('Não foi possível limpar o histórico' + (err && err.message ? ': ' + err.message : '. Tente novamente.'));
     }finally{
       btn.disabled = false;
       btn.textContent = originalText;
@@ -15085,37 +15153,25 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // popoutMesaBtn logo abaixo e onde essa flag é consultada, dentro de onAuthStateChanged.
   let autoOpenedMesaFromUrl = false;
 
-  // Rodada nova: MESA deixou de ser o verso do cartão -- #mesaContent é um painel independente,
-  // logo abaixo da faixa fixa de Tabuleiro ao Vivo+Chat (ver .stage no HTML), que só
-  // mostra/esconde (não vira mais o cartão nem mexe em #card/syncCardHeight -- essas duas coisas
-  // são só da ficha/História agora, ver flipBtn). #mesaBtn (dentro da faixa fixa) alterna
-  // aberto/fechado a cada clique; #closeMesa (✕ do cabeçalho de dentro do painel) sempre fecha.
+  // Rodada nova, pedido explícito ("passa a guia de gerenciamento do tabuleiro para esse espaço
+  // do chat como mais uma gaveta"): #mesaContent deixou de ser um painel independente com seu
+  // próprio botão de abrir/fechar (#mesaBtn/#closeMesa) e virou só mais uma aba do chat
+  // (#chatTabBtnMesa, mestre-only -- ver setChatActiveTab() mais abaixo no <script>, que já cuida
+  // de mostrar/esconder [hidden] e marcar .mode-active/aria-pressed no botão certo, igual as
+  // outras 3 abas). openMesaModal()/closeMesaModal() continuam existindo com os MESMOS nomes de
+  // sempre (usados pelo popout "?mesa=1" mais abaixo, ver autoOpenedMesaFromUrl) -- só que agora
+  // por baixo dos panos são só um atalho pra trocar de aba, em vez de abrir/fechar um painel à
+  // parte. O carregamento de dados (loadHeroRoster()/loadMestreRoster()/limpar mesaSendHint) que
+  // antes rodava só aqui dentro se mudou pra setChatActiveTab() (ver comentário grande dela),
+  // pra rodar TAMBÉM quando alguém clica direto na aba (sem passar por esta função).
   function openMesaModal(){
-    mesaContent.hidden = false;
-    $('mesaBtn').setAttribute('aria-pressed', 'true');
-    // Fase 1b do projeto "tabuleiro único": não existe mais um zoom separado pra reaplicar aqui —
-    // o tabuleiro de verdade já está sempre visível na faixa fixa, fora deste painel (ver
-    // applyLiveBoardZoom()/comentário grande em "const boardGrid" no <script>); este painel agora
-    // só traz as bandejas/controles de baixo dele.
-    // Fase 4 do projeto "tabuleiro único": Histórico de Rolagens e "Fichas dos Jogadores (resumo
-    // ao vivo)" saíram daqui -- moraram nesta modal (mestre-only) até a rodada anterior, agora
-    // moram na aba de chat (#rollLogTabBody/#fichaSummaryTabBody), visíveis pros dois papéis o
-    // tempo todo (carregados no login, não mais na abertura desta modal -- ver loadRollLog()/
-    // renderFichaSummaryBubbles() logo depois de connectLiveBoard(), dentro de onAuthStateChanged).
-    mesaSendHint.textContent = '';
-    loadHeroRoster();
-    loadMestreRoster();
+    setChatActiveTab('mesa');
   }
   function closeMesaModal(){
-    if(mesaContent.hidden) return;
-    mesaContent.hidden = true;
-    $('mesaBtn').setAttribute('aria-pressed', 'false');
+    // "fechar" deixou de esconder um painel -- agora só volta pra aba Chat, igual clicar em
+    // qualquer outra aba (ver #closeMesa no HTML, dentro do cabeçalho de #mesaContent).
+    setChatActiveTab('chat');
   }
-  // #mesaBtn SEMPRE abre (não é um toggle -- clicar de novo com o painel já aberto não faz nada de
-  // diferente, só recarrega os dados, igual sempre foi) -- só #closeMesa (✕ de dentro do painel)
-  // fecha. Mantém o mesmo comportamento de sempre, só mudou COMO abre (hidden direto, sem virar
-  // mais o cartão).
-  $('mesaBtn').addEventListener('click', openMesaModal);
   $('closeMesa').addEventListener('click', closeMesaModal);
 
   // Botões de ocultar (rodada nova, referência visual do usuário): cada um esconde só a PRÓPRIA
@@ -15351,7 +15407,15 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // scroll — spacerEl é redimensionado (largura/altura NATURAL do tabuleiro, lida via
   // offsetWidth/offsetHeight, que o transform não altera) só pra avisar o container com scroll do
   // tamanho real ocupado pelo desenho ampliado.
-  const BOARD_ZOOM_LEVELS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+  // Rodada nova, pedido explícito ("aumenta o zoom para ate 800%"): teto subiu de novo, agora de 4
+  // (400%, rodada anterior) pra 8 (800%) -- degraus novos (4.5/5/5.5/6/6.5/7/7.5/8) seguem o mesmo
+  // espaçamento de 0.5 já usado entre 2 e 4. Este MESMO array serve os dois consumidores de zoom que
+  // já existiam (ver os dois lugares que fazem "BOARD_ZOOM_LEVELS.indexOf(1)" no arquivo) --
+  // setupBoardCameraZoom() (Tabuleiro ao Vivo, é sobre ele que o pedido foi feito) e o
+  // setupBoardZoom() antigo (só do 🗺️ Mapa) -- o Mapa ganha o mesmo teto novo de brinde, sem nenhum
+  // código extra (nenhum dos dois hardcoda um valor máximo em lugar nenhum, só leem o último item
+  // deste array).
+  const BOARD_ZOOM_LEVELS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
   // tamanho real (em pixels) de UMA casa do Tabuleiro ao Vivo no zoom/redimensionamento atuais --
   // ver setupBoardCameraZoom() mais abaixo, que é quem mantém isto atualizado. Vive aqui em cima
   // (fora da função) só pra buildBoardHeaders()/buildBoardGrid() (mestre) e
@@ -16354,9 +16418,37 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     return bubble;
   }
 
+  // Pedido explícito desta rodada: a ordem de exibição das bolhas deve respeitar a ordem de
+  // INICIATIVA (turnState, ver o bloco grande de comentário "Rodadas / Turnos / Fila de Iniciativa"
+  // lá em cima) -- quem está NA VEZ agora sempre no TOPO da lista, e o resto da fila em seguida na
+  // mesma ordem sorteada, "girando" (rotacionando) conforme os turnos forem passando, em vez de
+  // ficar fixa pela ordem de chegada no tabuleiro. Diferente da lista da aba MESA
+  // (renderTurnQueuePanel(), que só mostra o RESTO da rodada a partir da vez atual e esconde quem já
+  // agiu -- order.slice(turnIndex)): aqui é sempre a lista CHEIA de quem está no tabuleiro, então a
+  // ordem GIRA (quem já agiu volta pro fim, não desaparece) em vez de encolher. Ficha fora da fila
+  // (ex: colocada no tabuleiro DEPOIS do sorteio, ou peça avulsa sem ficha que nunca entra em
+  // turnState.order) sempre vai pro final, na ordem natural de sempre (Array.prototype.sort é
+  // estável em todo navegador moderno, então esses "sem posição" preservam a ordem relativa entre
+  // si). Sem nenhuma fila ativa (iniciativa nunca rodada, ou já resetada), devolve a lista sem
+  // nenhuma reordenação -- comportamento de antes desta mudança, intocado.
+  function sortSummaryEntriesByTurn(entries){
+    if(!turnState.active || !turnState.order || !turnState.order.length) return entries;
+    const order = turnState.order;
+    const turnIndex = turnState.turnIndex || 0;
+    const posById = new Map();
+    order.forEach((it, idx)=>{
+      posById.set(it.id, (idx - turnIndex + order.length) % order.length);
+    });
+    return entries.slice().sort((a, b)=>{
+      const pa = posById.has(a.token.id) ? posById.get(a.token.id) : order.length;
+      const pb = posById.has(b.token.id) ? posById.get(b.token.id) : order.length;
+      return pa - pb;
+    });
+  }
+
   function renderFichaSummaryBubbles(){
     if(!fichaSummaryListEl) return;
-    const entries = collectBoardOccupantsForSummary();
+    const entries = sortSummaryEntriesByTurn(collectBoardOccupantsForSummary());
     fichaSummaryListEl.innerHTML = '';
     if(!entries.length){
       fichaSummaryListEl.innerHTML = '<div class="master-empty">Nenhuma ficha no tabuleiro no momento.</div>';
@@ -21368,17 +21460,20 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // minimizáveis da ficha (Modificadores, os 3 de rolagem, Histórico de Rolagens): sempre começa
   // minimizado sempre que uma ficha é acessada (ver applyState()); o chat da mesa continua sendo
   // a única exceção que ainda lembra o estado por navegador.
+  // Rodada nova, pedido explícito ("pode remover o botão de minimizar individual de chat e
+  // tabuleiro mantem so o de minimizar a guia inteira"): #liveBoardMinimizeBtn saiu do HTML -- a
+  // função continua exatamente igual (ainda chamada de vários lugares que não são um clique de
+  // botão, ex.: sempre roda minimizada pro jogador a cada ficha aberta, ou se expande sozinha
+  // quando um dado rola escondido, ver expandDicePanelIfCollapsed()), só perdeu as 2 linhas que
+  // mexiam no texto/título do botão que não existe mais.
   function setLiveBoardMinimized(min){
     liveBoardPanelEl.classList.toggle('minimized', min);
-    $('liveBoardMinimizeBtn').textContent = min ? '▸' : '▾';
-    $('liveBoardMinimizeBtn').title = min ? 'Expandir' : 'Minimizar';
     if(min) stopLiveBoardBgFx(); else startLiveBoardBgFx();
     // o mini-tabuleiro ao vivo só existe de verdade (offsetWidth > 0) desminimizado — reaplica o
     // zoom agora que dá pra medir o tamanho natural certinho (mesma ideia de openMesaModal() lá
     // em cima, ver o comentário grande dentro de setupBoardZoom() no <script>).
     if(!min) applyLiveBoardZoom();
   }
-  $('liveBoardMinimizeBtn').addEventListener('click', ()=> setLiveBoardMinimized(!liveBoardPanelEl.classList.contains('minimized')));
   setLiveBoardMinimized(true);
 
   // ---------- chat da mesa (global — todo mundo logado, mestre e jogadores, no mesmo chat) ----------
@@ -21899,19 +21994,54 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     scheduleNextChatBgParticle();
   }
 
+  // Rodada nova: #chatMinimizeBtn saiu do HTML (mesmo motivo de setLiveBoardMinimized() lá em
+  // cima) -- função mantida, só perdeu as linhas do botão que não existe mais.
   function setChatMinimized(min){
     chatPanelEl.classList.toggle('minimized', min);
-    $('chatMinimizeBtn').textContent = min ? '▸' : '▾';
-    $('chatMinimizeBtn').title = min ? 'Expandir' : 'Minimizar';
     localStorage.setItem(CHAT_MIN_KEY, min ? '1' : '0');
     // painel minimizado esconde .chat-panel-body (display:none) — pausa o efeito de fundo junto,
     // sem sentido gastar timer/DOM com estrelinhas que ninguém está vendo.
     if(min) stopChatBgFx(); else startChatBgFx();
   }
-  $('chatMinimizeBtn').addEventListener('click', ()=> setChatMinimized(!chatPanelEl.classList.contains('minimized')));
   // chat agora começa MINIMIZADO por padrão (só fica aberto de cara se a pessoa já tinha
   // escolhido deixar aberto nesse navegador antes — daí o valor salvo é exatamente '0').
   setChatMinimized(localStorage.getItem(CHAT_MIN_KEY) !== '0');
+
+  // Rodada nova, pedido explícito ("pode remover o botão de minimizar individual de chat e
+  // tabuleiro mantem so o de minimizar a guia inteira"): #liveBoardMinimizeBtn/#chatMinimizeBtn
+  // saíram do HTML -- em vez de virar um TERCEIRO estado por cima dos dois já existentes, este
+  // botão único simplesmente comanda as MESMAS duas funções de sempre (setLiveBoardMinimized()/
+  // setChatMinimized(), ambas ali em cima, intocadas) juntas, de uma vez só. De propósito SEM
+  // localStorage próprio (diferente do chat) -- é só uma ação manual de "abrir/fechar os dois
+  // juntos agora", pra não competir com os defaults que cada um já tem sozinho a cada carregamento
+  // de página (tabuleiro sempre nasce minimizado pro jogador a cada ficha aberta, mas NÃO pro
+  // mestre -- ver setLiveBoardMinimized(true)/setLiveBoardMinimized(false) em onAuthStateChanged;
+  // chat lembra o que a pessoa escolheu no navegador, ver CHAT_MIN_KEY acima): se este botão
+  // salvasse/restaurasse seu próprio estado no login, um clique em "expandir os dois" numa sessão
+  // anterior passaria a reabrir o tabuleiro sozinho pro jogador em toda ficha nova, quebrando
+  // aquele comportamento de propósito.
+  //
+  // Como board/chat podem começar em estados diferentes um do outro (ex.: mestre loga com
+  // tabuleiro já aberto, chat fechado), o clique não lembra um estado próprio -- decide na hora,
+  // olhando os dois painéis de verdade: se QUALQUER um dos dois estiver aberto, fecha os dois; só
+  // fecha os dois quando ambos já estiverem fechados, abre os dois juntos. O ícone (▾/▸) segue a
+  // mesma leitura em tempo real, então sempre mostra o que o PRÓXIMO clique vai fazer.
+  function mesaFixedBothMinimized(){
+    return liveBoardPanelEl.classList.contains('minimized') && chatPanelEl.classList.contains('minimized');
+  }
+  function setMesaFixedMinimized(min){
+    setLiveBoardMinimized(min);
+    setChatMinimized(min);
+    $('mesaFixedMinimizeBtn').textContent = min ? '▸' : '▾';
+    $('mesaFixedMinimizeBtn').title = min ? 'Expandir tabuleiro+chat' : 'Minimizar tabuleiro+chat';
+  }
+  function refreshMesaFixedMinimizeBtn(){
+    const bothMin = mesaFixedBothMinimized();
+    $('mesaFixedMinimizeBtn').textContent = bothMin ? '▸' : '▾';
+    $('mesaFixedMinimizeBtn').title = bothMin ? 'Expandir tabuleiro+chat' : 'Minimizar tabuleiro+chat';
+  }
+  $('mesaFixedMinimizeBtn').addEventListener('click', ()=> setMesaFixedMinimized(!mesaFixedBothMinimized()));
+  refreshMesaFixedMinimizeBtn();
 
   // ---------- Fase 4 do "tabuleiro único": seletor de abas do chat (Chat/Histórico de Rolagens/
   // Resumos de ficha) ---------- as 3 abas moram sempre montadas no DOM (só uma delas visível por
@@ -21924,6 +22054,14 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     chat: { btn: $('chatTabBtnChat'), body: $('chatPanelBody') },
     rolllog: { btn: $('chatTabBtnRollLog'), body: $('rollLogTabBody') },
     fichas: { btn: $('chatTabBtnFichas'), body: $('fichaSummaryTabBody') },
+    // Rodada nova, pedido explícito ("passa a guia de gerenciamento do tabuleiro para esse espaço
+    // do chat como mais uma gaveta mas essa só aparece para o mestre"): 4ª aba -- #mesaContent é
+    // o MESMO painel "📂 Gerenciar Tabuleiro" de sempre (ver comentário grande dele no HTML), só
+    // que agora troca de visibilidade pelo mesmo mecanismo das outras 3 abas. O botão já nasce
+    // mestre-only no HTML (ver #chatTabBtnMesa) -- pro jogador ele nunca aparece pra clicar, mas
+    // a entrada continua existindo aqui sem problema (o loop de wiring logo abaixo só rodaria se
+    // alguém clicasse nele, e applyRoleVisibility() já cuida de escondê-lo antes disso).
+    mesa: { btn: $('chatTabBtnMesa'), body: mesaContent },
   };
   function setChatActiveTab(tab){
     Object.keys(CHAT_TABS).forEach(key=>{
@@ -21934,6 +22072,15 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       btn.classList.toggle('mode-active', active);
       btn.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
+    // a aba Mesa precisa recarregar as bandejas de fichas (heróis/NPCs) toda vez que é aberta --
+    // mesmo carregamento que openMesaModal() já fazia antes de virar aba (ver comentário grande
+    // dela) -- mora aqui agora pra rodar tanto vindo de lá (popout "?mesa=1") quanto de um clique
+    // direto no botão da aba (#chatTabBtnMesa), sem duplicar a chamada nos dois lugares.
+    if(tab === 'mesa'){
+      mesaSendHint.textContent = '';
+      loadHeroRoster();
+      loadMestreRoster();
+    }
   }
   Object.keys(CHAT_TABS).forEach(key=>{
     const { btn } = CHAT_TABS[key];
@@ -22096,6 +22243,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       if(currentRole === 'mestre'){
         buildBoardGrid();
         setLiveBoardMinimized(false);
+        // ícone do botão único de minimizar (ver refreshMesaFixedMinimizeBtn() mais abaixo no
+        // <script>) precisa ser recalculado aqui -- ele já tinha rodado uma vez antes do login
+        // terminar, quando o tabuleiro ainda estava no estado padrão (minimizado).
+        if(typeof refreshMesaFixedMinimizeBtn === 'function') refreshMesaFixedMinimizeBtn();
       }
       // se o painel já estava desminimizado de uma sessão anterior (localStorage), ele acabou de
       // se tornar visível só agora (o "hidden" do painel inteiro só cai aqui, pós-login) — reaplica
