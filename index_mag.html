@@ -10393,6 +10393,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       pendingHabilidadeRoll = null;
     }
     pushRollLog(logEntry);
+    // pedido explícito ("a animação da rolagem de dados precisa aparecer para todos em tempo
+    // real"): avisa todo mundo conectado pra REPLICAR esta mesma animação (ver
+    // broadcastDiceRoll()/playRemoteAtributoRoll() mais acima) -- puramente aditivo, não muda em
+    // nada o comportamento LOCAL desta rolagem (já toda calculada/desenhada acima).
+    broadcastDiceRoll({ kind:'atributo', die1, die2: twoDice ? die2 : null, mode, roll, verdict });
     // fila de iniciativa: esta rolagem (Atributo solto, Habilidade fixa ou Talento — os 3 convergem
     // pra cá) acabou de usar a AÇÃO DE ROLAGEM da vez, SE for a ficha da vez que está rolando agora
     // (ver markActionRollFromOpenSheet()/markTurnRolled() mais abaixo) — verdict ('acerto'/'erro',
@@ -10588,6 +10593,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // setEscudo junto no log (rodada nova): formatRollMessage() usa isso pra chamar esta rolagem de
     // "ESCUDO" em vez de "DANO" na mensagem do chat/Discord (não é dano de verdade).
     pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, bonus, rolls: rollsSorted, resultado: total, habilidade: habilidadeNome, atributo: atributoNome, grito: gritoTxt || null, danoTipo: danoTipoNome || null, setEscudo: setEscudo || null, ts: Date.now() });
+    // mesma réplica em tempo real da rolagem de Atributo acima (ver broadcastDiceRoll()) -- envia
+    // "rolls" (não "rollsSorted") porque a réplica pareia cada valor 1-a-1 com o dado NA MESMA
+    // ordem que os dados nasceram na tela de quem rolou (ver playRemoteDanoRoll()); a ordem em si
+    // não tem nenhum significado visual (os dados são todos iguais), só precisa ser consistente.
+    broadcastDiceRoll({ kind:'dano', qtd, maxVal, rolls, bonus, total });
   }
 
   // ---------- rolagem de sorte (moeda grega — JOGADOR ou MESA) ----------
@@ -10781,6 +10791,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     rollSorteBtn.disabled = false;
 
     pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'sorte', resultado, verdict, ts: Date.now() });
+    // mesma réplica em tempo real das rolagens de Atributo/Dano acima (ver broadcastDiceRoll()) --
+    // playRemoteSorteRoll() já se auto-barra sozinho se detectar um giro em andamento nesta mesma
+    // aba (ver o guard "sorteRollingInterval" lá), então não precisa de nenhuma checagem extra aqui.
+    broadcastDiceRoll({ kind:'sorte', resultado, verdict });
   }
 
   // clique em cima da moeda limpa o resultado -- mesmo espírito/mesmo motivo de clearBoardDice()
@@ -18706,6 +18720,157 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       ts: firebase.database.ServerValue.TIMESTAMP,
     }).catch(()=>{});
   }
+
+  // Avisa TODO mundo conectado que uma rolagem de dado/moeda acabou de acontecer, pra REPLICAR a
+  // MESMA animação (não só o texto que já ia pro chat/Discord via pushRollLog()) em qualquer outro
+  // navegador aberto no Tabuleiro ao Vivo -- pedido explícito ("o tabuleiro, e a animação da
+  // rolagem de dados precisa aparecer para todos em tempo real, não esta ocorrendo"). Mesmo padrão
+  // de broadcastHitFx() acima (.set(), não .push() -- só interessa a rolagem mais recente, ninguém
+  // precisa de um histórico aqui, o histórico de verdade já é o pushRollLog()) + "by" com
+  // currentUserKey (ver perto do topo do <script>), pra quem DE FATO rolou -- que já viu a
+  // rolagem tocar na hora, instantaneamente, no próprio navegador, sem esperar a rede -- poder se
+  // auto-ignorar no listener (ver lastRollSeenTs/"val.by === currentUserKey" em
+  // connectLiveBoard()) e não ver a própria rolagem tocar DUAS vezes. broadcastHitFx() nunca
+  // precisou desse auto-ignorar porque o efeito de acerto nunca teve nenhum caminho instantâneo
+  // local pra quem o disparou. isSilenceActive() (mesmo gate que já esconde a rolagem do Mestre no
+  // Discord/histórico quando "🔇 Silenciado" está ativo, ver pushRollLog() mais abaixo) também
+  // barra aqui -- uma rolagem "de bastidores" do Mestre não pode aparecer animando no tabuleiro de
+  // nenhum jogador.
+  function broadcastDiceRoll(payload){
+    if(!fbReady || !fbDb || isSilenceActive()) return;
+    fbDb.ref('mesa40k/liveBoard/lastRoll').set(Object.assign({}, payload, {
+      by: currentUserKey || null,
+      ts: firebase.database.ServerValue.TIMESTAMP,
+    })).catch(()=>{});
+  }
+  // As 3 funções abaixo desenham, em QUALQUER navegador que receba um valor novo em
+  // mesa40k/liveBoard/lastRoll (ver o listener em connectLiveBoard()), a MESMA animação que quem
+  // rolou de verdade já viu -- reconstruída a partir do RESULTADO já sorteado (nunca sorteando de
+  // novo aqui: o valor final tem que ficar IDÊNTICO ao que o autor da rolagem já viu e já mandou
+  // pro chat/Discord via pushRollLog()). Reaproveitam só os helpers 100% genéricos que já existiam
+  // pra rolagem local (buildCubeDieEl/setCubeFront/randomizeCubeFaces/tickCubeFaces/
+  // appendBoardDiceGroup/animateDiceRicochet/buildDiceDisplay/spawnDiceParticles, todos declarados
+  // bem mais acima no <script>) e, DE PROPÓSITO, nunca tocam em nenhuma variável/elemento de
+  // guarda da rolagem LOCAL desta própria aba (rollingInterval/danoRollingInterval/
+  // rollBtn.disabled/rollDanoBtn.disabled/diceVerdict/diceHint/danoHint) -- ou porque são legado
+  // sempre-escondido (ver comentário perto de "const diceVerdict"/"const danoTotalValue"), ou
+  // porque só fazem sentido pra quem de fato clicou. ÚNICA exceção: a moeda de Sorte
+  // (#coinResult/#boardCoinZone) é um elemento ÚNICO (não empilha, diferente dos dados -- ver
+  // comentário grande perto de "const coinResult"), então playRemoteSorteRoll() reaproveita o
+  // mesmo sorteRollingInterval do rollSorteBtn de verdade, pra nenhum dos dois lados (rolagem
+  // local OU réplica remota) atropelar visualmente o outro caindo em cima do mesmo elemento.
+  function playRemoteAtributoRoll(val){
+    if(!val) return;
+    const twoDice = val.mode === 'vantagem' || val.mode === 'desvantagem';
+    const group = document.createElement('div');
+    const pair = document.createElement('div');
+    pair.className = 'dice-pair';
+    const die1El = buildCubeDieEl();
+    die1El.classList.add('ricochet');
+    cubeOf(die1El).classList.add('rolling');
+    pair.appendChild(die1El);
+    const die2El = buildCubeDieEl();
+    die2El.hidden = !twoDice;
+    if(twoDice){ die2El.classList.add('ricochet'); cubeOf(die2El).classList.add('rolling'); }
+    pair.appendChild(die2El);
+    group.appendChild(pair);
+    appendBoardDiceGroup(boardDiceZoneAtributo, group);
+
+    const tickInterval = setInterval(()=>{
+      randomizeCubeFaces(die1El, 20);
+      if(twoDice) randomizeCubeFaces(die2El, 20);
+      playDiceTick();
+    }, 65);
+
+    const ricochetDice = twoDice ? [die1El, die2El] : [die1El];
+    animateDiceRicochet(boardDiceArena, ricochetDice, 1150).then(()=>{
+      clearInterval(tickInterval);
+      die1El.classList.remove('ricochet');
+      cubeOf(die1El).classList.remove('rolling');
+      setCubeFront(die1El, val.die1);
+      cubeOf(die1El).classList.remove('settle');
+      void die1El.offsetWidth;
+      cubeOf(die1El).classList.add('settle');
+      if(twoDice){
+        die2El.classList.remove('ricochet');
+        cubeOf(die2El).classList.remove('rolling');
+        setCubeFront(die2El, val.die2);
+        cubeOf(die2El).classList.remove('settle');
+        void die2El.offsetWidth;
+        cubeOf(die2El).classList.add('settle');
+      }
+      const tie = twoDice && val.die1 === val.die2;
+      const winnerEl = (!twoDice || val.die1 === val.roll) ? die1El : die2El;
+      const loserEl = winnerEl === die1El ? die2El : die1El;
+      winnerEl.classList.toggle('hit-glow', val.verdict === 'acerto');
+      winnerEl.classList.toggle('miss-shadow', val.verdict === 'erro');
+      winnerEl.classList.toggle('crit-hit', val.roll === 20);
+      winnerEl.classList.toggle('crit-miss', val.roll === 1);
+      if(twoDice && !tie) loserEl.classList.add('discarded');
+      if(val.roll === 20) spawnDiceParticles(diceParticleLayer, '✨', 10);
+      else if(val.roll === 1) spawnDiceParticles(diceParticleLayer, '💀', 8);
+      if(val.roll === 20) playYaaySound();
+      else if(val.roll === 1) playEvilLaughSound();
+      else if(val.verdict === 'acerto') playBlingSound();
+      else playOohSound();
+    });
+  }
+  function playRemoteDanoRoll(val){
+    if(!val) return;
+    const rolls = Array.isArray(val.rolls) ? val.rolls : [];
+    const maxVal = val.maxVal || 6;
+    const qtd = val.qtd || rolls.length || 1;
+    const dieEls = buildDiceDisplay(qtd);
+    dieEls.forEach(d=>{ d.classList.add('ricochet'); cubeOf(d).classList.add('rolling'); });
+
+    const tickInterval = setInterval(()=>{
+      dieEls.forEach(d=> tickCubeFaces(d, maxVal));
+      playDiceTick();
+    }, 65);
+
+    animateDiceRicochet(boardDiceArena, dieEls, 1150).then(()=>{
+      clearInterval(tickInterval);
+      dieEls.forEach((d, i)=>{
+        d.classList.remove('ricochet');
+        cubeOf(d).classList.remove('rolling');
+        setCubeFront(d, rolls[i] != null ? rolls[i] : 1);
+        cubeOf(d).classList.remove('settle');
+        void d.offsetWidth;
+        cubeOf(d).classList.add('settle');
+      });
+    });
+  }
+  function playRemoteSorteRoll(val){
+    if(!val || sorteRollingInterval) return; // moeda é elemento único -- não atropela um giro já em andamento nesta aba (local OU de outra réplica remota)
+    coinResult.hidden = false;
+    boardCoinZone.classList.add('has-coin');
+    coinResult.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow');
+    coinResult.classList.add('rolling');
+    let ticks = 0;
+    const totalTicks = 10 + Math.floor(Math.random()*4);
+    sorteRollingInterval = setInterval(()=>{
+      coinResult.src = Math.random() < 0.5 ? COIN_FACES.cara : COIN_FACES.coroa;
+      playCoinTossTickSound();
+      ticks++;
+      if(ticks >= totalTicks){
+        clearInterval(sorteRollingInterval);
+        sorteRollingInterval = null;
+        coinResult.classList.remove('rolling');
+        coinResult.src = COIN_FACES[SORTE_RESULT_KEY[val.resultado]];
+        coinResult.classList.remove('settle');
+        void coinResult.offsetWidth;
+        coinResult.classList.add('settle');
+        coinResult.classList.toggle('hit-glow', val.verdict === 'acerto');
+        coinResult.classList.toggle('miss-shadow', val.verdict === 'erro');
+        coinResult.classList.toggle('crit-hit', val.verdict === 'acerto');
+        coinResult.classList.toggle('crit-miss', val.verdict === 'erro');
+        if(val.verdict === 'acerto') spawnDiceParticles(sorteParticleLayer, '✨', 10);
+        else spawnDiceParticles(sorteParticleLayer, '💀', 8);
+        if(val.verdict === 'acerto') playYaaySound();
+        else playEvilLaughSound();
+      }
+    }, 65);
+  }
   // Desenha o efeito de dano (emoji flutuante, ver DANO_TIPO_EFFECT/ELEMENT_HIT_EFFECT lá em cima) +
   // a balançadinha (.board-token-shake, ver <style>) em cima de QUALQUER peça na tela (Mesa E
   // Tabuleiro ao Vivo, se os dois estiverem desenhando a mesma peça neste navegador) com este
@@ -19286,6 +19451,21 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // NPC, que só o Mestre pode aplicar de verdade em boardTokens) só liga pro Mestre.
   let liveBoardLastHitRef = null, liveBoardLastHitCb = null, liveBoardDamageReqRef = null, liveBoardDamageReqCb = null;
   let lastHitSeenTs = null;
+  // Réplica em tempo real da animação de rolagem de dado/moeda (ver broadcastDiceRoll()/
+  // playRemoteAtributoRoll()/playRemoteDanoRoll()/playRemoteSorteRoll() mais acima) -- mesmo
+  // padrão exato de liveBoardLastHitRef/lastHitSeenTs, uma linha acima.
+  let liveBoardLastRollRef = null, liveBoardLastRollCb = null;
+  let lastRollSeenTs = null;
+  // Marca só se este listener já recebeu ALGUMA entrega (a 1ª, seja ela com valor ou vazia --
+  // nunca dispara réplica nela, mesma ideia do lastHit) -- criada como flag SEPARADA de
+  // lastRollSeenTs de propósito: usar só "lastRollSeenTs === null" pra decidir "é a 1ª entrega"
+  // (como o lastHit faz) tem um furo aqui: quando o listener conecta e AINDA NÃO existe nenhuma
+  // rolagem salva no Firebase, a 1ª entrega chega vazia (val nulo) e cai fora antes de setar
+  // lastRollSeenTs -- daí a PRÓXIMA entrega (a primeira rolagem de verdade que alguém fizer)
+  // continuaria vendo lastRollSeenTs === null e seria descartada por engano, como se também fosse
+  // "réplica de algo antigo" (bug encontrado de verdade num teste com 2 sessões reais, corrigido
+  // aqui antes de entregar).
+  let lastRollListenerPrimed = false;
   // RETRATO ao vivo (pedido explícito: "a imagem do ícone que representa o personagem... precisa
   // respeitar a imagem selecionada na ficha em tempo real") -- heroRoster/mestreRoster (ver
   // makeRosterLoader()) só atualizam depois de SALVAR (busca no GitHub), então não bastam sozinhos
@@ -20198,7 +20378,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // Fase 2 da automação de ataques (ver comentário grande perto da declaração das duas refs acima).
     if(liveBoardLastHitRef){ liveBoardLastHitRef.off('value', liveBoardLastHitCb); liveBoardLastHitRef = null; liveBoardLastHitCb = null; }
     if(liveBoardDamageReqRef){ liveBoardDamageReqRef.off('child_added', liveBoardDamageReqCb); liveBoardDamageReqRef = null; liveBoardDamageReqCb = null; }
+    // réplica de rolagem de dado/moeda (ver comentário grande perto de "let liveBoardLastRollRef").
+    if(liveBoardLastRollRef){ liveBoardLastRollRef.off('value', liveBoardLastRollCb); liveBoardLastRollRef = null; liveBoardLastRollCb = null; }
     lastHitSeenTs = null;
+    lastRollSeenTs = null;
+    lastRollListenerPrimed = false;
     turnState = { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false };
     turnUndoHistory = [];
     renderTurnBars();
@@ -20278,6 +20462,29 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       lastHitSeenTs = val.ts;
       if(isFirstRead) return;
       spawnBoardHitFx(val.targetId, val.tipo, val.elementoKey);
+    });
+    // réplica em tempo real da animação de rolagem de dado/moeda -- pedido explícito ("o
+    // tabuleiro, e a animação da rolagem de dados precisa aparecer para todos em tempo real, não
+    // esta ocorrendo"). Parecido com o esquema do lastHit acima (a 1ª ENTREGA deste listener nunca
+    // dispara nada, só a partir da 2ª em diante -- pra não re-tocar uma rolagem antiga que já
+    // estava salva ali de antes de conectar), mas usando "lastRollListenerPrimed" (ver comentário
+    // grande perto da declaração) em vez de "lastRollSeenTs === null" pra decidir isso -- MAIS um
+    // auto-ignorar específico daqui: quem de fato rolou (val.by, gravado em broadcastDiceRoll()
+    // via currentUserKey) já viu a própria rolagem tocar instantaneamente, localmente -- não
+    // precisa (e não deve) vê-la tocar de novo pela rede.
+    liveBoardLastRollRef = fbDb.ref('mesa40k/liveBoard/lastRoll');
+    liveBoardLastRollCb = liveBoardLastRollRef.on('value', (snap)=>{
+      const val = snap.val();
+      const isFirstDelivery = !lastRollListenerPrimed;
+      lastRollListenerPrimed = true;
+      if(!val || !val.ts) return;
+      if(val.ts === lastRollSeenTs) return;
+      lastRollSeenTs = val.ts;
+      if(isFirstDelivery) return;
+      if(val.by && val.by === currentUserKey) return;
+      if(val.kind === 'atributo') playRemoteAtributoRoll(val);
+      else if(val.kind === 'dano') playRemoteDanoRoll(val);
+      else if(val.kind === 'sorte') playRemoteSorteRoll(val);
     });
     // fila de pedidos de dano de um jogador (só o Mestre consome/aplica -- ver
     // applyAutoDamageToTarget()/connectLiveBoard() -- currentRole já está definido a esta altura,
