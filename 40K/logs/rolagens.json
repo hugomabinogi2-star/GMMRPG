@@ -7,5 +7,19 @@
     "resultado": 10,
     "resultLabel": "Erro",
     "ts": 1790459136947
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 4,
+    "resultado": 11,
+    "resultLabel": "Erro — Vantagem",
+    "ts": 1790459145396,
+    "mode": "vantagem",
+    "rolls": [
+      11,
+      10
+    ]
   }
 ]
