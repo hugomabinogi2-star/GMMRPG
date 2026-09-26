@@ -503,18 +503,31 @@ body{
    continua exclusivo do chat de verdade). */
 .chat-tab-body{display:flex;flex-direction:column;min-height:0;flex:1;overflow-y:auto;}
 .chat-tab-body[hidden]{display:none;}
-/* Fase 4: lista de "bolhas" da aba Resumos de ficha -- retrato circular + nome em cima, card de
+/* Fase 4: lista de "bolhas" da aba Resumos de ficha -- retrato circular + nome + card de
    Vida/Escudo/Mana (buildBoardVitalsCard(), reaproveitado tal e qual do hover do próprio
-   tabuleiro) embaixo. Passar o mouse dá zoom (pedido explícito) -- só um transform:scale em CSS,
-   sem precisar de nenhum card extra escondido (ver decisão registrada no changelog: o card de
-   atributos completos/XP ficou fora desta rodada). */
-.ficha-bubble-list{display:flex;flex-wrap:wrap;align-content:flex-start;gap:14px;padding:4px 2px 10px;}
+   tabuleiro). Passar o mouse dá um realce (pedido original) -- só um transform:scale em CSS, sem
+   precisar de nenhum card extra escondido (ver decisão registrada no changelog: o card de
+   atributos completos/XP ficou fora daquela rodada).
+   Rodada nova, pedido explícito: "deveria ser uma lista de cima para baixo com as barrinhas sendo
+   laterais ao lado da imagem" -- .ficha-bubble-list virou uma coluna única (era um grid que
+   quebrava linha, lado a lado) e cada .ficha-bubble virou uma LINHA inteira (era uma colunazinha
+   de 96px de largura, retrato em cima/nome no meio/barras embaixo). O card de vitalidade
+   (buildBoardVitalsCard()) não precisou de nenhuma mudança pra ficar "ao lado" -- ele já nasce
+   com display:flex por padrão (é o mesmo widget que já aparece do LADO do ícone ao passar o mouse
+   numa peça do tabuleiro, ver .board-token-vitalscard mais abaixo), só ficava embaixo aqui porque
+   .ficha-bubble era column; virando row, ele já cai do lado sozinho. A ORDEM de quem aparece
+   primeiro continua a mesma de antes (sortSummaryEntriesByTurn() no <script> -- quem está na vez
+   sempre no topo, girando conforme os turnos passam) -- nada mudou nessa lógica, só o layout. */
+.ficha-bubble-list{display:flex;flex-direction:column;gap:8px;padding:4px 2px 10px;}
 .ficha-bubble{
-  display:flex;flex-direction:column;align-items:center;gap:4px;
-  width:96px;padding:8px 4px;border-radius:8px;
-  transition:transform .15s ease;transform-origin:center top;cursor:default;
+  display:flex;flex-direction:row;align-items:center;gap:12px;
+  width:100%;padding:6px 10px;border-radius:8px;
+  transition:transform .15s ease,background .15s ease;transform-origin:left center;cursor:default;
 }
-.ficha-bubble:hover{transform:scale(1.32);z-index:5;background:rgba(0,0,0,.35);box-shadow:0 4px 14px rgba(0,0,0,.5);}
+/* zoom mais discreto que a versão em grade de antes (1.32) -- numa linha de largura cheia, um
+   scale grande de propósito ficaria estourando por cima da linha vizinha; o realce de fundo
+   continua chamando atenção do mesmo jeito. */
+.ficha-bubble:hover{transform:scale(1.06);z-index:5;background:rgba(0,0,0,.35);box-shadow:0 4px 14px rgba(0,0,0,.5);}
 .ficha-bubble-portrait{
   width:52px;height:52px;border-radius:50%;overflow:hidden;flex:none;
   border:2px solid var(--gold-text);background:#1a1a1a;
@@ -522,8 +535,11 @@ body{
 }
 .ficha-bubble-portrait img{width:100%;height:100%;object-fit:cover;}
 .ficha-bubble-portrait-empty::after{content:'?';color:var(--ink-faint);font-size:18px;}
+/* coluna à direita do retrato: nome em cima, card de vitalidade (barrinhas) embaixo dele -- é essa
+   coluna inteira que fica "ao lado da imagem", lateral, como pedido. */
+.ficha-bubble-info{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;flex:1;}
 .ficha-bubble-name{
-  font-size:10px;text-align:center;color:var(--ink);max-width:100%;
+  font-size:12px;text-align:left;color:var(--ink);max-width:100%;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
 /* buildBoardVitalsCard() nasceu pra flutuar do lado de uma casa do tabuleiro, escondida até
@@ -16424,11 +16440,18 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       portraitWrap.classList.add('ficha-bubble-portrait-empty');
     }
     bubble.appendChild(portraitWrap);
+    // Rodada nova: nome + card de vitalidade agora moram juntos dentro de .ficha-bubble-info (ver
+    // comentário grande no <style>) -- é essa coluna, como um todo, que fica "ao lado" do retrato
+    // (bubble virou uma linha, ver .ficha-bubble{flex-direction:row}), em vez de nome e card
+    // empilhados embaixo do retrato como antes.
+    const info = document.createElement('div');
+    info.className = 'ficha-bubble-info';
     const nameEl = document.createElement('div');
     nameEl.className = 'ficha-bubble-name';
     nameEl.textContent = tokenTooltipText(entry.token);
-    bubble.appendChild(nameEl);
-    bubble.appendChild(buildBoardVitalsCard(entry.vitals));
+    info.appendChild(nameEl);
+    info.appendChild(buildBoardVitalsCard(entry.vitals));
+    bubble.appendChild(info);
     return bubble;
   }
 
