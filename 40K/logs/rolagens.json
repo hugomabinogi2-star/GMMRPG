@@ -21,5 +21,22 @@
       11,
       10
     ]
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 3,
+    "bonus": 2,
+    "rolls": [
+      2
+    ],
+    "resultado": 4,
+    "habilidade": null,
+    "atributo": "FOR",
+    "grito": null,
+    "danoTipo": null,
+    "setEscudo": null,
+    "ts": 1790459149963
   }
 ]
