@@ -449,8 +449,67 @@ body{
 }
 .chat-min-btn:hover{border-color:var(--gold-bright);color:var(--ink);}
 .chat-panel-body{display:flex;flex-direction:column;min-height:0;flex:1;position:relative;}
-.chat-panel.minimized .chat-panel-body{display:none;}
+/* Fase 4 do "tabuleiro único": minimizar o chat (ver setChatMinimized() no <script>) agora esconde
+   as 3 abas junto (#chatTabs) e o conteúdo de QUALQUER uma delas que esteja ativa no momento
+   (.chat-panel-body é só a aba "Chat" -- .chat-tab-body são as outras duas, "Histórico de
+   Rolagens"/"Resumos de ficha", ver setChatActiveTab() no <script>) -- antes só existia a aba
+   Chat, então só havia um alvo pra esconder. */
+.chat-panel.minimized .chat-panel-body,
+.chat-panel.minimized .chat-tabs,
+.chat-panel.minimized .chat-tab-body{display:none;}
 .chat-panel.minimized{max-height:none;}
+/* Fase 4: seletor de abas do chat (Chat/Histórico de Rolagens/Resumos de ficha) -- mesmíssima
+   receita visual de botão "acende/apaga" já usada nos modos de visão do tabuleiro (ver
+   .board-mode-toggle/.mode-active, mais abaixo), só menor, pra caber lado a lado no topo desta
+   caixa estreita. */
+.chat-tabs{display:flex;gap:6px;flex:none;margin-bottom:8px;flex-wrap:wrap;}
+.chat-tab-btn{
+  flex:1 1 auto;min-width:0;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  border:1px solid var(--ink-faint);border-radius:5px;
+  padding:6px 6px;cursor:pointer;background:rgba(120,85,40,.06);
+  font:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.02em;
+  color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:border-color .15s, background .15s, color .15s;
+}
+.chat-tab-btn:hover{border-color:var(--gold-bright);color:var(--ink);}
+.chat-tab-btn.mode-active{border-color:var(--gold-bright);background:rgba(227,197,140,.14);color:var(--ink);}
+/* corpo de cada aba nova (Histórico de Rolagens/Resumos de ficha) -- mesma moldura/rolagem que o
+   corpo da aba Chat já tinha (.chat-panel-body), só sem o fundo animado de estrelinhas (esse
+   continua exclusivo do chat de verdade). */
+.chat-tab-body{display:flex;flex-direction:column;min-height:0;flex:1;overflow-y:auto;}
+.chat-tab-body[hidden]{display:none;}
+/* Fase 4: lista de "bolhas" da aba Resumos de ficha -- retrato circular + nome em cima, card de
+   Vida/Escudo/Mana (buildBoardVitalsCard(), reaproveitado tal e qual do hover do próprio
+   tabuleiro) embaixo. Passar o mouse dá zoom (pedido explícito) -- só um transform:scale em CSS,
+   sem precisar de nenhum card extra escondido (ver decisão registrada no changelog: o card de
+   atributos completos/XP ficou fora desta rodada). */
+.ficha-bubble-list{display:flex;flex-wrap:wrap;align-content:flex-start;gap:14px;padding:4px 2px 10px;}
+.ficha-bubble{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  width:96px;padding:8px 4px;border-radius:8px;
+  transition:transform .15s ease;transform-origin:center top;cursor:default;
+}
+.ficha-bubble:hover{transform:scale(1.32);z-index:5;background:rgba(0,0,0,.35);box-shadow:0 4px 14px rgba(0,0,0,.5);}
+.ficha-bubble-portrait{
+  width:52px;height:52px;border-radius:50%;overflow:hidden;flex:none;
+  border:2px solid var(--gold-text);background:#1a1a1a;
+  display:flex;align-items:center;justify-content:center;
+}
+.ficha-bubble-portrait img{width:100%;height:100%;object-fit:cover;}
+.ficha-bubble-portrait-empty::after{content:'?';color:var(--ink-faint);font-size:18px;}
+.ficha-bubble-name{
+  font-size:10px;text-align:center;color:var(--ink);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* buildBoardVitalsCard() nasceu pra flutuar do lado de uma casa do tabuleiro, escondida até
+   :hover (ver .board-token-vitalscard no <style>, mais acima) -- dentro da bolha ela precisa
+   aparecer normal, sempre visível, como qualquer conteúdo de bloco -- por isso os overrides
+   abaixo, direto no seletor mais específico (dentro de .ficha-bubble). */
+.ficha-bubble .board-token-vitalscard{
+  position:static;transform:none;opacity:1;visibility:visible;pointer-events:auto;
+  margin-top:2px;
+}
 /* fundo animado do chat: estrelinhas (ou caveirinhas) subindo continuamente atrás das mensagens e
    do campo de digitar — ver .chat-bg-fx/.chat-bg-star mais abaixo e spawnChatBgParticle() no
    <script>. position:absolute tira a camada do fluxo (não empurra layout nenhum), por isso
@@ -2153,15 +2212,23 @@ body{
 .master-card .mc-attrs{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;font-size:11px;color:var(--ink-soft);}
 .master-card .mc-attrs span{font-family:'Cinzel Decorative',serif;letter-spacing:.03em;}
 .master-card .mc-attrs strong{color:var(--ink);font-family:'EB Garamond',serif;}
-/* distribuir XP direto do resumo ao vivo (mesaHeroSummaryPanel) -- ver opts.xpControls em
-   makeFichasListLoader() e grantXpToPlayer() no <script>. Só aparece pro mestre (o painel inteiro
-   já é mestre-only) e só quando a ficha tem dono (ownerUid) pra saber pra quem mandar o XP. */
+/* classe nascida pra distribuir XP direto do antigo resumo ao vivo (mesaHeroSummaryPanel, ver
+   opts.xpControls em makeFichasListLoader()/grantXpToPlayer() no <script>) -- esse painel saiu na
+   Fase 4 do "tabuleiro único" (virou a aba "🧾 Resumos de ficha" do chat, sem controles de XP/
+   Divindade, ver comentário grande perto de #chatPanel no HTML), então opts.xpControls não tem
+   mais nenhum chamador hoje -- a classe em si continua VIVA, reaproveitada pelos botões −10/−1/
+   +1/+10 de Vida/Mana/Escudo do painel "🩸 Instâncias no Tabuleiro" (ver renderBoardInstancesPanel()
+   no <script>), só o nome ficou de um uso antigo. */
 .master-card .mc-xp-controls{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:8px;}
 .master-card .mc-xp-controls-label{font-size:11px;color:var(--ink-faint);margin-right:2px;}
 .master-card .mc-xp-btn{min-width:34px;}
-/* selecionar divindade direto do resumo ao vivo (mesaHeroSummaryPanel) -- ver opts.deidadeControl
-   em makeFichasListLoader() e setHeroDeidade() no <script>. Mesmas condições do XP acima: só
-   mestre, só ficha com dono (ownerUid). */
+/* selecionar divindade direto do antigo resumo ao vivo (mesaHeroSummaryPanel) -- ver
+   opts.deidadeControl em makeFichasListLoader()/setHeroDeidade() no <script>. Esse painel saiu na
+   Fase 4 do "tabuleiro único" (ver comentário de .mc-xp-controls logo acima) e, diferente dela,
+   ESTA classe não tem mais nenhum outro uso no projeto -- fica sem nenhum chamador de propósito
+   (opts.deidadeControl continua existindo dentro de makeFichasListLoader(), só nunca mais é
+   passado true por ninguém), pra não mexer numa função grande e compartilhada só por causa de uma
+   opção que ficou sem chamador. */
 .master-card .mc-deidade-control{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:6px;}
 .master-card .mc-deidade-control-label{font-size:11px;color:var(--ink-faint);margin-right:2px;}
 .master-card .mc-deidade-select{font-family:'EB Garamond',serif;font-size:11px;padding:3px 4px;border-radius:4px;border:1px solid var(--border-brown);background:var(--paper-l);color:var(--ink);}
@@ -2175,46 +2242,10 @@ body{
 .master-card .mc-delete{border-color:var(--wax);color:var(--wax-dark);}
 .master-card .mc-delete:hover{border-color:var(--wax-bright);background:rgba(138,45,33,.1);}
 
-/* "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa -- os cards aqui eram idênticos aos das
-   listas em modal (.master-card, empilhados em coluna, letra pequena), o que deixava difícil ler
-   os valores de relance durante a sessão. Muda só ESTE painel (seletor travado no ID, igual o
-   comentário de #mesaHeroSummaryList.collapsed acima explica) pra cartões maiores, lado a lado
-   (coluna vira linha) com uma barra de rolagem horizontal quando não cabem todos na largura da
-   tela -- .master-list/.master-card seguem intocados nas outras listas (masterList/
-   masterMestreList, dentro dos modais). */
-#mesaHeroSummaryList{
-  display:flex;
-  flex-direction:row;
-  flex-wrap:nowrap;
-  align-items:stretch;
-  gap:16px;
-  overflow-x:auto;
-  overflow-y:hidden;
-  padding-bottom:12px; /* respiro pra barra de rolagem não colar nos cards */
-  scrollbar-gutter:stable;
-}
-#mesaHeroSummaryList .master-card{
-  display:flex;
-  flex-direction:column;
-  flex:0 0 280px;
-  width:280px;
-  padding:16px 18px;
-}
-#mesaHeroSummaryList .master-card .mc-name{font-size:22px;}
-#mesaHeroSummaryList .master-card .mc-meta{font-size:14px;margin-top:4px;}
-#mesaHeroSummaryList .master-card .mc-vitals{font-size:14.5px;line-height:1.6;margin-top:8px;}
-#mesaHeroSummaryList .master-card .mc-attrs{font-size:13.5px;gap:10px;margin-top:10px;}
-#mesaHeroSummaryList .master-card .mc-xp-controls{margin-top:12px;gap:8px;}
-#mesaHeroSummaryList .master-card .mc-xp-controls-label,
-#mesaHeroSummaryList .master-card .mc-deidade-control-label{font-size:13px;}
-#mesaHeroSummaryList .master-card .mc-xp-btn{font-size:13px;padding:7px 11px;min-width:38px;}
-#mesaHeroSummaryList .master-card .mc-deidade-control{margin-top:10px;gap:8px;}
-#mesaHeroSummaryList .master-card .mc-deidade-select{font-size:13px;padding:5px 7px;}
-/* telas estreitas: cards um pouco menores pra não dominar sozinhos a largura visível */
-@media (max-width: 600px){
-  #mesaHeroSummaryList .master-card{flex-basis:230px;width:230px;padding:13px 14px;}
-  #mesaHeroSummaryList .master-card .mc-name{font-size:19px;}
-}
+/* Fase 4 do "tabuleiro único": o painel "Fichas dos Jogadores (resumo ao vivo)" (#mesaHeroSummaryList,
+   cards .master-card maiores/lado a lado só pra ele) saiu -- virou a aba "🧾 Resumos de ficha" do
+   chat, com um visual novo de bolhas (ver .ficha-bubble-list/.ficha-bubble mais abaixo). As regras
+   #mesaHeroSummaryList{...} que moravam aqui saíram junto (nada mais usa esse id). */
 
 /* ---------- modal de Configurações (só mestre) ---------- */
 
@@ -3904,10 +3935,9 @@ body{
    acessar a ficha". */
 .ar-ap-grid.collapsed{display:none;}
 #inventarioBody.collapsed{display:none;}
-/* "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa -- mesmo mecanismo de minimizar do
-   Histórico de Rolagens logo abaixo, só que aplicado direto na lista (.master-list é reaproveitada
-   por outras listas fora da Mesa, então o seletor fica travado no ID pra não afetar as outras). */
-#mesaHeroSummaryList.collapsed{display:none;}
+/* Fase 4 do "tabuleiro único": #mesaHeroSummaryList (o antigo minimizar de "Fichas dos Jogadores
+   (resumo ao vivo)" dentro da Mesa) saiu -- ver comentário grande perto de onde a lista morava, no
+   <style>, mais abaixo. */
 /* botão de minimizar/expandir no cabeçalho de Modificadores — flutua à direita do título, sem
    mudar a altura da faixa (border-bottom) que já existe embaixo de todo <h2> de painel. */
 .panel-toggle-btn{
@@ -5094,9 +5124,28 @@ body{
         </div>
       </div>
 
-      <!-- chat da mesa: um chat só, global, entre todo mundo que está logado (mestre e jogadores). -->
+      <!-- chat da mesa: um chat só, global, entre todo mundo que está logado (mestre e jogadores).
+           Fase 4 do projeto "tabuleiro único" (pedido explícito: "a área de chat vira um seletor de
+           abas Chat/Histórico de Rolagens/Resumos de ficha"): esta caixa deixou de mostrar só o
+           chat -- virou um painel de 3 abas, alternadas por #chatTabs (ver setChatActiveTab() no
+           <script>). As 2 abas novas eram, até a rodada anterior, painéis mestre-only dentro de
+           "📂 Gerenciar tabuleiro" (#mesaContent) -- Histórico de Rolagens (#rollLogPanel) e
+           "Fichas dos Jogadores (resumo ao vivo)" (#mesaHeroSummaryPanel, com controles de
+           XP/Divindade) -- e agora ficam visíveis pros DOIS papéis aqui. O antigo resumo (lista
+           .master-card cheia, com os controles de mestre) foi substituído por uma lista nova de
+           "bolhas" (retrato+nome+Vida/Escudo/Mana, ver #fichaSummaryList/renderFichaSummaryBubbles()
+           no <script>) -- os controles de XP/Divindade NÃO vieram junto de propósito (pedido
+           explícito: "ficam só na própria ficha"). O Histórico de Rolagens veio quase idêntico
+           (mesmo #rollLogList/loadRollLog()/buildRollLogRow() de sempre), só "Limpar histórico"
+           continua mestre-only (ver .mestre-only no botão #clearRollLog logo abaixo) -- ler o
+           histórico é novo pro jogador, mas apagá-lo continua sendo uma decisão do mestre. -->
       <div class="panel chat-panel" id="chatPanel" hidden>
         <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
+        <div class="chat-tabs" id="chatTabs">
+          <button type="button" class="chat-tab-btn" id="chatTabBtnChat" data-chat-tab="chat" aria-pressed="false">💬 Chat</button>
+          <button type="button" class="chat-tab-btn" id="chatTabBtnRollLog" data-chat-tab="rolllog" aria-pressed="false">🎲 Histórico de Rolagens</button>
+          <button type="button" class="chat-tab-btn" id="chatTabBtnFichas" data-chat-tab="fichas" aria-pressed="false">🧾 Resumos de ficha</button>
+        </div>
         <div class="chat-panel-body" id="chatPanelBody">
           <div class="chat-bg-fx" id="chatBgFx" aria-hidden="true"></div>
           <div class="chat-messages" id="chatMessages">
@@ -5106,6 +5155,26 @@ body{
             <input type="text" id="chatInput" placeholder="Digite uma mensagem..." maxlength="500">
             <button id="chatSendBtn" type="button">Enviar</button>
           </div>
+        </div>
+        <!-- Fase 4: Histórico de Rolagens -- mudou só de ENDEREÇO (veio de dentro de #mesaContent,
+             ver comentário grande logo acima de #chatPanel); ids/lógica por trás continuam os
+             mesmos de sempre (rollLogList/refreshRollLog/clearRollLog/loadRollLog() no <script>). -->
+        <div class="chat-tab-body" id="rollLogTabBody" hidden>
+          <div class="roll-log-actions">
+            <button id="refreshRollLog" class="add-row-btn">↻ Atualizar histórico</button>
+            <button id="clearRollLog" class="add-row-btn danger-row-btn mestre-only">🗑️ Limpar histórico</button>
+          </div>
+          <div id="rollLogList" class="roll-log-list"></div>
+        </div>
+        <!-- Fase 4: Resumos de ficha -- bolhas (retrato+nome+Vida/Escudo/Mana), uma por ficha
+             (jogador, Aliado ou Inimigo) atualmente colocada no tabuleiro -- ver
+             renderFichaSummaryBubbles()/collectBoardOccupantsForSummary() no <script>. Pro jogador,
+             respeita a MESMA visibilidade de Revelar/Fog do próprio tabuleiro ao vivo dele (uma
+             ficha escondida pela neblina não aparece aqui também) -- decisão explícita desta
+             rodada, pra não vazar segredo do mestre por uma lista sem a mesma proteção espacial do
+             tabuleiro. -->
+        <div class="chat-tab-body" id="fichaSummaryTabBody" hidden>
+          <div id="fichaSummaryList" class="ficha-bubble-list"></div>
         </div>
       </div>
     </div>
@@ -5374,21 +5443,10 @@ body{
       <div id="boardSendHint" class="mesa-hint"></div>
     </div>
 
-    <div class="panel dice-panel" id="mesaHeroSummaryPanel">
-      <h2>📋 Fichas dos Jogadores (resumo ao vivo) <button type="button" class="panel-toggle-btn" id="mesaHeroSummaryToggleBtn" aria-label="Minimizar Fichas dos Jogadores" title="Minimizar/expandir Fichas dos Jogadores">▾</button></h2>
-      <div id="mesaHeroSummaryList" class="master-list"></div>
-    </div>
-
-    <div class="panel dice-panel" id="rollLogPanel">
-      <h2>🎲 Histórico de Rolagens <button type="button" class="panel-toggle-btn" id="rollLogToggleBtn" aria-label="Minimizar Histórico de Rolagens" title="Minimizar/expandir Histórico de Rolagens">▾</button></h2>
-      <div id="rollLogBody" class="dice-panel-body">
-        <div class="roll-log-actions">
-          <button id="refreshRollLog" class="add-row-btn">↻ Atualizar histórico</button>
-          <button id="clearRollLog" class="add-row-btn danger-row-btn">🗑️ Limpar histórico</button>
-        </div>
-        <div id="rollLogList" class="roll-log-list"></div>
-      </div>
-    </div>
+    <!-- Fase 4 do projeto "tabuleiro único": "Fichas dos Jogadores (resumo ao vivo)" e "Histórico
+         de Rolagens" saíram daqui (eram mestre-only, dentro desta modal) -- moraram aqui até a
+         rodada anterior, agora vivem na aba de chat (#rollLogTabBody/#fichaSummaryTabBody, ver
+         comentário grande perto de #chatPanel no HTML), visíveis pros dois papéis. -->
 
     <div class="mesa-preview-wrap" id="mesaPreviewWrap" hidden>
       <img id="mesaPreviewImg" alt="Pré-visualização do print">
@@ -5638,9 +5696,11 @@ body{
                  por sua vez tinha tomado o lugar do próprio seletor de Elemento (Divindade, na época)
                  quando esse campo passou a ser só do mestre. A pedido, o Elemento voltou pra cá —
                  volta a ser escolhido por quem estiver com a ficha aberta (igual já acontece com
-                 Atributos/Vida/Mana: o mestre também pode ajustar por fora, pelo resumo ao vivo
-                 dentro de MESA — ver opts.deidadeControl em makeFichasListLoader()/setHeroDeidade()
-                 no <script> —, e os dois lados ficam sincronizados). O <select id="f_deidade"> de
+                 Atributos/Vida/Mana). O mestre também pode ajustar por fora, com a ficha do
+                 jogador aberta na tela (ver setHeroDeidade() no <script>) — opts.deidadeControl em
+                 makeFichasListLoader() era um segundo caminho pra isso, pelo antigo resumo ao vivo
+                 dentro de MESA; saiu na Fase 4 do "tabuleiro único" (pedido explícito: "fica só na
+                 própria ficha"), este aqui é o único caminho hoje. O <select id="f_deidade"> de
                  verdade é o mesmo de sempre (só mudou de posição no HTML), reaproveitando as MESMAS
                  classes CSS/som (.deidade-arrow-btn, playDeityOohSound) de quando já funcionava
                  assim. O Alinhamento (f_alinhamento/EUSEBES_ASEBES_LORE) saiu da ficha por completo
@@ -5731,9 +5791,12 @@ body{
             <div class="field">
               <!-- os botões +/-/+10/-10 agora são "mestre-only" (ver .mestre-only/applyRoleVisibility())
                    -- jogador não distribui mais XP na mão; só ganha XP automaticamente pela rolagem de
-                   dado (xpStep() chamado de dentro do julgamento da rolagem) ou recebe do mestre pelo
-                   resumo ao vivo dentro de MESA (ver mesaHeroSummaryPanel/renderHeroSummaryXpControls()
-                   no <script>). O campo em si nunca foi digitável (readonly), então isso já bastava. -->
+                   dado (xpStep() chamado de dentro do julgamento da rolagem) ou recebe do mestre por
+                   aqui mesmo, com a ficha dele aberta na tela (ver grantXpToPlayer() no <script>) --
+                   este é o ÚNICO lugar que distribui XP hoje (Fase 4 do "tabuleiro único" tirou o
+                   caminho alternativo que existia dentro do antigo resumo ao vivo da Mesa, pedido
+                   explícito: "fica só na própria ficha"). O campo em si nunca foi digitável (readonly),
+                   então isso já bastava. -->
               <div class="xp-stepper" aria-label="XP até o próximo nível">
                 <button type="button" class="xp-step-btn xp-step-btn-10 mestre-only" id="xpMinusBtn10" aria-label="Diminuir XP em 10">−10</button>
                 <button type="button" class="xp-step-btn mestre-only" id="xpMinusBtn" aria-label="Diminuir XP">−</button>
@@ -8357,12 +8420,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       // Elemento: desde que o seletor de setas voltou pro lado do Nome (editável por quem estiver
       // com a ficha aberta, não só o mestre — ver .deidade-arrow-select no HTML), o PRÓPRIO jogador
       // também precisa publicar a escolha em mesa40k/deidade/{uid} — é o mesmo nó que
-      // setHeroDeidade() (mestre, via els.deidade.addEventListener('change') ou o mini-seletor do
-      // resumo ao vivo) já escreve, e que o resumo ao vivo dentro de MESA escuta pra atualizar
-      // mc-deidade-name/mc-deidade-select na hora (ver deidadeControl em makeFichasListLoader()).
-      // Sem isto, a troca de elemento feita pelo PRÓPRIO jogador só apareceria pro mestre depois de
-      // salvar a ficha e reabrir "Ver ficha" (mesmo problema que XP/atributos/Vida-Mana já tiveram
-      // antes de ganhar esse mesmo tratamento).
+      // setHeroDeidade() (mestre, via els.deidade.addEventListener('change'), com a ficha do
+      // jogador aberta na tela) também escreve. Sem isto, a troca de elemento feita pelo PRÓPRIO
+      // jogador só apareceria pro mestre depois de salvar a ficha e reabrir "Ver ficha" (mesmo
+      // problema que XP/atributos/Vida-Mana já tiveram antes de ganhar esse mesmo tratamento).
       if(els.deidade && els.deidade.value){
         fbDb.ref('mesa40k/deidade/' + ownerUid).set(els.deidade.value);
       }
@@ -8713,8 +8774,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       btn.setAttribute('aria-label', collapsed ? `Expandir ${titulo}` : `Minimizar ${titulo}`);
     });
   }
-  wirePanelToggle('rollLogToggleBtn', 'rollLogBody', 'Histórico de Rolagens');
-  wirePanelToggle('mesaHeroSummaryToggleBtn', 'mesaHeroSummaryList', 'Fichas dos Jogadores');
+  // Fase 4 do "tabuleiro único": Histórico de Rolagens e "Fichas dos Jogadores" deixaram de ser
+  // painéis minimizáveis dentro da Mesa -- viraram abas do chat (ver #chatTabs/setChatActiveTab()),
+  // que já cuidam sozinhas de mostrar/esconder o conteúdo -- os dois wirePanelToggle() que existiam
+  // aqui pra eles saíram junto.
   wirePanelToggle('habilidadesToggleBtn', 'habilidadesBody', 'Habilidades');
   wirePanelToggle('armamentoToggleBtn', 'armamentoBody', 'Armamento e Armadura');
   wirePanelToggle('inventarioToggleBtn', 'inventarioBody', 'Inventário');
@@ -13423,16 +13486,15 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
 
     // toda guia minimizável começa minimizada sempre que uma ficha é acessada (nova, carregada
     // automaticamente pro jogador, ou aberta pela lista de Fichas de Jogador/Fichas do Mestre) —
-    // não só Modificadores (que já nascia assim antes desta rodada): o Histórico de Rolagens e
-    // "Fichas dos Jogadores (resumo ao vivo)" (dentro da Mesa) também (Rolamentos e Sorte saíram
-    // da ficha por completo, ver comentário grande perto de onde cada uma morava, não entram mais
-    // nesta lista). Independe de como cada painel estava antes — sempre volta a fechado neste ponto.
+    // não só Modificadores (que já nascia assim antes desta rodada). Histórico de Rolagens e
+    // "Fichas dos Jogadores" saíram desta lista na Fase 4 do "tabuleiro único" -- viraram abas do
+    // chat, fora da ficha em si (Rolamentos e Sorte já tinham saído da ficha por completo antes,
+    // ver comentário grande perto de onde cada uma morava). Independe de como cada painel estava
+    // antes — sempre volta a fechado neste ponto.
     [
       [modToggleBtn, modsGrid, 'Modificadores'],
       [effectsToggleBtn, effectsGrid, 'Efeitos'],
       [$('talentosToggleBtn'), $('talentosBody'), 'Talentos'],
-      [$('rollLogToggleBtn'), $('rollLogBody'), 'Histórico de Rolagens'],
-      [$('mesaHeroSummaryToggleBtn'), $('mesaHeroSummaryList'), 'Fichas dos Jogadores'],
     ].forEach(([btn, body, titulo])=>{
       if(!btn || !body) return;
       body.classList.add('collapsed');
@@ -14784,9 +14846,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     }
   }
 
-  // Histórico de Rolagens agora mora dentro do modal da Mesa (primeiro painel lá, minimizável —
-  // ver wirePanelToggle('rollLogToggleBtn', ...) mais abaixo e openMesaModal(), que chama
-  // loadRollLog() toda vez que a Mesa abre).
+  // Fase 4 do "tabuleiro único": Histórico de Rolagens saiu do modal da Mesa (mestre-only) e virou
+  // a aba "🎲 Histórico de Rolagens" do chat, visível pros dois papéis -- loadRollLog() agora roda
+  // uma vez no login (ver onAuthStateChanged, perto de connectLiveBoard()), não mais toda vez que a
+  // Mesa abre.
   const rollLogList = $('rollLogList');
   $('refreshRollLog').addEventListener('click', loadRollLog);
 
@@ -14984,18 +15047,19 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // o tabuleiro de verdade já está sempre visível na faixa fixa, fora deste painel (ver
     // applyLiveBoardZoom()/comentário grande em "const boardGrid" no <script>); este painel agora
     // só traz as bandejas/controles de baixo dele.
+    // Fase 4 do projeto "tabuleiro único": Histórico de Rolagens e "Fichas dos Jogadores (resumo
+    // ao vivo)" saíram daqui -- moraram nesta modal (mestre-only) até a rodada anterior, agora
+    // moram na aba de chat (#rollLogTabBody/#fichaSummaryTabBody), visíveis pros dois papéis o
+    // tempo todo (carregados no login, não mais na abertura desta modal -- ver loadRollLog()/
+    // renderFichaSummaryBubbles() logo depois de connectLiveBoard(), dentro de onAuthStateChanged).
     mesaSendHint.textContent = '';
     loadHeroRoster();
     loadMestreRoster();
-    loadRollLog();
-    loadMesaHeroSummary();
   }
   function closeMesaModal(){
     if(mesaContent.hidden) return;
     mesaContent.hidden = true;
     $('mesaBtn').setAttribute('aria-pressed', 'false');
-    loadMesaHeroSummary.detachLiveListeners();
-    detachRollLogLiveListener();
   }
   // #mesaBtn SEMPRE abre (não é um toggle -- clicar de novo com o painel já aberto não faz nada de
   // diferente, só recarrega os dados, igual sempre foi) -- só #closeMesa (✕ de dentro do painel)
@@ -15607,7 +15671,20 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     ts: firebase.database.ServerValue.TIMESTAMP,
   }));
   const scheduleBoardMarksPush = makeDebouncedBoardPush('mesa40k/liveBoard/marks', ()=> Object.assign({}, boardMarks));
-  const scheduleBoardTokensPush = makeDebouncedBoardPush('mesa40k/liveBoard/tokens', collectBoardTokensOut);
+  const pushBoardTokensToFirebaseDebounced = makeDebouncedBoardPush('mesa40k/liveBoard/tokens', collectBoardTokensOut);
+  // Fase 4 do "tabuleiro único": todo call site que já chamava scheduleBoardTokensPush() antes
+  // desta rodada (handleBoardDrop/removeTokenAt/drag de peça/etc -- basicamente qualquer mudança
+  // de peça feita pelo MESTRE) precisa também refletir na hora na aba "🧾 Resumos de ficha" do chat
+  // (ver renderFichaSummaryBubbles(), mais abaixo) -- sem precisar caçar cada chamador um por um,
+  // já que todos passam por aqui. O envio de verdade pro Firebase continua exatamente como sempre
+  // (debounced, 500ms, ver makeDebouncedBoardPush()); só o redesenho das bolhas roda síncrono, na
+  // hora, porque é local (não depende de rede nenhuma). Pro JOGADOR, o gatilho equivalente mora
+  // dentro de renderLiveBoardMini() (chamada sempre que o snapshot de mesa40k/liveBoard/tokens
+  // muda, ver connectLiveBoard()).
+  function scheduleBoardTokensPush(){
+    pushBoardTokensToFirebaseDebounced();
+    renderFichaSummaryBubbles();
+  }
 
   // ---------- toggles Revelar / Dark / "Remover Fog" (ver .board-menu-bottom-actions no HTML) ----------
   // Os 3 são independentes entre si: Dark congela a publicação inteira; "Remover Fog" só decide se o
@@ -16153,6 +16230,91 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     return card;
   }
 
+  // ---------- Fase 4 do "tabuleiro único": aba "🧾 Resumos de ficha" (bolhas, visível a todo mundo) ----------
+  // Pedido original: hover deveria mostrar um card de atributos completos + barra de XP — decisão
+  // explícita desta rodada (registrada no changelog): isso ficou de fora por enquanto, porque hoje
+  // NENHUM canal ao vivo carrega atributos/XP pra peça nenhuma do tabuleiro (só Vida/Mana/Escudo/
+  // Divindade chegam até quem não é dono da ficha) — construir esse canal novo seria uma mudança de
+  // arquitetura bem maior, fora do escopo desta rodada. A bolha mostra o que já está disponível ao
+  // vivo pra qualquer peça do tabuleiro: reaproveita TAL E QUAL resolveTokenVitalsForCard()/
+  // buildBoardVitalsCard() logo acima (mesmo card que já aparece ao passar o mouse numa peça do
+  // tabuleiro em si) — só embrulha com um retrato circular + nome em cima (ver
+  // .ficha-bubble-portrait/-name no <style>) e deixa sempre visível (sem :hover) dentro da bolha,
+  // com um override de CSS pra isso (ver .ficha-bubble .board-token-vitalscard). "Zoom" ao passar o
+  // mouse é só um transform:scale em CSS na bolha inteira (.ficha-bubble:hover) — sem nenhum card
+  // extra escondido.
+  //
+  // Escopo = só peças que são de fato uma FICHA por trás (kind 'hero', 'aliado_ficha' ou
+  // 'inimigo_ficha') — os ícones genéricos da bandeja "Geral" (kind 'aliado'/'aliado_fera'/
+  // 'inimigo'/'monstro'/'boss', sem nenhuma ficha por trás) nunca aparecem aqui, pelo mesmo motivo
+  // que nunca ganham o card de hover no tabuleiro de verdade: resolveTokenVitalsForCard() devolve
+  // null pra eles (sem Vida/Mana/Escudo pra mostrar).
+  const fichaSummaryListEl = $('fichaSummaryList');
+
+  // Pro JOGADOR, respeita a MESMA visibilidade de Revelar/Fog do próprio tabuleiro ao vivo dele
+  // (decisão explícita desta rodada) — uma ficha que a neblina esconderia no tabuleiro de verdade
+  // também não aparece nesta lista "achatada", pra não vazar segredo do mestre por um caminho sem a
+  // mesma proteção espacial (mesmíssimo filtro revealed/fogActive/fogReachable já usado dentro de
+  // renderLiveBoardMini(), copiado aqui). O MESTRE nunca vê nada filtrado (igual ao tabuleiro de
+  // verdade dele) e usa boardTokens (fonte local, sempre a mais atual) em vez do snapshot
+  // liveBoardState vindo do Firebase.
+  function collectBoardOccupantsForSummary(){
+    const isMestre = currentRole === 'mestre';
+    const tokensMap = isMestre ? boardTokens : (liveBoardState.tokens || {});
+    const keyFn = isMestre ? boardKey : liveBoardKey;
+    const revealed = isMestre || !!liveBoardState.revealed;
+    const fogActive = !isMestre && !!liveBoardState.fog;
+    const fogReachable = (fogActive && revealed) ? computeFogReachableKeys() : null;
+    const out = [];
+    Object.keys(tokensMap || {}).forEach(key=>{
+      const tok = tokensMap[key];
+      if(!tok) return;
+      if(key !== keyFn(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça
+      if(tok.kind !== 'hero' && tok.kind !== 'aliado_ficha' && tok.kind !== 'inimigo_ficha') return;
+      if(!isMestre){
+        if(!revealed) return;
+        if(fogActive && fogReachable && !fogReachable.has(key)) return;
+      }
+      const vitals = resolveTokenVitalsForCard(tok);
+      if(!vitals) return; // sem Vida/Mana/Escudo disponível ainda (ex: hero sem liveVitalsAll publicado)
+      out.push({ token: tok, vitals });
+    });
+    return out;
+  }
+
+  function buildFichaSummaryBubble(entry){
+    const bubble = document.createElement('div');
+    bubble.className = 'ficha-bubble';
+    const portraitWrap = document.createElement('div');
+    portraitWrap.className = 'ficha-bubble-portrait';
+    const portrait = resolveTokenPortrait(entry.token);
+    if(portrait){
+      const img = document.createElement('img');
+      img.src = portrait; img.alt = '';
+      portraitWrap.appendChild(img);
+    } else {
+      portraitWrap.classList.add('ficha-bubble-portrait-empty');
+    }
+    bubble.appendChild(portraitWrap);
+    const nameEl = document.createElement('div');
+    nameEl.className = 'ficha-bubble-name';
+    nameEl.textContent = tokenTooltipText(entry.token);
+    bubble.appendChild(nameEl);
+    bubble.appendChild(buildBoardVitalsCard(entry.vitals));
+    return bubble;
+  }
+
+  function renderFichaSummaryBubbles(){
+    if(!fichaSummaryListEl) return;
+    const entries = collectBoardOccupantsForSummary();
+    fichaSummaryListEl.innerHTML = '';
+    if(!entries.length){
+      fichaSummaryListEl.innerHTML = '<div class="master-empty">Nenhuma ficha no tabuleiro no momento.</div>';
+      return;
+    }
+    entries.forEach(entry=> fichaSummaryListEl.appendChild(buildFichaSummaryBubble(entry)));
+  }
+
   // chamado sempre que mesa/live muda (ver onLiveVitalsChanged() mais abaixo) — refaz cada casa do
   // tabuleiro de verdade que tenha uma ficha de JOGADOR (token.ownerUid): uma renderBoardCell()
   // completa já cuida tanto de atualizar a barrinha de Vida (applyBoardHpBar(), chamada lá dentro)
@@ -16539,10 +16701,16 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   function onLiveVitalsChanged(){
     renderHeroTray();
     renderMestreTray();
-    renderLiveBoardMini(); // caveira de Vida 0 no mini-tabuleiro — no-op se o painel nem estiver montado
+    // caveira de Vida 0 no mini-tabuleiro (no-op se o painel nem estiver montado) -- pro JOGADOR,
+    // isso também redesenha a aba "🧾 Resumos de ficha" (renderFichaSummaryBubbles() roda no fim
+    // dela, ver comentário grande lá) -- pro MESTRE, é sempre um no-op (early return lá dentro,
+    // ver comentário grande em "const boardGrid"), por isso o redesenho das bolhas dele roda
+    // separado, na linha de baixo.
+    renderLiveBoardMini();
     if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens)
     refreshBoardHpBars(); // barrinha de Vida + caveira embaixo dos ícones — ver renderBoardCell()
     syncBoardTokenBonusFromLiveVitals(); // bônus de DES/Movimento de peça JÁ colocada — ver função abaixo
+    renderFichaSummaryBubbles(); // Fase 4: Vida/Mana/Escudo mudou -- atualiza os números das bolhas também
   }
 
   // Bug relatado: mudar o Modificador de Movimento (#m_mov, ou o próprio Atributo DES) de uma
@@ -17734,20 +17902,24 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // (as duas na mesma pasta FICHAS_MESTRE_PATH, uma mostrando/outra escondendo quem tem
   // publica==='Inimigos' -- ver opts.excludeEnemies/opts.enemyFilter logo abaixo).
   function makeFichasListLoader(githubPath, listEl, modalEl, emptyMsg, opts){
-    // opts.readOnly (usado pelo painel "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa) —
-    // mostra o mesmo card com os mesmos dados/vitais ao vivo, mas sem os botões "Ver ficha"/
-    // "Apagar" nem o clique de carregar a ficha na tela: é só um resumo pra consulta, não um jeito
-    // de abrir a ficha de ninguém a partir daqui.
+    // opts.readOnly — mostra o mesmo card com os mesmos dados/vitais ao vivo, mas sem os botões
+    // "Ver ficha"/"Apagar" nem o clique de carregar a ficha na tela: é só um resumo pra consulta,
+    // não um jeito de abrir a ficha de ninguém a partir daqui. Nenhum chamador usa mais hoje (era
+    // só o antigo painel "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa, substituído na
+    // Fase 4 do "tabuleiro único" pela aba "🧾 Resumos de ficha" do chat) -- mantido por segurança,
+    // pra não mexer numa função grande e compartilhada só por causa de uma opção sem chamador.
     const readOnly = !!(opts && opts.readOnly);
-    // opts.xpControls (usado só pelo resumo ao vivo dentro de MESA) -- adiciona os botões
-    // −10/−1/+1/+10 de distribuir XP direto pra cada ficha com dono; ver grantXpToPlayer() e
-    // connectXpGrantListener() no <script>.
+    // opts.xpControls -- adiciona os botões −10/−1/+1/+10 de distribuir XP direto pra cada ficha
+    // com dono; ver grantXpToPlayer()/connectXpGrantListener() no <script>. Igual opts.readOnly
+    // logo acima, nenhum chamador usa mais hoje (era só o antigo resumo ao vivo da Mesa) -- hoje
+    // grantXpToPlayer() só é chamado a partir da própria ficha aberta (pedido explícito: "fica só
+    // na própria ficha"), mas a opção continua aqui, sem mexer na função.
     const xpControls = !!(opts && opts.xpControls);
-    // opts.deidadeControl (usado só pelo resumo ao vivo dentro de MESA, igual xpControls) --
-    // adiciona um seletor de divindade direto em cada ficha com dono; ver setHeroDeidade() no
-    // <script>. Real-time nos dois sentidos: escreve em mesa40k/deidade/{uid} (pro jogador aplicar
-    // na hora, ver connectDeidadeListener()) e também ESCUTA esse mesmo nó (pra refletir aqui, sem
-    // reabrir a lista, se outra aba/mestre alterar a mesma ficha).
+    // opts.deidadeControl, igual xpControls acima -- adiciona um seletor de divindade direto em
+    // cada ficha com dono; ver setHeroDeidade() no <script>. Real-time nos dois sentidos: escreve
+    // em mesa40k/deidade/{uid} (pro jogador aplicar na hora, ver connectDeidadeListener()) e também
+    // ESCUTA esse mesmo nó (pra refletir aqui, sem reabrir a lista, se outra aba/mestre alterar a
+    // mesma ficha). Sem chamador hoje, mesmo motivo de xpControls acima.
     const deidadeControl = !!(opts && opts.deidadeControl);
     // opts.npcFicha (usado por "🔒 Fichas do Mestre" e "🧚 Fichas de NPC") -- marca a ficha
     // carregada por "Ver ficha" com um sinalizador sintético (__isNpcFicha) lido em applyState(),
@@ -18175,15 +18347,17 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     'Nenhuma ficha de NPC pública no momento.',
     { npcFicha: true, npcPublicFilter: true }
   );
-  // painel "Fichas dos Jogadores (resumo ao vivo)" dentro da própria Mesa — mesmo card/dados ao
-  // vivo da lista "📜 Fichas de Jogador", só que só de leitura (sem "Ver ficha"/"Apagar") e sem
-  // modal pra fechar (por isso o 3º argumento null), pra dar uma visão rápida de todo mundo sem
-  // precisar abrir outra tela por cima da Mesa.
-  const loadMesaHeroSummary = makeFichasListLoader(
-    FICHAS_PATH, $('mesaHeroSummaryList'), null,
-    'Nenhuma ficha de jogador salva ainda. Peça para alguém usar "SALVAR" primeiro.',
-    { readOnly: true, xpControls: true, deidadeControl: true }
-  );
+  // Fase 4 do "tabuleiro único": o painel "Fichas dos Jogadores (resumo ao vivo)" dentro da própria
+  // Mesa (que morava aqui, com opts.readOnly/xpControls/deidadeControl) foi substituído pela aba
+  // "🧾 Resumos de ficha" do chat (bolhas por peça do TABULEIRO, não mais a lista inteira de fichas
+  // salvas -- ver renderFichaSummaryBubbles()/collectBoardOccupantsForSummary() mais abaixo), e os
+  // botões de distribuir XP/trocar Divindade saíram junto dessa mudança (pedido explícito: "ficam
+  // só na própria ficha") -- grantXpToPlayer()/setHeroDeidade() continuam existindo normalmente,
+  // só que agora só são chamados a partir da própria ficha aberta (ver o xp-stepper/els.deidade
+  // perto de loadedFichaOwnerUid, mais abaixo), nunca mais a partir de um card desta lista. As
+  // opções xpControls/deidadeControl de makeFichasListLoader() continuam existindo (nenhum outro
+  // chamador usa, então nunca mais entram em ação) -- não removidas daqui de propósito, pra não
+  // mexer numa função grande e compartilhada só por causa de uma opção que ficou sem chamador.
 
   $('masterBtn').addEventListener('click', ()=>{
     masterModal.hidden = false;
@@ -19475,6 +19649,13 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         }
       });
     }
+    // Fase 4 do "tabuleiro único": toda vez que o mini-tabuleiro do JOGADOR é redesenhado (peça
+    // colocada/movida/removida, Revelar/Fog mudou, etc.), a aba "🧾 Resumos de ficha" precisa
+    // acompanhar -- mesmo filtro de visibilidade (Revelar+Fog) já aplicado acima pras peças do
+    // tabuleiro em si, ver collectBoardOccupantsForSummary() mais abaixo. Só roda de verdade pro
+    // JOGADOR (esta função sempre retorna cedo pro mestre, ver comentário grande em "const
+    // boardGrid") -- o equivalente do mestre é o wrapper de scheduleBoardTokensPush(), lá em cima.
+    renderFichaSummaryBubbles();
   }
 
   // Cor da seta fixada / dos botões do seletor — pedido explícito: "a seta respeita a cor da borda
@@ -21682,6 +21863,34 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // escolhido deixar aberto nesse navegador antes — daí o valor salvo é exatamente '0').
   setChatMinimized(localStorage.getItem(CHAT_MIN_KEY) !== '0');
 
+  // ---------- Fase 4 do "tabuleiro único": seletor de abas do chat (Chat/Histórico de Rolagens/
+  // Resumos de ficha) ---------- as 3 abas moram sempre montadas no DOM (só uma delas visível por
+  // vez, ver .chat-tab-body[hidden]/.chat-panel-body no <style>) -- trocar de aba nunca recarrega
+  // nada sozinho (o Histórico já é mantido ao vivo desde o login, ver attachRollLogLiveListener()
+  // dentro de loadRollLog(); as bolhas de Resumos de ficha também já se mantêm sozinhas, ver os
+  // vários pontos que chamam renderFichaSummaryBubbles()) -- só troca qual <div> fica visível.
+  // Começa sempre na aba Chat (não fica salvo entre sessões, sem localStorage pra isso).
+  const CHAT_TABS = {
+    chat: { btn: $('chatTabBtnChat'), body: $('chatPanelBody') },
+    rolllog: { btn: $('chatTabBtnRollLog'), body: $('rollLogTabBody') },
+    fichas: { btn: $('chatTabBtnFichas'), body: $('fichaSummaryTabBody') },
+  };
+  function setChatActiveTab(tab){
+    Object.keys(CHAT_TABS).forEach(key=>{
+      const { btn, body } = CHAT_TABS[key];
+      if(!btn || !body) return;
+      const active = key === tab;
+      body.hidden = !active;
+      btn.classList.toggle('mode-active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+  Object.keys(CHAT_TABS).forEach(key=>{
+    const { btn } = CHAT_TABS[key];
+    if(btn) btn.addEventListener('click', ()=> setChatActiveTab(key));
+  });
+  setChatActiveTab('chat');
+
   // botão de limpar o chat (🧹, só o mestre vê — ver .mestre-only) — as mensagens de evento podem
   // acumular imagens (retratos, prints do tabuleiro) e engordar o banco com o tempo; isso dá uma
   // forma fácil de zerar tudo de vez em quando, igual ao "Limpar histórico" das rolagens.
@@ -21720,6 +21929,13 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         disconnectVidaManaListener();
         disconnectVidaManaJogadorListener();
         $('chatPanel').hidden = true;
+        // Fase 4 do "tabuleiro único": Histórico de Rolagens e Resumos de ficha agora ficam ao
+        // vivo desde o login (não mais só enquanto "📂 Gerenciar tabuleiro" estava aberto) -- por
+        // isso precisam de uma limpeza própria aqui no logout também (antes bastava
+        // closeMesaModal(), chamado poucas linhas abaixo, que já cuidava dos dois).
+        detachRollLogLiveListener();
+        if(rollLogList) rollLogList.innerHTML = '';
+        if(fichaSummaryListEl) fichaSummaryListEl.innerHTML = '';
         disconnectLiveBoard();
         $('liveBoardPanel').hidden = true;
         // faixa fixa (rodada nova) some junto -- ela só faz sentido logado (é onde moram
@@ -21837,6 +22053,13 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       // ver o comentário grande dentro de setupBoardZoom() no <script>).
       applyLiveBoardZoom();
       connectLiveBoard();
+      // Fase 4 do "tabuleiro único": Histórico de Rolagens e Resumos de ficha (bolhas) agora moram
+      // na aba de chat, visíveis pros dois papéis o tempo todo -- carrega os dois já aqui, no
+      // login, em vez de só quando o mestre abria "📂 Gerenciar tabuleiro" (ver openMesaModal(),
+      // que parou de mexer nisso). loadRollLog() já liga attachRollLogLiveListener() sozinha no
+      // fim dela (pra manter a lista atualizada ao vivo enquanto a sessão continuar).
+      loadRollLog();
+      renderFichaSummaryBubbles();
       // carrega o Mapa salvo (imagem de fundo + ícones/linhas do mestre) já aqui, pros dois
       // papéis, ANTES mesmo de alguém abrir o modal "🗺️ Mapa" -- ver hydrateMapOnce() mais abaixo
       // (na seção do Mapa) pro motivo completo.
