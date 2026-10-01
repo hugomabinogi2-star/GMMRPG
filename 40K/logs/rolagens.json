@@ -174,5 +174,20 @@
     "habilidade": "Chuva de Flechas",
     "alvo": "Dummy 1",
     "ts": 1790897909238
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 3,
+    "bonus": 3,
+    "rolls": [
+      2
+    ],
+    "resultado": 5,
+    "habilidade": "Chuva de Flechas",
+    "danoTipo": "perfurante",
+    "alvo": "Dummy 1",
+    "ts": 1790897910435
   }
 ]
