@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "J7",
-    "para": "K9",
-    "ts": 1787832111035
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "K9",
     "para": "K10",
     "ts": 1787832114661
@@ -255,5 +248,14 @@
     "resultado": "coroa",
     "verdict": "erro",
     "ts": 1790868740226
+  },
+  {
+    "nome": "DUMMY",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 2,
+    "resultado": 17,
+    "resultLabel": "Erro",
+    "ts": 1790893926844
   }
 ]
