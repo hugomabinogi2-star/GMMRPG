@@ -720,7 +720,7 @@ body{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   text-transform:uppercase;flex:none;
 }
-.live-board-panel-body{display:flex;flex-direction:column;gap:8px;position:relative;}
+.live-board-panel-body{display:flex;flex-direction:column;gap:8px;position:relative;max-height:900px;overflow-y:auto;}
 .live-board-panel.minimized .live-board-panel-body{display:none;}
 /* fundo animado (mesmas partículas/regras do chat, ver .chat-bg-fx/.chat-bg-star acima e
    spawnLiveBoardBgParticle() no <script>) — .live-board-wrap e .live-board-hint precisam de
@@ -4128,68 +4128,14 @@ body{
   position:relative;z-index:1;
 }
 .turn-phase-banner[hidden]{display:none;}
-/* Fase 4 da "dinâmica de turnos" (NOVO): banner "FASE DE AÇÃO — <nome>" (reaproveita a MESMA
-   classe .turn-phase-banner do banner de FASE DE MOVIMENTO da Fase 3 -- mesmo visual, só o
-   texto muda) + baralho de cartas com as ações disponíveis da vez atual (armas/elementos/
-   habilidades utilizáveis no tabuleiro/poções), na mesma faixa embaixo do tabuleiro. Mostrado/
-   escondido por renderTurnActionPanel() (ver currentActionPhaseEntry() no <script>) -- some
-   assim que a ficha rola o dado de ação (a fase de ação acaba, só falta Encerrar Turno). Cartas
-   com o MESMO estilo visual das cartas de Habilidade já existentes na ficha (ver
-   .hab-levelup-card no <style>, acima) -- fundo preto, borda dourada, nome em Cinzel
-   Decorative, ícone da arma/elemento/habilidade, brilho na cor do elemento quando aplicável. */
-.turn-action-deck{
-  display:flex;flex-direction:column;gap:8px;
-  padding:4px 2px 2px;
-  position:relative;z-index:1;
-}
-.turn-action-deck[hidden]{display:none;}
-.action-deck-section{display:flex;flex-direction:column;gap:5px;}
-.action-deck-section-label{
-  font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--gold-text,#c9a24a);font-weight:700;
-}
-.action-deck-section-row{display:flex;flex-wrap:wrap;gap:8px;}
-.action-card{
-  display:flex;align-items:flex-start;gap:8px;
-  border:1px solid var(--gold-text,#c9a24a);border-radius:6px;
-  padding:6px 9px;background:#000;max-width:220px;
-  transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
-  position:relative;
-}
-/* "hover-zoom": a carta sob o mouse cresce e sobe acima das vizinhas, mesmo espírito do zoom
-   já usado nas cartas de Habilidade (ver wireHabCascadeZoom() no <script>) -- aqui mais simples
-   (CSS puro, sem precisar encolher as vizinhas), já que o baralho é uma fileira curta de cartas
-   pequenas, não uma lista rolável comprida. */
-.action-card:hover{transform:scale(1.12);box-shadow:0 0 10px rgba(224,182,86,.5);border-color:#e0b656;z-index:3;}
-.action-card-glow{border-width:2px;border-color:var(--action-card-glow,var(--gold-text,#c9a24a));box-shadow:0 0 6px var(--action-card-glow,transparent);}
-.action-card-glow:hover{box-shadow:0 0 12px var(--action-card-glow,rgba(224,182,86,.5));}
-.action-card-disabled{opacity:.4;filter:grayscale(.6);}
-.action-card-disabled:hover{transform:none;box-shadow:none;border-color:var(--gold-text,#c9a24a);}
-.action-card-icon-wrap{flex:0 0 36px;width:36px;height:36px;}
-.action-card-icon{width:36px;height:36px;border-radius:6px;object-fit:cover;border:1px solid var(--border-brown);background:#111;display:block;}
-.action-card-body{flex:1 1 auto;min-width:0;}
-.action-card-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
-.action-card-nome{font-family:'Cinzel Decorative',serif;font-size:12.5px;color:#f0d9a0;white-space:nowrap;}
-.action-card-meta{font-size:10px;color:var(--ink-faint,#9a8f7d);white-space:nowrap;}
-.action-card-desc{font-size:10.5px;line-height:1.42;color:#d8c9a3;margin-top:3px;white-space:pre-line;max-width:180px;}
-.board-cell.action-card-range{box-shadow:inset 0 0 0 999px rgba(176,74,54,.45);}
-.board-cell.action-card-target-selected{box-shadow:inset 0 0 0 999px rgba(255,215,0,.5),inset 0 0 0 3px #ffd700;}
-.action-card-confirm-bar{
-  display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
-  text-align:center;font-size:12.5px;color:#f0d9a0;
-  padding:6px 10px;margin:2px 0 0;
-  border:1px solid rgba(255,200,80,.35);border-radius:6px;
-  background:rgba(60,40,10,.35);
-  position:relative;z-index:1;
-}
-.action-card-confirm-bar[hidden]{display:none;}
-.action-card-confirm-btn{
-  font-family:inherit;font-size:12px;font-weight:700;letter-spacing:.02em;
-  padding:4px 12px;border-radius:5px;cursor:pointer;
-  border:1px solid var(--gold-text,#c9a24a);background:#1a1200;color:#f0d9a0;
-}
-.action-card-confirm-btn:hover{background:#2a1d00;}
-.action-card-confirm-btn.action-card-voltar-btn{border-color:#8a8a8a;color:#cfcfcf;}
+/* Rodada nova, pedido explícito ("remove as cartas do tabuleiro, não ficou bom" ->
+   "Remover tudo, voltar ao menu antigo"): as Fases 4, 5 e 5b da "dinâmica de turnos" (banner
+   "FASE DE AÇÃO", baralho de cartas, arrastar carta pro tabuleiro, mira em área) saíram inteiras
+   -- removido todo o CSS de .turn-action-deck/.action-card*/.action-card-confirm-bar* que só
+   existia pra elas. Ataque automático volta a ser 100% pelo Menu de Ataque por clique (Fase 2,
+   ver #attackMenuModal no HTML e tryOpenAttackMenu()/performAutoAttack() no <script>), igual já
+   era antes da Fase 4. .turn-phase-banner (compartilhada com o banner "FASE DE MOVIMENTO" da
+   Fase 3, acima) continua intacta, nunca fez parte do que saiu. */
 .board-dice-footer{
   display:flex;align-items:center;justify-content:center;
   gap:56px;
@@ -5436,22 +5382,9 @@ body{
                embaixo do tabuleiro. -->
           <div class="turn-phase-banner" id="turnPhaseBanner" hidden></div>
 
-          <!-- Fase 4 da "dinâmica de turnos" (NOVO, ver .turn-action-deck/.action-card no
-               <style> e renderTurnActionPanel() no <script>): banner da FASE DE AÇÃO + baralho
-               de cartas (armas/elementos/habilidades utilizáveis no tabuleiro/poções) da vez
-               atual, logo abaixo do banner de FASE DE MOVIMENTO -- só um dos dois banners fica
-               visível de cada vez (nunca as duas fases ao mesmo tempo). -->
-          <div class="turn-phase-banner" id="turnActionBanner" hidden></div>
-          <div class="turn-action-deck" id="turnActionDeck" hidden></div>
-          <!-- Fase 5 da "dinâmica de turnos" (NOVO): barra de confirmação do alvo escolhido ao
-               arrastar uma carta de Habilidade de ataque pro tabuleiro (ver .action-card-range/
-               .action-card-target-selected no <style> e beginActionCardTargeting()/
-               handleActionCardDrop()/confirmActionCardAttack() no <script>). -->
-          <div class="action-card-confirm-bar" id="actionCardConfirmBar" hidden>
-            <span id="actionCardConfirmText"></span>
-            <button type="button" class="action-card-confirm-btn" id="actionCardConfirmOkBtn">OK</button>
-            <button type="button" class="action-card-confirm-btn action-card-voltar-btn" id="actionCardConfirmVoltarBtn">◀ VOLTAR</button>
-          </div>
+          <!-- Rodada nova, pedido explícito: o banner "FASE DE AÇÃO" + baralho de cartas (Fase 4)
+               e a barra de confirmação de alvo arrastado (Fase 5) saíram inteiros -- ver
+               comentário grande em renderTurnActionPanel() no <script>. -->
 
           <!-- Fase 3 do projeto "tabuleiro único": as zonas de pouso dos dados (Atributo/Dano)
                saíram de cima do próprio tabuleiro (onde flutuavam nas laterais, sobrepondo casas)
@@ -11429,511 +11362,23 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     el.textContent = `FASE DE MOVIMENTO — ${entry.nome}`;
   }
 
-  // Fase 4 da "dinâmica de turnos" (NOVO): decide se a vez atual já está na FASE DE AÇÃO --
-  // começa exatamente onde a Fase de Movimento termina (currentMovementPhaseEntry() vira null) e
-  // dura até a ficha rolar o dado de ação (turnState.rolled) -- a partir daí só falta um clique
-  // manual em Encerrar Turno (ver markTurnRolled()), sem mais nenhuma decisão de ação pra tomar.
-  // Mesma exclusão de peça avulsa (isFreeform) da Fase de Movimento -- nunca tem fase de ação.
-  function currentActionPhaseEntry(){
-    if(!turnState.active || !isBoardRevealedForFicha()) return null;
-    const entry = currentTurnEntry();
-    if(!entry) return null;
-    const isFichaDriven = entry.kind === 'hero' || entry.kind === 'inimigo_ficha' || entry.kind === 'aliado_ficha';
-    if(!isFichaDriven) return null;
-    if(turnState.rolled) return null; // já agiu -- a fase de ação também já encerrou
-    if(currentMovementPhaseEntry()) return null; // ainda na fase de movimento
-    return entry;
-  }
-  function renderTurnActionBanner(){
-    const el = $('turnActionBanner');
-    if(!el) return;
-    const entry = currentActionPhaseEntry();
-    if(!entry){ el.hidden = true; el.textContent = ''; return; }
-    el.hidden = false;
-    el.textContent = `FASE DE AÇÃO — ${entry.nome}`;
-  }
-
-  // Armas/Elementos possuídos pela ficha de "data" (sempre a partir do objeto resolvido por
-  // fichaDataForAttackerEntry() -- NUNCA de selectedArma*/els.deidade, que só valem pra ficha
-  // aberta neste navegador -- mesmo cuidado já tomado com bonusDes/bonusMov nas Fases 1b/2).
-  // Arma(s): a equipada (armaAtual) + a "guardada" (arma, só relevante se nunca trocou) + as
-  // extras do talento SEGUNDA ARMA, sem duplicar. Elemento(s): o principal (deidade) + o 2º do
-  // talento DUPLO ELEMENTO, descartando '-'/'VAZIO' ("sem elemento", não é uma carta de verdade).
-  function weaponsOwnedFromData(data){
-    if(!data) return [];
-    const list = [data.armaAtual, data.arma].concat(data.armasExtra || []).filter(Boolean);
-    return [...new Set(list)];
-  }
-  function elementsOwnedFromData(data){
-    if(!data) return [];
-    const list = [data.deidade, data.elemento2].filter(Boolean).filter(k => k !== '-' && k !== 'VAZIO');
-    return [...new Set(list)];
-  }
-  // Habilidades UTILIZÁVEIS NO TABULEIRO da vez atual -- mesma fonte de attackAbilitiesForFichaData()
-  // (arma equipada + elemento(s), nível > 0 investido), só SEM o filtro de isAttackHabilidade():
-  // aqui a ideia é mostrar toda Habilidade em que a ficha já investiu nível (inclusive Erguer
-  // Escudo/buffs elementais, que attackAbilitiesForFichaData() exclui de propósito por não serem
-  // dano direto a um alvo) -- a Fase 4 é só EXIBIÇÃO, a decisão de que ação cabe ou não no
-  // arrasto-pro-tabuleiro fica pra Fase 5.
-  function boardUsableHabilidadesForFichaData(data){
-    if(!data) return [];
-    const armaAbils = (WEAPON_ABILITIES[data.armaAtual] || [])
-      .map(hab => ({ ...hab, __nivel: habNivelFromData(data, hab.id) }))
-      .filter(hab => hab.__nivel > 0);
-    const elem1Key = data.deidade || '';
-    const elem1Abils = (ELEMENT_ABILITIES[elem1Key] || [])
-      .map(hab => ({ ...hab, __nivel: habNivelFromData(data, hab.id), __elementoKey: elem1Key }))
-      .filter(hab => hab.__nivel > 0);
-    const elem2Key = data.elemento2 || '';
-    const elem2Abils = elem2Key ? (ELEMENT_ABILITIES[elem2Key] || [])
-      .map(hab => ({ ...hab, __nivel: habNivelFromData(data, hab.id), __elementoKey: elem2Key }))
-      .filter(hab => hab.__nivel > 0) : [];
-    return armaAbils.concat(elem1Abils, elem2Abils);
-  }
-  // Quantidade de uma Poção travada do Inventário ("POÇÃO DE VIDA"/"POÇÃO DE MANA") a partir de
-  // "data" -- diferente de getLockedItemQty() (que só lê o DOM da ficha aberta), data.inventory
-  // já vem no mesmo formato salvo/publicado (ver collectState()/{nome,qtd,desc} por linha), então
-  // funciona pra QUALQUER vez (ficha aberta, herói do mestre, inimigo_ficha/aliado_ficha) sem
-  // depender de nenhum DOM -- só a AÇÃO de beber a poção (usePotion(), que SOBRESCREVE o DOM da
-  // ficha aberta) continua exclusiva de quem está com a própria ficha aberta (fica pra Fase 5).
-  function potionQtyFromData(data, nome){
-    if(!data || !Array.isArray(data.inventory)) return 0;
-    const row = data.inventory.find(r => ((r && r.nome) || '').trim().toUpperCase() === nome);
-    return row ? (parseFloat(row.qtd) || 0) : 0;
-  }
-  // Monta uma carta do baralho (mesmo visual das cartas de Habilidade já existentes na ficha --
-  // ver .hab-levelup-card no <style> -- fundo preto, borda dourada, ícone + nome + meta +
-  // descrição opcional, com brilho na cor do elemento quando informado). opts: {iconSrc, nome,
-  // meta, desc, glowColor, disabled}.
-  function buildActionCardEl(opts){
-    const card = document.createElement('div');
-    card.className = 'action-card';
-    if(opts.disabled) card.classList.add('action-card-disabled');
-    // Fase 5 (NOVO): opts.drag = {entry, data, hab} -- só as cartas de Habilidade de ATAQUE (ver
-    // isAttackHabilidade()) ficam arrastáveis; o resto do baralho (Armas/Elementos/Habilidades
-    // de buff/Poções) continua só informativo por ora.
-    if(opts.drag){
-      card.draggable = true;
-      card.addEventListener('dragstart', (e)=>{
-        e.dataTransfer.setData('text/plain', JSON.stringify({ source:'actionCard' }));
-        beginActionCardTargeting(opts.drag.entry, opts.drag.data, opts.drag.hab);
-      });
-      card.addEventListener('dragend', clearActionCardRangeHighlight);
-    }
-    if(opts.glowColor){ card.style.setProperty('--action-card-glow', opts.glowColor); card.classList.add('action-card-glow'); }
-    if(opts.iconSrc){
-      const iconWrap = document.createElement('div');
-      iconWrap.className = 'action-card-icon-wrap';
-      const img = document.createElement('img');
-      img.className = 'action-card-icon';
-      img.src = opts.iconSrc;
-      iconWrap.appendChild(img);
-      card.appendChild(iconWrap);
-    }
-    const body = document.createElement('div');
-    body.className = 'action-card-body';
-    const head = document.createElement('div');
-    head.className = 'action-card-head';
-    const nomeEl = document.createElement('span');
-    nomeEl.className = 'action-card-nome';
-    nomeEl.textContent = opts.nome || '';
-    head.appendChild(nomeEl);
-    if(opts.meta){
-      const metaEl = document.createElement('span');
-      metaEl.className = 'action-card-meta';
-      metaEl.textContent = opts.meta;
-      head.appendChild(metaEl);
-    }
-    body.appendChild(head);
-    if(opts.desc){
-      const descEl = document.createElement('div');
-      descEl.className = 'action-card-desc';
-      descEl.textContent = opts.desc;
-      body.appendChild(descEl);
-    }
-    card.appendChild(body);
-    return card;
-  }
-  // Uma seção do baralho ("Armas"/"Elementos"/"Habilidades"/"Poções"), com um rótulo + a fileira
-  // de cartas -- null quando a lista de cartas vem vazia (a seção inteira some, em vez de ficar
-  // com o rótulo sozinho sem nenhuma carta embaixo).
-  function buildActionDeckSection(titulo, cardEls){
-    if(!cardEls.length) return null;
-    const section = document.createElement('div');
-    section.className = 'action-deck-section';
-    const label = document.createElement('div');
-    label.className = 'action-deck-section-label';
-    label.textContent = titulo;
-    section.appendChild(label);
-    const row = document.createElement('div');
-    row.className = 'action-deck-section-row';
-    cardEls.forEach(el => row.appendChild(el));
-    section.appendChild(row);
-    return section;
-  }
-  // Monta o baralho inteiro da vez atual, na ordem pedida (pedido explícito): Armas -> Elementos
-  // -> Habilidades utilizáveis no tabuleiro -> Poção de Vida -> Poção de Mana. Some por completo
-  // fora da fase de ação (ver currentActionPhaseEntry()) ou se não há dado nenhum pra resolver
-  // (ex.: inimigo_ficha/aliado_ficha sem heroId -- mesma trava de fichaDataForAttackerEntry()).
-  function renderActionCardDeck(){
-    const el = $('turnActionDeck');
-    if(!el) return;
-    const entry = currentActionPhaseEntry();
-    if(!entry){ el.hidden = true; el.innerHTML = ''; return; }
-    const data = fichaDataForAttackerEntry(entry);
-    if(!data){ el.hidden = true; el.innerHTML = ''; return; }
-    el.innerHTML = '';
-    el.hidden = false;
-    const weaponSection = buildActionDeckSection('Armas', weaponsOwnedFromData(data).map(key => buildActionCardEl({
-      iconSrc: WEAPON_ICON_IMG[key] || null,
-      nome: WEAPON_LABEL[key] || key,
-      meta: key === data.armaAtual ? 'equipada' : '',
-    })));
-    if(weaponSection) el.appendChild(weaponSection);
-    const elementSection = buildActionDeckSection('Elementos', elementsOwnedFromData(data).map(key => buildActionCardEl({
-      iconSrc: ELEMENT_ICON_IMG[key] || null,
-      nome: key,
-      glowColor: DEITY_EYE_COLOR[key] || null,
-    })));
-    if(elementSection) el.appendChild(elementSection);
-    const habSection = buildActionDeckSection('Habilidades', boardUsableHabilidadesForFichaData(data).map(hab => buildActionCardEl({
-      iconSrc: hab.imagem || (hab.__elementoKey ? ELEMENT_ICON_IMG[hab.__elementoKey] : WEAPON_ICON_IMG[data.armaAtual]) || null,
-      nome: hab.nome,
-      meta: 'Nv. ' + hab.__nivel,
-      desc: hab.desc || '',
-      glowColor: hab.__elementoKey ? (DEITY_EYE_COLOR[hab.__elementoKey] || null) : null,
-      // Fase 5 (NOVO): só Habilidade de ATAQUE vira carta arrastável -- Erguer Escudo/buffs
-      // elementais/cura continuam só informativos (mesmo filtro de isAttackHabilidade() já usado
-      // pelo menu de ataque por clique da Fase 2).
-      drag: isAttackHabilidade(hab) ? { entry, data, hab } : null,
-    })));
-    if(habSection) el.appendChild(habSection);
-    const vidaQty = potionQtyFromData(data, 'POÇÃO DE VIDA');
-    const potionVidaSection = buildActionDeckSection('Poção de Vida', [buildActionCardEl({
-      nome: 'Poção de Vida', meta: 'x' + vidaQty, disabled: vidaQty <= 0,
-    })]);
-    if(potionVidaSection) el.appendChild(potionVidaSection);
-    const manaQty = potionQtyFromData(data, 'POÇÃO DE MANA');
-    const potionManaSection = buildActionDeckSection('Poção de Mana', [buildActionCardEl({
-      nome: 'Poção de Mana', meta: 'x' + manaQty, disabled: manaQty <= 0,
-    })]);
-    if(potionManaSection) el.appendChild(potionManaSection);
-  }
-  // Ponto único chamado de todo lugar que já atualizava o banner de FASE DE MOVIMENTO (Fase 3) --
-  // mesmos 4 gatilhos (renderTurnBars()/chooseBoardFacing()/renderLiveBoardMini()/
-  // mergeRemoteHeroTokensIntoLocalBoard()), e mais dois novos (trocarArmaPara()/usePotion()) pra
-  // cobrir os casos em que a arma troca OU uma poção é usada SEM encerrar o turno (as duas
-  // exceções que não passam por advanceTurn()/renderTurnBars() sozinhas) -- sem isso o baralho
-  // ficaria desatualizado (arma errada, poção com a quantidade antiga) até o próximo evento de
-  // turno qualquer.
-  function renderTurnActionPanel(){
-    renderTurnActionBanner();
-    renderActionCardDeck();
-  }
-
-  // ---------- Fase 5 da "dinâmica de turnos" (NOVO): arrastar carta de Habilidade de ataque
-  // (ver renderActionCardDeck()/isAttackHabilidade()) pro tabuleiro -- alcance em vermelho,
-  // clicar/soltar no alvo dentro do alcance (fica dourado), confirmar com OK (rola
-  // Atributo -> rola Dano -> aplica, MESMO pipeline da Fase 2 da automação de ataques --
-  // computeAtributoRollFromData()/computeDanoRollFromData()/applyAutoDamageToTarget(), só muda
-  // COMO o alvo foi escolhido) ou cancelar com VOLTAR (nada é aplicado, volta pro baralho).
-  // Pedido explícito confirmado pra esta rodada: só alvo ÚNICO por ora -- igual já era no menu de
-  // ataque por clique (ver comentário grande em isAttackHabilidade()/ELEMENT_NON_ATTACK_HAB_IDS
-  // acima: "o clique no tabuleiro sempre aplica o dano só na peça clicada, nunca em várias de uma
-  // vez, pedido explícito: manter o automático simples, sem UI de seleção de área") -- Habilidade
-  // descrita como "área" continua sendo tratada como alvo único também por aqui; automatizar dano
-  // em área inteira fica pra outra rodada, se for pedido.
-  let actionCardTargetState = null; // {entry, data, hab, casterTok, range|areaInfo, targets} -- null fora do "modo de alvo" (targets é SEMPRE array, mesmo pra alvo único)
-
-  // Nenhuma Habilidade carrega um campo de alcance estruturado hoje (só descrição em texto livre,
-  // ver WEAPON_ABILITIES/ELEMENT_ABILITIES) -- esta função só LÊ o texto da descrição procurando a
-  // distância mencionada ("a X casas de distância"/"alcance de X casas"/"até X casas à frente"/
-  // "área de X casas ao redor", com X em dígito OU por extenso -- "uma"/"duas"/etc.), em vez de
-  // duplicar o número num campo novo em cada uma das ~30 Habilidades já existentes. Sem nenhum
-  // número reconhecível no texto: Habilidade Elemental vira alcance 4 (a maioria é "dispara uma
-  // seta"/"um raio", trata como ataque à distância padrão, já que a descrição delas nunca
-  // menciona uma distância em casas); Habilidade de Arma vira alcance 1 (a maioria já É corpo-a-
-  // corpo "a uma casa de distância" mesmo).
-  function inferHabilidadeRange(hab){
-    const desc = (hab && hab.desc) || '';
-    const numWord = { 'uma':1, 'um':1, 'duas':2, 'dois':2, 'tres':3, 'três':3, 'quatro':4, 'cinco':5, 'seis':6, 'sete':7, 'oito':8, 'nove':9, 'dez':10 };
-    const toNum = (s)=>{ if(/^\d+$/.test(s)) return parseInt(s, 10); return numWord[s.toLowerCase()] || null; };
-    let m = desc.match(/alcance de (\d+|[a-zà-ú]+) casas?/i)
-      || desc.match(/a até (\d+|[a-zà-ú]+) casas? de distância/i)
-      || desc.match(/até (\d+|[a-zà-ú]+) casas?(?: de distância)? à frente/i);
-    if(m){ const n = toNum(m[1]); if(n) return n; }
-    m = desc.match(/a (\d+|uma) casas? de distância/i);
-    if(m){ const n = toNum(m[1]); if(n) return n; }
-    m = desc.match(/área de (\d+|[a-zà-ú]+) casas? ao redor/i);
-    if(m){ const n = toNum(m[1]); if(n) return n; }
-    return hab && hab.elemental ? 4 : 1;
-  }
-
-  function clearActionCardRangeHighlight(){
-    if(!boardGrid) return;
-    boardGrid.querySelectorAll('.action-card-range').forEach(el=> el.classList.remove('action-card-range'));
-  }
-  function clearActionCardTargetHighlight(){
-    if(!boardGrid) return;
-    boardGrid.querySelectorAll('.action-card-target-selected').forEach(el=> el.classList.remove('action-card-target-selected'));
-  }
-  function hideActionCardConfirmBar(){
-    const bar = $('actionCardConfirmBar');
-    if(bar) bar.hidden = true;
-  }
-  function cancelActionCardTargeting(){
-    clearActionCardRangeHighlight();
-    clearActionCardTargetHighlight();
-    hideActionCardConfirmBar();
-    actionCardTargetState = null;
-  }
-
-  // ---------- Fase 5b (NOVO): automação de dano em ÁREA, por pedido explícito (confirmado com
-  // AskUserQuestion) -- antes disso, toda Habilidade descrita como "área" acertava só a peça
-  // solta/clicada, por uma decisão explícita de uma rodada anterior ("manter o automático simples,
-  // sem UI de seleção de área", ver comentário grande em isAttackHabilidade()). Esta tabela marca
-  // quais Habilidades afetam MAIS de uma casa e com que forma -- nenhuma Habilidade tem esse dado
-  // estruturado hoje (só prosa, igual o alcance em inferHabilidadeRange()), então é um mapeamento
-  // manual, revisado uma a uma contra a descrição de cada Habilidade; o que não está aqui continua
-  // tratado como alvo único (comportamento de sempre). Formas: 'column3' (a casa à frente + uma de
-  // cada lado dela, perpendicular à direção que a ficha está olhando -- Corte/Golpe Pesado
-  // Lateral); 'line' (N casas em linha reta à frente, a partir da própria ficha); 'cone' (leque que
-  // alarga 1 casa de cada lado por casa de distância, à frente); 'ring' (as 8 casas adjacentes à
-  // ficha); 'radius' (toda casa a até N de distância de um centro -- centro é a própria ficha, OU
-  // o ponto onde a carta foi solta, se centerOnDrop:true); 'square' (quadrado NxN centrado no ponto
-  // solto); 'allBoard' (todo mundo visível no tabuleiro). 'line'/'cone'/'column3'/'ring' usam a
-  // DIREÇÃO que a ficha está olhando (tok.facing, já confirmado na Fase de Movimento -- Fase 3) --
-  // nunca dependem de onde a carta é solta, só 'radius'/'square' com centerOnDrop dependem disso.
-  // O próprio atacante NUNCA entra na lista de alvos afetados (ver resolveAoeTargets() abaixo),
-  // mesmo quando a área cobre a própria casa dele (ex.: 'radius' sem centerOnDrop).
-  const HAB_AREA_INFO = {
-    corte_pesado_lateral: { shape:'column3' },
-    golpe_pesado_lateral: { shape:'column3' },
-    estocada_pesada: { shape:'line', length:2 },
-    estocada_pesada_lanca: { shape:'line', length:2 },
-    estocada_pesada_lancarma: { shape:'line', length:2 },
-    golpe_pesado_circular: { shape:'ring' },
-    // "dois alvos a até 1 casa um do outro" aproximado como: toda peça a até 1 casa do ponto
-    // solto (pode acertar mais de 2 se houver mais peças coladas ali -- generalização pro mesmo
-    // espírito da Habilidade, documentada no changelog).
-    disparo_duplo: { shape:'radius', radius:1, centerOnDrop:true },
-    chuva_de_flechas: { shape:'square', size:3, centerOnDrop:true },
-    disparo_besta_leve_concentrado: { shape:'line', length:6 },
-    disparo_besta_pesada_real: { shape:'line', length:3 },
-    disparo_lancarma: { shape:'cone', length:3 },
-    dissonancia: { shape:'radius', radius:3 },
-    tremor: { shape:'allBoard' },
-    // bola_fogo/nova_gelo: a descrição menciona "uma área"/"ao redor" sem informar tamanho nenhum
-    // -- usa um raio padrão editorial (2), já que nenhum número existe pra extrair do texto.
-    bola_fogo: { shape:'radius', radius:2, centerOnDrop:true },
-    nova_gelo: { shape:'radius', radius:2 },
-    // tempestade_fogo/raio_agua/lufada_vento/disparar_agulhas: "uma direção"/"uma linha"/"um
-    // leque", também sem tamanho informado -- usa o mesmo 4 do alcance-padrão elemental
-    // (inferHabilidadeRange()) como profundidade editorial.
-    tempestade_fogo: { shape:'line', length:4 },
-    raio_agua: { shape:'line', length:4 },
-    lufada_vento: { shape:'line', length:4 },
-    disparar_agulhas: { shape:'cone', length:4 },
-  };
-  // Passo unitário (linha,coluna) de cada uma das 8 direções de FACING_ORDER/tok.facing (ver
-  // FACING_VECTORS mais abaixo no <script> -- aquele usa vetor normalizado, fracionário nas
-  // diagonais; este aqui precisa ser inteiro pra andar casa a casa no tabuleiro).
-  const AOE_FACING_STEP = { N:[-1,0], NE:[-1,1], E:[0,1], SE:[1,1], S:[1,0], SW:[1,-1], W:[0,-1], NW:[-1,-1] };
-  // Lista de casas [r,c] cobertas pela forma (sem filtrar ocupante/bloco/limite do tabuleiro --
-  // isso é feito em resolveAoeTargets()). anchorR/anchorC/facing vêm de casterTok; dropR/dropC só
-  // importam pras formas com centerOnDrop.
-  function areaCellsForHabilidade(info, casterTok, dropR, dropC){
-    const dir = (casterTok && casterTok.facing) || 'S';
-    const step = AOE_FACING_STEP[dir] || AOE_FACING_STEP.S;
-    const order = ['N','NE','E','SE','S','SW','W','NW'];
-    const idx = order.indexOf(dir);
-    const perp = AOE_FACING_STEP[order[(idx + 2 + 8) % 8]] || AOE_FACING_STEP.E;
-    const anchorR = casterTok.anchorR, anchorC = casterTok.anchorC;
-    const cells = [];
-    if(info.shape === 'column3'){
-      const fr = anchorR + step[0], fc = anchorC + step[1];
-      cells.push([fr, fc], [fr + perp[0], fc + perp[1]], [fr - perp[0], fc - perp[1]]);
-    } else if(info.shape === 'line'){
-      for(let d=1; d<=info.length; d++) cells.push([anchorR + step[0]*d, anchorC + step[1]*d]);
-    } else if(info.shape === 'cone'){
-      for(let d=1; d<=info.length; d++){
-        for(let off=-(d-1); off<=d-1; off++){
-          cells.push([anchorR + step[0]*d + perp[0]*off, anchorC + step[1]*d + perp[1]*off]);
-        }
-      }
-    } else if(info.shape === 'ring'){
-      for(let dr=-1; dr<=1; dr++) for(let dc=-1; dc<=1; dc++){
-        if(dr === 0 && dc === 0) continue;
-        cells.push([anchorR+dr, anchorC+dc]);
-      }
-    } else if(info.shape === 'radius'){
-      const cr = info.centerOnDrop ? dropR : anchorR;
-      const cc = info.centerOnDrop ? dropC : anchorC;
-      for(let dr=-info.radius; dr<=info.radius; dr++) for(let dc=-info.radius; dc<=info.radius; dc++) cells.push([cr+dr, cc+dc]);
-    } else if(info.shape === 'square'){
-      const half = Math.floor(info.size / 2);
-      for(let dr=-half; dr<=half; dr++) for(let dc=-half; dc<=half; dc++) cells.push([dropR+dr, dropC+dc]);
-    }
-    return cells;
-  }
-  // Resolve a forma (ou, pra 'allBoard', todo mundo no tabuleiro) em peças-alvo de verdade --
-  // sempre devolve {cells, targets}, nunca repete a mesma peça duas vezes (uma peça 1x1 só ocupa
-  // 1 casa, mas não custa nada garantir), nunca inclui o próprio atacante nem bloco/obstáculo.
-  function resolveAoeTargets(areaInfo, casterTok, dropR, dropC){
-    let cells;
-    if(areaInfo.shape === 'allBoard'){
-      cells = [];
-      const seenCell = new Set();
-      Object.keys(boardTokens).forEach(k=>{
-        const t = boardTokens[k];
-        if(!t || t.id === casterTok.id || isBlockKind(t.kind)) return;
-        if(t.anchorR == null || t.anchorC == null) return;
-        const ck = t.anchorR + '_' + t.anchorC;
-        if(seenCell.has(ck)) return;
-        seenCell.add(ck);
-        cells.push([t.anchorR, t.anchorC]);
-      });
-    } else {
-      cells = areaCellsForHabilidade(areaInfo, casterTok, dropR, dropC);
-    }
-    const seenId = new Set();
-    const targets = [];
-    cells.forEach(([r,c])=>{
-      const occupant = boardTokens[boardKey(r, c)];
-      if(!occupant || seenId.has(occupant.id) || occupant.id === casterTok.id || isBlockKind(occupant.kind)) return;
-      seenId.add(occupant.id);
-      targets.push(occupant);
-    });
-    return { cells, targets };
-  }
-  function highlightAoeCellsGold(cells){
-    cells.forEach(([r,c])=>{ const el = getCellEl(r,c); if(el) el.classList.add('action-card-target-selected'); });
-  }
-
-  // Começa o "modo de alvo" (dragstart de uma carta de Habilidade de ataque, ver
-  // buildActionCardEl()/renderActionCardDeck()): acha a peça da vez de verdade
-  // (findTurnEntryToken(), mesma função já usada pela Fase 3). Habilidade de ÁREA cuja forma NÃO
-  // depende de onde a carta é solta (ver HAB_AREA_INFO acima -- tudo, exceto
-  // disparo_duplo/chuva_de_flechas/bola_fogo, que usam centerOnDrop): a área inteira já é
-  // conhecida agora mesmo (fixa, a partir da posição/direção do atacante) -- pinta ela toda em
-  // vermelho de uma vez (.action-card-range), guardada em state.fixed pra handleActionCardDrop()
-  // só precisar confirmar que soltou em cima de alguma casa já pintada. Habilidade de alvo único
-  // (comportamento de sempre) OU de área centrada no ponto solto: pinta o alcance normal em
-  // vermelho (distância "de Chebyshev", sem checar obstáculo/linha de visão, mesmo espírito de
-  // sempre) -- a área de verdade só se define depois, no solto (ver handleActionCardDrop()).
-  function beginActionCardTargeting(entry, data, hab){
-    cancelActionCardTargeting();
-    const casterTok = findTurnEntryToken(entry);
-    if(!casterTok || casterTok.anchorR == null || casterTok.anchorC == null) return;
-    const areaInfo = HAB_AREA_INFO[hab.id] || null;
-    if(areaInfo && !areaInfo.centerOnDrop){
-      const fixed = resolveAoeTargets(areaInfo, casterTok, null, null);
-      actionCardTargetState = { entry, data, hab, casterTok, areaInfo, fixed };
-      if(!boardGrid) return;
-      fixed.cells.forEach(([r,c])=>{ const cellEl = getCellEl(r,c); if(cellEl) cellEl.classList.add('action-card-range'); });
-      return;
-    }
-    const range = inferHabilidadeRange(hab);
-    actionCardTargetState = { entry, data, hab, casterTok, range, areaInfo };
-    if(!boardGrid) return;
-    for(let r=0; r<BOARD_ROWS; r++){
-      for(let c=0; c<BOARD_COLS; c++){
-        const dist = Math.max(Math.abs(r - casterTok.anchorR), Math.abs(c - casterTok.anchorC));
-        if(dist > 0 && dist <= range){
-          const cellEl = getCellEl(r, c);
-          if(cellEl) cellEl.classList.add('action-card-range');
-        }
-      }
-    }
-  }
-
-  // Solta a carta numa casa (handleBoardDrop() -- ver novo branch payload.source==='actionCard'
-  // mais acima): só aceita como alvo uma casa DENTRO do alcance pintado (ver
-  // beginActionCardTargeting()) E ocupada por uma peça de personagem de verdade (nunca o próprio
-  // atacante, nunca um bloco/obstáculo) -- fora disso cancela a tentativa sozinha, sem nenhum
-  // aviso (mesmo espírito de canPlace() recusar um drop inválido sem alarme). Alvo válido: pinta
-  // a casa dourada (.action-card-target-selected) e abre a barrinha de confirmação (ver
-  // showActionCardConfirmBar()/confirmActionCardAttack()/cancelActionCardTargeting()).
-  function handleActionCardDrop(r, c){
-    const state = actionCardTargetState;
-    clearActionCardRangeHighlight();
-    if(!state) return;
-    const { casterTok, areaInfo } = state;
-
-    if(areaInfo && !areaInfo.centerOnDrop){
-      // Área fixa (ver beginActionCardTargeting()): só falta confirmar que soltou dentro dela.
-      const dentro = state.fixed.cells.some(([cr, cc]) => cr === r && cc === c);
-      if(!dentro || !state.fixed.targets.length){ actionCardTargetState = null; return; }
-      state.targets = state.fixed.targets;
-      highlightAoeCellsGold(state.fixed.cells);
-      showActionCardConfirmBar(state);
-      return;
-    }
-
-    const dist = Math.max(Math.abs(r - casterTok.anchorR), Math.abs(c - casterTok.anchorC));
-    if(dist <= 0 || dist > state.range){ actionCardTargetState = null; return; }
-
-    if(areaInfo && areaInfo.centerOnDrop){
-      // Área centrada no ponto solto (disparo_duplo/chuva_de_flechas/bola_fogo): a casa solta não
-      // precisa estar ocupada -- a área pode cobrir peças vizinhas mesmo que o centro esteja vazio.
-      const resolved = resolveAoeTargets(areaInfo, casterTok, r, c);
-      if(!resolved.targets.length){ actionCardTargetState = null; return; }
-      state.targets = resolved.targets;
-      highlightAoeCellsGold(resolved.cells);
-      showActionCardConfirmBar(state);
-      return;
-    }
-
-    // Alvo único (comportamento de sempre): exige uma peça de verdade na casa solta.
-    const occupant = boardTokens[boardKey(r, c)];
-    if(!occupant || occupant.id === casterTok.id || isBlockKind(occupant.kind)){ actionCardTargetState = null; return; }
-    state.targets = [occupant];
-    const cellEl = getCellEl(r, c);
-    if(cellEl) cellEl.classList.add('action-card-target-selected');
-    showActionCardConfirmBar(state);
-  }
-
-  function showActionCardConfirmBar(state){
-    const bar = $('actionCardConfirmBar');
-    const txt = $('actionCardConfirmText');
-    if(!bar || !txt) return;
-    const nomes = state.targets.map(t => tokenTooltipText(t) || t.name || '(alvo)');
-    const alvoTxt = nomes.length > 1 ? (nomes.length + ' alvos (' + nomes.join(', ') + ')') : nomes[0];
-    txt.textContent = state.hab.nome + ' → ' + alvoTxt;
-    bar.hidden = false;
-  }
-
-  // Confirma (botão OK, ver HTML): MESMÍSSIMO pipeline de rolagem/dano já usado pelo menu de
-  // ataque por clique da Fase 2 (computeAtributoRollFromData() -> log -> ACERTO? ->
-  // computeDanoRollFromData() -> log -> applyAutoDamageToTarget(), ver performAutoAttack() mais
-  // abaixo) -- só muda COMO o alvo foi escolhido (arrastar a carta + soltar em cima dele, em vez
-  // de clicar direto na peça), o resto é idêntico de propósito, inclusive o turno continuar
-  // aberto depois (precisa de "Encerrar Turno" manual, exatamente como já era com o menu de
-  // ataque por clique).
-  function confirmActionCardAttack(){
-    const state = actionCardTargetState;
-    cancelActionCardTargeting();
-    if(!state || !state.targets || !state.targets.length) return;
-    const { data, hab, targets, entry } = state;
-    const nomeAtacante = (data && data.nome) || entry.nome || '(sem nome)';
-    const nomesAlvo = targets.map(t => tokenTooltipText(t) || t.name || '(alvo)');
-    const alvoLogTxt = nomesAlvo.length > 1 ? nomesAlvo.join(', ') : nomesAlvo[0];
-    const atributoRes = computeAtributoRollFromData(data, hab);
-    let verdictTxt;
-    if(atributoRes.roll === 20) verdictTxt = 'Acerto Garantido';
-    else if(atributoRes.roll === 1) verdictTxt = 'Erro Crítico';
-    else verdictTxt = atributoRes.verdict === 'acerto' ? 'Acerto' : 'Erro';
-    pushRollLog({ nome: nomeAtacante, tipo:'atributo', statKey: habAttrCode(hab.attr), statValor: atributoRes.statVal, resultado: atributoRes.roll, resultLabel: verdictTxt, habilidade: hab.nome, alvo: alvoLogTxt, ts: Date.now() });
-    if(atributoRes.verdict !== 'acerto') return;
-    const danoRes = computeDanoRollFromData(data, hab, hab.__nivel);
-    pushRollLog({ nome: nomeAtacante, tipo:'dano', qtd: danoRes.qtd, maxVal: danoRes.maxVal, bonus: danoRes.bonus, rolls: danoRes.rolls, resultado: danoRes.total, habilidade: hab.nome, danoTipo: hab.tipo || null, alvo: alvoLogTxt, ts: Date.now() });
-    targets.forEach(targetTok => applyAutoDamageToTarget(targetTok, danoRes.total, hab));
-  }
-
-  const actionCardConfirmOkBtn = $('actionCardConfirmOkBtn');
-  if(actionCardConfirmOkBtn) actionCardConfirmOkBtn.addEventListener('click', confirmActionCardAttack);
-  const actionCardConfirmVoltarBtn = $('actionCardConfirmVoltarBtn');
-  if(actionCardConfirmVoltarBtn) actionCardConfirmVoltarBtn.addEventListener('click', cancelActionCardTargeting);
+  // Rodada nova, pedido explícito ("remove as cartas do tabuleiro, não ficou bom" ->
+  // "Remover tudo, voltar ao menu antigo"): as Fases 4, 5 e 5b da "dinâmica de turnos" (banner
+  // "FASE DE AÇÃO", baralho de cartas armas/elementos/habilidades/poções, arrastar carta de
+  // Habilidade de ataque pro tabuleiro com mira de alcance/área) saíram inteiras -- removidas
+  // currentActionPhaseEntry()/renderTurnActionBanner()/weaponsOwnedFromData()/
+  // elementsOwnedFromData()/boardUsableHabilidadesForFichaData()/potionQtyFromData()/
+  // buildActionCardEl()/buildActionDeckSection()/renderActionCardDeck() (Fase 4) e
+  // actionCardTargetState/inferHabilidadeRange()/beginActionCardTargeting()/
+  // handleActionCardDrop()/confirmActionCardAttack()/HAB_AREA_INFO/resolveAoeTargets() (Fase 5/
+  // 5b), junto com o CSS/HTML que só existiam pra elas (ver <style>/HTML). Ataque automático volta
+  // a ser 100% pelo Menu de Ataque por clique (Fase 2, ver #attackMenuModal no HTML e
+  // tryOpenAttackMenu()/performAutoAttack() mais abaixo), exatamente como já era antes da Fase 4.
+  // Esta função continua existindo, agora como no-op, só pra não precisar tocar nos 6 lugares que
+  // já a chamavam (renderTurnBars()/chooseBoardFacing()/trocarArmaPara()/usePotion()/
+  // renderLiveBoardMini()/mergeRemoteHeroTokensIntoLocalBoard()) -- cada chamada continua
+  // inofensiva, só não faz mais nada.
+  function renderTurnActionPanel(){}
 
   function turnStatusText(){
     const entry = currentTurnEntry();
@@ -17548,14 +16993,6 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     try{ payload = JSON.parse(e.dataTransfer.getData('text/plain')); }catch(err){ return; }
     if(!payload) return;
 
-    // Fase 5 da "dinâmica de turnos" (NOVO): carta de Habilidade de ataque arrastada do baralho
-    // (ver renderActionCardDeck()/beginActionCardTargeting()) -- isolado dos branches de bandeja
-    // abaixo, nunca cai neles.
-    if(payload.source === 'actionCard'){
-      handleActionCardDrop(r, c);
-      return;
-    }
-
     if(payload.source === 'tray'){
       if(payload.kind === 'hero'){
         const hero = findRosterHero(payload.heroId);
@@ -19588,6 +19025,17 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // pushRollLog() (nunca postToDiscord() direto daqui) -- é ela quem já monta e manda a mensagem
   // certa (formatRollMessage(), agora com o alvo incluso, ver comentário grande lá) e grava no
   // Histórico de Rolagens de sempre; chamar postToDiscord() aqui TAMBÉM duplicaria a mensagem.
+  // Rodada nova, pedido explícito ("a animação do dado precisa obrigatoriamente aparecer no
+  // tabuleiro para que todos visualizem, mesmo ao rolar de forma automática"): cada rolagem agora
+  // também anima no tabuleiro, reaproveitando playRemoteAtributoRoll()/playRemoteDanoRoll() --
+  // até aqui usadas só pra REPLICAR no tabuleiro uma rolagem que já aconteceu em outro navegador
+  // (ver comentário grande delas) -- com o resultado que computeAtributoRollFromData()/
+  // computeDanoRollFromData() JÁ sorteou (nunca sorteiam de novo, só desenham o valor que
+  // receberam). broadcastDiceRoll() junto garante que quem só está olhando o tabuleiro também vê
+  // a mesma animação em tempo real, exatamente como qualquer outra rolagem (Atributo/Dano/
+  // Habilidade/Talento) já fazia. log/dano só acontecem DEPOIS da animação terminar (dentro do
+  // .then() de cada rolagem), pra o resultado só aparecer no chat depois que o dado já pousou,
+  // igual à rolagem manual (finishRoll()/finishDanoRoll()).
   function performAutoAttack(hab){
     if(!attackMenuState) return;
     const { entry, data, targetTok } = attackMenuState;
@@ -19595,15 +19043,23 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     const nomeAtacante = (data && data.nome) || entry.nome || '(sem nome)';
     const nomeAlvo = tokenTooltipText(targetTok) || (targetTok && targetTok.name) || '(alvo)';
     const atributoRes = computeAtributoRollFromData(data, hab);
-    let verdictTxt;
-    if(atributoRes.roll === 20) verdictTxt = 'Acerto Garantido';
-    else if(atributoRes.roll === 1) verdictTxt = 'Erro Crítico';
-    else verdictTxt = atributoRes.verdict === 'acerto' ? 'Acerto' : 'Erro';
-    pushRollLog({ nome: nomeAtacante, tipo:'atributo', statKey: habAttrCode(hab.attr), statValor: atributoRes.statVal, resultado: atributoRes.roll, resultLabel: verdictTxt, habilidade: hab.nome, alvo: nomeAlvo, ts: Date.now() });
-    if(atributoRes.verdict !== 'acerto') return;
-    const danoRes = computeDanoRollFromData(data, hab, hab.__nivel);
-    pushRollLog({ nome: nomeAtacante, tipo:'dano', qtd: danoRes.qtd, maxVal: danoRes.maxVal, bonus: danoRes.bonus, rolls: danoRes.rolls, resultado: danoRes.total, habilidade: hab.nome, danoTipo: hab.tipo || null, alvo: nomeAlvo, ts: Date.now() });
-    applyAutoDamageToTarget(targetTok, danoRes.total, hab);
+    const atributoVal = { mode:'normal', die1: atributoRes.roll, die2: null, roll: atributoRes.roll, verdict: atributoRes.verdict, deidade: data.deidade };
+    broadcastDiceRoll(Object.assign({ kind:'atributo' }, atributoVal));
+    playRemoteAtributoRoll(atributoVal).then(()=>{
+      let verdictTxt;
+      if(atributoRes.roll === 20) verdictTxt = 'Acerto Garantido';
+      else if(atributoRes.roll === 1) verdictTxt = 'Erro Crítico';
+      else verdictTxt = atributoRes.verdict === 'acerto' ? 'Acerto' : 'Erro';
+      pushRollLog({ nome: nomeAtacante, tipo:'atributo', statKey: habAttrCode(hab.attr), statValor: atributoRes.statVal, resultado: atributoRes.roll, resultLabel: verdictTxt, habilidade: hab.nome, alvo: nomeAlvo, ts: Date.now() });
+      if(atributoRes.verdict !== 'acerto') return;
+      const danoRes = computeDanoRollFromData(data, hab, hab.__nivel);
+      const danoVal = Object.assign({ deidade: data.deidade }, danoRes);
+      broadcastDiceRoll(Object.assign({ kind:'dano' }, danoVal));
+      playRemoteDanoRoll(danoVal).then(()=>{
+        pushRollLog({ nome: nomeAtacante, tipo:'dano', qtd: danoRes.qtd, maxVal: danoRes.maxVal, bonus: danoRes.bonus, rolls: danoRes.rolls, resultado: danoRes.total, habilidade: hab.nome, danoTipo: hab.tipo || null, alvo: nomeAlvo, ts: Date.now() });
+        applyAutoDamageToTarget(targetTok, danoRes.total, hab);
+      });
+    });
   }
 
   // Aplica o dano na peça-alvo de verdade + avisa no chat/Discord + atualiza a aba "🩸 Instâncias no
@@ -19729,7 +19185,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     }, 65);
 
     const ricochetDice = twoDice ? [die1El, die2El] : [die1El];
-    animateDiceRicochet(boardDiceArena, ricochetDice, 1150).then(()=>{
+    return animateDiceRicochet(boardDiceArena, ricochetDice, 1150).then(()=>{
       clearInterval(tickInterval);
       die1El.classList.remove('ricochet');
       cubeOf(die1El).classList.remove('rolling');
@@ -19779,7 +19235,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       playDiceTick();
     }, 65);
 
-    animateDiceRicochet(boardDiceArena, dieEls, 1150).then(()=>{
+    return animateDiceRicochet(boardDiceArena, dieEls, 1150).then(()=>{
       clearInterval(tickInterval);
       dieEls.forEach((d, i)=>{
         d.classList.remove('ricochet');
