@@ -72,5 +72,16 @@
     "de": "I7",
     "para": "J6",
     "ts": 1790891372445
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 8,
+    "resultado": 15,
+    "resultLabel": "Acerto",
+    "habilidade": "Disparar Flecha",
+    "alvo": "Dummy 1",
+    "ts": 1790891693536
   }
 ]
