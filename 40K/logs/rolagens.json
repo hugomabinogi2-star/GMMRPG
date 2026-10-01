@@ -138,5 +138,12 @@
     "habilidade": "Corte Leve",
     "alvo": "Arqueira",
     "ts": 1790891966341
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "movimento",
+    "de": "J6",
+    "para": "G4",
+    "ts": 1790893123167
   }
 ]
