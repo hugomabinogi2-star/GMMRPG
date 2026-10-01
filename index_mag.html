@@ -524,10 +524,42 @@ body{
   width:100%;padding:6px 10px;border-radius:8px;
   transition:transform .15s ease,background .15s ease;transform-origin:left center;cursor:default;
 }
-/* zoom mais discreto que a versão em grade de antes (1.32) -- numa linha de largura cheia, um
-   scale grande de propósito ficaria estourando por cima da linha vizinha; o realce de fundo
-   continua chamando atenção do mesmo jeito. */
-.ficha-bubble:hover{transform:scale(1.06);z-index:5;background:rgba(0,0,0,.35);box-shadow:0 4px 14px rgba(0,0,0,.5);}
+/* Rodada nova, pedido explícito ("as fichas aqui não precisam do efeito de zoom"): o transform:
+   scale() do hover saiu -- essa lista pode ficar comprida (várias fichas empilhadas), então um
+   zoom empurrando a peça pra cima da vizinha atrapalhava mais do que ajudava. O realce de fundo
+   (só pra indicar "isto é clicável/hoverable") continua igual, sem esse aumento de tamanho. */
+.ficha-bubble:hover{background:rgba(0,0,0,.35);box-shadow:0 4px 14px rgba(0,0,0,.5);}
+/* Rodada nova, pedido explícito: bolha fica clicável (SÓ pro mestre, ver .ficha-bubble-selectable
+   em buildFichaSummaryBubble() no <script>) pra selecionar de qual ficha os botões de
+   Vida/Mana/Escudo (ver .ficha-bubble-controls abaixo) vão debitar/somar. ".selected" ganha uma
+   borda dourada pra ficar óbvio qual bolha está escolhida agora, sem precisar de mais nenhum
+   indicador de texto separado (o rótulo acima dos botões já mostra o nome de quem foi escolhido). */
+.ficha-bubble-selectable{cursor:pointer;}
+.ficha-bubble.selected{
+  background:rgba(227,197,140,.16);
+  box-shadow:0 0 0 2px var(--gold-bright),0 4px 14px rgba(0,0,0,.5);
+}
+/* Painel de botões do mestre no topo do Resumo do Tabuleiro (ver #fichaSummaryControls no HTML) --
+   3 linhas (Vida/Mana/Escudo), cada uma com ±1/±10, na mesma pegada visual dos botões ±1/±10/±100
+   de "Distribuir XP" já usados em "Fichas de Jogador" (ver .mc-xp-controls/.mc-xp-btn) -- mesma
+   classe .mini-btn de base, só reorganizados numa lista vertical compacta em vez de uma linha só,
+   já que aqui são 3 grupos em vez de 1. Some inteiro pro jogador via ".mestre-only"
+   (applyRoleVisibility() no <script>), igual qualquer outro controle exclusivo do mestre. */
+.ficha-bubble-controls{
+  display:flex;flex-direction:column;gap:6px;
+  padding:8px 10px;margin:0 2px 8px;border-radius:8px;
+  background:rgba(0,0,0,.25);border:1px solid var(--gold-text);
+}
+.ficha-bubble-controls-label{
+  font-family:'Cinzel Decorative',serif;font-size:11px;letter-spacing:.04em;
+  color:var(--ink-faint);text-transform:uppercase;
+}
+.ficha-bubble-controls-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.ficha-bubble-controls-tag{
+  font-family:'Cinzel Decorative',serif;font-size:11px;letter-spacing:.06em;
+  color:var(--ink-soft);text-transform:uppercase;min-width:52px;
+}
+.fsc-btn[disabled]{opacity:.35;cursor:not-allowed;}
 .ficha-bubble-portrait{
   width:52px;height:52px;border-radius:50%;overflow:hidden;flex:none;
   border:2px solid var(--gold-text);background:#1a1a1a;
@@ -561,14 +593,19 @@ body{
 .ficha-bubble-attrs{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0;}
 .ficha-bubble-attrs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 10px;}
 .ficha-bubble-attr-cell{display:flex;align-items:baseline;justify-content:space-between;gap:4px;}
+/* Rodada nova, pedido explícito ("aumenta a fonte do resumo dos status, esta muito pequena e
+   difícil de ver"): label 9px->11px, valor 11px->14px, label do XP 8.5px->10.5px -- praticamente
+   todo o ganho de tamanho fica pro NÚMERO (.ficha-bubble-attr-val), que é a parte que realmente
+   precisa ser lida de relance; os rótulos (FOR/CON/DES...) cresceram um pouco menos, só o
+   suficiente pra continuar legíveis do lado do número maior sem dominar a linha. */
 .ficha-bubble-attr-label{
-  font-family:'Cinzel Decorative',serif;font-size:9px;letter-spacing:.06em;
+  font-family:'Cinzel Decorative',serif;font-size:11px;letter-spacing:.06em;
   color:var(--ink-soft);text-transform:uppercase;
 }
-.ficha-bubble-attr-val{font-size:11px;font-weight:700;color:var(--ink);}
+.ficha-bubble-attr-val{font-size:14px;font-weight:700;color:var(--ink);}
 .ficha-bubble-xp-wrap{display:flex;flex-direction:column;gap:2px;margin-top:1px;}
 .ficha-bubble-xp-label{
-  font-family:'Cinzel Decorative',serif;font-size:8.5px;letter-spacing:.07em;
+  font-family:'Cinzel Decorative',serif;font-size:10.5px;letter-spacing:.07em;
   color:var(--ink-faint);text-transform:uppercase;
 }
 .ficha-bubble-xp-track{
@@ -825,6 +862,21 @@ body{
   padding:6px 10px;
 }
 .mesa-fixed-top-actions .mini-btn{white-space:nowrap;}
+/* Rodada nova, pedido explícito ("os botoes no topo do tabuleiro... quando passa o mouse por cima
+   da zoom no botão"): zoom simples no hover, só pros botões desta faixa -- não reaproveita
+   .mesa-fixed-icon-btn:hover (mesmo scale, mas aquela classe também traria o resto do visual
+   quadrado de 44x44px, pensado pra outro contexto). z-index sobe igual, pro botão em zoom nunca
+   ficar tampado pelo vizinho ao lado. */
+.mesa-fixed-top-actions .mini-btn,
+.mesa-fixed-top-actions .board-mode-toggle{
+  transition:transform .15s ease;
+}
+.mesa-fixed-top-actions .mini-btn:hover,
+.mesa-fixed-top-actions .board-mode-toggle:hover{
+  transform:scale(1.18);
+  z-index:6;
+  position:relative;
+}
 .mesa-fixed-body{
   /* Rodada nova, pedido explícito ("o chat deveria ir ate a parte de baixo da gaveta dele"):
      align-items:flex-start deixava cada coluna com a própria altura de conteúdo -- como o
@@ -5016,10 +5068,10 @@ body{
      pra ficha sem passar pela tela de login de novo). position:fixed com z-index mais alto que o
      #loginGate (9999) garante que aparece por cima nos dois casos. -->
   <div class="campaign-switcher" id="campaignSwitcher">
-    <button type="button" id="campaignSwitcherBtn" class="campaign-switcher-btn" aria-haspopup="true" aria-expanded="false">🎭 Mesas ▾</button>
+    <button type="button" id="campaignSwitcherBtn" class="campaign-switcher-btn" aria-haspopup="true" aria-expanded="false">🎭 MESAS ▾</button>
     <div class="campaign-switcher-menu" id="campaignSwitcherMenu" hidden>
-      <a href="index_BG.html" class="campaign-switcher-item">⚱️ Petricor</a>
-      <span class="campaign-switcher-item campaign-switcher-item-current">🌿 Mag Mell</span>
+      <a href="index_BG.html" class="campaign-switcher-item">⚱️ PETRICOR</a>
+      <span class="campaign-switcher-item campaign-switcher-item-current">🌿 MAG MELL</span>
     </div>
   </div>
 
@@ -5045,20 +5097,20 @@ body{
     <span class="login-flame login-flame-madeira"></span>
   </div>
   <div class="login-box" id="loginNormalBox">
-    <h1>⚔️ Entrar na Mesa</h1>
+    <h1>⚔️ ENTRAR NA MESA</h1>
     <p id="loginSubtitle">Entre com sua conta pra continuar.</p>
     <div class="login-mode-tabs">
-      <button id="loginModeEntrarBtn" type="button" class="login-mode-tab">Entrar</button>
-      <button id="loginModeCadastrarBtn" type="button" class="login-mode-tab">Cadastrar</button>
+      <button id="loginModeEntrarBtn" type="button" class="login-mode-tab">ENTRAR</button>
+      <button id="loginModeCadastrarBtn" type="button" class="login-mode-tab">CADASTRAR</button>
     </div>
     <div class="login-role-buttons" id="loginRoleButtons" hidden>
-      <button id="loginMestreBtn" type="button" class="login-role-btn">📜 Cadastrar como Mestre</button>
-      <button id="loginJogadorBtn" type="button" class="login-role-btn">🗡️ Cadastrar como Jogador</button>
+      <button id="loginMestreBtn" type="button" class="login-role-btn">📜 CADASTRAR COMO MESTRE</button>
+      <button id="loginJogadorBtn" type="button" class="login-role-btn">🗡️ CADASTRAR COMO JOGADOR</button>
     </div>
-    <input type="email" id="loginEmailInput" placeholder="E-mail" autocomplete="username">
-    <input type="password" id="loginPasswordInput" placeholder="Senha" autocomplete="current-password">
-    <input type="password" id="loginMasterPassInput" placeholder="Senha de mestre" autocomplete="off" hidden>
-    <button id="loginSubmitBtn" type="button">Entrar</button>
+    <input type="email" id="loginEmailInput" placeholder="E-MAIL" autocomplete="username">
+    <input type="password" id="loginPasswordInput" placeholder="SENHA" autocomplete="current-password">
+    <input type="password" id="loginMasterPassInput" placeholder="SENHA DE MESTRE" autocomplete="off" hidden>
+    <button id="loginSubmitBtn" type="button">ENTRAR</button>
     <div id="loginError" class="login-error"></div>
     <p class="login-hint" id="loginHint">Já tem conta? Entre com seu e-mail e senha. Ainda não tem conta nesta mesa? Clique em "Cadastrar", escolha se você é o Mestre ou um Jogador, e crie seu e-mail e senha.</p>
   </div>
@@ -5069,10 +5121,10 @@ body{
        senha" na própria tela de login; quem esquece a senha pede pro mestre redefinir). Fica
        escondida o tempo todo, exceto nesse caso específico. -->
   <div class="login-box" id="loginResetBox" hidden>
-    <h1>🔑 Nova senha</h1>
+    <h1>🔑 NOVA SENHA</h1>
     <p id="loginResetEmailLabel">Escolha a nova senha:</p>
-    <input type="password" id="loginResetNewPass" placeholder="Nova senha (mínimo 6 caracteres)" autocomplete="new-password">
-    <button id="loginResetSubmitBtn" type="button">Salvar nova senha</button>
+    <input type="password" id="loginResetNewPass" placeholder="NOVA SENHA (MÍNIMO 6 CARACTERES)" autocomplete="new-password">
+    <button id="loginResetSubmitBtn" type="button">SALVAR NOVA SENHA</button>
     <div id="loginResetError" class="login-error"></div>
   </div>
 </div>
@@ -5116,12 +5168,12 @@ body{
        (renderEnredoList() no <script> só desenha o "+"/"💾 Salvar"/o ✕ de cada bloco quando
        currentRole === 'mestre'). Não usa o Firebase -- ver comentário completo em ENREDO_PATH no
        <script>. -->
-  <button id="enredoBtn" title="Enredo da campanha — a história contada pelo mestre, em texto e imagens">📚 Enredo</button>
+  <button id="enredoBtn" title="Enredo da campanha — a história contada pelo mestre, em texto e imagens">📚 ENREDO</button>
   <!-- MAPA: ao contrário de quase todo o resto da barra, NÃO tem classe mestre-only/jogador-only:
        aparece pros DOIS papéis (o conteúdo de dentro do modal é que muda -- ver #mapModal mais
        abaixo e a seção "Mapa" no <script>). Pro jogador é só a imagem com zoom, só-leitura; pro
        mestre ganha os controles de edição (imagem de fundo, paleta de ícones, desenho de linha). -->
-  <button id="mapBtn" title="Mapa da campanha — imagem com ícones e anotações, editável pelo mestre e visível em tempo real pra todo mundo">🗺️ Mapa</button>
+  <button id="mapBtn" title="Mapa da campanha — imagem com ícones e anotações, editável pelo mestre e visível em tempo real pra todo mundo">🗺️ MAPA</button>
   <!-- Botão novo, de propósito o PRIMEIRO da barra ("no topo dos seletores", a pedido) -- classe
        .jogador-only (nova, ver applyRoleVisibility() no <script>): só aparece pro JOGADOR, o
        mestre não vê este botão (ele já enxerga tudo, público ou não, por "🔒 Fichas do Mestre").
@@ -5130,15 +5182,15 @@ body{
        opts.npcPublicFilter em makeFichasListLoader() e npcBtn/npcModal mais abaixo no <script>) --
        o jogador pode abrir ("Ver ficha") pra consultar, mas a ficha entra travada só-leitura
        (mesmo cadeado de "ficha de outro jogador", ver loadedFichaIsNpc/isFichaEditable()). -->
-  <button id="npcBtn" class="jogador-only" title="Fichas de NPC que o mestre marcou como Público — você pode consultar, mas só o mestre edita">🧚 Fichas de NPC</button>
+  <button id="npcBtn" class="jogador-only" title="Fichas de NPC que o mestre marcou como Público — você pode consultar, mas só o mestre edita">🧚 FICHAS DE NPC</button>
   <!-- Rodada nova: #mesaBtn saiu daqui -- virou o botão "📂 Gerenciar tabuleiro" dentro da faixa
        reservada embaixo do tabuleiro+chat (#mesaFixedBottom, ver .stage no HTML), já que MESA
        deixou de virar o cartão e passou a abrir logo abaixo dessa faixa. -->
-  <button class="flip-btn" id="flipBtn">↺ Ver verso</button>
+  <button class="flip-btn" id="flipBtn">↺ VER VERSO</button>
   <button class="cloud-btn" id="cloudSaveBtn">SALVAR</button>
-  <button id="silenceBtn" class="mestre-only silence-btn" aria-pressed="false" title="Quando marcado, nada do que acontecer na ficha é enviado ao Discord nem entra no histórico compartilhado">🔊 Silenciar</button>
-  <button id="masterBtn">📜 Fichas de Jogador</button>
-  <button id="masterMestreBtn" class="mestre-only">🔒 Fichas do Mestre</button>
+  <button id="silenceBtn" class="mestre-only silence-btn" aria-pressed="false" title="Quando marcado, nada do que acontecer na ficha é enviado ao Discord nem entra no histórico compartilhado">🔊 SILENCIAR</button>
+  <button id="masterBtn">📜 FICHAS DE JOGADOR</button>
+  <button id="masterMestreBtn" class="mestre-only">🔒 FICHAS DO MESTRE</button>
   <!-- FICHAS DE INIMIGOS: botão novo, mestre-only, sempre logo depois de "Fichas do Mestre" (a
        pedido). Mostra só as fichas de NPC marcadas com #f_publica = "Inimigos" (ver
        enemiesModal/loadEnemiesList mais abaixo no <script>) -- essas fichas SAEM da lista normal
@@ -5146,17 +5198,17 @@ body{
        uma pode ser arrastada pro tabuleiro (aba "Geral", ao lado dos ícones genéricos de
        Inimigo/Monstro/Chefe) e repetida quantas vezes o mestre quiser -- ver
        renderInimigoFichaCoins()/handleBoardDrop() no <script>. -->
-  <button id="masterEnemiesBtn" class="mestre-only">👹 Fichas de Inimigos</button>
+  <button id="masterEnemiesBtn" class="mestre-only">👹 FICHAS DE INIMIGOS</button>
   <!-- FICHAS DE ALIADOS: rodada nova, mesmíssimo esquema do botão de Inimigos acima, só que pro
        lado dos aliados (#f_publica = "Aliados", ícone com contorno verde no tabuleiro em vez de
        vermelho) -- ver alliesModal/loadMasterAlliesList mais abaixo no <script>. Nasceu junto com a
        remoção dos ícones genéricos de Aliado/Aliado (Fera): toda peça aliada colocável no tabuleiro
        agora vem de uma ficha de verdade, gerada pelo mestre. -->
-  <button id="masterAlliesBtn" class="mestre-only">🧝 Fichas de Aliados</button>
-  <button id="newBtn">Nova ficha</button>
-  <button id="tokenBtn" title="Salvar, atualizar ou remover seu token do GitHub neste navegador">🔑 Meu token do GitHub</button>
-  <button id="webhookConfigBtn" class="mestre-only" title="Configurar o webhook do Discord (rolagens e mensagens espelhadas pra lá)">🔗 Webhook do Discord</button>
-  <button class="logout-btn" id="logoutBtn">🚪 Sair</button>
+  <button id="masterAlliesBtn" class="mestre-only">🧝 FICHAS DE ALIADOS</button>
+  <button id="newBtn">NOVA FICHA</button>
+  <button id="tokenBtn" title="Salvar, atualizar ou remover seu token do GitHub neste navegador">🔑 MEU TOKEN DO GITHUB</button>
+  <button id="webhookConfigBtn" class="mestre-only" title="Configurar o webhook do Discord (rolagens e mensagens espelhadas pra lá)">🔗 WEBHOOK DO DISCORD</button>
+  <button class="logout-btn" id="logoutBtn">🚪 SAIR</button>
 </div>
 
 <!-- Rodada nova: faixa FIXA de Tabuleiro ao Vivo + Chat -- pedido explícito ("podemos usar a
@@ -5176,7 +5228,7 @@ body{
 <div class="mesa-fixed-panel" id="mesaFixedPanel" hidden>
     <div class="mesa-fixed-toolbar" id="mesaFixedToolbar">
       <div class="mesa-fixed-toolbar-group">
-        <span class="mesa-fixed-label">🗺️ Tabuleiro</span>
+        <span class="mesa-fixed-label">🗺️ TABULEIRO</span>
         <button id="liveBoardZoomOutBtn" class="chat-min-btn" title="Diminuir zoom" type="button">−</button>
         <span class="board-zoom-readout" id="liveBoardZoomReadout">100%</span>
         <button id="liveBoardZoomInBtn" class="chat-min-btn" title="Aumentar zoom" type="button">+</button>
@@ -5211,14 +5263,24 @@ body{
          espelhando #mesaFixedBottom só que ACIMA do tabuleiro em vez de abaixo. Nenhum id/listener
          mudou (só o endereço no HTML) -- todo o <script> que já lia/escrevia neles continua igual,
          mesmo padrão já usado antes pra relocar rollSorteBtn/refill_vida/refill_mana. -->
+    <!-- Rodada nova, pedido explícito ("os botoes no topo do tabuleiro, revelar,resertar..., perdem
+         o titulo e ficam so com o icone, quando passa o mouse por cima da zoom no botão e exibe o
+         texto informando o que o botão faz"): os 10 botões desta faixa perderam o texto visível --
+         mesmíssimo esquema já usado em rollSorteBtn/refill_vida/refill_mana (ver comentário grande
+         deles, mais abaixo): ganham .ar-ap-tip + um <div class="cs-tooltip"> com o nome (agora em
+         CAIXA ALTA) -- o tooltip flutuante de sempre (wireMouseTrackedTooltip() no <script>) já
+         sabe desenhar isso sozinho, sem nenhuma wiring nova. O zoom no hover vem de uma regra CSS
+         nova, só pra esta faixa (ver ".mesa-fixed-top-actions .mini-btn:hover"/".board-mode-toggle
+         :hover" mais abaixo), sem herdar o resto do visual quadrado de .mesa-fixed-icon-btn (que
+         foi desenhado pra outro contexto, com só 3 botões). -->
     <div class="mesa-fixed-top-actions mestre-only" id="mesaFixedTopActions">
       <input type="file" id="boardBgInput" accept="image/*" style="display:none;">
-      <button id="iniciativaTabuleiroBtn" class="mini-btn" type="button">🗺️ Iniciativa</button>
-      <button id="boardSendBtn" class="mini-btn" type="button">🗺️ Enviar para a mesa</button>
-      <button id="boardBgChooseBtn" class="mini-btn" type="button">🖼️ Escolher imagem</button>
+      <button id="iniciativaTabuleiroBtn" class="mini-btn ar-ap-tip" type="button">🗺️<div class="cs-tooltip">INICIATIVA</div></button>
+      <button id="boardSendBtn" class="mini-btn ar-ap-tip" type="button">🗺️<div class="cs-tooltip">ENVIAR PARA A MESA</div></button>
+      <button id="boardBgChooseBtn" class="mini-btn ar-ap-tip" type="button">🖼️<div class="cs-tooltip">ESCOLHER IMAGEM</div></button>
       <!-- Reset combina o que antes eram 2 botões separados (Limpar tabuleiro + Tabuleiro padrão)
            — ver o listener único de boardResetBtn no <script>, que faz as duas coisas de uma vez. -->
-      <button id="boardResetBtn" class="mini-btn" type="button">↺ Reset</button>
+      <button id="boardResetBtn" class="mini-btn ar-ap-tip" type="button">↺<div class="cs-tooltip">RESET</div></button>
       <!-- modos de visão do tabuleiro ao vivo (jogadores) — ver boardRevealMode/boardFogMode/
            boardDarkMode e os cliques em #boardRevealModeLabel/#boardFogModeLabel/#boardDarkModeLabel
            no <script>. Os 3 agora SÃO o próprio botão (sem checkbox do lado) — clicar acende/apaga
@@ -5228,27 +5290,27 @@ body{
            padrão (protege info dos jogadores sem o mestre precisar lembrar de ligar) — este botão é
            "Remover Fog": aceso = fog desligado. Dark é independente (congela a publicação inteira
            pro tabuleiro ao vivo) — nenhum dos 3 é mutuamente exclusivo com os outros. -->
-      <button type="button" class="board-mode-toggle" id="boardRevealModeLabel" aria-pressed="false">
-        <span class="board-mode-toggle-name">👁️ REVELAR</span>
+      <button type="button" class="board-mode-toggle ar-ap-tip" id="boardRevealModeLabel" aria-pressed="false">
+        <span class="board-mode-toggle-name">👁️</span><div class="cs-tooltip">REVELAR</div>
       </button>
-      <button type="button" class="board-mode-toggle" id="boardFogModeLabel" aria-pressed="false">
-        <span class="board-mode-toggle-name">🌫️ Remover Fog</span>
+      <button type="button" class="board-mode-toggle ar-ap-tip" id="boardFogModeLabel" aria-pressed="false">
+        <span class="board-mode-toggle-name">🌫️</span><div class="cs-tooltip">REMOVER FOG</div>
       </button>
       <!-- FOG+ (pedido explícito, "se possível" -- ver boardFogPlusColor/setBoardFogPlusColor() no
            <script>): camada visual extra de neblina cobrindo o tabuleiro inteiro pro jogador,
            deixando sem neblina só o campo de visão combinado dos jogadores. 3 cores, só uma ativa
            por vez (clicar na ativa desliga; clicar em outra troca direto) -- DESLIGADO por padrão. -->
-      <button type="button" class="board-mode-toggle" id="boardFogCinzaModeLabel" aria-pressed="false">
-        <span class="board-mode-toggle-name">🌫️ NEVOA</span>
+      <button type="button" class="board-mode-toggle ar-ap-tip" id="boardFogCinzaModeLabel" aria-pressed="false">
+        <span class="board-mode-toggle-name">🌫️</span><div class="cs-tooltip">NEVOA</div>
       </button>
-      <button type="button" class="board-mode-toggle" id="boardFogPretaModeLabel" aria-pressed="false">
-        <span class="board-mode-toggle-name">🖤 FUMAÇA</span>
+      <button type="button" class="board-mode-toggle ar-ap-tip" id="boardFogPretaModeLabel" aria-pressed="false">
+        <span class="board-mode-toggle-name">🖤</span><div class="cs-tooltip">FUMAÇA</div>
       </button>
-      <button type="button" class="board-mode-toggle" id="boardFogRoxaModeLabel" aria-pressed="false">
-        <span class="board-mode-toggle-name">💜 ESTRANHEZA</span>
+      <button type="button" class="board-mode-toggle ar-ap-tip" id="boardFogRoxaModeLabel" aria-pressed="false">
+        <span class="board-mode-toggle-name">💜</span><div class="cs-tooltip">ESTRANHEZA</div>
       </button>
-      <button type="button" class="board-mode-toggle" id="boardDarkModeLabel" aria-pressed="false">
-        <span class="board-mode-toggle-name">🌑 ESCURIDÃO TOTAL</span>
+      <button type="button" class="board-mode-toggle ar-ap-tip" id="boardDarkModeLabel" aria-pressed="false">
+        <span class="board-mode-toggle-name">🌑</span><div class="cs-tooltip">ESCURIDÃO TOTAL</div>
       </button>
       <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
       <div id="boardSendHint" class="mesa-hint"></div>
@@ -5262,7 +5324,7 @@ body{
         <!-- Rodada/Turno (ver turnState/renderTurnBars() no <script>) -- o jogador só consegue
              clicar em "Encerrar Turno" quando a ficha da vez é a própria dele. -->
         <div class="turn-status-bar">
-          <span class="turn-status-text" id="liveTurnStatus">Nenhuma iniciativa rodada ainda.</span>
+          <span class="turn-status-text" id="liveTurnStatus">NENHUMA INICIATIVA RODADA AINDA.</span>
           <button type="button" class="mini-btn" id="liveEndTurnBtn" disabled title="Encerrar Turno"><span class="end-turn-icon">⏳</span></button>
         </div>
         <div class="live-board-panel-body" id="liveBoardPanelBody">
@@ -5329,14 +5391,14 @@ body{
                 <div class="arrow-select-display"></div>
                 <button type="button" class="arrow-select-btn" data-dir="1" aria-label="Próximo modo">›</button>
                 <select id="diceMode" hidden>
-                  <option value="normal">Normal</option>
-                  <option value="vantagem">Vantagem</option>
-                  <option value="desvantagem">Desvantagem</option>
+                  <option value="normal">NORMAL</option>
+                  <option value="vantagem">VANTAGEM</option>
+                  <option value="desvantagem">DESVANTAGEM</option>
                 </select>
               </div>
             </div>
             <div class="dice-verdict" id="diceVerdict" hidden></div>
-            <button id="rollDiceBtn" type="button" class="dice-roll-btn" hidden>🎲 Rolar</button>
+            <button id="rollDiceBtn" type="button" class="dice-roll-btn" hidden>🎲 ROLAR</button>
             <div class="dice-hint" id="diceHint" hidden></div>
 
             <div class="dice-controls dano-controls" hidden>
@@ -5357,11 +5419,11 @@ body{
               </div>
             </div>
             <div class="dano-total-box" id="danoTotalBox" hidden>
-              <span class="dano-total-label">Resultado final</span>
+              <span class="dano-total-label">RESULTADO FINAL</span>
               <span class="dano-total-value" id="danoTotalValue">—</span>
             </div>
             <div class="dice-hint" id="danoHint" hidden></div>
-            <button id="rollDanoBtn" type="button" class="dice-roll-btn" hidden>🎲 Rolar</button>
+            <button id="rollDanoBtn" type="button" class="dice-roll-btn" hidden>🎲 ROLAR</button>
 
             <!-- Fase 3 (rodada anterior, projeto diferente): Rolagem de Sorte saiu da ficha por completo (pedido explícito
                  -- "feito isto remove a aba de rolagem de sorte também") -- a moeda gira e pousa
@@ -5408,7 +5470,7 @@ body{
              identificação de qual aba é qual. -->
         <div class="chat-tabs" id="chatTabs">
           <button type="button" class="chat-tab-btn" id="chatTabBtnChat" data-chat-tab="chat" aria-pressed="false" title="Chat">💬</button>
-          <button type="button" class="chat-tab-btn" id="chatTabBtnFichas" data-chat-tab="fichas" aria-pressed="false" title="Resumos de ficha">🧾</button>
+          <button type="button" class="chat-tab-btn" id="chatTabBtnFichas" data-chat-tab="fichas" aria-pressed="false" title="RESUMO DO TABULEIRO">🧾</button>
           <!-- Rodada nova, pedido explícito ("passa a guia de gerenciamento do tabuleiro para esse
                espaço do chat como mais uma gaveta mas essa só aparece para o mestre"): 4ª aba, só
                pro Mestre (mestre-only, mesmo mecanismo genérico de sempre -- ver applyRoleVisibility()
@@ -5426,15 +5488,15 @@ body{
                <style>), reaproveitada aqui como .chat-panel-actions, já que agora ocupam uma gaveta
                larga em vez de um botão-ícone apertado na barra de ferramentas. -->
           <div class="chat-panel-actions">
-            <button id="chatImageBtn" class="add-row-btn" title="Enviar imagem no chat" type="button">🖼️ Enviar imagem</button>
-            <button id="chatClearBtn" class="add-row-btn danger-row-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹 Limpar chat</button>
+            <button id="chatImageBtn" class="add-row-btn" title="Enviar imagem no chat" type="button">🖼️ ENVIAR IMAGEM</button>
+            <button id="chatClearBtn" class="add-row-btn danger-row-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹 LIMPAR CHAT</button>
           </div>
           <div class="chat-messages" id="chatMessages">
-            <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
+            <div class="chat-msg-empty" id="chatMessagesEmpty">NENHUMA MENSAGEM AINDA.</div>
           </div>
           <div class="chat-input-row">
-            <input type="text" id="chatInput" placeholder="Digite uma mensagem..." maxlength="500">
-            <button id="chatSendBtn" type="button">Enviar</button>
+            <input type="text" id="chatInput" placeholder="DIGITE UMA MENSAGEM..." maxlength="500">
+            <button id="chatSendBtn" type="button">ENVIAR</button>
           </div>
         </div>
         <!-- Fase 4: Resumos de ficha -- bolhas (retrato+nome+Vida/Escudo/Mana), uma por ficha
@@ -5445,6 +5507,42 @@ body{
              rodada, pra não vazar segredo do mestre por uma lista sem a mesma proteção espacial do
              tabuleiro. -->
         <div class="chat-tab-body" id="fichaSummaryTabBody" hidden>
+          <!-- Rodada nova, pedido explícito: botões pro MESTRE (e só o mestre, ".mestre-only" ---
+               ver applyRoleVisibility()) aumentar/diminuir Vida, Mana e Escudo direto de uma bolha
+               selecionada aqui no Resumo do Tabuleiro, sem precisar abrir a ficha completa daquela
+               pessoa antes -- ver selectFichaSummaryEntry()/applyVitalDeltaToSelectedFicha() no
+               <script>. Clique numa bolha pra selecionar (fica com borda destacada, ver
+               .ficha-bubble.selected no <style>); os botões ficam desabilitados até uma bolha estar
+               selecionada (ver updateFichaSummaryControlsState()). Atualiza em tempo real pra todo
+               mundo: ficha de jogador/mestre (kind 'hero') usa o mesmo canal de "presente" já usado
+               pelo XP (ver grantVitalToPlayer()/mesa40k/vitalGrants no <script>); instância de
+               Inimigo/Aliado (kind 'inimigo_ficha'/'aliado_ficha', sem ninguém logado pra escutar
+               Firebase) é ajustada direto no boardTokens local do mestre e espalhada com o mesmo
+               scheduleBoardTokensPush() de sempre. -->
+          <div class="ficha-bubble-controls mestre-only" id="fichaSummaryControls">
+            <div class="ficha-bubble-controls-label" id="fichaSummaryControlsLabel">SELECIONE UMA FICHA ABAIXO PARA AJUSTAR VIDA/MANA/ESCUDO</div>
+            <div class="ficha-bubble-controls-row">
+              <span class="ficha-bubble-controls-tag">VIDA</span>
+              <button type="button" class="mini-btn fsc-btn" data-campo="vida" data-delta="-10" disabled>−10</button>
+              <button type="button" class="mini-btn fsc-btn" data-campo="vida" data-delta="-1" disabled>−1</button>
+              <button type="button" class="mini-btn fsc-btn" data-campo="vida" data-delta="1" disabled>+1</button>
+              <button type="button" class="mini-btn fsc-btn" data-campo="vida" data-delta="10" disabled>+10</button>
+            </div>
+            <div class="ficha-bubble-controls-row">
+              <span class="ficha-bubble-controls-tag">MANA</span>
+              <button type="button" class="mini-btn fsc-btn" data-campo="mana" data-delta="-10" disabled>−10</button>
+              <button type="button" class="mini-btn fsc-btn" data-campo="mana" data-delta="-1" disabled>−1</button>
+              <button type="button" class="mini-btn fsc-btn" data-campo="mana" data-delta="1" disabled>+1</button>
+              <button type="button" class="mini-btn fsc-btn" data-campo="mana" data-delta="10" disabled>+10</button>
+            </div>
+            <div class="ficha-bubble-controls-row">
+              <span class="ficha-bubble-controls-tag">ESCUDO</span>
+              <button type="button" class="mini-btn fsc-btn" data-campo="escudo" data-delta="-10" disabled>−10</button>
+              <button type="button" class="mini-btn fsc-btn" data-campo="escudo" data-delta="-1" disabled>−1</button>
+              <button type="button" class="mini-btn fsc-btn" data-campo="escudo" data-delta="1" disabled>+1</button>
+              <button type="button" class="mini-btn fsc-btn" data-campo="escudo" data-delta="10" disabled>+10</button>
+            </div>
+          </div>
           <div id="fichaSummaryList" class="ficha-bubble-list"></div>
         </div>
         <div class="mesa-content chat-tab-body mestre-only" id="mesaContent" hidden>
@@ -5455,7 +5553,7 @@ body{
            fixa. O título agora acompanha o nome do próprio botão que abre isto (#mesaBtn, "📂
            Gerenciar tabuleiro"), já que é só isso que sobrou aqui: bandejas de fichas, tamanho,
            cor do grid, salvar/carregar, reset, etc. -->
-      <h2>📂 Gerenciar Tabuleiro</h2>
+      <h2>📂 GERENCIAR TABULEIRO</h2>
       <!-- Rodada nova, pedido explícito ("dentro de mesa os botões para fechar e abrir mesa em uma
            aba separada podem ser removidos"): os botões "🗗" (popoutMesaBtn) e "✕" (closeMesa) saíram
            -- pra sair desta aba agora basta clicar em outra aba do chat (💬/🧾), igual às outras. Os
@@ -5467,11 +5565,11 @@ body{
     <div class="board-section">
       <div class="board-menu">
         <div class="board-save-control">
-          <label>Salvar / carregar tabuleiro</label>
+          <label>SALVAR / CARREGAR TABULEIRO</label>
           <div class="board-save-fields">
-            <input type="text" id="boardNameInput" placeholder="Nome do tabuleiro">
-            <button id="boardSaveBtn" class="mini-btn" type="button">💾 Salvar</button>
-            <button id="boardLoadListBtn" class="mini-btn" type="button">📂 Carregar</button>
+            <input type="text" id="boardNameInput" placeholder="NOME DO TABULEIRO">
+            <button id="boardSaveBtn" class="mini-btn" type="button">💾 SALVAR</button>
+            <button id="boardLoadListBtn" class="mini-btn" type="button">📂 CARREGAR</button>
           </div>
           <div id="boardSaveHint" class="mesa-hint"></div>
           <div id="boardLoadList" class="master-list" hidden></div>
@@ -5479,14 +5577,14 @@ body{
 
         <div class="board-size-control">
           <div class="board-size-fields">
-            <label for="boardRowsInput">Tamanho do tabuleiro</label>
+            <label for="boardRowsInput">TAMANHO DO TABULEIRO</label>
             <input type="number" id="boardRowsInput" min="2" max="40" value="24" title="Número de linhas">
             <span>x</span>
             <input type="number" id="boardColsInput" min="2" max="40" value="24" title="Número de colunas">
-            <button id="boardResizeBtn" class="mini-btn" type="button">Aplicar</button>
+            <button id="boardResizeBtn" class="mini-btn" type="button">APLICAR</button>
           </div>
           <div class="board-grid-color-fields">
-            <label>Cor das linhas do grid</label>
+            <label>COR DAS LINHAS DO GRID</label>
             <div class="board-grid-color-swatches" id="boardGridColorSwatches">
               <button type="button" class="board-grid-color-swatch" data-hex="#000000" style="background:#000000" title="Preto" aria-label="Preto"></button>
               <button type="button" class="board-grid-color-swatch" data-hex="#ffffff" style="background:#ffffff" title="Branco" aria-label="Branco"></button>
@@ -5504,7 +5602,7 @@ body{
 
       <div class="board-menu">
         <div class="board-menu-tabs">
-          <button type="button" class="board-menu-tab active" data-panel="boardPanelJogadores">Fichas dos Jogadores</button>
+          <button type="button" class="board-menu-tab active" data-panel="boardPanelJogadores">FICHAS DOS JOGADORES</button>
           <!-- Rodada nova: as antigas abas "Fichas do Mestre" (peça única, mecanismo de
                makeRosterTrayRenderer) e "Geral" (só continha as bandejas repetíveis de
                Inimigos/Aliados) saíram daqui -- motivo do pedido: "a guia de Aliados e de Inimigos
@@ -5520,9 +5618,9 @@ body{
                em renderAliadoFichaCoins() no <script> -- tudo que NÃO é Inimigos conta como
                Aliado). A aba PVP (mais abaixo) tem sua PRÓPRIA seção separada "Fichas do mestre",
                que continua mostrando só fichas realmente Privadas/Mestre -- não mexida aqui. -->
-          <button type="button" class="board-menu-tab" data-panel="boardPanelAliados">🧝 Aliados</button>
-          <button type="button" class="board-menu-tab" data-panel="boardPanelInimigos">👹 Inimigos</button>
-          <button type="button" class="board-menu-tab" data-panel="boardPanelBlocos">Barreiras</button>
+          <button type="button" class="board-menu-tab" data-panel="boardPanelAliados">🧝 ALIADOS</button>
+          <button type="button" class="board-menu-tab" data-panel="boardPanelInimigos">👹 INIMIGOS</button>
+          <button type="button" class="board-menu-tab" data-panel="boardPanelBlocos">BARREIRAS</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelPvp">⚔️ PVP</button>
           <!-- Rodada nova, pedido explícito ("dentro de mesa o botão INSTANCIA NO TABULEIRO pode ser
                removido"): a aba "🩸 Instâncias no Tabuleiro" saiu -- renderBoardInstancesPanel() (no
@@ -5551,7 +5649,7 @@ body{
              nenhuma ficha marcada assim ainda, pra não deixar a aba com um título solto e vazio. -->
         <div class="board-menu-panel" id="boardPanelAliados">
           <div id="boardAliadoFichaWrap" hidden style="margin-top:14px;">
-            <div class="board-tray-title">Fichas de Aliados</div>
+            <div class="board-tray-title">FICHAS DE ALIADOS</div>
             <div class="board-enemy-coins" id="boardAliadoFichaCoins"></div>
           </div>
         </div>
@@ -5559,7 +5657,7 @@ body{
              "🧝 Aliados" acima, ver renderInimigoFichaCoins() no <script>. -->
         <div class="board-menu-panel" id="boardPanelInimigos">
           <div id="boardInimigoFichaWrap" hidden style="margin-top:14px;">
-            <div class="board-tray-title">Fichas de Inimigos</div>
+            <div class="board-tray-title">FICHAS DE INIMIGOS</div>
             <div class="board-enemy-coins" id="boardInimigoFichaCoins"></div>
           </div>
         </div>
@@ -5582,13 +5680,13 @@ body{
              Inimigos E Aliados da seção "Fichas do mestre" de propósito) e continua assim, sem
              mudança nenhuma agora. -->
         <div class="board-menu-panel" id="boardPanelPvp">
-          <div class="board-tray-title">Fichas dos jogadores</div>
+          <div class="board-tray-title">FICHAS DOS JOGADORES</div>
           <div class="board-tray-coins" id="boardTrayCoinsPvp"></div>
           <div id="boardAliadoFichaPvpWrap" hidden style="margin-top:12px;">
-            <div class="board-tray-title">Fichas de aliados</div>
+            <div class="board-tray-title">FICHAS DE ALIADOS</div>
             <div class="board-enemy-coins" id="boardAliadoFichaCoinsPvp"></div>
           </div>
-          <div class="board-tray-title" style="margin-top:12px;">Fichas do mestre</div>
+          <div class="board-tray-title" style="margin-top:12px;">FICHAS DO MESTRE</div>
           <div class="board-tray-coins" id="boardTrayMestreCoinsPvp"></div>
         </div>
         <div class="board-menu-panel" id="boardPanelBlocos">
@@ -5603,7 +5701,7 @@ body{
                tamanho abaixo, que valem só pra Barreira — ver resizable:false em OBSTACLE_KINDS). -->
           <p class="board-tray-hint">Barreira: invisível pros jogadores, só o mestre vê aqui na aba Mesa. Porta, Rocha e Pedra de Gelo: mesmo bloqueio de movimento e visão da Barreira, mas ficam visíveis pra todo mundo (sempre 1 casa). Todas continuam bloqueando movimento/visão normalmente.</p>
           <div class="board-block-size-control board-size-fields">
-            <label for="boardBlockRowsInput">Tamanho da barreira</label>
+            <label for="boardBlockRowsInput">TAMANHO DA BARREIRA</label>
             <input type="number" id="boardBlockRowsInput" min="1" max="12" value="1" title="Número de linhas">
             <span>x</span>
             <input type="number" id="boardBlockColsInput" min="1" max="12" value="1" title="Número de colunas">
@@ -5618,7 +5716,7 @@ body{
                ("todas as fichas... geradas pelo mestre") -- um "baú" que precise de conteúdo de
                verdade agora é uma ficha marcada Aliados/Inimigos, não mais um ícone solto; CHEST_KINDS
                continua reconhecendo Baús que já estejam em tabuleiros salvos antes desta rodada. -->
-          <div class="board-tray-title" style="margin-top:14px;">Objetos</div>
+          <div class="board-tray-title" style="margin-top:14px;">OBJETOS</div>
           <p class="board-tray-hint">Arbusto, Armadilha e Poça de Água: nenhum bloqueia movimento nem visão — clique num já colocado no tabuleiro pra escrever a descrição (o que tem dentro, ou o efeito da armadilha, por exemplo), que aparece pra todo mundo ao passar o mouse em cima.</p>
           <div class="board-enemy-coins" id="boardChestCoins"></div>
         </div>
@@ -5637,12 +5735,12 @@ body{
            .live-board-panel.minimized). -->
       <div class="turn-control-panel" id="turnControlPanel">
         <div class="turn-control-head">
-          <span class="turn-control-head-title">⏳ Turno</span>
+          <span class="turn-control-head-title">⏳ TURNO</span>
           <button type="button" class="chat-min-btn" id="turnControlMinimizeBtn" title="Minimizar">▾</button>
         </div>
         <div class="turn-control-body" id="turnControlBody">
           <div class="turn-status-bar">
-            <span class="turn-status-text" id="boardTurnStatus">Nenhuma iniciativa rodada ainda.</span>
+            <span class="turn-status-text" id="boardTurnStatus">NENHUMA INICIATIVA RODADA AINDA.</span>
             <button type="button" class="mini-btn" id="turnDelayBtn" disabled title="Avançar Turno — segura a ação, vai pro fim da fila desta rodada">➡️</button>
             <button type="button" class="mini-btn" id="turnUndoBtn" disabled title="Voltar ao Turno Anterior — desfaz o último encerramento de turno (avançar, manual, erro, ou automático)">⬅️</button>
             <button type="button" class="mini-btn" id="boardEndTurnBtn" disabled title="Encerrar/Pular Turno"><span class="end-turn-icon">⏳</span></button>
@@ -6394,11 +6492,11 @@ body{
 <div class="modal-overlay" id="masterModal" hidden>
   <div class="modal-box">
     <div class="modal-head">
-      <h2>📜 Fichas de Jogador</h2>
+      <h2>📜 FICHAS DE JOGADOR</h2>
       <button id="closeMaster" class="modal-close">✕</button>
     </div>
     <p class="modal-sub">Fichas que os jogadores salvaram com "SALVAR" nesta mesma página aparecem aqui.</p>
-    <button id="refreshMaster" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
+    <button id="refreshMaster" class="add-row-btn" style="margin-bottom:14px;">↻ ATUALIZAR LISTA</button>
     <div id="masterList" class="master-list"></div>
   </div>
 </div>
@@ -6406,11 +6504,11 @@ body{
 <div class="modal-overlay" id="masterMestreModal" hidden>
   <div class="modal-box">
     <div class="modal-head">
-      <h2>🔒 Fichas do Mestre</h2>
+      <h2>🔒 FICHAS DO MESTRE</h2>
       <button id="closeMasterMestre" class="modal-close">✕</button>
     </div>
     <p class="modal-sub">Fichas que o mestre salvou com "SALVAR" nesta mesma página aparecem aqui — só o mestre tem acesso a essa lista.</p>
-    <button id="refreshMasterMestre" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
+    <button id="refreshMasterMestre" class="add-row-btn" style="margin-bottom:14px;">↻ ATUALIZAR LISTA</button>
     <div id="masterMestreList" class="master-list"></div>
   </div>
 </div>
@@ -6426,11 +6524,11 @@ body{
 <div class="modal-overlay" id="enemiesModal" hidden>
   <div class="modal-box">
     <div class="modal-head">
-      <h2>👹 Fichas de Inimigos</h2>
+      <h2>👹 FICHAS DE INIMIGOS</h2>
       <button id="closeMasterEnemies" class="modal-close">✕</button>
     </div>
     <p class="modal-sub">Fichas de NPC marcadas como "Inimigos" (ver seletor "Ficha de NPC", abaixo do Nome) aparecem aqui em vez de em "Fichas do Mestre". Pra colocar uma no tabuleiro, abra 📂 Gerenciar Tabuleiro → aba "👹 Inimigos": cada uma aparece como um retrato arrastável ali, e pode ser solta quantas vezes quiser.</p>
-    <button id="refreshMasterEnemies" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
+    <button id="refreshMasterEnemies" class="add-row-btn" style="margin-bottom:14px;">↻ ATUALIZAR LISTA</button>
     <div id="masterEnemiesList" class="master-list"></div>
   </div>
 </div>
@@ -6447,11 +6545,11 @@ body{
 <div class="modal-overlay" id="alliesModal" hidden>
   <div class="modal-box">
     <div class="modal-head">
-      <h2>🧝 Fichas de Aliados</h2>
+      <h2>🧝 FICHAS DE ALIADOS</h2>
       <button id="closeMasterAllies" class="modal-close">✕</button>
     </div>
     <p class="modal-sub">Fichas de NPC marcadas como "Aliados" (ver seletor "Ficha de NPC", abaixo do Nome) aparecem aqui em vez de em "Fichas do Mestre". Pra colocar uma no tabuleiro, abra 📂 Gerenciar Tabuleiro → aba "🧝 Aliados": cada uma aparece como um retrato arrastável ali, e pode ser solta quantas vezes quiser.</p>
-    <button id="refreshMasterAllies" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
+    <button id="refreshMasterAllies" class="add-row-btn" style="margin-bottom:14px;">↻ ATUALIZAR LISTA</button>
     <div id="masterAlliesList" class="master-list"></div>
   </div>
 </div>
@@ -6466,7 +6564,7 @@ body{
 <div class="modal-overlay" id="attackMenuModal" hidden>
   <div class="modal-box attack-menu-box">
     <div class="modal-head">
-      <h2>⚔️ Menu de Ataque</h2>
+      <h2>⚔️ MENU DE ATAQUE</h2>
       <button id="closeAttackMenu" class="modal-close">✕</button>
     </div>
     <div id="attackMenuHeader" class="attack-menu-header"></div>
@@ -6484,11 +6582,11 @@ body{
 <div class="modal-overlay" id="npcModal" hidden>
   <div class="modal-box">
     <div class="modal-head">
-      <h2>🧚 Fichas de NPC</h2>
+      <h2>🧚 FICHAS DE NPC</h2>
       <button id="closeNpc" class="modal-close">✕</button>
     </div>
     <p class="modal-sub">Fichas de NPC que o mestre marcou como "Público" aparecem aqui pra consulta -- você pode ver, mas só o mestre pode editar.</p>
-    <button id="refreshNpc" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
+    <button id="refreshNpc" class="add-row-btn" style="margin-bottom:14px;">↻ ATUALIZAR LISTA</button>
     <div id="npcList" class="master-list"></div>
   </div>
 </div>
@@ -6506,7 +6604,7 @@ body{
 <div class="modal-overlay" id="mapModal" hidden>
   <div class="modal-box map-modal-box">
     <div class="modal-head">
-      <h2>🗺️ Mapa</h2>
+      <h2>🗺️ MAPA</h2>
       <button id="closeMap" class="modal-close">✕</button>
     </div>
 
@@ -6517,7 +6615,7 @@ body{
          pros dois papéis (o jogador também pode navegar entre mapas já feitos, só não cria). -->
     <div class="guide-tabs-bar" id="mapTabsBar">
       <div class="guide-tabs-scroll" id="mapTabsScroll"></div>
-      <button type="button" class="guide-tab-add-btn mestre-only" id="mapTabAddBtn" title="Nova guia de Mapa">+ Guia</button>
+      <button type="button" class="guide-tab-add-btn mestre-only" id="mapTabAddBtn" title="Nova guia de Mapa">+ GUIA</button>
     </div>
 
     <!-- switch Privado/Público da guia ATIVA agora (pedido explícito, só MESTRE vê) -- ver
@@ -6525,7 +6623,7 @@ body{
          no <script>. Esquerda (sem a classe "on") = PRIVADO, sempre a posição inicial de qualquer
          guia nova; direita (classe "on") = PÚBLICO, aí sim os jogadores enxergam essa guia. -->
     <div class="guide-visibility-bar mestre-only" id="mapTabVisibilityBar">
-      <span class="guide-visibility-label">Guia visível pros jogadores</span>
+      <span class="guide-visibility-label">GUIA VISÍVEL PROS JOGADORES</span>
       <button type="button" class="guide-visibility-switch" id="mapTabVisibilitySwitch" role="switch" aria-checked="false" aria-label="Tornar esta guia de Mapa pública para os jogadores"><span class="guide-visibility-switch-thumb"></span></button>
       <span class="guide-visibility-switch-state" id="mapTabVisibilityState">PRIVADA</span>
     </div>
@@ -6537,7 +6635,7 @@ body{
 
     <div class="map-edit-toolbar mestre-only">
       <input type="file" id="mapBgInput" accept="image/*" style="display:none;">
-      <button id="mapBgChooseBtn" class="mini-btn" type="button">🖼️ Imagem do mapa</button>
+      <button id="mapBgChooseBtn" class="mini-btn" type="button">🖼️ IMAGEM DO MAPA</button>
       <div class="map-icon-palette" id="mapIconPalette"></div>
       <div class="map-line-color-swatches" id="mapLineColorSwatches">
         <button type="button" class="map-line-color-swatch" data-color="white" style="background:#ffffff" title="Linha branca" aria-label="Linha branca"></button>
@@ -6560,9 +6658,9 @@ body{
         <button type="button" class="map-line-dash-swatch" data-dash="tracejada" title="Linha talhada (tracejada)" aria-label="Linha tracejada">╌╌╌</button>
       </div>
       <button type="button" id="mapDrawModeBtn" class="board-mode-toggle" aria-pressed="false">
-        <span class="board-mode-toggle-name">✏️ Desenhar linha</span>
+        <span class="board-mode-toggle-name">✏️ DESENHAR LINHA</span>
       </button>
-      <button id="mapClearLinesBtn" class="mini-btn" type="button">🧹 Limpar linhas</button>
+      <button id="mapClearLinesBtn" class="mini-btn" type="button">🧹 LIMPAR LINHAS</button>
     </div>
     <p class="modal-sub mestre-only">Clique num ícone da paleta acima e depois no mapa pra colocar (pode repetir quantas vezes quiser); clique num ícone já colocado pra editar a descrição, botão direito nele remove. Ligue "Desenhar linha" e arraste o mouse sobre o mapa pra desenhar uma linha livre.</p>
     <p class="modal-sub jogador-only">Passe o mouse sobre os ícones pra ver a descrição que o mestre deixou.</p>
@@ -6598,9 +6696,9 @@ body{
 <div class="modal-overlay" id="enredoModal" hidden>
   <div class="modal-box">
     <div class="modal-head">
-      <h2>📚 Enredo</h2>
+      <h2>📚 ENREDO</h2>
       <div class="modal-head-actions">
-        <button type="button" id="enredoSaveBtn" class="mini-btn mestre-only" title="Salvar o Enredo no GitHub" disabled>💾 Salvar</button>
+        <button type="button" id="enredoSaveBtn" class="mini-btn mestre-only" title="Salvar o Enredo no GitHub" disabled>💾 SALVAR</button>
         <button id="closeEnredo" class="modal-close">✕</button>
       </div>
     </div>
@@ -6612,7 +6710,7 @@ body{
          resto do painel -- o jogador só não pode CRIAR nem escrever, mas pode NAVEGAR. -->
     <div class="guide-tabs-bar" id="enredoTabsBar">
       <div class="guide-tabs-scroll" id="enredoTabsScroll"></div>
-      <button type="button" class="guide-tab-add-btn mestre-only" id="enredoTabAddBtn" title="Nova guia de Enredo">+ Guia</button>
+      <button type="button" class="guide-tab-add-btn mestre-only" id="enredoTabAddBtn" title="Nova guia de Enredo">+ GUIA</button>
     </div>
 
     <!-- MESMO switch Privado/Público do Mapa (ver comentário lá em #mapTabVisibilityBar), agora pra
@@ -6622,7 +6720,7 @@ body{
          chegando pro jogador só depois do 💾 Salvar de sempre -- igual qualquer outra edição de
          Enredo já funciona hoje. -->
     <div class="guide-visibility-bar mestre-only" id="enredoTabVisibilityBar">
-      <span class="guide-visibility-label">Guia visível pros jogadores</span>
+      <span class="guide-visibility-label">GUIA VISÍVEL PROS JOGADORES</span>
       <button type="button" class="guide-visibility-switch" id="enredoTabVisibilitySwitch" role="switch" aria-checked="false" aria-label="Tornar esta guia de Enredo pública para os jogadores"><span class="guide-visibility-switch-thumb"></span></button>
       <span class="guide-visibility-switch-state" id="enredoTabVisibilityState">PRIVADA</span>
     </div>
@@ -6632,16 +6730,16 @@ body{
     <div class="enredo-add-area mestre-only" id="enredoAddArea">
       <button type="button" class="enredo-add-btn" id="enredoAddBtn" title="Adicionar ao Enredo" aria-label="Adicionar texto ou imagem ao Enredo">+</button>
       <div class="enredo-add-choice" id="enredoAddChoice" hidden>
-        <button type="button" class="mini-btn" id="enredoChooseTextBtn">📝 Texto</button>
-        <button type="button" class="mini-btn" id="enredoChooseImageBtn">🖼️ Imagem</button>
-        <button type="button" class="mini-btn danger-row-btn" id="enredoCancelChoiceBtn">Cancelar</button>
+        <button type="button" class="mini-btn" id="enredoChooseTextBtn">📝 TEXTO</button>
+        <button type="button" class="mini-btn" id="enredoChooseImageBtn">🖼️ IMAGEM</button>
+        <button type="button" class="mini-btn danger-row-btn" id="enredoCancelChoiceBtn">CANCELAR</button>
       </div>
       <div class="enredo-add-text" id="enredoAddTextBox" hidden>
         <div class="enredo-format-toolbar" id="enredoFormatToolbar">
           <button type="button" class="mini-btn enredo-fmt-btn" id="enredoFmtBoldBtn" title="Negrito (envolve **assim**)" aria-label="Negrito"><b>N</b></button>
           <button type="button" class="mini-btn enredo-fmt-btn" id="enredoFmtItalicBtn" title="Itálico (envolve *assim*)" aria-label="Itálico"><i>I</i></button>
           <button type="button" class="mini-btn enredo-fmt-btn" id="enredoFmtUnderlineBtn" title="Sublinhado (envolve __assim__)" aria-label="Sublinhado"><u>S</u></button>
-          <button type="button" class="mini-btn enredo-fmt-btn" id="enredoFmtTituloBtn" title="Título (texto maior, pra cabeçalhos)" aria-label="Título">Título</button>
+          <button type="button" class="mini-btn enredo-fmt-btn" id="enredoFmtTituloBtn" title="Título (texto maior, pra cabeçalhos)" aria-label="Título">TÍTULO</button>
           <span class="enredo-fmt-sep"></span>
           <div class="enredo-fmt-color-swatches" id="enredoFmtColorSwatches">
             <button type="button" class="enredo-fmt-color-swatch" data-color="#e0b656" style="background:#e0b656" title="Cor: dourado" aria-label="Cor dourada"></button>
@@ -6653,17 +6751,17 @@ body{
         <textarea id="enredoTextInput" rows="4" placeholder="Escreva aqui um trecho da história..."></textarea>
         <p class="enredo-format-hint">Selecione um trecho do texto acima e clique num botão pra formatar (ou digite os símbolos direto: **negrito**, *itálico*, __sublinhado__).</p>
         <div class="enredo-add-actions">
-          <button type="button" class="add-row-btn" id="enredoConfirmTextBtn">Adicionar</button>
-          <button type="button" class="add-row-btn danger-row-btn" id="enredoCancelTextBtn">Cancelar</button>
+          <button type="button" class="add-row-btn" id="enredoConfirmTextBtn">ADICIONAR</button>
+          <button type="button" class="add-row-btn danger-row-btn" id="enredoCancelTextBtn">CANCELAR</button>
         </div>
       </div>
       <div class="enredo-add-image" id="enredoAddImageBox" hidden>
         <input type="file" id="enredoImageInput" accept="image/*" style="display:none;">
-        <button type="button" class="mini-btn" id="enredoChooseFileBtn">Escolher imagem</button>
+        <button type="button" class="mini-btn" id="enredoChooseFileBtn">ESCOLHER IMAGEM</button>
         <img id="enredoImagePreview" class="enredo-image-preview" hidden alt="">
         <div class="enredo-add-actions">
-          <button type="button" class="add-row-btn" id="enredoConfirmImageBtn" disabled>Adicionar</button>
-          <button type="button" class="add-row-btn danger-row-btn" id="enredoCancelImageBtn">Cancelar</button>
+          <button type="button" class="add-row-btn" id="enredoConfirmImageBtn" disabled>ADICIONAR</button>
+          <button type="button" class="add-row-btn danger-row-btn" id="enredoCancelImageBtn">CANCELAR</button>
         </div>
       </div>
     </div>
@@ -6674,7 +6772,7 @@ body{
 <div class="modal-overlay" id="tokenModal" hidden>
   <div class="modal-box">
     <div class="modal-head">
-      <h2>🔑 Token do GitHub</h2>
+      <h2>🔑 TOKEN DO GITHUB</h2>
       <button id="closeToken" class="modal-close">✕</button>
     </div>
     <p class="modal-sub">Necessário só para <strong>salvar</strong> ou <strong>apagar</strong> fichas no repositório. Para apenas visualizar (Painel do Mestre), não precisa de token, pois o repositório é público.</p>
@@ -6682,13 +6780,13 @@ body{
     <div id="tokenStatus" class="token-status">Nenhum token configurado neste navegador.</div>
 
     <div class="token-field">
-      <label>Personal Access Token (fine-grained)</label>
+      <label>PERSONAL ACCESS TOKEN (FINE-GRAINED)</label>
       <input type="password" id="tokenInput" placeholder="github_pat_xxxxxxxxxxxxxxxxx" autocomplete="off">
     </div>
 
     <div class="modal-actions">
-      <button id="tokenSaveBtn">Salvar token</button>
-      <button id="tokenRemoveBtn" class="danger">Remover token</button>
+      <button id="tokenSaveBtn">SALVAR TOKEN</button>
+      <button id="tokenRemoveBtn" class="danger">REMOVER TOKEN</button>
     </div>
 
     <div class="token-help">
@@ -6719,10 +6817,10 @@ body{
      que não existe. -->
 <div class="modal-overlay" id="introVideoModal" hidden>
   <div class="intro-video-box">
-    <button type="button" class="intro-video-skip-btn" id="introVideoSkipBtn">Pular ⏭</button>
+    <button type="button" class="intro-video-skip-btn" id="introVideoSkipBtn">PULAR ⏭</button>
     <div class="intro-video-click-prompt" id="introVideoClickPrompt">
       <div class="intro-video-click-icon">▶</div>
-      <p>Toque para assistir</p>
+      <p>TOQUE PARA ASSISTIR</p>
     </div>
     <video id="introVideoPlayer" class="intro-video-player" playsinline hidden></video>
   </div>
@@ -6741,7 +6839,7 @@ body{
 <div class="modal-overlay" id="elementPickerModal" hidden>
   <div class="modal-box element-picker-box">
     <div class="modal-head">
-      <h2 id="elementPickerTitle">Escolha seu Elemento</h2>
+      <h2 id="elementPickerTitle">ESCOLHA SEU ELEMENTO</h2>
     </div>
     <p class="element-picker-intro" id="elementPickerIntro">Escolha o elemento da sua ficha. Depois de escolhido, não será mais possível trocar.</p>
     <div class="element-picker-pentagon" id="elementPickerPentagon">
@@ -6779,7 +6877,7 @@ body{
 <div class="modal-overlay" id="weaponPickerModal" hidden>
   <div class="modal-box weapon-picker-box">
     <div class="modal-head">
-      <h2 id="weaponPickerTitle">Escolha sua Arma</h2>
+      <h2 id="weaponPickerTitle">ESCOLHA SUA ARMA</h2>
     </div>
     <p class="element-picker-intro" id="weaponPickerIntro">Escolha a arma da sua ficha.</p>
     <div class="weapon-picker-grid" id="weaponPickerGrid"></div>
@@ -6805,18 +6903,18 @@ body{
 <div class="modal-overlay" id="nivelChoiceModal" hidden>
   <div class="modal-box hab-levelup-box nivel-choice-box">
     <div class="modal-head">
-      <h2 id="nivelChoiceTitle">Você ganhou um ponto!</h2>
+      <h2 id="nivelChoiceTitle">VOCÊ GANHOU UM PONTO!</h2>
     </div>
     <p class="element-picker-intro" id="nivelChoiceIntro">O que você prefere escolher com esse ponto?</p>
     <div class="nivel-choice-options">
       <button type="button" class="nivel-choice-btn" id="nivelChoiceHabBtn">
         <span class="nivel-choice-btn-icon">⚔️</span>
-        <span class="nivel-choice-btn-label">Habilidade</span>
+        <span class="nivel-choice-btn-label">HABILIDADE</span>
         <span class="nivel-choice-btn-desc">Uma Habilidade nova, ou sobe o nível de uma que já tem (até 5 vezes).</span>
       </button>
       <button type="button" class="nivel-choice-btn" id="nivelChoiceTalentoBtn">
         <span class="nivel-choice-btn-icon">📜</span>
-        <span class="nivel-choice-btn-label">Talento</span>
+        <span class="nivel-choice-btn-label">TALENTO</span>
         <span class="nivel-choice-btn-desc">Um Talento novo, escolhido entre os disponíveis pro atributo que preferir.</span>
       </button>
     </div>
@@ -6841,12 +6939,12 @@ body{
          <script>, que atualiza o texto/visibilidade dele a cada passo. -->
     <div class="wizard-countdown-badge" id="habLevelUpCountdown" hidden></div>
     <div class="modal-head">
-      <h2 id="habLevelUpTitle">Escolha uma Habilidade</h2>
+      <h2 id="habLevelUpTitle">ESCOLHA UMA HABILIDADE</h2>
     </div>
     <p class="element-picker-intro" id="habLevelUpIntro">Você ganhou um ponto de Habilidade! Escolha qual Habilidade recebe o novo nível.</p>
     <div class="hab-levelup-list" id="habLevelUpList"></div>
     <div class="hab-levelup-actions">
-      <button type="button" class="hab-levelup-back-btn" id="habLevelUpBackBtn" disabled>◀ Voltar</button>
+      <button type="button" class="hab-levelup-back-btn" id="habLevelUpBackBtn" disabled>◀ VOLTAR</button>
       <button type="button" class="hab-levelup-ok-btn" id="habLevelUpOkBtn" disabled>OK</button>
     </div>
   </div>
@@ -6868,7 +6966,7 @@ body{
     <!-- mesmo contador decrescente de canto do #habLevelUpModal acima, ver renderTalentoLevelUpStep(). -->
     <div class="wizard-countdown-badge" id="talentoLevelUpCountdown" hidden></div>
     <div class="modal-head">
-      <h2 id="talentoLevelUpTitle">Escolha um Talento</h2>
+      <h2 id="talentoLevelUpTitle">ESCOLHA UM TALENTO</h2>
     </div>
     <p class="element-picker-intro" id="talentoLevelUpIntro">Você ganhou um Talento! Escolha um atributo abaixo e depois o Talento.</p>
     <div class="hab-tabs talento-attr-tabs" id="talentoAttrTabs">
@@ -6882,7 +6980,7 @@ body{
     </div>
     <div class="hab-levelup-list" id="talentoLevelUpList"></div>
     <div class="hab-levelup-actions">
-      <button type="button" class="hab-levelup-back-btn" id="talentoLevelUpBackBtn" disabled>◀ Voltar</button>
+      <button type="button" class="hab-levelup-back-btn" id="talentoLevelUpBackBtn" disabled>◀ VOLTAR</button>
       <button type="button" class="hab-levelup-ok-btn" id="talentoLevelUpOkBtn" disabled>OK</button>
     </div>
   </div>
@@ -6895,7 +6993,7 @@ body{
 <div class="modal-overlay" id="webhookModal" hidden>
   <div class="modal-box">
     <div class="modal-head">
-      <h2>🔗 Webhook do Discord</h2>
+      <h2>🔗 WEBHOOK DO DISCORD</h2>
       <button id="closeWebhook" class="modal-close">✕</button>
     </div>
     <p class="modal-sub">URL do Webhook do canal do Discord onde as rolagens, fichas salvas e mensagens da mesa devem ser espelhadas. Fica salva só neste navegador e é sempre a última que você salvar aqui.</p>
@@ -6903,13 +7001,13 @@ body{
     <div id="webhookStatus" class="token-status">Nenhum webhook configurado neste navegador.</div>
 
     <div class="token-field">
-      <label>URL do Webhook</label>
+      <label>URL DO WEBHOOK</label>
       <input type="text" id="webhookInput" placeholder="https://discord.com/api/webhooks/..." autocomplete="off">
     </div>
 
     <div class="modal-actions">
-      <button id="webhookSaveBtn">Salvar webhook</button>
-      <button id="webhookRemoveBtn" class="danger">Desativar (remover)</button>
+      <button id="webhookSaveBtn">SALVAR WEBHOOK</button>
+      <button id="webhookRemoveBtn" class="danger">DESATIVAR (REMOVER)</button>
     </div>
 
     <div class="token-help">
@@ -8775,6 +8873,30 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     });
   }
 
+  // ---------- Vida/Mana/Escudo ajustados pelo mestre pelas bolhas do Resumo do Tabuleiro (pedido
+  // explícito desta rodada) ---------- Mesmíssimo padrão de "presente"/delta consumido uma vez do
+  // XP acima (grantXpToPlayer()) -- NÃO o padrão de ESTADO simples usado por pushVidaMana()/
+  // pushAtributos() um pouco abaixo, porque aqueles dependem do mestre já ter aquela ficha
+  // especificamente aberta na tela (loadedFichaOwnerUid) — aqui o pedido é poder ajustar direto
+  // pela bolha do Resumo do Tabuleiro (clicar pra selecionar + apertar ±1/±10), sem precisar abrir
+  // a ficha completa daquela pessoa antes. campo é sempre 'vida'/'mana'/'escudo'. Cada bolha
+  // empurra {campo, delta} pra mesa40k/vitalGrants/{uid} (push, não set); quem estiver logado com
+  // esse uid escuta esse mesmo caminho (ver connectVitalGrantListener()/handleVitalGrant() perto de
+  // connectXpGrantListener()) e aplica o delta direto no campo certo, sempre limitado entre 0 e o
+  // máximo atual daquele campo. Só serve pra ficha kind 'hero' (peça de jogador/mestre com
+  // ownerUid) -- inimigo_ficha/aliado_ficha (instância solta de NPC, sem ninguém logado em conta
+  // nenhuma pra "receber" isso) usa outro caminho, totalmente local (ver adjustBoardTokenVital(),
+  // perto de applyDanoToToken(), chamado de dentro de applyVitalDeltaToSelectedFicha() no <script>).
+  function grantVitalToPlayer(ownerUid, campo, delta, nome){
+    if(!fbReady || !fbDb || !ownerUid || !delta || !campo) return;
+    fbDb.ref('mesa40k/vitalGrants/' + ownerUid).push({
+      campo, delta,
+      nome: nome || '',
+      from: (currentUser && currentUser.uid) || null,
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+
   // ---------- divindade escolhida pelo mestre pelo resumo ao vivo (dentro de MESA) ----------
   // Diferente do XP (um "presente"/delta consumido uma vez, ver grantXpToPlayer() acima), a
   // divindade é um ESTADO — um .set() simples em mesa40k/deidade/{uid} (nunca um push), sempre
@@ -9125,6 +9247,23 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   wireHoldRepeat($('xpMinusBtn10'), ()=> xpStep(-10));
   wireHoldRepeat($('xpPlusBtn100'), ()=> xpStep(100));
   wireHoldRepeat($('xpMinusBtn100'), ()=> xpStep(-100));
+
+  // ---------- botões ±1/±10 de Vida/Mana/Escudo do topo do Resumo do Tabuleiro (pedido explícito
+  // desta rodada, ver #fichaSummaryControls no HTML/applyVitalDeltaToSelectedFicha() perto de
+  // renderFichaSummaryBubbles()) ---------- botões estáticos (sempre no HTML, nunca recriados por
+  // renderFichaSummaryBubbles() -- só as bolhas em si são refeitas do zero) -- por isso a fiação
+  // acontece uma única vez aqui, igual aos botões de XP acima (mesmo esquema: um 'click' pro
+  // primeiro passo + wireHoldRepeat() pra repetir segurando). Cada botão já nasce desabilitado no
+  // HTML (fica assim até uma bolha ser selecionada, ver updateFichaSummaryControlsState()) --
+  // applyVitalDeltaToSelectedFicha() também já confere sozinha (currentRole/seleção), então não tem
+  // problema nenhum se algum clique escapar por engano enquanto desabilitado.
+  document.querySelectorAll('.fsc-btn').forEach(btn=>{
+    const campo = btn.dataset.campo;
+    const delta = parseInt(btn.dataset.delta, 10);
+    const step = ()=> applyVitalDeltaToSelectedFicha(campo, delta);
+    btn.addEventListener('click', step);
+    wireHoldRepeat(btn, step);
+  });
 
   // ---------- atributos: só sobem/descem pelos botões < >, não são mais digitáveis ----------
   const ATTR_KEYS = ['for','con','des','int','von','car'];
@@ -11199,7 +11338,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
 
   function turnStatusText(){
     const entry = currentTurnEntry();
-    if(!entry) return 'Nenhuma iniciativa rodada ainda.';
+    if(!entry) return 'NENHUMA INICIATIVA RODADA AINDA.';
     // REDESENHO desta rodada: sem contador de "ações restantes" — mostra o estado de cada uma das
     // 2 ações independentes (movimento/rolagem) desta vez (ver canMoveThisTurnToken()/
     // canRollThisTurnToken()). Peça SEM ficha (isFreeform) nunca tem rolagem pra mostrar.
@@ -16263,6 +16402,15 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // que nunca ganham o card de hover no tabuleiro de verdade: resolveTokenVitalsForCard() devolve
   // null pra eles (sem Vida/Mana/Escudo pra mostrar).
   const fichaSummaryListEl = $('fichaSummaryList');
+  // id (token.id) da bolha selecionada agora pelo MESTRE nos botões de Vida/Mana/Escudo do topo
+  // (ver #fichaSummaryControls no HTML/applyVitalDeltaToSelectedFicha() mais abaixo) -- null quando
+  // nada está selecionado (estado inicial, ou a ficha selecionada saiu do tabuleiro/da lista
+  // filtrada). Guardado à parte (não só uma classe CSS na bolha) porque renderFichaSummaryBubbles()
+  // recria a lista inteira do zero a cada atualização (peça se moveu, Vida mudou, etc.) -- sem
+  // guardar o id aqui, a seleção se perderia a cada um desses redesenhos.
+  let selectedFichaSummaryTokenId = null;
+  const fichaSummaryControlsEl = $('fichaSummaryControls');
+  const fichaSummaryControlsLabelEl = $('fichaSummaryControlsLabel');
 
   // Pro JOGADOR, respeita a MESMA visibilidade de Revelar/Fog do próprio tabuleiro ao vivo dele
   // (decisão explícita desta rodada) — uma ficha que a neblina esconderia no tabuleiro de verdade
@@ -16298,6 +16446,22 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   function buildFichaSummaryBubble(entry){
     const bubble = document.createElement('div');
     bubble.className = 'ficha-bubble';
+    // Rodada nova, pedido explícito: SÓ o mestre pode clicar numa bolha pra selecioná-la (fica
+    // marcada com .selected, ver o <style>) e usar os botões de Vida/Mana/Escudo do topo (ver
+    // #fichaSummaryControls no HTML) -- pro jogador a bolha continua igual de antes, sem nenhum
+    // comportamento de clique novo. Toda entrada que chega até aqui já passou por
+    // resolveTokenVitalsForCard() com sucesso (collectBoardOccupantsForSummary() descarta o resto),
+    // ou seja, já é sempre um tipo que applyVitalDeltaToSelectedFicha() sabe tratar (inimigo_ficha/
+    // aliado_ficha local, ou hero com ownerUid via grantVitalToPlayer()) -- sem precisar filtrar de
+    // novo aqui.
+    if(currentRole === 'mestre'){
+      bubble.classList.add('ficha-bubble-selectable');
+      if(entry.token.id === selectedFichaSummaryTokenId) bubble.classList.add('selected');
+      bubble.addEventListener('click', ()=>{
+        selectedFichaSummaryTokenId = (selectedFichaSummaryTokenId === entry.token.id) ? null : entry.token.id;
+        renderFichaSummaryBubbles();
+      });
+    }
     const portraitWrap = document.createElement('div');
     portraitWrap.className = 'ficha-bubble-portrait';
     const portrait = resolveTokenPortrait(entry.token);
@@ -16417,9 +16581,62 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     fichaSummaryListEl.innerHTML = '';
     if(!entries.length){
       fichaSummaryListEl.innerHTML = '<div class="master-empty">Nenhuma ficha no tabuleiro no momento.</div>';
+      updateFichaSummaryControlsState(null);
       return;
     }
     entries.forEach(entry=> fichaSummaryListEl.appendChild(buildFichaSummaryBubble(entry)));
+    // Rodada nova: mantém os botões de Vida/Mana/Escudo do topo em dia com a seleção atual --
+    // acha de novo a entrada selecionada (pode ter saído da lista: peça removida do tabuleiro,
+    // escondida pela Fog, etc.) e atualiza rótulo/habilitação (ver updateFichaSummaryControlsState()
+    // logo abaixo). Comparação por token.id, igual ao clique que grava selectedFichaSummaryTokenId
+    // em buildFichaSummaryBubble().
+    const selectedEntry = selectedFichaSummaryTokenId
+      ? entries.find(e=> e.token.id === selectedFichaSummaryTokenId) || null
+      : null;
+    if(selectedFichaSummaryTokenId && !selectedEntry) selectedFichaSummaryTokenId = null;
+    updateFichaSummaryControlsState(selectedEntry);
+  }
+
+  // Habilita/desabilita os botões ±1/±10 de Vida/Mana/Escudo (ver .fsc-btn no HTML) e atualiza o
+  // rótulo do painel conforme haja (ou não) uma bolha selecionada agora -- chamada só a partir de
+  // renderFichaSummaryBubbles() (o painel em si é ".mestre-only", então nem existe visível pro
+  // jogador, mas os elements continuam no DOM de qualquer forma -- sem checagem de currentRole
+  // aqui, não custa nada manter em dia mesmo escondido).
+  function updateFichaSummaryControlsState(selectedEntry){
+    if(!fichaSummaryControlsEl) return;
+    const btns = fichaSummaryControlsEl.querySelectorAll('.fsc-btn');
+    btns.forEach(btn=>{ btn.disabled = !selectedEntry; });
+    if(fichaSummaryControlsLabelEl){
+      fichaSummaryControlsLabelEl.textContent = selectedEntry
+        ? `AJUSTANDO: ${tokenTooltipText(selectedEntry.token).toUpperCase()}`
+        : 'SELECIONE UMA FICHA ABAIXO PARA AJUSTAR VIDA/MANA/ESCUDO';
+    }
+  }
+
+  // ---------- ajuste de Vida/Mana/Escudo pelos botões do topo do Resumo do Tabuleiro (pedido
+  // explícito desta rodada) ---------- Dois caminhos, conforme o tipo da bolha selecionada:
+  //   - inimigo_ficha/aliado_ficha (instância solta de NPC no tabuleiro, sem ninguém logado em
+  //     conta nenhuma pra "receber" nada por Firebase): ajusta direto no boardTokens local do
+  //     mestre (ver adjustBoardTokenVital(), perto de applyDanoToToken()) e espalha com o mesmo
+  //     scheduleBoardTokensPush() de sempre -- que já redesenha a casa do tabuleiro E as bolhas do
+  //     Resumo (ver o comentário grande dele).
+  //   - hero com ownerUid (ficha de jogador OU do próprio mestre salva com dono, ver
+  //     resolveTokenVitalsForCard()): empurra um "presente"/delta pra mesa40k/vitalGrants/{uid}
+  //     (ver grantVitalToPlayer(), mesmo padrão de grantXpToPlayer()) -- quem estiver logado
+  //     com esse uid aplica na hora (ver handleVitalGrant()), e a bolha atualiza sozinha quando essa
+  //     pessoa republica mesa40k/live/{uid} (pushLiveVitals(), disparado por recalc() depois do
+  //     ajuste) -- sem eco otimista aqui, mesmo comportamento (sem atualização local instantânea)
+  //     que o "Distribuir XP" já tinha antes desta rodada.
+  function applyVitalDeltaToSelectedFicha(campo, delta){
+    if(currentRole !== 'mestre' || !selectedFichaSummaryTokenId || !delta) return;
+    const tok = findBoardTokenById(selectedFichaSummaryTokenId);
+    if(!tok) return;
+    if(tok.kind === 'inimigo_ficha' || tok.kind === 'aliado_ficha'){
+      adjustBoardTokenVital(tok, campo, delta);
+      scheduleBoardTokensPush();
+    } else if(tok.kind === 'hero' && tok.ownerUid){
+      grantVitalToPlayer(tok.ownerUid, campo, delta, tok.name || '');
+    }
   }
 
   // chamado sempre que mesa/live muda (ver onLiveVitalsChanged() mais abaixo) — refaz cada casa do
@@ -17178,6 +17395,22 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     const vidaPerdida = vidaCur - vidaDepois;
     tok.vidaAtual = vidaDepois;
     return { escudoAbsorvido, vidaPerdida, vidaDepois, vidaMax, morreu: vidaMax > 0 && vidaDepois <= 0 };
+  }
+
+  // Ajuste direto de Vida/Mana/Escudo de uma instância de Inimigo/Aliado (token.kind
+  // 'inimigo_ficha'/'aliado_ficha') pelos botões do Resumo do Tabuleiro (ver
+  // applyVitalDeltaToSelectedFicha() perto de renderFichaSummaryBubbles()) -- bem mais simples que
+  // applyDanoToToken() acima (sem absorção de Escudo: aqui o mestre está corrigindo um valor
+  // específico direto, não aplicando dano de combate), sempre limitado entre 0 e o máximo daquele
+  // campo mesmo. campo é sempre 'vida'/'mana'/'escudo' -- os nomes batem exatamente com os campos
+  // já usados no token (tok.vidaAtual/vidaMax, tok.manaAtual/manaMax, tok.escudoAtual/escudoMax,
+  // ver resolveTokenVitalsForCard()/buildFichaInstanceToken()).
+  function adjustBoardTokenVital(tok, campo, delta){
+    if(!tok || !delta) return;
+    const curKey = campo + 'Atual', maxKey = campo + 'Max';
+    const max = tok[maxKey] || 0;
+    const cur = tok[curKey] != null ? tok[curKey] : max;
+    tok[curKey] = Math.max(0, Math.min(max, cur + delta));
   }
 
   // tamanho da Barreira (a única entrada resizable:true de OBSTACLE_KINDS) não é fixo — vem dos
@@ -17958,14 +18191,14 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     }
     cloudSaveBtn.disabled = true;
     const original = cloudSaveBtn.textContent;
-    cloudSaveBtn.textContent = 'Salvando...';
+    cloudSaveBtn.textContent = 'SALVANDO...';
     try{
       // salvar a ficha na mesa não deve gerar aviso no Discord — só as ações da aba Mesa
       // (dados, print do tabuleiro, iniciativa) e o histórico de rolagens fazem isso.
       // passa o sha já conhecido (se o caminho é o mesmo de antes) pra pular uma busca desnecessária
       // no GitHub antes de gravar — corta pela metade o tempo desse salvamento.
       const result = await githubPutFile(path, state, `Salva ficha de ${state.nome}`, path === loadedFichaPath ? loadedFichaSha : null);
-      cloudSaveBtn.textContent = '✓ Salvo!';
+      cloudSaveBtn.textContent = '✓ SALVO!';
       // fixa essa origem (e o sha novo, retornado pelo GitHub) — salvamentos seguintes nesta mesma
       // sessão continuam indo pro mesmo lugar e já pulam a busca do sha também.
       loadedFichaPath = path;
@@ -17977,13 +18210,13 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     }catch(err){
       console.error(err);
       if(err.message === 'NO_TOKEN'){
-        cloudSaveBtn.textContent = 'Configure o token';
+        cloudSaveBtn.textContent = 'CONFIGURE O TOKEN';
       } else if(/401|Bad credentials/i.test(err.message)){
-        cloudSaveBtn.textContent = 'Token inválido';
+        cloudSaveBtn.textContent = 'TOKEN INVÁLIDO';
       } else if(/403/.test(err.message)){
-        cloudSaveBtn.textContent = 'Sem permissão';
+        cloudSaveBtn.textContent = 'SEM PERMISSÃO';
       } else {
-        cloudSaveBtn.textContent = 'Erro ao salvar';
+        cloudSaveBtn.textContent = 'ERRO AO SALVAR';
       }
     }
     // botão volta ao normal rápido — só o tempo de ler a confirmação, sem travar o próximo clique por muito tempo.
@@ -19119,7 +19352,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     loginMode = mode;
     $('loginModeEntrarBtn').classList.toggle('selected', mode === 'entrar');
     $('loginModeCadastrarBtn').classList.toggle('selected', mode === 'cadastrar');
-    $('loginSubmitBtn').textContent = mode === 'entrar' ? 'Entrar' : 'Cadastrar';
+    $('loginSubmitBtn').textContent = mode === 'entrar' ? 'ENTRAR' : 'CADASTRAR';
     loginError.textContent = '';
     if(mode === 'entrar'){
       selectedLoginRole = null;
@@ -21758,6 +21991,48 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     xpGrantListenerRef.on('child_added', handleXpGrant);
   }
 
+  // ---------- recebe Vida/Mana/Escudo ajustados pelo mestre pelas bolhas do Resumo do Tabuleiro
+  // (ver grantVitalToPlayer() lá em cima, perto de grantXpToPlayer()) ---------- escuta
+  // mesa40k/vitalGrants/{meuUid}: mesmo esquema do XP acima (fila de "presentes" consumidos um a
+  // um, não um estado pra sobrescrever). Aplica o delta direto no campo certo (els.curVida/
+  // els.curMana/els.barreiraCur), sempre limitado entre 0 e o máximo ATUAL daquele campo (vidaMax/
+  // manaMax vêm do próprio texto calculado em els.maxVida/els.maxMana -- igual pushLiveVitals() lê
+  // -- e escudoMax vem direto de els.barreiraMax, um campo de verdade da ficha). recalc() no final
+  // já cuida de tudo o mais (barra visual, pushLiveVitals() republicando pro resumo ao vivo de
+  // volta, etc.), igual qualquer outra edição manual desses campos.
+  let vitalGrantListenerRef = null;
+  function disconnectVitalGrantListener(){
+    if(vitalGrantListenerRef){
+      vitalGrantListenerRef.off('child_added', handleVitalGrant);
+      vitalGrantListenerRef = null;
+    }
+  }
+  function handleVitalGrant(snap){
+    const grant = snap.val();
+    if(grant && typeof grant.delta === 'number' && grant.delta && grant.campo){
+      let changed = true;
+      if(grant.campo === 'vida'){
+        const max = parseFloat(els.maxVida.textContent) || 0;
+        els.curVida.value = Math.max(0, Math.min(max, num(els.curVida) + grant.delta));
+      } else if(grant.campo === 'mana'){
+        const max = parseFloat(els.maxMana.textContent) || 0;
+        els.curMana.value = Math.max(0, Math.min(max, num(els.curMana) + grant.delta));
+      } else if(grant.campo === 'escudo'){
+        const max = num(els.barreiraMax) || 0;
+        els.barreiraCur.value = Math.max(0, Math.min(max, num(els.barreiraCur) + grant.delta));
+      } else {
+        changed = false;
+      }
+      if(changed){ recalc(); playPlim(); }
+    }
+    if(vitalGrantListenerRef) vitalGrantListenerRef.child(snap.key).remove();
+  }
+  function connectVitalGrantListener(){
+    if(vitalGrantListenerRef || !fbDb || !currentUser) return;
+    vitalGrantListenerRef = fbDb.ref('mesa40k/vitalGrants/' + currentUser.uid);
+    vitalGrantListenerRef.on('child_added', handleVitalGrant);
+  }
+
   // ---------- recebe a divindade escolhida pelo mestre (ver setHeroDeidade() lá em cima, perto de
   // grantXpToPlayer()) ---------- escuta mesa40k/deidade/{meuUid}: diferente do XP (uma fila de
   // "presentes" consumidos um a um), aqui é um ESTADO simples (.set(), não .push()) — cada mudança
@@ -22352,6 +22627,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         disconnectAtributosJogadorListener();
         disconnectVidaManaListener();
         disconnectVidaManaJogadorListener();
+        disconnectVitalGrantListener();
         $('chatPanel').hidden = true;
         // Fase 4 do "tabuleiro único": Resumos de ficha agora fica ao vivo desde o login (não mais
         // só enquanto "📂 Gerenciar tabuleiro" estava aberto) -- por isso precisa de uma limpeza
@@ -22442,6 +22718,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
           connectElemento2Listener();
           connectAtributosListener();
           connectVidaManaListener();
+          connectVitalGrantListener();
         });
       }
       fbDb.ref('mesa40k/config/webhook').on('value', (snap)=>{

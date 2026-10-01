@@ -389,6 +389,12 @@ body{
 }
 .chat-min-btn:hover{border-color:var(--gold-bright);color:var(--ink);}
 .chat-panel-body{display:flex;flex-direction:column;min-height:0;flex:1;position:relative;}
+/* Rodada nova, igual ao index_mag.html (mesmo bug/correção de lá): sem esta linha, o
+   display:flex desta mesma regra (origem "author") ganha do display:none padrão do navegador
+   pro atributo [hidden] -- a aba Chat nunca chegava a desaparecer de verdade ao trocar pra
+   "📂 Gerenciar Tabuleiro" (ver CHAT_TABS/setChatActiveTab() no <script>), só encolhia dividindo
+   espaço no flex. */
+.chat-panel-body[hidden]{display:none;}
 .chat-panel.minimized .chat-panel-body{display:none;}
 .chat-panel.minimized{max-height:none;}
 /* fundo animado do chat: estrelinhas (ou caveirinhas) subindo continuamente atrás das mensagens e
@@ -725,17 +731,125 @@ body{
 .modal-actions button.danger:hover{background:rgba(138,45,33,.08);}
 .master-card button.mc-view[disabled], .master-card button.mc-delete[disabled]{opacity:.5;cursor:not-allowed;}
 
+/* ---------- faixa fixa de Tabuleiro+Chat, FORA do cartão que vira (rodada nova) ---------- */
+/* Pedido explícito ("MESA e a guia de tabuleiro do index_bg ficam iguais aos do index_mag, quanto
+   ao design de página"): #liveBoardPanel/#chatPanel saem de dentro da ficha e #mesaContent sai de
+   dentro do verso -- os 3 são os MESMOS elementos/ids de sempre (mesma lógica de mostrar/esconder
+   no login, ver "$('liveBoardPanel').hidden"/"$('chatPanel').hidden"/"$('mesaFixedPanel').hidden"
+   no <script>), só que agora filhos de #mesaFixedBody em vez de filhos de .face.front/.face.back
+   -- por isso o CSS deles (.live-board-panel/.chat-panel/.mesa-content, mais abaixo) continua
+   valendo sem precisar mudar nada. Igual ao index_mag.html: esta faixa é IRMÃ de .stage, direto no
+   <body>, logo depois de .toolbar -- fica sempre visível depois do login, não importa a ficha
+   estar de frente, de verso (História) ou com "📂 Gerenciar Tabuleiro" aberto (aba mestre-only do
+   chat agora, ver CHAT_TABS/setChatActiveTab() no <script>). Usa as MESMAS variáveis de cor de
+   sempre (--paper-l/--paper/--paper-d/--ink-faint/--gold-bright etc.) -- a paleta do BG continua a
+   mesma, só o endereço destes painéis mudou. */
+.mesa-fixed-panel{
+  width:100%;
+  margin:0 auto 18px;
+  position:relative;
+}
+.mesa-fixed-panel[hidden]{display:none;}
+.mesa-fixed-body{
+  display:flex;align-items:stretch;gap:12px;flex-wrap:wrap;
+  border:1px solid var(--ink-faint);border-radius:5px;
+  background:var(--paper);
+  padding:10px;
+}
+/* dentro da faixa fixa, os próprios .panel (live-board-panel/chat-panel) perdem a margem inferior
+   de .panel genérico (senão sobra um respiro estranho embaixo deles aqui dentro) e viram colunas
+   flex lado a lado, cada uma com um mínimo confortável de largura antes de quebrar linha em telas
+   estreitas. */
+.mesa-fixed-body .live-board-panel, .mesa-fixed-body .chat-panel{
+  margin-bottom:0;min-width:320px;
+}
+/* Rodada nova, pedido explícito ("o tabuleiro deveria ser mais ou menos 75% do lado dele do painel
+   e o resto para as gavetas que ficam junto com o CHAT" -- antes os dois dividiam a faixa
+   exatamente na metade, flex:1 1 380px pros dois): flex-grow 3:1 com flex-basis 0 nos dois mantém
+   a proporção ~75%/25% em qualquer largura de tela (em vez de um teto fixo em px). */
+.mesa-fixed-body .live-board-panel{flex:3 1 0;}
+.mesa-fixed-body .chat-panel{flex:1 1 0;}
+/* Rodada nova ("FASE 3"), igual ao index_mag.html: faixa mestre-only ACIMA do tabuleiro+chat com os
+   10 botões de ação relocados (ver #mesaFixedTopActions no HTML). Espelha .mesa-fixed-bottom (mesmo
+   tom --paper-d, mesmo padding/gap/flex-wrap), só que ANTES de #mesaFixedBody em vez de depois. */
+.mesa-fixed-top-actions{
+  min-height:34px;
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+  border:1px solid var(--ink-faint);border-radius:5px 5px 0 0;
+  background:var(--paper-d);
+  padding:6px 10px;margin-bottom:8px;
+}
+.mesa-fixed-top-actions .mini-btn{white-space:nowrap;}
+/* zoom simples no hover, só pros botões desta faixa -- não reaproveita .mesa-fixed-icon-btn:hover
+   (mesmo scale, mas aquela classe também traria o resto do visual quadrado de 44x44px, pensado pra
+   outro contexto, com só 3 botões). z-index sobe igual, pro botão em zoom nunca ficar tampado pelo
+   vizinho ao lado. */
+.mesa-fixed-top-actions .mini-btn,
+.mesa-fixed-top-actions .board-mode-toggle{
+  transition:transform .15s ease;
+}
+.mesa-fixed-top-actions .mini-btn:hover,
+.mesa-fixed-top-actions .board-mode-toggle:hover{
+  transform:scale(1.18);
+  z-index:6;
+  position:relative;
+}
+/* Rodada nova ("FASE 3"), igual ao index_mag.html: faixa ABAIXO do tabuleiro+chat com o botão de
+   Rolar Sorte + os botões de restaurar Vida/Mana, todos no mesmo estilo quadrado (ver
+   #mesaFixedBottom no HTML). */
+.mesa-fixed-bottom{
+  min-height:34px;
+  display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+  border:1px solid var(--ink-faint);border-radius:0 0 5px 5px;
+  background:var(--paper-d);
+  padding:6px 10px;margin-top:8px;
+}
+.mesa-fixed-sorte-btn{width:auto;margin-top:0;}
+.mesa-fixed-icon-btn{
+  flex:0 0 auto;
+  width:44px;height:44px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;line-height:1;
+  transition:transform .15s ease;
+  z-index:1;
+  position:relative;
+}
+.mesa-fixed-icon-btn:hover{transform:scale(1.18);z-index:6;}
+.mesa-fixed-icon-btn:active{transform:scale(1.05);}
+
+/* Rodada nova, igual ao index_mag.html: seletor de abas do chat (💬 Chat / 📂 Gerenciar Tabuleiro,
+   mestre-only) -- mesma receita visual de botão "acende/apaga" já usada nos modos de visão do
+   tabuleiro (.mode-active), só menor, pra caber lado a lado no topo da caixa do chat. Ver
+   CHAT_TABS/setChatActiveTab() no <script>. */
+.chat-tabs{display:flex;gap:6px;flex:none;margin-bottom:8px;flex-wrap:wrap;}
+.chat-tab-btn{
+  flex:1 1 auto;min-width:0;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  border:1px solid var(--ink-faint);border-radius:5px;
+  padding:6px 6px;cursor:pointer;background:rgba(120,85,40,.06);
+  font:inherit;font-size:11px;text-transform:uppercase;letter-spacing:.02em;
+  color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:border-color .15s, background .15s, color .15s;
+}
+.chat-tab-btn:hover{border-color:var(--gold-bright);color:var(--ink);}
+.chat-tab-btn.mode-active{border-color:var(--gold-bright);background:rgba(227,197,140,.14);color:var(--ink);}
+/* corpo da aba "📂 Gerenciar Tabuleiro" (#mesaContent, ver .mesa-content[hidden] mais abaixo pra
+   quem cuida de escondê-la) -- mesma moldura/rolagem que o corpo da aba Chat já tinha
+   (.chat-panel-body). */
+.chat-tab-body{display:flex;flex-direction:column;min-height:0;flex:1;overflow-y:auto;}
+.chat-tab-body[hidden]{display:none;}
+
 /* ---------- mesa: tabuleiro de batalha ---------- */
-/* MESA agora é literalmente uma página da própria ficha, não um modal flutuante: mora DENTRO do
-   verso do cartão (.face.back), no mesmo lugar onde fica o "Verso" normal (história/retrato) —
-   ver #versoContent/#mesaContent no HTML, ambos filhos de .face-inner. Só um dos dois fica visível
-   por vez (o outro leva o atributo "hidden"), trocado por setBackFaceMode() no <script>. O giro
-   continua sendo o MESMO giro do cartão inteiro usado por Ver Verso (.card.flipped, mesma
-   duração/curva/som, ver playFlipSound()) — clicar em #mesaBtn (mestre-only) chama
-   setBackFaceMode('mesa') e vira o cartão pro verso mostrando MESA; clicar em Ver Verso chama
-   setBackFaceMode('verso') e volta a mostrar a história normal. #closeMesa agora só vira o
-   cartão de volta pra frente (não existe mais "fechar um modal"). */
-.verso-content[hidden], .mesa-content[hidden]{display:none;}
+/* Rodada nova, igual ao index_mag.html: MESA deixou de morar dentro do verso do cartão (era
+   assim numa rodada anterior, ver o comentário velho que ficava aqui) -- #mesaContent agora vive
+   na faixa fixa (#mesaFixedPanel, fora de #card, ver o comentário grande dela mais acima) como
+   mais uma aba do chat (.chat-tab-body, mestre-only -- ver CHAT_TABS/setChatActiveTab() no
+   <script>). #versoContent continua sendo o único conteúdo do verso do cartão (história/retrato),
+   trocado por setBackFaceMode() no <script> -- só perdeu o modo 'mesa'. */
+.verso-content[hidden]{display:none;}
+/* .mesa-content[hidden] já cai na regra genérica .chat-tab-body[hidden] (ver mais acima) -- fica
+   só como reforço/registro, sem risco nenhum de conflito (mesma declaração). */
+.mesa-content[hidden]{display:none;}
 .board-section{margin-top:20px;padding-top:16px;border-top:1px dashed var(--border-brown);}
 .board-title{font-family:'Marcellus SC',serif;font-size:16px;color:var(--ink);margin:0 0 4px;}
 /* modos de visão do tabuleiro ao vivo (Revelar/Dark/Fog) — ficam no menu abaixo do tabuleiro, junto
@@ -998,8 +1112,13 @@ body{
    igual ao brilho já usado em outros elementos da ficha (cristais, joia de Nível, tampas das
    garrafas). O token em si tem overflow:hidden, mas isso só corta o CONTEÚDO dele (a imagem por
    dentro), não o próprio box-shadow do elemento — por isso o brilho aparece por fora normalmente. */
+/* token-aliado_ficha (rodada nova, "FASE 4c" do porte "MESA/tabuleiro iguais ao index_mag") é o
+   mesmo tratamento pras fichas de NPC marcadas "Aliados" (ver #f_publica/renderAliadoFichaCoins()
+   no <script>) colocadas no tabuleiro como peça de verdade -- entra no mesmo grupo visual verde
+   dos ícones genéricos de aliado, igual ao index_mag.html. */
 .board-token.token-aliado,
-.board-token.token-aliado_fera{
+.board-token.token-aliado_fera,
+.board-token.token-aliado_ficha{
   animation:boardTokenGlowGreen 2.2s ease-in-out infinite;
 }
 @keyframes boardTokenGlowGreen{
@@ -1036,7 +1155,7 @@ body{
   50%{ box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 1.5px rgba(255,244,214,.85), 0 0 0 2.5px var(--enemy-ring-color), 0 0 0 4.5px #000, 0 0 12px 3px rgba(176,74,54,.95); }
 }
 @media (prefers-reduced-motion: reduce){
-  .board-token.token-aliado, .board-token.token-aliado_fera,
+  .board-token.token-aliado, .board-token.token-aliado_fera, .board-token.token-aliado_ficha,
   .board-token.token-inimigo, .board-token.token-monstro, .board-token.token-boss, .board-token.token-inimigo_ficha,
   .board-token.token-hero.token-hero-pvp, .board-token.token-hero.token-hero-pvp.token-hero-mestre{
     animation:none !important;
@@ -1577,46 +1696,9 @@ body{
 .master-card .mc-delete{border-color:var(--wax);color:var(--wax-dark);}
 .master-card .mc-delete:hover{border-color:var(--wax-bright);background:rgba(138,45,33,.1);}
 
-/* "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa -- os cards aqui eram idênticos aos das
-   listas em modal (.master-card, empilhados em coluna, letra pequena), o que deixava difícil ler
-   os valores de relance durante a sessão. Muda só ESTE painel (seletor travado no ID, igual o
-   comentário de #mesaHeroSummaryList.collapsed acima explica) pra cartões maiores, lado a lado
-   (coluna vira linha) com uma barra de rolagem horizontal quando não cabem todos na largura da
-   tela -- .master-list/.master-card seguem intocados nas outras listas (masterList/
-   masterMestreList, dentro dos modais). */
-#mesaHeroSummaryList{
-  display:flex;
-  flex-direction:row;
-  flex-wrap:nowrap;
-  align-items:stretch;
-  gap:16px;
-  overflow-x:auto;
-  overflow-y:hidden;
-  padding-bottom:12px; /* respiro pra barra de rolagem não colar nos cards */
-  scrollbar-gutter:stable;
-}
-#mesaHeroSummaryList .master-card{
-  display:flex;
-  flex-direction:column;
-  flex:0 0 280px;
-  width:280px;
-  padding:16px 18px;
-}
-#mesaHeroSummaryList .master-card .mc-name{font-size:22px;}
-#mesaHeroSummaryList .master-card .mc-meta{font-size:14px;margin-top:4px;}
-#mesaHeroSummaryList .master-card .mc-vitals{font-size:14.5px;line-height:1.6;margin-top:8px;}
-#mesaHeroSummaryList .master-card .mc-attrs{font-size:13.5px;gap:10px;margin-top:10px;}
-#mesaHeroSummaryList .master-card .mc-xp-controls{margin-top:12px;gap:8px;}
-#mesaHeroSummaryList .master-card .mc-xp-controls-label,
-#mesaHeroSummaryList .master-card .mc-deidade-control-label{font-size:13px;}
-#mesaHeroSummaryList .master-card .mc-xp-btn{font-size:13px;padding:7px 11px;min-width:38px;}
-#mesaHeroSummaryList .master-card .mc-deidade-control{margin-top:10px;gap:8px;}
-#mesaHeroSummaryList .master-card .mc-deidade-select{font-size:13px;padding:5px 7px;}
-/* telas estreitas: cards um pouco menores pra não dominar sozinhos a largura visível */
-@media (max-width: 600px){
-  #mesaHeroSummaryList .master-card{flex-basis:230px;width:230px;padding:13px 14px;}
-  #mesaHeroSummaryList .master-card .mc-name{font-size:19px;}
-}
+/* Rodada nova ("FASE 4b"), igual ao index_mag.html: o painel "Fichas dos Jogadores (resumo ao
+   vivo)" saiu por completo -- as regras #mesaHeroSummaryList{...} que moravam aqui saíram junto
+   (nada mais usa esse id). */
 
 /* ---------- modal de Configurações (só mestre) ---------- */
 
@@ -3161,10 +3243,104 @@ body{
    que são as ferramentas mais usadas da ficha — só ganham a opção de encolher pra quem quiser
    liberar espaço na tela. */
 .dice-panel-body.collapsed{display:none;}
-/* "Fichas dos Jogadores (resumo ao vivo)" dentro da Mesa -- mesmo mecanismo de minimizar do
-   Histórico de Rolagens logo abaixo, só que aplicado direto na lista (.master-list é reaproveitada
-   por outras listas fora da Mesa, então o seletor fica travado no ID pra não afetar as outras). */
-#mesaHeroSummaryList.collapsed{display:none;}
+/* "🧾 Resumo do Tabuleiro" (bolhas, ver comentário grande no HTML/renderFichaSummaryBubbles() no
+   <script>) -- mesmo mecanismo de minimizar de "Fichas dos Jogadores" acima, aplicado direto na
+   lista (mesma razão: .ficha-bubble-list é a classe visual, o ID trava o seletor só nesta lista). */
+#fichaSummaryList.collapsed{display:none;}
+/* Bolhas do "Resumo do Tabuleiro" (retrato+nome+card de Vida/Escudo/Mana+atributos/XP) -- porte
+   direto do mesmo mecanismo do Mag (buildFichaSummaryBubble()/buildBoardVitalsCard() no <script>,
+   ver o comentário grande lá), já sem o efeito de zoom no hover e já com a fonte grande do resumo
+   de atributos (as duas coisas eram pedidos de rodadas separadas do Mag, feitas ali DEPOIS do
+   conceito ter nascido -- aqui entram de saída, já no tamanho/comportamento final). */
+.ficha-bubble-list{display:flex;flex-direction:column;gap:8px;padding:4px 2px 10px;}
+.ficha-bubble{
+  display:flex;flex-direction:row;align-items:center;gap:12px;
+  width:100%;padding:6px 10px;border-radius:8px;
+  transition:background .15s ease;cursor:default;
+}
+.ficha-bubble:hover{background:rgba(0,0,0,.35);box-shadow:0 4px 14px rgba(0,0,0,.5);}
+.ficha-bubble-portrait{
+  width:52px;height:52px;border-radius:50%;overflow:hidden;flex:none;
+  border:2px solid var(--gold-text);background:#1a1a1a;
+  display:flex;align-items:center;justify-content:center;
+}
+.ficha-bubble-portrait img{width:100%;height:100%;object-fit:cover;}
+.ficha-bubble-portrait-empty::after{content:'?';color:var(--ink-faint);font-size:18px;}
+.ficha-bubble-info{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0;flex:1;}
+.ficha-bubble-name{
+  font-size:12px;text-align:left;color:var(--ink);max-width:100%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* buildBoardVitalsCard() nasceu pra flutuar do lado de uma casa do tabuleiro (ver
+   .board-token-vitalscard mais abaixo) -- dentro da bolha ela precisa aparecer normal, sempre
+   visível, como qualquer conteúdo de bloco -- por isso os overrides abaixo, direto no seletor mais
+   específico (dentro de .ficha-bubble). */
+.ficha-bubble .board-token-vitalscard{
+  position:static;transform:none;opacity:1;visibility:visible;pointer-events:auto;
+  margin-top:2px;
+}
+.ficha-bubble-stats-row{display:flex;align-items:flex-start;gap:12px;width:100%;}
+.ficha-bubble-attrs{display:flex;flex-direction:column;gap:5px;flex:1;min-width:0;}
+.ficha-bubble-attrs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px 10px;}
+.ficha-bubble-attr-cell{display:flex;align-items:baseline;justify-content:space-between;gap:4px;}
+.ficha-bubble-attr-label{
+  font-family:'Cinzel Decorative',serif;font-size:11px;letter-spacing:.06em;
+  color:var(--ink-soft);text-transform:uppercase;
+}
+.ficha-bubble-attr-val{font-size:14px;font-weight:700;color:var(--ink);}
+.ficha-bubble-xp-wrap{display:flex;flex-direction:column;gap:2px;margin-top:1px;}
+.ficha-bubble-xp-label{
+  font-family:'Cinzel Decorative',serif;font-size:10.5px;letter-spacing:.07em;
+  color:var(--ink-faint);text-transform:uppercase;
+}
+.ficha-bubble-xp-track{
+  position:relative;width:100%;height:5px;border-radius:3px;
+  background:rgba(0,0,0,.4);overflow:hidden;border:1px solid var(--ink-faint);
+}
+.ficha-bubble-xp-fill{
+  height:100%;border-radius:3px;
+  background:linear-gradient(90deg,#8a661f,#e0b656);
+  transition:width .3s ease;
+}
+/* Card de Vida/Mana/Escudo (Escudo = anel de luz ao redor da barrinha de Vida, Mana = barrinha
+   sólida na cor da Divindade) -- porte direto de .board-token-vitalscard/.bvc-* do Mag. Aqui só é
+   usado DENTRO da bolha (ver o override acima), nunca flutuando do lado de uma casa do tabuleiro
+   (index_BG.html não tem o hover-card na casa em si, escopo desta rodada é só o painel de bolhas). */
+.board-token-vitalscard{
+  display:flex;align-items:flex-start;gap:9px;
+}
+.bvc-col{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.bvc-nums{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.bvc-num{
+  font-size:10px;line-height:1;font-weight:700;
+  text-shadow:0 1px 2px #000, 0 0 3px #000;
+  white-space:nowrap;
+}
+.bvc-num-vida{color:#ff8a6e;}
+.bvc-vida-slot{position:relative;width:12px;height:54px;}
+.bvc-vida-wrap{
+  position:absolute;inset:0;
+  overflow:hidden;border-radius:4px;
+  background:linear-gradient(to top, #5c0f0f 0%, #c22626 55%, #ff8a6e 100%);
+  box-shadow:0 1px 4px rgba(0,0,0,.7), inset 0 0 0 1px rgba(0,0,0,.55);
+}
+.bvc-vida-mask{
+  position:absolute;top:0;left:0;right:0;
+  background:rgba(8,7,6,.95);
+  transition:height .2s;
+}
+.bvc-escudo-ring{position:absolute;inset:-4px;overflow:visible;pointer-events:none;}
+.bvc-escudo-ring-fill{fill:none;stroke-width:2.4px;stroke-linecap:round;transition:stroke-dashoffset .2s, stroke .2s;}
+.bvc-mana-wrap{
+  position:relative;width:12px;height:54px;
+  overflow:hidden;border-radius:4px;
+  background:rgba(0,0,0,.55);
+  box-shadow:0 1px 4px rgba(0,0,0,.7), inset 0 0 0 1px rgba(0,0,0,.55);
+}
+.bvc-mana-fill{
+  position:absolute;left:0;right:0;bottom:0;
+  transition:height .2s, background-color .2s;
+}
 /* botão de minimizar/expandir no cabeçalho de Modificadores — flutua à direita do título, sem
    mudar a altura da faixa (border-bottom) que já existe embaixo de todo <h2> de painel. */
 .panel-toggle-btn{
@@ -3615,10 +3791,10 @@ body{
      pra ficha sem passar pela tela de login de novo). position:fixed com z-index mais alto que o
      #loginGate (9999) garante que aparece por cima nos dois casos. -->
 <div class="campaign-switcher" id="campaignSwitcher">
-  <button type="button" id="campaignSwitcherBtn" class="campaign-switcher-btn" aria-haspopup="true" aria-expanded="false">🎭 Mesas ▾</button>
+  <button type="button" id="campaignSwitcherBtn" class="campaign-switcher-btn" aria-haspopup="true" aria-expanded="false">🎭 MESAS ▾</button>
   <div class="campaign-switcher-menu" id="campaignSwitcherMenu" hidden>
-    <span class="campaign-switcher-item campaign-switcher-item-current">⚱️ Petricor</span>
-    <a href="index_mag.html" class="campaign-switcher-item">🌿 Mag Mell</a>
+    <span class="campaign-switcher-item campaign-switcher-item-current">⚱️ PETRICOR</span>
+    <a href="index_mag.html" class="campaign-switcher-item">🌿 MAG MELL</a>
   </div>
 </div>
 
@@ -3637,20 +3813,20 @@ body{
     <div class="lightning-bolt bolt-3"></div>
   </div>
   <div class="login-box" id="loginNormalBox">
-    <h1>⚔️ Entrar na Mesa</h1>
+    <h1>⚔️ ENTRAR NA MESA</h1>
     <p id="loginSubtitle">Entre com sua conta pra continuar.</p>
     <div class="login-mode-tabs">
-      <button id="loginModeEntrarBtn" type="button" class="login-mode-tab">Entrar</button>
-      <button id="loginModeCadastrarBtn" type="button" class="login-mode-tab">Cadastrar</button>
+      <button id="loginModeEntrarBtn" type="button" class="login-mode-tab">ENTRAR</button>
+      <button id="loginModeCadastrarBtn" type="button" class="login-mode-tab">CADASTRAR</button>
     </div>
     <div class="login-role-buttons" id="loginRoleButtons" hidden>
-      <button id="loginMestreBtn" type="button" class="login-role-btn">📜 Cadastrar como Mestre</button>
-      <button id="loginJogadorBtn" type="button" class="login-role-btn">🗡️ Cadastrar como Jogador</button>
+      <button id="loginMestreBtn" type="button" class="login-role-btn">📜 CADASTRAR COMO MESTRE</button>
+      <button id="loginJogadorBtn" type="button" class="login-role-btn">🗡️ CADASTRAR COMO JOGADOR</button>
     </div>
-    <input type="email" id="loginEmailInput" placeholder="E-mail" autocomplete="username">
-    <input type="password" id="loginPasswordInput" placeholder="Senha" autocomplete="current-password">
-    <input type="password" id="loginMasterPassInput" placeholder="Senha de mestre" autocomplete="off" hidden>
-    <button id="loginSubmitBtn" type="button">Entrar</button>
+    <input type="email" id="loginEmailInput" placeholder="E-MAIL" autocomplete="username">
+    <input type="password" id="loginPasswordInput" placeholder="SENHA" autocomplete="current-password">
+    <input type="password" id="loginMasterPassInput" placeholder="SENHA DE MESTRE" autocomplete="off" hidden>
+    <button id="loginSubmitBtn" type="button">ENTRAR</button>
     <div id="loginError" class="login-error"></div>
     <p class="login-hint" id="loginHint">Já tem conta? Entre com seu e-mail e senha. Ainda não tem conta nesta mesa? Clique em "Cadastrar", escolha se você é o Mestre ou um Jogador, e crie seu e-mail e senha.</p>
   </div>
@@ -3661,10 +3837,10 @@ body{
        senha" na própria tela de login; quem esquece a senha pede pro mestre redefinir). Fica
        escondida o tempo todo, exceto nesse caso específico. -->
   <div class="login-box" id="loginResetBox" hidden>
-    <h1>🔑 Nova senha</h1>
+    <h1>🔑 NOVA SENHA</h1>
     <p id="loginResetEmailLabel">Escolha a nova senha:</p>
-    <input type="password" id="loginResetNewPass" placeholder="Nova senha (mínimo 6 caracteres)" autocomplete="new-password">
-    <button id="loginResetSubmitBtn" type="button">Salvar nova senha</button>
+    <input type="password" id="loginResetNewPass" placeholder="NOVA SENHA (MÍNIMO 6 CARACTERES)" autocomplete="new-password">
+    <button id="loginResetSubmitBtn" type="button">SALVAR NOVA SENHA</button>
     <div id="loginResetError" class="login-error"></div>
   </div>
 </div>
@@ -3690,12 +3866,12 @@ body{
        (renderEnredoList() no <script> só desenha o "+"/"💾 Salvar"/o ✕ de cada bloco quando
        currentRole === 'mestre'). Não usa o Firebase -- ver comentário completo em ENREDO_PATH no
        <script>. -->
-  <button id="enredoBtn" title="Enredo da campanha — a história contada pelo mestre, em texto e imagens">📚 Enredo</button>
+  <button id="enredoBtn" title="Enredo da campanha — a história contada pelo mestre, em texto e imagens">📚 ENREDO</button>
   <!-- MAPA: ao contrário de quase todo o resto da barra, NÃO tem classe mestre-only/jogador-only:
        aparece pros DOIS papéis (o conteúdo de dentro do modal é que muda -- ver #mapModal mais
        abaixo e a seção "Mapa" no <script>). Pro jogador é só a imagem com zoom, só-leitura; pro
        mestre ganha os controles de edição (imagem de fundo, paleta de ícones, desenho de linha). -->
-  <button id="mapBtn" title="Mapa da campanha — imagem com ícones e anotações, editável pelo mestre e visível em tempo real pra todo mundo">🗺️ Mapa</button>
+  <button id="mapBtn" title="Mapa da campanha — imagem com ícones e anotações, editável pelo mestre e visível em tempo real pra todo mundo">🗺️ MAPA</button>
   <!-- Botão novo, de propósito o PRIMEIRO da barra ("no topo dos seletores", a pedido) -- classe
        .jogador-only (nova, ver applyRoleVisibility() no <script>): só aparece pro JOGADOR, o
        mestre não vê este botão (ele já enxerga tudo, público ou não, por "🔒 Fichas do Mestre").
@@ -3704,25 +3880,408 @@ body{
        opts.npcPublicFilter em makeFichasListLoader() e npcBtn/npcModal mais abaixo no <script>) --
        o jogador pode abrir ("Ver ficha") pra consultar, mas a ficha entra travada só-leitura
        (mesmo cadeado de "ficha de outro jogador", ver loadedFichaIsNpc/isFichaEditable()). -->
-  <button id="npcBtn" class="jogador-only" title="Fichas de NPC que o mestre marcou como Público — você pode consultar, mas só o mestre edita">🧚 Fichas de NPC</button>
-  <button id="mesaBtn" class="mestre-only mesa-btn">🖥️ Mesa</button>
-  <button class="flip-btn" id="flipBtn">↺ Ver verso</button>
+  <button id="npcBtn" class="jogador-only" title="Fichas de NPC que o mestre marcou como Público — você pode consultar, mas só o mestre edita">🧚 FICHAS DE NPC</button>
+  <button class="flip-btn" id="flipBtn">↺ VER VERSO</button>
   <button class="cloud-btn" id="cloudSaveBtn">SALVAR</button>
-  <button id="silenceBtn" class="mestre-only silence-btn" aria-pressed="false" title="Quando marcado, nada do que acontecer na ficha é enviado ao Discord nem entra no histórico compartilhado">🔊 Silenciar</button>
-  <button id="masterBtn">📜 Fichas de Jogador</button>
-  <button id="masterMestreBtn" class="mestre-only">🔒 Fichas do Mestre</button>
+  <button id="silenceBtn" class="mestre-only silence-btn" aria-pressed="false" title="Quando marcado, nada do que acontecer na ficha é enviado ao Discord nem entra no histórico compartilhado">🔊 SILENCIAR</button>
+  <button id="masterBtn">📜 FICHAS DE JOGADOR</button>
+  <button id="masterMestreBtn" class="mestre-only">🔒 FICHAS DO MESTRE</button>
   <!-- FICHAS DE INIMIGOS: botão novo, mestre-only, sempre logo depois de "Fichas do Mestre" (a
        pedido). Mostra só as fichas de NPC marcadas com #f_publica = "Inimigos" (ver
        enemiesModal/loadMasterEnemiesList mais abaixo no <script>) -- essas fichas SAEM da lista
        normal "Fichas do Mestre" (ver o filtro em makeFichasListLoader() pra ela) e só aparecem
-       aqui. Cada uma pode ser arrastada pro tabuleiro (aba "Geral", ao lado dos ícones genéricos
-       de Inimigo/Monstro/Chefe) e repetida quantas vezes o mestre quiser -- ver
-       renderInimigoFichaCoins()/handleBoardDrop() no <script>. -->
-  <button id="masterEnemiesBtn" class="mestre-only">👹 Fichas de Inimigos</button>
-  <button id="newBtn">Nova ficha</button>
-  <button id="tokenBtn" title="Salvar, atualizar ou remover seu token do GitHub neste navegador">🔑 Meu token do GitHub</button>
-  <button id="webhookConfigBtn" class="mestre-only" title="Configurar o webhook do Discord (rolagens e mensagens espelhadas pra lá)">🔗 Webhook do Discord</button>
-  <button class="logout-btn" id="logoutBtn">🚪 Sair</button>
+       aqui. Cada uma pode ser arrastada pro tabuleiro (aba "👹 Inimigos") e repetida quantas vezes
+       o mestre quiser -- ver renderInimigoFichaCoins()/handleBoardDrop() no <script>. -->
+  <button id="masterEnemiesBtn" class="mestre-only">👹 FICHAS DE INIMIGOS</button>
+  <!-- FICHAS DE ALIADOS: rodada nova ("FASE 4c" do porte "MESA/tabuleiro iguais ao index_mag"),
+       mesmíssimo esquema do botão de Inimigos acima, só que pro lado dos aliados (#f_publica =
+       "Aliados", ícone com contorno verde no tabuleiro em vez de vermelho) -- igual ao
+       index_mag.html (ver alliesModal/loadMasterAlliesList mais abaixo no <script>). -->
+  <button id="masterAlliesBtn" class="mestre-only">🧝 FICHAS DE ALIADOS</button>
+  <button id="newBtn">NOVA FICHA</button>
+  <button id="tokenBtn" title="Salvar, atualizar ou remover seu token do GitHub neste navegador">🔑 MEU TOKEN DO GITHUB</button>
+  <button id="webhookConfigBtn" class="mestre-only" title="Configurar o webhook do Discord (rolagens e mensagens espelhadas pra lá)">🔗 WEBHOOK DO DISCORD</button>
+  <button class="logout-btn" id="logoutBtn">🚪 SAIR</button>
+</div>
+
+<!-- Rodada nova, pedido explicito ("MESA e a guia de tabuleiro do index_bg ficam iguais aos
+     do index_mag, quanto ao design de pagina"): #liveBoardPanel/#chatPanel saem de dentro da
+     ficha (.face.front) e #mesaContent sai de dentro do verso (.face.back) -- os 3 sao os
+     MESMOS elementos/ids/logica de sempre (mesmo "$('liveBoardPanel').hidden"/
+     "$('chatPanel').hidden" no <script>, ver onAuthStateChanged), so que agora filhos desta
+     faixa FIXA (#mesaFixedPanel), irma de .stage, sempre visivel depois do login nao importa a
+     ficha estar de frente, de verso (Historia) ou com "📂 Gerenciar Tabuleiro" aberto -- igual ao
+     index_mag.html. MESA deixou de virar o cartao (setBackFaceMode('mesa') saiu, ver
+     comentario grande dela no <script>): agora e so mais uma aba do chat (#chatTabBtnMesa,
+     mestre-only, ver CHAT_TABS/setChatActiveTab() no <script>). Mantido de proposito,
+     diferente do index_mag: os cabecalhos proprios de cada painel (zoom/minimizar do
+     tabuleiro, botoes de print/emote do chat) e as gavetas/abas de dentro de "📂 Gerenciar
+     Tabuleiro" (Fichas do Mestre/Geral/Barreiras/PVP, Resumo do Tabuleiro, Historico de
+     Rolagens) continuam do jeito proprio do BG por enquanto -- so o ENDERECO de tudo isso
+     mudou, nao o conteudo/mecanica (fases seguintes tratam do resto: grade unica, botoes de
+     icone etc). -->
+<div class="mesa-fixed-panel" id="mesaFixedPanel" hidden>
+  <!-- Rodada nova ("FASE 3" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao index_mag.html:
+       os 10 botoes abaixo (Iniciativa/Enviar para a mesa/Escolher imagem/Reset + os 6 modos de visao
+       do tabuleiro) sairam de dentro de #mesaContent (a gaveta "📂 Gerenciar Tabuleiro", ver o antigo
+       .board-menu.board-menu-bottom-actions, removido de la) e vieram pra ca -- uma faixa propria,
+       mestre-only, espelhando #mesaFixedBottom (ver mais abaixo) so que ACIMA do tabuleiro em vez de
+       abaixo. Nenhum id/listener mudou (so o endereco no HTML) -- todo o <script> que ja lia/escrevia
+       neles continua igual. Perderam o texto visivel: ganharam .ar-ap-tip + um <div class="cs-tooltip">
+       com o nome em CAIXA ALTA -- o tooltip flutuante que o BG ja tinha (.ar-ap-tip:hover .cs-tooltip
+       no <style>, ja abrindo por cima do mouse) sabe desenhar isso sozinho, sem nenhuma wiring nova. O
+       zoom no hover vem de uma regra CSS nova, so pra esta faixa (".mesa-fixed-top-actions .mini-btn:
+       hover"/".board-mode-toggle:hover" mais abaixo no <style>). -->
+  <div class="mesa-fixed-top-actions mestre-only" id="mesaFixedTopActions">
+    <input type="file" id="boardBgInput" accept="image/*" style="display:none;">
+    <button id="iniciativaTabuleiroBtn" class="mini-btn ar-ap-tip" type="button">🗺️<div class="cs-tooltip">INICIATIVA</div></button>
+    <button id="boardSendBtn" class="mini-btn ar-ap-tip" type="button">🗺️<div class="cs-tooltip">ENVIAR PARA A MESA</div></button>
+    <button id="boardBgChooseBtn" class="mini-btn ar-ap-tip" type="button">🖼️<div class="cs-tooltip">ESCOLHER IMAGEM</div></button>
+    <!-- Reset combina o que antes eram 2 botões separados (Limpar tabuleiro + Tabuleiro padrão)
+         — ver o listener único de boardResetBtn no <script>, que faz as duas coisas de uma vez. -->
+    <button id="boardResetBtn" class="mini-btn ar-ap-tip" type="button">↺<div class="cs-tooltip">RESET</div></button>
+    <!-- modos de visão do tabuleiro ao vivo (jogadores) — ver boardRevealMode/boardFogMode/
+         boardDarkMode e os cliques em #boardRevealModeLabel/#boardFogModeLabel/#boardDarkModeLabel
+         no <script>. Os 3 agora SÃO o próprio botão (sem checkbox do lado) — clicar acende/apaga
+         o botão em si (classe .mode-active). REVELAR: enquanto apagado, o tabuleiro ao vivo
+         aparece todo preto pra quem não é mestre, tenha ficha no tabuleiro ou não — pedido
+         explícito, pra o mestre preparar a cena sem nada vazar antes da hora. Fog vem ATIVO por
+         padrão (protege info dos jogadores sem o mestre precisar lembrar de ligar) — este botão é
+         "Remover Fog": aceso = fog desligado. Dark é independente (congela a publicação inteira
+         pro tabuleiro ao vivo) — nenhum dos 3 é mutuamente exclusivo com os outros. -->
+    <button type="button" class="board-mode-toggle ar-ap-tip" id="boardRevealModeLabel" aria-pressed="false">
+      <span class="board-mode-toggle-name">👁️</span><div class="cs-tooltip">REVELAR</div>
+    </button>
+    <button type="button" class="board-mode-toggle ar-ap-tip" id="boardFogModeLabel" aria-pressed="false">
+      <span class="board-mode-toggle-name">🌫️</span><div class="cs-tooltip">REMOVER FOG</div>
+    </button>
+    <!-- FOG+ (pedido explícito, "se possível" -- ver boardFogPlusColor/setBoardFogPlusColor() no
+         <script>): camada visual extra de neblina cobrindo o tabuleiro inteiro pro jogador,
+         deixando sem neblina só o campo de visão combinado dos jogadores. 3 cores, só uma ativa
+         por vez (clicar na ativa desliga; clicar em outra troca direto) -- DESLIGADO por padrão. -->
+    <button type="button" class="board-mode-toggle ar-ap-tip" id="boardFogCinzaModeLabel" aria-pressed="false">
+      <span class="board-mode-toggle-name">🌫️</span><div class="cs-tooltip">NEVOA</div>
+    </button>
+    <button type="button" class="board-mode-toggle ar-ap-tip" id="boardFogPretaModeLabel" aria-pressed="false">
+      <span class="board-mode-toggle-name">🖤</span><div class="cs-tooltip">FUMAÇA</div>
+    </button>
+    <button type="button" class="board-mode-toggle ar-ap-tip" id="boardFogRoxaModeLabel" aria-pressed="false">
+      <span class="board-mode-toggle-name">💜</span><div class="cs-tooltip">ESTRANHEZA</div>
+    </button>
+    <button type="button" class="board-mode-toggle ar-ap-tip" id="boardDarkModeLabel" aria-pressed="false">
+      <span class="board-mode-toggle-name">🌑</span><div class="cs-tooltip">ESCURIDÃO TOTAL</div>
+    </button>
+    <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
+    <div id="boardSendHint" class="mesa-hint"></div>
+  </div>
+  <div class="mesa-fixed-body" id="mesaFixedBody">
+        <div class="panel live-board-panel" id="liveBoardPanel" hidden>
+          <h2>🗺️ Tabuleiro ao Vivo<span class="chat-panel-head-actions">
+            <button id="liveBoardZoomOutBtn" class="chat-min-btn" title="Diminuir zoom" type="button">−</button>
+            <span class="board-zoom-readout" id="liveBoardZoomReadout">100%</span>
+            <button id="liveBoardZoomInBtn" class="chat-min-btn" title="Aumentar zoom" type="button">+</button>
+            <button id="liveBoardMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
+          </span></h2>
+          <!-- Rodada/Turno (ver turnState/renderTurnBars() no <script>) -- o jogador só consegue
+               clicar em "Encerrar Turno" quando a ficha da vez é a própria dele. -->
+          <div class="turn-status-bar">
+            <span class="turn-status-text" id="liveTurnStatus">Nenhuma iniciativa rodada ainda.</span>
+            <button type="button" class="mini-btn" id="liveEndTurnBtn" disabled title="Encerrar Turno"><span class="end-turn-icon">⏳</span></button>
+          </div>
+          <div class="live-board-panel-body" id="liveBoardPanelBody">
+            <div class="chat-bg-fx" id="liveBoardBgFx" aria-hidden="true"></div>
+            <div class="live-board-wrap" id="liveBoardWrap">
+              <div class="board-zoom-spacer" id="liveBoardZoomSpacer">
+                <div class="board-outer" id="liveBoardOuter">
+                  <div class="board-corner"></div>
+                  <div class="board-colheader" id="liveBoardColHeader"></div>
+                  <div class="board-rowheader" id="liveBoardRowHeader"></div>
+                  <div class="board-grid" id="liveBoardGrid"></div>
+                </div>
+              </div>
+            </div>
+            <div class="live-board-hint" id="liveBoardHint"></div>
+          </div>
+        </div>
+
+        <div class="panel chat-panel" id="chatPanel" hidden>
+          <h2>💬 Chat da Mesa<span class="chat-panel-head-actions">
+            <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
+            <button id="chatImageBtn" class="chat-min-btn" title="Enviar imagem no chat" type="button">🖼️</button>
+            <button id="chatEscudoPrintBtn" class="chat-min-btn" title="Mandar um print do Escudo atual" type="button">🛡️</button>
+            <button id="chatVidaPrintBtn" class="chat-min-btn" title="Mandar um print da Vida atual" type="button">🔴</button>
+            <button id="chatManaPrintBtn" class="chat-min-btn" title="Mandar um print da Mana atual" type="button">🔵</button>
+            <button id="chatEmoteRageBtn" class="chat-min-btn" title="Enviar a imagem do emote 😡 (raiva) — definida no verso da ficha" type="button">😡</button>
+            <button id="chatEmoteKissBtn" class="chat-min-btn" title="Enviar a imagem do emote 😘 (beijo) — definida no verso da ficha" type="button">😘</button>
+            <button id="chatEmoteSobBtn" class="chat-min-btn" title="Enviar a imagem do emote 😭 (choro) — definida no verso da ficha" type="button">😭</button>
+            <button id="chatEmoteRoflBtn" class="chat-min-btn" title="Enviar a imagem do emote 🤣 (risada) — definida no verso da ficha" type="button">🤣</button>
+            <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
+          </span></h2>
+          <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
+          <!-- Rodada nova, igual ao index_mag.html: MESA deixa de ter botao/painel proprios
+               (#mesaBtn na barra de topo + virar o cartao inteiro) e passa a ser mais uma aba
+               aqui dentro, mestre-only -- ver CHAT_TABS/setChatActiveTab() no <script>. -->
+          <div class="chat-tabs" id="chatTabs">
+            <button type="button" class="chat-tab-btn" id="chatTabBtnChat" data-chat-tab="chat" aria-pressed="false" title="Chat">💬</button>
+            <!-- Rodada nova ("FASE 4" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao
+                 index_mag.html: aba nova, visível pros DOIS papéis (não é .mestre-only) -- o
+                 "🧾 Resumo do Tabuleiro" (bolhas, ver #fichaSummaryTabBody logo abaixo) saiu de
+                 dentro de "📂 Gerenciar Tabuleiro" (mestre-only) e virou uma aba própria, sempre
+                 alcançável, com a Iniciativa já alinhada (sortSummaryEntriesByTurn(), que o BG já
+                 tinha -- só faltava esta aba pra expor). -->
+            <button type="button" class="chat-tab-btn" id="chatTabBtnFichas" data-chat-tab="fichas" aria-pressed="false" title="Resumo do Tabuleiro">🧾</button>
+            <button type="button" class="chat-tab-btn mestre-only" id="chatTabBtnMesa" data-chat-tab="mesa" aria-pressed="false" title="Gerenciar Tabuleiro">📂</button>
+          </div>
+          <div class="chat-panel-body" id="chatPanelBody">
+            <div class="chat-bg-fx" id="chatBgFx" aria-hidden="true"></div>
+            <div class="chat-messages" id="chatMessages">
+              <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
+            </div>
+            <div class="chat-input-row">
+              <input type="text" id="chatInput" placeholder="Digite uma mensagem..." maxlength="500">
+              <button id="chatSendBtn" type="button">Enviar</button>
+            </div>
+          </div>
+          <!-- Rodada nova ("FASE 4"), igual ao index_mag.html: mesmo #fichaSummaryList de sempre
+               (ver renderFichaSummaryBubbles()/buildFichaSummaryBubble() no <script>), só que agora
+               é o conteúdo inteiro desta aba (não mais um painel dentro de "📂 Gerenciar
+               Tabuleiro") -- por isso perdeu o <h2>/botão de minimizar de antes: abrir/fechar a
+               aba já faz esse papel. Continua SEM os botões de +/- Vida/Mana/Escudo que o
+               index_mag tem aqui (decisão já tomada antes, "feito só no Mag") -- só a lista de
+               bolhas em si. -->
+          <div class="chat-tab-body" id="fichaSummaryTabBody" hidden>
+            <div id="fichaSummaryList" class="ficha-bubble-list"></div>
+          </div>
+          <div class="mesa-content chat-tab-body mestre-only" id="mesaContent" hidden>
+    <div class="modal-head">
+      <!-- Rodada nova, igual ao index_mag.html: titulo/cabecalho "🖥️ Mesa" e os botoes "🗗" (popoutMesaBtn)/
+           "✕" (closeMesa) saem -- pra sair desta aba agora basta clicar em "💬 Chat" do lado,
+           igual as outras abas (ver comentario grande de setChatActiveTab() no <script>). O
+           suporte a abrir direto nesta aba com "?mesa=1" na URL (autoOpenedMesaFromUrl) continua
+           intacto, so nao tem mais nenhum botao na interface que gere esse link. -->
+      <h2>📂 Gerenciar Tabuleiro</h2>
+    </div>
+
+    <div class="board-section">
+      <h2 class="board-title">🗺️ Tabuleiro da Mesa</h2>
+
+      <div class="board-menu">
+        <div class="board-save-control">
+          <label>Salvar / carregar tabuleiro</label>
+          <div class="board-save-fields">
+            <input type="text" id="boardNameInput" placeholder="Nome do tabuleiro">
+            <button id="boardSaveBtn" class="mini-btn" type="button">💾 Salvar</button>
+            <button id="boardLoadListBtn" class="mini-btn" type="button">📂 Carregar</button>
+          </div>
+          <div id="boardSaveHint" class="mesa-hint"></div>
+          <div id="boardLoadList" class="master-list" hidden></div>
+        </div>
+
+        <div class="board-size-control">
+          <div class="board-size-fields">
+            <label for="boardRowsInput">Tamanho do tabuleiro</label>
+            <input type="number" id="boardRowsInput" min="2" max="40" value="24" title="Número de linhas">
+            <span>x</span>
+            <input type="number" id="boardColsInput" min="2" max="40" value="24" title="Número de colunas">
+            <button id="boardResizeBtn" class="mini-btn" type="button">Aplicar</button>
+          </div>
+          <div class="board-grid-color-fields">
+            <label>Cor das linhas do grid</label>
+            <div class="board-grid-color-swatches" id="boardGridColorSwatches">
+              <button type="button" class="board-grid-color-swatch" data-hex="#000000" style="background:#000000" title="Preto" aria-label="Preto"></button>
+              <button type="button" class="board-grid-color-swatch" data-hex="#ffffff" style="background:#ffffff" title="Branco" aria-label="Branco"></button>
+              <button type="button" class="board-grid-color-swatch" data-hex="#e8112d" style="background:#e8112d" title="Vermelho" aria-label="Vermelho"></button>
+              <button type="button" class="board-grid-color-swatch" data-hex="#f7941d" style="background:#f7941d" title="Laranja" aria-label="Laranja"></button>
+              <button type="button" class="board-grid-color-swatch" data-hex="#fff200" style="background:#fff200" title="Amarelo" aria-label="Amarelo"></button>
+              <button type="button" class="board-grid-color-swatch" data-hex="#39b54a" style="background:#39b54a" title="Verde" aria-label="Verde"></button>
+              <button type="button" class="board-grid-color-swatch" data-hex="#0071bc" style="background:#0071bc" title="Azul" aria-label="Azul"></button>
+              <button type="button" class="board-grid-color-swatch" data-hex="#2e3192" style="background:#2e3192" title="Anil" aria-label="Anil"></button>
+              <button type="button" class="board-grid-color-swatch" data-hex="#92278f" style="background:#92278f" title="Violeta" aria-label="Violeta"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="board-menu">
+        <!-- Rodada nova ("FASE 4c" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao
+             index_mag.html: as antigas abas "Fichas do Mestre" (peça única) e "Geral" (ícones
+             genéricos + Fichas de Inimigos) saíram -- "Fichas do Mestre" foi retirada de propósito
+             (toda ficha que NÃO é Inimigos agora conta como Aliado e entra direto na bandeja
+             repetível da aba "🧝 Aliados" abaixo, junto com as marcadas "Aliados" de verdade -- ver
+             renderAliadoFichaCoins()/isAliadosValue() no <script>); "Geral" simplesmente virou
+             "👹 Inimigos" (mesmo conteúdo de sempre, só o nome mudou). Diferente do index_mag.html
+             (que removeu os ícones genéricos de Aliado/Inimigo/Monstro/Boss nesta mesma rodada,
+             "todas as fichas terão que ser geradas pelo mestre") -- o Beijo Grego MANTÉM esses
+             ícones genéricos, pedido separado não feito aqui. -->
+        <div class="board-menu-tabs">
+          <button type="button" class="board-menu-tab active" data-panel="boardPanelJogadores">Fichas dos Jogadores</button>
+          <button type="button" class="board-menu-tab" data-panel="boardPanelAliados">🧝 Aliados</button>
+          <button type="button" class="board-menu-tab" data-panel="boardPanelInimigos">👹 Inimigos</button>
+          <button type="button" class="board-menu-tab" data-panel="boardPanelBlocos">Barreiras</button>
+          <button type="button" class="board-menu-tab" data-panel="boardPanelPvp">⚔️ PVP</button>
+        </div>
+
+        <div class="board-menu-panel active" id="boardPanelJogadores">
+          <div class="board-tray-coins" id="boardTrayCoins"></div>
+        </div>
+        <!-- Fichas de NPC marcadas "Aliados" OU "🔒 Fichas do Mestre" (ver #f_publica -- toda
+             ficha que NÃO é Inimigos conta como Aliado nesta rodada) viram peças de verdade aqui --
+             cada uma pode ser arrastada quantas vezes o mestre quiser (repetível, ao contrário das
+             fichas de jogador normais da aba acima, que só entram uma vez cada). Fica escondida
+             (ver renderAliadoFichaCoins() no <script>) quando não há nenhuma ficha marcada assim
+             ainda, pra não deixar um título "Fichas de Aliados" solto e vazio aqui. -->
+        <div class="board-menu-panel" id="boardPanelAliados">
+          <div id="boardAliadoFichaWrap" hidden style="margin-top:14px;">
+            <div class="board-tray-title">Fichas de Aliados</div>
+            <div class="board-enemy-coins" id="boardAliadoFichaCoins"></div>
+          </div>
+        </div>
+        <div class="board-menu-panel" id="boardPanelInimigos">
+          <div class="board-enemy-coins" id="boardEnemyCoins"></div>
+          <!-- Fichas de NPC marcadas "Inimigos" (ver #f_publica/👹 Fichas de Inimigos) viram peças
+               de verdade aqui, na mesma aba dos ícones genéricos acima -- cada uma pode ser
+               arrastada quantas vezes o mestre quiser (repetível, ao contrário das fichas de
+               jogador/mestre normais das outras abas, que só entram uma vez cada). Fica escondida
+               (ver renderInimigoFichaCoins() no <script>) quando não há nenhuma ficha marcada
+               assim ainda, pra não deixar um título "Fichas de Inimigos" solto e vazio aqui. -->
+          <div id="boardInimigoFichaWrap" hidden style="margin-top:14px;">
+            <div class="board-tray-title">Fichas de Inimigos</div>
+            <div class="board-enemy-coins" id="boardInimigoFichaCoins"></div>
+          </div>
+        </div>
+        <!-- mesmas fichas de jogador/mestre das abas acima, só que colocadas aqui no tabuleiro
+             entram em modo PVP: ícone com contorno vermelho pulsante e nome em vermelho (ver
+             .token-hero-pvp/.tray-coin-name-pvp no <style>), tratada pelo Fog igual a um inimigo
+             (só visível dentro do alcance de outra ficha, e só enxerga o resto dentro do próprio
+             alcance) — ver isSpottableToken()/computeFogReachableKeys() no <script>. Continua
+             sendo a MESMA ficha: só existe um ícone dela no tabuleiro por vez, normal OU PVP, nunca
+             os dois (ver handleBoardDrop()). -->
+        <div class="board-menu-panel" id="boardPanelPvp">
+          <div class="board-tray-title">Fichas dos jogadores</div>
+          <div class="board-tray-coins" id="boardTrayCoinsPvp"></div>
+          <div class="board-tray-title" style="margin-top:12px;">Fichas do mestre</div>
+          <div class="board-tray-coins" id="boardTrayMestreCoinsPvp"></div>
+        </div>
+        <div class="board-menu-panel" id="boardPanelBlocos">
+          <!-- só existe UMA barreira agora (verde, ver OBSTACLE_KINDS no <script>) — sem seletor de
+               material. Diferença chave do bloco antigo: essa barreira NUNCA aparece pro jogador
+               (nem no tabuleiro ao vivo, nem sob Fog) — só o mestre vê ela aqui dentro de MESA. Ela
+               continua bloqueando movimento normalmente (ver isBlockKind()/canPlace()), só o
+               VISUAL some pro jogador — é uma armadilha/parede invisível. -->
+          <p class="board-tray-hint">Barreira: invisível pros jogadores, só o mestre vê aqui na aba Mesa. Rocha e Pedra de Gelo: mesmo bloqueio de movimento e visão da Barreira, mas ficam visíveis pra todo mundo (sempre 1 casa). Todas continuam bloqueando movimento/visão normalmente.</p>
+          <!-- tamanho da barreira: seletor livre "linhas x colunas" (mesmo estilo do seletor de
+               tamanho do tabuleiro, ver .board-size-fields no <style>) — lido ao vivo na hora de
+               arrastar a moeda pro tabuleiro (ver renderObstacleCoins() no <script>); Rocha/Pedra
+               de Gelo ignoram esse seletor (resizable:false, sempre 1 casa, ver OBSTACLE_KINDS). -->
+          <div class="board-block-size-control board-size-fields">
+            <label for="boardBlockRowsInput">Tamanho da barreira</label>
+            <input type="number" id="boardBlockRowsInput" min="1" max="12" value="1" title="Número de linhas">
+            <span>x</span>
+            <input type="number" id="boardBlockColsInput" min="1" max="12" value="1" title="Número de colunas">
+          </div>
+          <div class="board-enemy-coins" id="boardObstacleCoins"></div>
+          <!-- Arbusto/Armadilha/Poça de Água (novo, DECOR_KINDS no <script>) -- pedido explícito:
+               colocação igual às fichas de Aliado/Inimigo/Monstro/Boss (repete quantas vezes o
+               mestre quiser, numerado sozinho), mas NÃO bloqueia movimento nem visão. Descrição (o
+               que tem dentro, ou o efeito da armadilha) é escrita clicando na peça já colocada no
+               tabuleiro de verdade (ver o listener de 'click' em renderBoardCell() no <script>). -->
+          <div class="board-tray-title" style="margin-top:14px;">Objetos</div>
+          <p class="board-tray-hint">Arbusto, Armadilha e Poça de Água: nenhum bloqueia movimento nem visão — clique num já colocado no tabuleiro pra escrever a descrição (o que tem dentro, ou o efeito da armadilha, por exemplo), que aparece pra todo mundo ao passar o mouse em cima.</p>
+          <div class="board-enemy-coins" id="boardDecorCoins"></div>
+        </div>
+      </div>
+
+      <!-- Painel de Turno (pedido explícito desta rodada: movido pra ficar IMEDIATAMENTE ACIMA DO
+           TABULEIRO -- antes ficava logo abaixo do título, com o menu de abas no meio dos dois).
+           Ver turnState/renderTurnBars()/renderTurnQueuePanel() no <script>. O Mestre pode encerrar
+           QUALQUER turno que esteja na vez agora, sem restrição -- inclusive pra PULAR o turno de
+           uma peça sem ficha associada, ou forçar o encerramento do turno de qualquer outra peça.
+           ➡️/⬅️ (avançar/voltar, delayCurrentTurn()/returnToPreviousTurn()): "segura" a ação da vez
+           atual, empurrando-a pro FIM da fila desta MESMA rodada (não influencia a rodada seguinte).
+           A guia inteira pode ser minimizada (setTurnControlMinimized(), mesmo padrão de
+           .live-board-panel.minimized). -->
+      <div class="turn-control-panel" id="turnControlPanel">
+        <div class="turn-control-head">
+          <span class="turn-control-head-title">⏳ Turno</span>
+          <button type="button" class="chat-min-btn" id="turnControlMinimizeBtn" title="Minimizar">▾</button>
+        </div>
+        <div class="turn-control-body" id="turnControlBody">
+          <div class="turn-status-bar">
+            <span class="turn-status-text" id="boardTurnStatus">Nenhuma iniciativa rodada ainda.</span>
+            <button type="button" class="mini-btn" id="turnDelayBtn" disabled title="Avançar Turno — segura a ação, vai pro fim da fila desta rodada">➡️</button>
+            <button type="button" class="mini-btn" id="turnUndoBtn" disabled title="Voltar ao Turno Anterior — desfaz o último encerramento de turno (avançar, manual, erro, ou automático)">⬅️</button>
+            <button type="button" class="mini-btn" id="boardEndTurnBtn" disabled title="Encerrar/Pular Turno"><span class="end-turn-icon">⏳</span></button>
+          </div>
+          <div class="turn-queue-panel" id="turnQueuePanel">
+            <div class="turn-queue-round" id="turnQueueRound"></div>
+            <ol class="turn-queue-list" id="turnQueueList"></ol>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rodada nova ("FASE 2" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao
+           index_mag.html: o tabuleiro de edição do Mestre (grade própria + zoom próprio, que
+           moravam aqui) saiu -- o Mestre agora desenha DIRETO em cima do mesmo #liveBoardGrid que
+           os jogadores sempre viram na faixa fixa (#mesaFixedPanel, ver comentário grande em
+           "const boardGrid" no <script>), com o MESMO zoom do Tabuleiro ao Vivo. -->
+
+      <!-- Rodada nova ("FASE 3" do porte "MESA/tabuleiro iguais ao index_mag"): os 10 botões que
+           moravam aqui (Iniciativa/Enviar para a mesa/Escolher imagem/Reset + os 6 modos de visão)
+           saíram pra #mesaFixedTopActions (faixa própria, ACIMA do tabuleiro+chat, ver comentário
+           grande dela mais acima no HTML) -- igual ao index_mag.html. Nenhum id/listener mudou. -->
+    </div>
+
+    <!-- Rodada nova ("FASE 4b" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao
+         index_mag.html: os 2 painéis que moravam aqui -- "📋 Fichas dos Jogadores (resumo ao vivo)"
+         (#mesaHeroSummaryPanel, com os controles de XP/Divindade) e "🎲 Histórico de Rolagens"
+         (#rollLogPanel, lista + Atualizar/Limpar) -- saíram por completo (o index_mag.html também
+         não tem mais nenhum dos dois hoje). O "🧾 Resumo do Tabuleiro" em bolhas (aba própria do
+         chat, ver Fase 4a) já cobre o papel de acompanhar quem está no tabuleiro em tempo real. O
+         registro persistente por baixo dos panos (pushRollLog()/pushMoveLog()/ROLL_LOG_PATH) e o
+         aviso no Discord de toda rolagem/movimento continuam rodando exatamente como sempre --
+         só a TELA de exibir/apagar o histórico é que saiu, igual o comentário grande do
+         index_mag.html explica ("pushRollLog()/ROLL_LOG_PATH/pushRollLogFeed() intocados: várias
+         outras mecânicas de jogo dependem de pushRollLog() rodar em toda rolagem"). -->
+
+    <div class="mesa-preview-wrap" id="mesaPreviewWrap" hidden>
+      <img id="mesaPreviewImg" alt="Pré-visualização do print">
+      <button id="mesaRemoveImg" class="mini-btn" type="button">Remover imagem</button>
+    </div>
+
+    <div class="token-field">
+      <label>Print (opcional — clique para escolher ou cole com Ctrl+V no campo de texto)</label>
+      <input type="file" id="mesaImageInput" accept="image/*">
+    </div>
+
+    <div class="token-field">
+      <label>Mensagem</label>
+      <textarea id="mesaMessageInput" rows="4" placeholder="Escreva algo pra mesa... (também aceita colar um print aqui)"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button id="mesaSendBtn">📨 Enviar</button>
+    </div>
+    <div id="mesaSendHint" class="mesa-hint"></div>
+        </div>
+        </div>
+  </div>
+  <!-- Rodada nova ("FASE 3" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao index_mag.html:
+       o botão "🪙 Jogar" (#rollSorteBtn) saiu da guia "Rolagem de Sorte" da ficha e virou um botão
+       quadrado só com o ícone (.mesa-fixed-icon-btn, tooltip .ar-ap-tip/.cs-tooltip "JOGAR A SORTE"),
+       igual ao index_mag.html -- MESMO id/lógica de sempre (rollSorteBtn.addEventListener no <script>
+       não mudou nada). A pré-escolha Cara/Coroa (#sorteChoice, arrow-select) e o resultado (moeda
+       grande/veredito/dica -- #coinResult/#sorteVerdict/#sorteHint) CONTINUAM dentro da guia "Rolagem
+       de Sorte" da ficha, sem nenhuma mudança: diferença mecânica própria do BG (o index_mag não tem
+       pré-escolha, refez a Sorte do zero ligada a um mecanismo de Ouro que o BG não usa) -- só o botão
+       de rolar em si é que ganhou o endereço/visual novo do Mag, por decisão explícita. refill_vida/
+       refill_mana (poções de Vida/Mana) vieram pra cá do mesmo jeito -- mesmos ids/lógica de sempre (o
+       restaurar sempre disponível sem gastar Poção continua igual, também diferença própria do BG), só
+       ganharam o visual quadrado igual ao da moeda ao lado. -->
+  <div class="mesa-fixed-bottom" id="mesaFixedBottom">
+    <button id="rollSorteBtn" type="button" class="dice-roll-btn mesa-fixed-sorte-btn mesa-fixed-icon-btn ar-ap-tip" aria-label="Jogar a Sorte">🪙<div class="cs-tooltip">JOGAR A SORTE</div></button>
+    <button type="button" class="refill vital-refill-btn mini-btn mesa-fixed-icon-btn ar-ap-tip" id="refill_vida" aria-label="Restaurar Vida">⟳<div class="cs-tooltip">RESTAURAR VIDA</div></button>
+    <button type="button" class="refill vital-refill-btn mini-btn mesa-fixed-icon-btn ar-ap-tip" id="refill_mana" aria-label="Restaurar Mana">⟳<div class="cs-tooltip">RESTAURAR MANA</div></button>
+  </div>
 </div>
 
 <div class="stage">
@@ -3929,68 +4488,8 @@ body{
           <div class="cs-rank level-rank cs-rank-C" id="levelRank" title="Ranking do aventureiro">C</div>
         </div>
 
-        <!-- mini-tabuleiro ao vivo: faixa cheia, logo ACIMA do chat da mesa (ver comentário do
-             chat-panel logo abaixo) — espelha em tempo real o tabuleiro que o mestre monta na aba
-             "🖥️ Mesa" pra todo mundo logado, e deixa cada jogador arrastar a própria ficha dentro
-             do limite de casas (1 + bônus de DES). Ver CSS ".live-board-panel" acima e
-             connectLiveBoard()/renderLiveBoardMini() no <script>. -->
-        <div class="panel live-board-panel" id="liveBoardPanel" hidden>
-          <h2>🗺️ Tabuleiro ao Vivo<span class="chat-panel-head-actions">
-            <button id="liveBoardZoomOutBtn" class="chat-min-btn" title="Diminuir zoom" type="button">−</button>
-            <span class="board-zoom-readout" id="liveBoardZoomReadout">100%</span>
-            <button id="liveBoardZoomInBtn" class="chat-min-btn" title="Aumentar zoom" type="button">+</button>
-            <button id="liveBoardMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
-          </span></h2>
-          <!-- Rodada/Turno (ver turnState/renderTurnBars() no <script>) -- o jogador só consegue
-               clicar em "Encerrar Turno" quando a ficha da vez é a própria dele. -->
-          <div class="turn-status-bar">
-            <span class="turn-status-text" id="liveTurnStatus">Nenhuma iniciativa rodada ainda.</span>
-            <button type="button" class="mini-btn" id="liveEndTurnBtn" disabled title="Encerrar Turno"><span class="end-turn-icon">⏳</span></button>
-          </div>
-          <div class="live-board-panel-body" id="liveBoardPanelBody">
-            <div class="chat-bg-fx" id="liveBoardBgFx" aria-hidden="true"></div>
-            <div class="live-board-wrap" id="liveBoardWrap">
-              <div class="board-zoom-spacer" id="liveBoardZoomSpacer">
-                <div class="board-outer" id="liveBoardOuter">
-                  <div class="board-corner"></div>
-                  <div class="board-colheader" id="liveBoardColHeader"></div>
-                  <div class="board-rowheader" id="liveBoardRowHeader"></div>
-                  <div class="board-grid" id="liveBoardGrid"></div>
-                </div>
-              </div>
-            </div>
-            <div class="live-board-hint" id="liveBoardHint"></div>
-          </div>
-        </div>
-
-        <!-- chat da mesa: faixa cheia, logo abaixo do texto da divindade (.deity-lore, dentro do
-             .ribbon acima) e antes do resto da ficha (.front-grid) — deixou de ser um painel
-             estreito dentro da Coluna 3 pra caber muito mais mensagem visível de uma vez. -->
-        <div class="panel chat-panel" id="chatPanel" hidden>
-          <h2>💬 Chat da Mesa<span class="chat-panel-head-actions">
-            <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
-            <button id="chatImageBtn" class="chat-min-btn" title="Enviar imagem no chat" type="button">🖼️</button>
-            <button id="chatEscudoPrintBtn" class="chat-min-btn" title="Mandar um print do Escudo atual" type="button">🛡️</button>
-            <button id="chatVidaPrintBtn" class="chat-min-btn" title="Mandar um print da Vida atual" type="button">🔴</button>
-            <button id="chatManaPrintBtn" class="chat-min-btn" title="Mandar um print da Mana atual" type="button">🔵</button>
-            <button id="chatEmoteRageBtn" class="chat-min-btn" title="Enviar a imagem do emote 😡 (raiva) — definida no verso da ficha" type="button">😡</button>
-            <button id="chatEmoteKissBtn" class="chat-min-btn" title="Enviar a imagem do emote 😘 (beijo) — definida no verso da ficha" type="button">😘</button>
-            <button id="chatEmoteSobBtn" class="chat-min-btn" title="Enviar a imagem do emote 😭 (choro) — definida no verso da ficha" type="button">😭</button>
-            <button id="chatEmoteRoflBtn" class="chat-min-btn" title="Enviar a imagem do emote 🤣 (risada) — definida no verso da ficha" type="button">🤣</button>
-            <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
-          </span></h2>
-          <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
-          <div class="chat-panel-body" id="chatPanelBody">
-            <div class="chat-bg-fx" id="chatBgFx" aria-hidden="true"></div>
-            <div class="chat-messages" id="chatMessages">
-              <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
-            </div>
-            <div class="chat-input-row">
-              <input type="text" id="chatInput" placeholder="Digite uma mensagem..." maxlength="500">
-              <button id="chatSendBtn" type="button">Enviar</button>
-            </div>
-          </div>
-        </div>
+        <!-- #liveBoardPanel/#chatPanel saíram de dentro da ficha -- ver #mesaFixedPanel,
+             logo depois de .toolbar no HTML (irmão de .stage), pedido novo desta rodada. -->
 
         <div class="front-grid">
 
@@ -4032,9 +4531,9 @@ body{
                 </div>
               </div>
             </div>
-            <!-- Público/Privado/Inimigos: só em fichas CRIADAS PELO MESTRE (NPC, sem ownerUid) --
+            <!-- Privado/Aliados/Inimigos: só em fichas CRIADAS PELO MESTRE (NPC, sem ownerUid) --
                  .mestre-ficha-only/updateMestreFichaControls() no <script>, a pedido. Toda ficha
-                 de NPC nasce Privada (ver applyState(), que só marca "Publico"/"Inimigos" quando
+                 de NPC nasce Privada (ver applyState(), que só marca "Aliados"/"Inimigos" quando
                  s.publica já vier assim de uma ficha salva antes) e só o mestre vê/mexe aqui -- pro
                  jogador, tanto a própria ficha (nunca é NPC) quanto uma ficha de NPC pública
                  aberta pelo botão "🧚 Fichas de NPC" (travada só-leitura, ver
@@ -4042,17 +4541,25 @@ body{
                  .mestre-ficha-only. Muda em tempo real (ver o listener de #f_publica perto de
                  collectState() no <script>): assim que o mestre troca aqui, quem já estiver com o
                  modal "🧚 Fichas de NPC" aberto vê a ficha aparecer/sumir da lista na hora, sem
-                 precisar dar "Atualizar lista". Rodada nova: saiu de perto do XP (Coluna 3) e
-                 voltou pra cá, logo abaixo do Nome (a pedido) -- e ganhou a 3ª opção "Inimigos"
-                 (ver .mestre-only #masterEnemiesBtn/#enemiesModal e renderInimigoFichaCoins() no
-                 <script>): fichas marcadas assim saem da lista "🔒 Fichas do Mestre" e só aparecem
-                 em "👹 Fichas de Inimigos", de onde o mestre pode colocá-las (repetidas vezes) no
-                 tabuleiro como peças de verdade. -->
+                 precisar dar "Atualizar lista".
+                 Rodada nova ("FASE 4c" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao
+                 index_mag.html: a opção "🌐 Público" saiu -- renomeada pra "🧝 Aliados". Toda ficha
+                 que NÃO é Inimigos agora CONTA COMO ALIADO no tabuleiro (mesmo "🔒 Privado", que
+                 continua sendo o padrão de toda ficha nova) e vira peça repetível na aba "🧝
+                 Aliados" de dentro de 🖥️ Mesa (ver renderAliadoFichaCoins()/isAliadosValue() no
+                 <script>) -- só quem é marcado "Aliados" de verdade É QUE TAMBÉM aparece em "🧚
+                 Fichas de NPC" pra qualquer um consultar (isPublicaValue() aceita 'Aliados' e os
+                 formatos legados 'Publico'/true, pra nenhuma ficha salva antes sumir da consulta).
+                 "👹 Inimigos" (ver .mestre-only #masterEnemiesBtn/#enemiesModal e
+                 renderInimigoFichaCoins() no <script>) continua sem mudança: fichas marcadas assim
+                 saem da lista "🔒 Fichas do Mestre" e só aparecem em "👹 Fichas de Inimigos", de
+                 onde o mestre pode colocá-las (repetidas vezes) no tabuleiro como peças de
+                 verdade. -->
             <div class="field mestre-ficha-only" id="publicaField" hidden style="margin-top:10px;">
               <label for="f_publica">Ficha de NPC</label>
               <select id="f_publica">
-                <option value="Privado">🔒 Privado</option>
-                <option value="Publico">🌐 Público (aparece em "Fichas de NPC" pra qualquer um consultar)</option>
+                <option value="Privado">🔒 Privado (conta como Aliado no tabuleiro, não aparece em "Fichas de NPC")</option>
+                <option value="Aliados">🧝 Aliados (conta como Aliado no tabuleiro, aparece em "Fichas de NPC" pra qualquer um consultar)</option>
                 <option value="Inimigos">👹 Inimigos (some de "Fichas do Mestre", vira peça repetível no tabuleiro)</option>
               </select>
             </div>
@@ -4210,7 +4717,7 @@ body{
                   <div class="vval"><input type="number" class="cur" id="cur_vida" value="10" readonly><span class="max">/ <span id="max_vida">10</span></span></div>
                   <div class="vital-btn-row">
                     <button type="button" class="vital-step-btn" id="vidaMinusBtn" aria-label="Diminuir Vida">−</button>
-                    <button type="button" class="refill vital-refill-btn" id="refill_vida" title="Restaurar" aria-label="Restaurar Vida">⟳</button>
+                    
                     <button type="button" class="vital-step-btn" id="vidaPlusBtn" aria-label="Aumentar Vida">+</button>
                   </div>
                 </div>
@@ -4219,7 +4726,7 @@ body{
                   <div class="vval"><input type="number" class="cur" id="cur_mana" value="10" readonly><span class="max">/ <span id="max_mana">10</span></span></div>
                   <div class="vital-btn-row">
                     <button type="button" class="vital-step-btn" id="manaMinusBtn" aria-label="Diminuir Mana">−</button>
-                    <button type="button" class="refill vital-refill-btn" id="refill_mana" title="Restaurar" aria-label="Restaurar Mana">⟳</button>
+                    
                     <button type="button" class="vital-step-btn" id="manaPlusBtn" aria-label="Aumentar Mana">+</button>
                   </div>
                 </div>
@@ -4462,7 +4969,6 @@ body{
                 <div class="dice-verdict" id="sorteVerdict"></div>
                 <div class="dice-particle-layer" id="sorteParticleLayer"></div>
               </div>
-              <button id="rollSorteBtn" type="button" class="dice-roll-btn">🪙 Jogar</button>
               <div class="dice-hint" id="sorteHint"></div>
               </div>
             </div>
@@ -4568,253 +5074,9 @@ body{
           </div>
         </div>
 
-        <!-- MESA, movida pra dentro do verso do cartão -- ver comentário grande no <style>
-             (".mesa: tabuleiro de batalha") e setBackFaceMode() no <script>. -->
-        <div class="mesa-content" id="mesaContent" hidden>
-    <div class="modal-head">
-      <h2>🖥️ Mesa</h2>
-      <div class="modal-head-actions">
-        <button id="popoutMesaBtn" class="modal-close" title="Abrir a Mesa numa janela separada — útil pra deixar aberta numa segunda tela enquanto joga">🗗</button>
-        <button id="closeMesa" class="modal-close">✕</button>
-      </div>
-    </div>
 
-    <div class="board-section">
-      <h2 class="board-title">🗺️ Tabuleiro da Mesa</h2>
-
-      <div class="board-menu">
-        <div class="board-save-control">
-          <label>Salvar / carregar tabuleiro</label>
-          <div class="board-save-fields">
-            <input type="text" id="boardNameInput" placeholder="Nome do tabuleiro">
-            <button id="boardSaveBtn" class="mini-btn" type="button">💾 Salvar</button>
-            <button id="boardLoadListBtn" class="mini-btn" type="button">📂 Carregar</button>
-          </div>
-          <div id="boardSaveHint" class="mesa-hint"></div>
-          <div id="boardLoadList" class="master-list" hidden></div>
-        </div>
-
-        <div class="board-size-control">
-          <div class="board-size-fields">
-            <label for="boardRowsInput">Tamanho do tabuleiro</label>
-            <input type="number" id="boardRowsInput" min="2" max="40" value="24" title="Número de linhas">
-            <span>x</span>
-            <input type="number" id="boardColsInput" min="2" max="40" value="24" title="Número de colunas">
-            <button id="boardResizeBtn" class="mini-btn" type="button">Aplicar</button>
-          </div>
-          <div class="board-grid-color-fields">
-            <label>Cor das linhas do grid</label>
-            <div class="board-grid-color-swatches" id="boardGridColorSwatches">
-              <button type="button" class="board-grid-color-swatch" data-hex="#000000" style="background:#000000" title="Preto" aria-label="Preto"></button>
-              <button type="button" class="board-grid-color-swatch" data-hex="#ffffff" style="background:#ffffff" title="Branco" aria-label="Branco"></button>
-              <button type="button" class="board-grid-color-swatch" data-hex="#e8112d" style="background:#e8112d" title="Vermelho" aria-label="Vermelho"></button>
-              <button type="button" class="board-grid-color-swatch" data-hex="#f7941d" style="background:#f7941d" title="Laranja" aria-label="Laranja"></button>
-              <button type="button" class="board-grid-color-swatch" data-hex="#fff200" style="background:#fff200" title="Amarelo" aria-label="Amarelo"></button>
-              <button type="button" class="board-grid-color-swatch" data-hex="#39b54a" style="background:#39b54a" title="Verde" aria-label="Verde"></button>
-              <button type="button" class="board-grid-color-swatch" data-hex="#0071bc" style="background:#0071bc" title="Azul" aria-label="Azul"></button>
-              <button type="button" class="board-grid-color-swatch" data-hex="#2e3192" style="background:#2e3192" title="Anil" aria-label="Anil"></button>
-              <button type="button" class="board-grid-color-swatch" data-hex="#92278f" style="background:#92278f" title="Violeta" aria-label="Violeta"></button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="board-menu">
-        <div class="board-menu-tabs">
-          <button type="button" class="board-menu-tab active" data-panel="boardPanelJogadores">Fichas dos Jogadores</button>
-          <button type="button" class="board-menu-tab" data-panel="boardPanelMestre">Fichas do Mestre</button>
-          <button type="button" class="board-menu-tab" data-panel="boardPanelGeral">Geral</button>
-          <button type="button" class="board-menu-tab" data-panel="boardPanelBlocos">Barreiras</button>
-          <button type="button" class="board-menu-tab" data-panel="boardPanelPvp">⚔️ PVP</button>
-        </div>
-
-        <div class="board-menu-panel active" id="boardPanelJogadores">
-          <div class="board-tray-coins" id="boardTrayCoins"></div>
-        </div>
-        <div class="board-menu-panel" id="boardPanelMestre">
-          <div class="board-tray-coins" id="boardTrayMestreCoins"></div>
-        </div>
-        <div class="board-menu-panel" id="boardPanelGeral">
-          <div class="board-enemy-coins" id="boardEnemyCoins"></div>
-          <!-- Fichas de NPC marcadas "Inimigos" (ver #f_publica/👹 Fichas de Inimigos) viram peças
-               de verdade aqui, na mesma aba dos ícones genéricos acima -- cada uma pode ser
-               arrastada quantas vezes o mestre quiser (repetível, ao contrário das fichas de
-               jogador/mestre normais das outras abas, que só entram uma vez cada). Fica escondida
-               (ver renderInimigoFichaCoins() no <script>) quando não há nenhuma ficha marcada
-               assim ainda, pra não deixar um título "Fichas de Inimigos" solto e vazio aqui. -->
-          <div id="boardInimigoFichaWrap" hidden style="margin-top:14px;">
-            <div class="board-tray-title">Fichas de Inimigos</div>
-            <div class="board-enemy-coins" id="boardInimigoFichaCoins"></div>
-          </div>
-        </div>
-        <!-- mesmas fichas de jogador/mestre das abas acima, só que colocadas aqui no tabuleiro
-             entram em modo PVP: ícone com contorno vermelho pulsante e nome em vermelho (ver
-             .token-hero-pvp/.tray-coin-name-pvp no <style>), tratada pelo Fog igual a um inimigo
-             (só visível dentro do alcance de outra ficha, e só enxerga o resto dentro do próprio
-             alcance) — ver isSpottableToken()/computeFogReachableKeys() no <script>. Continua
-             sendo a MESMA ficha: só existe um ícone dela no tabuleiro por vez, normal OU PVP, nunca
-             os dois (ver handleBoardDrop()). -->
-        <div class="board-menu-panel" id="boardPanelPvp">
-          <div class="board-tray-title">Fichas dos jogadores</div>
-          <div class="board-tray-coins" id="boardTrayCoinsPvp"></div>
-          <div class="board-tray-title" style="margin-top:12px;">Fichas do mestre</div>
-          <div class="board-tray-coins" id="boardTrayMestreCoinsPvp"></div>
-        </div>
-        <div class="board-menu-panel" id="boardPanelBlocos">
-          <!-- só existe UMA barreira agora (verde, ver OBSTACLE_KINDS no <script>) — sem seletor de
-               material. Diferença chave do bloco antigo: essa barreira NUNCA aparece pro jogador
-               (nem no tabuleiro ao vivo, nem sob Fog) — só o mestre vê ela aqui dentro de MESA. Ela
-               continua bloqueando movimento normalmente (ver isBlockKind()/canPlace()), só o
-               VISUAL some pro jogador — é uma armadilha/parede invisível. -->
-          <p class="board-tray-hint">Barreira: invisível pros jogadores, só o mestre vê aqui na aba Mesa. Rocha e Pedra de Gelo: mesmo bloqueio de movimento e visão da Barreira, mas ficam visíveis pra todo mundo (sempre 1 casa). Todas continuam bloqueando movimento/visão normalmente.</p>
-          <!-- tamanho da barreira: seletor livre "linhas x colunas" (mesmo estilo do seletor de
-               tamanho do tabuleiro, ver .board-size-fields no <style>) — lido ao vivo na hora de
-               arrastar a moeda pro tabuleiro (ver renderObstacleCoins() no <script>); Rocha/Pedra
-               de Gelo ignoram esse seletor (resizable:false, sempre 1 casa, ver OBSTACLE_KINDS). -->
-          <div class="board-block-size-control board-size-fields">
-            <label for="boardBlockRowsInput">Tamanho da barreira</label>
-            <input type="number" id="boardBlockRowsInput" min="1" max="12" value="1" title="Número de linhas">
-            <span>x</span>
-            <input type="number" id="boardBlockColsInput" min="1" max="12" value="1" title="Número de colunas">
-          </div>
-          <div class="board-enemy-coins" id="boardObstacleCoins"></div>
-          <!-- Arbusto/Armadilha/Poça de Água (novo, DECOR_KINDS no <script>) -- pedido explícito:
-               colocação igual às fichas de Aliado/Inimigo/Monstro/Boss (repete quantas vezes o
-               mestre quiser, numerado sozinho), mas NÃO bloqueia movimento nem visão. Descrição (o
-               que tem dentro, ou o efeito da armadilha) é escrita clicando na peça já colocada no
-               tabuleiro de verdade (ver o listener de 'click' em renderBoardCell() no <script>). -->
-          <div class="board-tray-title" style="margin-top:14px;">Objetos</div>
-          <p class="board-tray-hint">Arbusto, Armadilha e Poça de Água: nenhum bloqueia movimento nem visão — clique num já colocado no tabuleiro pra escrever a descrição (o que tem dentro, ou o efeito da armadilha, por exemplo), que aparece pra todo mundo ao passar o mouse em cima.</p>
-          <div class="board-enemy-coins" id="boardDecorCoins"></div>
-        </div>
-      </div>
-
-      <!-- Painel de Turno (pedido explícito desta rodada: movido pra ficar IMEDIATAMENTE ACIMA DO
-           TABULEIRO -- antes ficava logo abaixo do título, com o menu de abas no meio dos dois).
-           Ver turnState/renderTurnBars()/renderTurnQueuePanel() no <script>. O Mestre pode encerrar
-           QUALQUER turno que esteja na vez agora, sem restrição -- inclusive pra PULAR o turno de
-           uma peça sem ficha associada, ou forçar o encerramento do turno de qualquer outra peça.
-           ➡️/⬅️ (avançar/voltar, delayCurrentTurn()/returnToPreviousTurn()): "segura" a ação da vez
-           atual, empurrando-a pro FIM da fila desta MESMA rodada (não influencia a rodada seguinte).
-           A guia inteira pode ser minimizada (setTurnControlMinimized(), mesmo padrão de
-           .live-board-panel.minimized). -->
-      <div class="turn-control-panel" id="turnControlPanel">
-        <div class="turn-control-head">
-          <span class="turn-control-head-title">⏳ Turno</span>
-          <button type="button" class="chat-min-btn" id="turnControlMinimizeBtn" title="Minimizar">▾</button>
-        </div>
-        <div class="turn-control-body" id="turnControlBody">
-          <div class="turn-status-bar">
-            <span class="turn-status-text" id="boardTurnStatus">Nenhuma iniciativa rodada ainda.</span>
-            <button type="button" class="mini-btn" id="turnDelayBtn" disabled title="Avançar Turno — segura a ação, vai pro fim da fila desta rodada">➡️</button>
-            <button type="button" class="mini-btn" id="turnUndoBtn" disabled title="Voltar ao Turno Anterior — desfaz o último encerramento de turno (avançar, manual, erro, ou automático)">⬅️</button>
-            <button type="button" class="mini-btn" id="boardEndTurnBtn" disabled title="Encerrar/Pular Turno"><span class="end-turn-icon">⏳</span></button>
-          </div>
-          <div class="turn-queue-panel" id="turnQueuePanel">
-            <div class="turn-queue-round" id="turnQueueRound"></div>
-            <ol class="turn-queue-list" id="turnQueueList"></ol>
-          </div>
-        </div>
-      </div>
-
-      <div class="board-wrap">
-        <div class="board-zoom-spacer" id="boardZoomSpacer">
-          <div class="board-outer" id="boardOuter">
-            <div class="board-corner"></div>
-            <div class="board-colheader" id="boardColHeader"></div>
-            <div class="board-rowheader" id="boardRowHeader"></div>
-            <div class="board-grid" id="boardGrid"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- zoom logo abaixo do tabuleiro (dentro de MESA) — ver setupBoardZoom() no <script>. -->
-      <div class="board-zoom-controls">
-        <button type="button" class="board-zoom-btn" id="boardZoomOutBtn" title="Diminuir zoom" aria-label="Diminuir zoom">−</button>
-        <span class="board-zoom-readout" id="boardZoomReadout">100%</span>
-        <button type="button" class="board-zoom-btn" id="boardZoomInBtn" title="Aumentar zoom" aria-label="Aumentar zoom">+</button>
-      </div>
-
-      <div class="board-menu board-menu-bottom-actions">
-        <input type="file" id="boardBgInput" accept="image/*" style="display:none;">
-        <button id="iniciativaTabuleiroBtn" class="mini-btn" type="button">🗺️ Iniciativa</button>
-        <button id="boardSendBtn" class="mini-btn" type="button">🗺️ Enviar para a mesa</button>
-        <button id="boardBgChooseBtn" class="mini-btn" type="button">🖼️ Escolher imagem</button>
-        <!-- Reset combina o que antes eram 2 botões separados (Limpar tabuleiro + Tabuleiro padrão)
-             — ver o listener único de boardResetBtn no <script>, que faz as duas coisas de uma vez. -->
-        <button id="boardResetBtn" class="mini-btn" type="button">↺ Reset</button>
-        <!-- modos de visão do tabuleiro ao vivo (jogadores) — ver boardRevealMode/boardFogMode/
-             boardDarkMode e os cliques em #boardRevealModeLabel/#boardFogModeLabel/#boardDarkModeLabel
-             no <script>. Os 3 agora SÃO o próprio botão (sem checkbox do lado) — clicar acende/apaga
-             o botão em si (classe .mode-active). REVELAR: enquanto apagado, o tabuleiro ao vivo
-             aparece todo preto pra quem não é mestre, tenha ficha no tabuleiro ou não — pedido
-             explícito, pra o mestre preparar a cena sem nada vazar antes da hora. Fog vem ATIVO por
-             padrão (protege info dos jogadores sem o mestre precisar lembrar de ligar) — este botão é
-             "Remover Fog": aceso = fog desligado. Dark é independente (congela a publicação inteira
-             pro tabuleiro ao vivo) — nenhum dos 3 é mutuamente exclusivo com os outros. -->
-        <button type="button" class="board-mode-toggle" id="boardRevealModeLabel" aria-pressed="false">
-          <span class="board-mode-toggle-name">👁️ REVELAR</span>
-        </button>
-        <button type="button" class="board-mode-toggle" id="boardFogModeLabel" aria-pressed="false">
-          <span class="board-mode-toggle-name">🌫️ Remover Fog</span>
-        </button>
-        <!-- FOG+ (pedido explícito, "se possível" -- ver boardFogPlusColor/setBoardFogPlusColor() no
-             <script>): camada visual extra de neblina cobrindo o tabuleiro inteiro pro jogador,
-             deixando sem neblina só o campo de visão combinado dos jogadores. 3 cores, só uma ativa
-             por vez (clicar na ativa desliga; clicar em outra troca direto) -- DESLIGADO por padrão. -->
-        <button type="button" class="board-mode-toggle" id="boardFogCinzaModeLabel" aria-pressed="false">
-          <span class="board-mode-toggle-name">🌫️ NEVOA</span>
-        </button>
-        <button type="button" class="board-mode-toggle" id="boardFogPretaModeLabel" aria-pressed="false">
-          <span class="board-mode-toggle-name">🖤 FUMAÇA</span>
-        </button>
-        <button type="button" class="board-mode-toggle" id="boardFogRoxaModeLabel" aria-pressed="false">
-          <span class="board-mode-toggle-name">💜 ESTRANHEZA</span>
-        </button>
-        <button type="button" class="board-mode-toggle" id="boardDarkModeLabel" aria-pressed="false">
-          <span class="board-mode-toggle-name">🌑 ESCURIDÃO TOTAL</span>
-        </button>
-      </div>
-      <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
-      <div id="boardSendHint" class="mesa-hint"></div>
-    </div>
-
-    <div class="panel dice-panel" id="mesaHeroSummaryPanel">
-      <h2>📋 Fichas dos Jogadores (resumo ao vivo) <button type="button" class="panel-toggle-btn" id="mesaHeroSummaryToggleBtn" aria-label="Minimizar Fichas dos Jogadores" title="Minimizar/expandir Fichas dos Jogadores">▾</button></h2>
-      <div id="mesaHeroSummaryList" class="master-list"></div>
-    </div>
-
-    <div class="panel dice-panel" id="rollLogPanel">
-      <h2>🎲 Histórico de Rolagens <button type="button" class="panel-toggle-btn" id="rollLogToggleBtn" aria-label="Minimizar Histórico de Rolagens" title="Minimizar/expandir Histórico de Rolagens">▾</button></h2>
-      <div id="rollLogBody" class="dice-panel-body">
-        <div class="roll-log-actions">
-          <button id="refreshRollLog" class="add-row-btn">↻ Atualizar histórico</button>
-          <button id="clearRollLog" class="add-row-btn danger-row-btn">🗑️ Limpar histórico</button>
-        </div>
-        <div id="rollLogList" class="roll-log-list"></div>
-      </div>
-    </div>
-
-    <div class="mesa-preview-wrap" id="mesaPreviewWrap" hidden>
-      <img id="mesaPreviewImg" alt="Pré-visualização do print">
-      <button id="mesaRemoveImg" class="mini-btn" type="button">Remover imagem</button>
-    </div>
-
-    <div class="token-field">
-      <label>Print (opcional — clique para escolher ou cole com Ctrl+V no campo de texto)</label>
-      <input type="file" id="mesaImageInput" accept="image/*">
-    </div>
-
-    <div class="token-field">
-      <label>Mensagem</label>
-      <textarea id="mesaMessageInput" rows="4" placeholder="Escreva algo pra mesa... (também aceita colar um print aqui)"></textarea>
-    </div>
-
-    <div class="modal-actions">
-      <button id="mesaSendBtn">📨 Enviar</button>
-    </div>
-    <div id="mesaSendHint" class="mesa-hint"></div>
-        </div>
+        <!-- #mesaContent saiu de dentro do verso -- ver #mesaFixedPanel, agora mora lá como
+             a aba "chat-tab-body mestre-only" (#chatTabBtnMesa), pedido novo desta rodada. -->
       </div>
     </div>
 
@@ -4867,9 +5129,27 @@ body{
       <h2>👹 Fichas de Inimigos</h2>
       <button id="closeMasterEnemies" class="modal-close">✕</button>
     </div>
-    <p class="modal-sub">Fichas de NPC marcadas como "Inimigos" (ver seletor "Ficha de NPC", abaixo do Nome) aparecem aqui em vez de em "Fichas do Mestre". Pra colocar uma no tabuleiro, abra 🖥️ Mesa → aba "Geral": cada uma aparece como um retrato arrastável ali, junto dos ícones de Inimigo/Monstro/Chefe, e pode ser solta quantas vezes quiser.</p>
+    <p class="modal-sub">Fichas de NPC marcadas como "Inimigos" (ver seletor "Ficha de NPC", abaixo do Nome) aparecem aqui em vez de em "Fichas do Mestre". Pra colocar uma no tabuleiro, abra 🖥️ Mesa → aba "👹 Inimigos": cada uma aparece como um retrato arrastável ali, e pode ser solta quantas vezes quiser.</p>
     <button id="refreshMasterEnemies" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
     <div id="masterEnemiesList" class="master-list"></div>
+  </div>
+</div>
+<!-- Modal da "🧝 Fichas de Aliados" (rodada nova, "FASE 4c" do porte "MESA/tabuleiro iguais ao
+     index_mag") -- mestre-only, igual "👹 Fichas de Inimigos" acima. Mesma pasta do GitHub
+     (FICHAS_MESTRE_PATH), mesma makeFichasListLoader() (com "Ver ficha"/"Apagar" iguais às outras
+     listas), só que com opts.allyFilter (espelho de opts.enemyFilter) mostrando SÓ as fichas com
+     #f_publica = "Aliados". A parte de "virar peça repetível no tabuleiro" NÃO mora neste modal --
+     é a aba "🧝 Aliados" de dentro de 🖥️ Mesa que ganha um retrato arrastável por ficha de Aliados
+     (ver renderAliadoFichaCoins() no <script>) -- igual ao index_mag.html. -->
+<div class="modal-overlay" id="alliesModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>🧝 Fichas de Aliados</h2>
+      <button id="closeMasterAllies" class="modal-close">✕</button>
+    </div>
+    <p class="modal-sub">Fichas de NPC marcadas como "Aliados" (ver seletor "Ficha de NPC", abaixo do Nome) aparecem aqui. Pra colocar uma no tabuleiro, abra 🖥️ Mesa → aba "🧝 Aliados": cada uma aparece como um retrato arrastável ali, e pode ser solta quantas vezes quiser.</p>
+    <button id="refreshMasterAllies" class="add-row-btn" style="margin-bottom:14px;">↻ Atualizar lista</button>
+    <div id="masterAlliesList" class="master-list"></div>
   </div>
 </div>
 
@@ -6322,8 +6602,8 @@ body{
   // "Atualizar lista" (mesma limitação de qualquer ficha nova ainda não salva).
   els.publica.addEventListener('change', ()=>{
     if(!fbReady || !fbDb || !loadedFichaPath) return;
-    fbDb.ref('mesa/npcPublica/' + sanitizeFbKey(loadedFichaPath)).set(els.publica.value === 'Publico')
-      .catch(err=> console.error('Não foi possível avisar em tempo real a mudança de Público/Privado desta ficha de NPC:', err));
+    fbDb.ref('mesa/npcPublica/' + sanitizeFbKey(loadedFichaPath)).set(els.publica.value === 'Aliados')
+      .catch(err=> console.error('Não foi possível avisar em tempo real a mudança de Aliados/Privado desta ficha de NPC:', err));
   });
 
   Object.values(els).forEach(el=>{
@@ -6622,8 +6902,6 @@ body{
   wirePanelToggle('diceToggleBtn', 'diceBody', 'Rolagem de Atributo');
   wirePanelToggle('danoToggleBtn', 'danoBody', 'Rolagem de Dano');
   wirePanelToggle('sorteToggleBtn', 'sorteBody', 'Rolagem de Sorte');
-  wirePanelToggle('rollLogToggleBtn', 'rollLogBody', 'Histórico de Rolagens');
-  wirePanelToggle('mesaHeroSummaryToggleBtn', 'mesaHeroSummaryList', 'Fichas dos Jogadores');
 
   // joia de Nível: sem tooltip nativo (não tem mais "title") — em vez disso, passar o mouse
   // por cima troca o numeral romano por número normal (ex: "XIV" vira "14"), e volta pro
@@ -7598,7 +7876,7 @@ body{
     // pra rolar, mesmo com a fila ativa -- mesmo critério já usado pro movimento.
     if(turnState.active && turnState.order){
       const sheetName = ((els.nome && els.nome.value) || '').trim();
-      const turnEntry = sheetName ? turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha') && it.baseNome === sheetName) : null;
+      const turnEntry = sheetName ? turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha' || it.kind === 'aliado_ficha') && it.baseNome === sheetName) : null;
       if(turnEntry && !isCurrentTurnToken(turnEntry)){
         diceHint.textContent = `Não é a sua vez! Turno atual (Rodada ${turnState.round}): ${(currentTurnEntry()||{}).nome || '—'}.`;
         announceOutOfTurn(turnEntry);
@@ -8117,7 +8395,7 @@ body{
     const entry = currentTurnEntry();
     if(!entry) return;
     turnState.moved = true;
-    const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha';
+    const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha' && entry.kind !== 'aliado_ficha';
     if(isFreeform){
       if(!isBlankName(entry.nome)) postToDiscord(`⏭️ ${entry.nome} SE MOVEU E O TURNO FOI ENCERRADO AUTOMATICAMENTE (SEM FICHA PRA ROLAR)`.toUpperCase(), null);
       advanceTurn();
@@ -8154,7 +8432,7 @@ body{
   function markActionRollFromOpenSheet(verdict){
     if(!turnState.active) return;
     const entry = currentTurnEntry();
-    if(!entry || (entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha')) return;
+    if(!entry || (entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha' && entry.kind !== 'aliado_ficha')) return;
     const sheetName = ((els.nome && els.nome.value) || '').trim();
     if(!sheetName || sheetName !== entry.baseNome) return;
     markTurnRolled(verdict);
@@ -8296,7 +8574,7 @@ body{
     // REDESENHO desta rodada: sem contador de "ações restantes" — mostra o estado de cada uma das
     // 2 ações independentes (movimento/rolagem) desta vez (ver canMoveThisTurnToken()/
     // canRollThisTurnToken()). Peça SEM ficha (isFreeform) nunca tem rolagem pra mostrar.
-    const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha';
+    const isFreeform = entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha' && entry.kind !== 'aliado_ficha';
     const bits = [];
     bits.push(turnState.rolled ? 'movimento travado (já rolou)' : (turnState.moved ? 'movimento já usado' : 'movimento disponível'));
     if(!isFreeform) bits.push(turnState.rolled ? 'rolagem já usada' : 'rolagem disponível');
@@ -8355,7 +8633,7 @@ body{
 
   // ---------- iniciativa (pelo tabuleiro) ----------
   // Sorteia (mesmo embaralhamento aleatório de sempre) quem já está posicionado no tabuleiro AGORA
-  // — cada token de herói (kind:'hero') e de aliado/inimigo/monstro/boss/inimigo_ficha vira um
+  // — cada token de herói (kind:'hero') e de aliado/inimigo/monstro/boss/inimigo_ficha/aliado_ficha vira um
   // item; blocos/obstáculos (isBlockKind) ficam de fora, não são combatentes. tokenTooltipText() já
   // monta o nome certo pra cada um (nome da ficha pro herói, "Rótulo N" pro resto — mesmo texto que
   // já aparece na dica ao passar o mouse em cada peça); baseNome (sem numeração) é o que
@@ -8379,7 +8657,7 @@ body{
       iniciativaTabuleiroHint.textContent = 'Não há nenhum herói ou inimigo posicionado no tabuleiro agora.';
       return;
     }
-    const original = iniciativaTabuleiroBtn.textContent;
+    const original = iniciativaTabuleiroBtn.innerHTML;
     iniciativaTabuleiroBtn.disabled = true;
     iniciativaTabuleiroBtn.textContent = 'Sorteando...';
     iniciativaTabuleiroHint.textContent = '';
@@ -8401,7 +8679,7 @@ body{
       iniciativaTabuleiroBtn.textContent = 'Erro, tente de novo';
       iniciativaTabuleiroHint.textContent = 'Não foi possível sortear a ordem de iniciativa agora.';
     }
-    setTimeout(()=>{ iniciativaTabuleiroBtn.textContent = original; iniciativaTabuleiroBtn.disabled = false; }, 900);
+    setTimeout(()=>{ iniciativaTabuleiroBtn.innerHTML = original; iniciativaTabuleiroBtn.disabled = false; }, 900);
   });
 
   // ---------- flip ----------
@@ -8503,12 +8781,13 @@ body{
     }catch(err){ /* Web Audio indisponível — ficha continua normal, só sem o som */ }
   }
 
-  // mostra "verso" (história) ou "mesa" dentro do verso do cartão -- ver .verso-content/.mesa-content
-  // no <style>/HTML. Só troca QUAL conteúdo do verso fica visível; não mexe no giro do cartão em
-  // si (isso é feito por quem chama, ver flipBtn/openMesaModal()/closeMesaModal() logo abaixo).
+  // mostra "história" dentro do verso do cartão -- ver .verso-content no <style>/HTML. Não mexe
+  // no giro do cartão em si (isso é feito por quem chama, ver flipBtn logo abaixo). Rodada nova,
+  // igual ao index_mag.html: perdeu o modo 'mesa' -- Mesa não vira mais o cartão (ver comentário
+  // grande de openMesaModal()/closeMesaModal() no <script>, mais abaixo, que agora só trocam de
+  // aba do chat).
   function setBackFaceMode(mode){
     versoContent.hidden = mode !== 'verso';
-    mesaContent.hidden = mode !== 'mesa';
   }
 
   $('flipBtn').addEventListener('click', ()=>{
@@ -8858,13 +9137,15 @@ body{
     // avisa o seletor de setas do Alinhamento que o valor mudou por fora, pra caixinha visível
     // acompanhar (ver o listener 'change' novo dentro de wireArrowSelect).
     els.alinhamento.dispatchEvent(new Event('change', { bubbles:true }));
-    // Público/Privado/Inimigos: "Privado" é o padrão sempre que a ficha não trouxer um valor
+    // Privado/Aliados/Inimigos: "Privado" é o padrão sempre que a ficha não trouxer um valor
     // reconhecido -- cobre tanto "Nova ficha" (s={}, nasce Privada) quanto uma ficha de NPC salva
-    // antes desse recurso existir (legada, sem o campo). s.publica pode chegar em dois formatos:
-    // a STRING de verdade ('Publico'/'Inimigos', gravada a partir desta rodada — ver
-    // collectState()) OU o boolean antigo (true = Publico, de fichas salvas ANTES desta rodada,
-    // quando "Inimigos" nem existia) -- os dois são aceitos aqui pra nenhuma ficha antiga quebrar.
-    els.publica.value = (s.publica === 'Publico' || s.publica === 'Inimigos') ? s.publica : (s.publica === true ? 'Publico' : 'Privado');
+    // antes desse recurso existir (legada, sem o campo). s.publica pode chegar em 3 formatos: a
+    // STRING de verdade atual ('Aliados'/'Inimigos'), a STRING antiga ('Publico', de fichas salvas
+    // antes da "FASE 4c" do porte "MESA/tabuleiro iguais ao index_mag" -- normalizada aqui pra
+    // 'Aliados', igual ao index_mag.html faz), ou o boolean ainda mais antigo (true = Publico, de
+    // fichas salvas antes de "Inimigos" nem existir) -- os 3 são aceitos aqui pra nenhuma ficha
+    // antiga quebrar.
+    els.publica.value = (s.publica === 'Aliados' || s.publica === 'Inimigos') ? s.publica : ((s.publica === 'Publico' || s.publica === true) ? 'Aliados' : 'Privado');
     els.xp.dataset.total = s.xp ?? 0; // total acumulado de verdade; recalc() (chamado no fim desta função) atualiza o campo visível a partir dele
     els.historia.value = s.historia||'';
     // sempre reatribui (mesmo numa ficha nova/em branco, sem "base"/"mods" salvos) — senão "Nova
@@ -8958,17 +9239,16 @@ body{
     // toda guia minimizável começa minimizada sempre que uma ficha é acessada (nova, carregada
     // automaticamente pro jogador, ou aberta pela lista de Fichas de Jogador/Fichas do Mestre) —
     // não só Modificadores (que já nascia assim antes desta rodada): os 3 painéis de rolagem
-    // (Atributo/Dano/Sorte), o Histórico de Rolagens e "Fichas dos Jogadores (resumo ao vivo)"
-    // (os dois últimos dentro da Mesa) também. Independe de como cada painel estava antes —
-    // sempre volta a fechado neste ponto.
+    // (Atributo/Dano/Sorte) também. Independe de como cada painel estava antes — sempre volta a
+    // fechado neste ponto. Rodada nova ("FASE 4b"): as entradas de Histórico de Rolagens/"Fichas
+    // dos Jogadores (resumo ao vivo)" saíram (painéis removidos) -- "🧾 Resumo do Tabuleiro" também
+    // já tinha saído desta lista na Fase 4a (virou aba própria do chat, sem botão de minimizar).
     [
       [modToggleBtn, modsGrid, 'Modificadores'],
       [effectsToggleBtn, effectsGrid, 'Efeitos'],
       [$('diceToggleBtn'), $('diceBody'), 'Rolagem de Atributo'],
       [$('danoToggleBtn'), $('danoBody'), 'Rolagem de Dano'],
       [$('sorteToggleBtn'), $('sorteBody'), 'Rolagem de Sorte'],
-      [$('rollLogToggleBtn'), $('rollLogBody'), 'Histórico de Rolagens'],
-      [$('mesaHeroSummaryToggleBtn'), $('mesaHeroSummaryList'), 'Fichas dos Jogadores'],
     ].forEach(([btn, body, titulo])=>{
       if(!btn || !body) return;
       body.classList.add('collapsed');
@@ -9792,155 +10072,21 @@ body{
     }
   }
 
-  // Histórico de Rolagens agora mora dentro do modal da Mesa (primeiro painel lá, minimizável —
-  // ver wirePanelToggle('rollLogToggleBtn', ...) mais abaixo e openMesaModal(), que chama
-  // loadRollLog() toda vez que a Mesa abre).
-  const rollLogList = $('rollLogList');
-  $('refreshRollLog').addEventListener('click', loadRollLog);
-
-  $('clearRollLog').addEventListener('click', async ()=>{
-    if(!getToken()){
-      alert('Configure seu token do GitHub para poder limpar o histórico.');
-      tokenModal.hidden = false;
-      return;
-    }
-    if(!confirm('Limpar todo o Histórico de Rolagens? Essa ação não pode ser desfeita.')) return;
-    const btn = $('clearRollLog');
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = 'Limpando...';
-    try{
-      const existing = await githubGetFileContent(ROLL_LOG_PATH).catch(()=>null);
-      const body = {
-        message: 'Limpa histórico de rolagens',
-        content: b64EncodeUnicode(JSON.stringify([], null, 2))
-      };
-      if(existing && existing.sha) body.sha = existing.sha;
-      await fetch(apiUrl(ROLL_LOG_PATH), {
-        method:'PUT',
-        headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
-        body: JSON.stringify(body)
-      });
-      await loadRollLog();
-    }catch(err){
-      console.warn('Não foi possível limpar o histórico compartilhado:', err);
-      alert('Não foi possível limpar o histórico. Tente novamente.');
-    }finally{
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
-  });
-
-  // Monta a linha (DOM) de uma entrada do histórico — usada tanto pela carga inicial (loadRollLog,
-  // que busca tudo do GitHub) quanto pelo listener em tempo real (attachRollLogLiveListener, que só
-  // recebe as entradas NOVAS vindas do espelho no Firebase — ver pushRollLogFeed()). Extraída pra
-  // função própria só pra não duplicar essa formatação nos dois lugares.
-  function buildRollLogRow(entry){
-    const nome = escapeHtml(entry.nome || '(sem nome)');
-    let texto;
-    if(entry.tipo === 'movimento'){
-      // ver pushMoveLog()/handleLiveBoardDrop() — só aqui no histórico é que a posição de
-      // onde/pra onde aparece; o aviso no chat/Discord é só "NOME se movimentou".
-      texto = `"${nome}" SE MOVIMENTOU de ${escapeHtml(entry.de || '?')} para ${escapeHtml(entry.para || '?')}`;
-    } else if(entry.tipo === 'dano'){
-      const qtd = entry.qtd || 1;
-      const detalhe = (Array.isArray(entry.rolls) && qtd > 1)
-        ? `${qtd}d${escapeHtml(String(entry.maxVal))}: [${entry.rolls.map(r=>escapeHtml(String(r))).join(', ')}] = ${escapeHtml(String(entry.resultado))}`
-        : `resultado ${escapeHtml(String(entry.resultado))}`;
-      const habilidadeTxtLog = entry.habilidade ? ` de "${escapeHtml(entry.habilidade)}"` : '';
-      texto = `"${nome}" ROLOU DANO${habilidadeTxtLog} — ${detalhe}`;
-    } else if(entry.tipo === 'sorte'){
-      const escolhaLabel = entry.escolha === 'coroa' ? 'Coroa' : 'Cara';
-      const resultadoLabel = entry.resultado === 'coroa' ? 'Coroa' : 'Cara';
-      const verdictLabel = entry.verdict === 'acerto' ? 'Acerto' : 'Erro';
-      texto = `"${nome}" JOGOU A MOEDA (escolheu ${escapeHtml(escolhaLabel)}) — CAIU EM ${escapeHtml(resultadoLabel)} (${escapeHtml(verdictLabel)})`;
-    } else {
-      const statNomeRaw = (statFullNames[entry.statKey] || entry.statKey || '').toUpperCase();
-      const statValorTxt = (entry.statValor !== undefined && entry.statValor !== null) ? `(${escapeHtml(String(entry.statValor))})` : '';
-      const label = entry.resultLabel ? ` (${escapeHtml(entry.resultLabel)})` : '';
-      const rollsDetalhe = (Array.isArray(entry.rolls) && entry.rolls.length === 2)
-        ? ` (dados: ${entry.rolls.map(r=>escapeHtml(String(r))).join(' / ')})`
-        : '';
-      const habilidadeAtributoTxtLog = entry.habilidade ? `${escapeHtml(entry.habilidade)} ` : '';
-      const habilidadeDescTxtLog = entry.habilidadeDesc ? `<br><em>${escapeHtml(entry.habilidadeDesc)}</em>` : '';
-      texto = `"${nome}" ROLOU ${habilidadeAtributoTxtLog}"${escapeHtml(statNomeRaw)}${statValorTxt}" — RESULTADO ${escapeHtml(String(entry.resultado))}${label}${rollsDetalhe}${habilidadeDescTxtLog}`;
-    }
-    const hora = entry.ts ? new Date(entry.ts).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}) : '';
-    const row = document.createElement('div');
-    row.className = 'roll-log-entry';
-    row.innerHTML = `<span class="rl-text">${texto}</span><span class="rl-time">${hora}</span>`;
-    return row;
-  }
-
-  // Marca até onde (timestamp) a carga inicial (via GitHub, loadRollLog) já desenhou na tela —
-  // qualquer entrada que chegar depois disso pelo espelho em tempo real do Firebase
-  // (rollLogFeed/attachRollLogLiveListener) com ts MAIOR que esse corte é claramente nova e entra
-  // na lista; entradas com ts menor ou igual já foram (ou já deveriam ter sido) mostradas na carga
-  // inicial, então são ignoradas — evita duplicar linha quando o listener recebe de novo as
-  // últimas entradas já existentes no momento em que se conecta (limitToLast dispara child_added
-  // pra elas também, não só pras futuras).
-  let rollLogLiveCutoffTs = 0;
-  let rollLogFeedRef = null;
-  let rollLogFeedCb = null;
-
-  function attachRollLogLiveListener(){
-    detachRollLogLiveListener();
-    if(!fbReady) return;
-    rollLogFeedRef = fbDb.ref('mesa/rollLogFeed').limitToLast(ROLL_LOG_MAX);
-    rollLogFeedCb = rollLogFeedRef.on('child_added', (snap)=>{
-      const entry = snap.val();
-      if(!entry || !entry.ts || entry.ts <= rollLogLiveCutoffTs) return; // já mostrado na carga inicial
-      rollLogLiveCutoffTs = entry.ts;
-      const emptyMsg = rollLogList.querySelector('.master-empty');
-      if(emptyMsg) emptyMsg.remove();
-      rollLogList.appendChild(buildRollLogRow(entry));
-      // mantém só as últimas ROLL_LOG_MAX linhas na tela também (o container é column-reverse, o
-      // PRIMEIRO filho no DOM é sempre o mais antigo visível).
-      while(rollLogList.children.length > ROLL_LOG_MAX){
-        rollLogList.removeChild(rollLogList.firstChild);
-      }
-    });
-  }
-
-  function detachRollLogLiveListener(){
-    if(rollLogFeedRef && rollLogFeedCb) rollLogFeedRef.off('child_added', rollLogFeedCb);
-    rollLogFeedRef = null;
-    rollLogFeedCb = null;
-  }
-
-  async function loadRollLog(){
-    rollLogList.innerHTML = '<div class="master-empty">Buscando histórico...</div>';
-    rollLogLiveCutoffTs = 0;
-    try{
-      const existing = await githubGetFileContent(ROLL_LOG_PATH);
-      if(!existing){
-        rollLogList.innerHTML = '<div class="master-empty">Nenhuma rolagem registrada ainda.</div>';
-        attachRollLogLiveListener();
-        return;
-      }
-      let arr = [];
-      try{ arr = JSON.parse(existing.content); if(!Array.isArray(arr)) arr = []; }catch(e){ arr = []; }
-      if(arr.length === 0){
-        rollLogList.innerHTML = '<div class="master-empty">Nenhuma rolagem registrada ainda.</div>';
-        attachRollLogLiveListener();
-        return;
-      }
-      rollLogList.innerHTML = '';
-      arr.forEach(entry=>{
-        rollLogList.appendChild(buildRollLogRow(entry));
-        if(entry.ts && entry.ts > rollLogLiveCutoffTs) rollLogLiveCutoffTs = entry.ts;
-      });
-      attachRollLogLiveListener();
-    }catch(err){
-      console.error(err);
-      rollLogList.innerHTML = '<div class="master-empty">Não foi possível carregar o histórico agora. Tente atualizar de novo.</div>';
-      attachRollLogLiveListener();
-    }
-  }
+  // Rodada nova ("FASE 4b"), igual ao index_mag.html ("remove a guia de histórico de rolagens"): a
+  // TELA de exibir o histórico (lista, botões Atualizar/Limpar, listener em tempo real) saiu por
+  // completo -- loadRollLog()/attachRollLogLiveListener()/detachRollLogLiveListener()/
+  // buildRollLogRow()/rollLogList não existem mais. O registro persistente continua rodando
+  // sozinho, sem nenhuma tela: pushRollLog()/pushMoveLog() (mais acima) escrevem direto em
+  // ROLL_LOG_PATH (GitHub) e espelham em mesa/rollLogFeed (pushRollLogFeed()) a cada rolagem/
+  // movimento, mesmo sem ninguém ouvindo esse espelho agora -- não fazia sentido tocar numa
+  // função grande e compartilhada (pushRollLog() roda applyPerRollEffectDamage() e o aviso no
+  // Discord de toda rolagem) só por causa de uma tela que saiu.
 
   // ---------- "Mesa" (mensagem + print direto pro Discord, sem salvar em lugar nenhum) ----------
-  // Mesa não é mais um modal: é o verso do cartão (ver #mesaContent/#versoContent no HTML e
-  // setBackFaceMode() logo abaixo).
+  // Rodada nova, igual ao index_mag.html: Mesa deixou de ser o verso do cartão (era assim numa
+  // rodada anterior) -- #mesaContent agora mora na faixa fixa (#mesaFixedPanel, fora de #card, ver
+  // o comentário grande dela no HTML) como mais uma aba do chat (ver CHAT_TABS/setChatActiveTab()
+  // mais abaixo).
   const mesaContent     = $('mesaContent');
   const versoContent    = $('versoContent');
   const mesaImageInput  = $('mesaImageInput');
@@ -9969,59 +10115,62 @@ body{
     mesaShowPreview(null);
   }
 
-  // controla o auto-abrir da Mesa quando a página é aberta com "?mesa=1" na URL — ver o botão
-  // popoutMesaBtn logo abaixo e onde essa flag é consultada, dentro de onAuthStateChanged.
+  // controla o auto-abrir da aba "📂 Gerenciar Tabuleiro" quando a página é aberta com "?mesa=1" na
+  // URL -- ver onde essa flag é consultada, dentro de onAuthStateChanged. O botão que gerava esse
+  // link ("🗗", popoutMesaBtn) saiu da interface (igual ao index_mag.html), mas o link continua
+  // funcionando pra quem já tinha ele salvo/guardado.
   let autoOpenedMesaFromUrl = false;
 
-  // MESA agora é o verso do cartão -- "abrir" é: mostrar o conteúdo da Mesa dentro do verso
-  // (setBackFaceMode('mesa')) e, se a ficha ainda estiver mostrando a frente, virar pra lá (mesmo
-  // giro/som de Ver Verso). Se a ficha já estava virada pro verso (ex: olhando a História), só
-  // troca o conteúdo na hora, sem girar de novo.
+  // Rodada nova, igual ao index_mag.html: "abrir"/"fechar" a Mesa deixou de virar o cartão -- agora
+  // é só trocar qual aba do chat está ativa (mesmo mecanismo das outras abas, ver
+  // CHAT_TABS/setChatActiveTab() logo abaixo). openMesaModal()/closeMesaModal() continuam existindo
+  // com os MESMOS nomes de sempre (usados pelo popout "?mesa=1" acima, ver autoOpenedMesaFromUrl)
+  // só que agora por baixo dos panos são só um atalho pra trocar de aba, em vez de virar o cartão.
   function openMesaModal(){
-    setBackFaceMode('mesa');
-    if(!card.classList.contains('flipped')){
-      card.classList.add('flipped');
-      $('flipBtn').textContent = '↺ Ver frente';
-      playFlipSound();
-    }
-    syncCardHeight(); // Mesa é o verso -- garante que #card já acompanha a altura dele
-    // o tabuleiro do mestre só existe de verdade (offsetWidth > 0) com a Mesa visível — reaplica o
-    // zoom agora que dá pra medir o tamanho natural certinho (ver comentário grande dentro de
-    // setupBoardZoom() sobre esse "não visível = 0px" no <script>).
-    applyBoardZoom();
-    mesaSendHint.textContent = '';
-    loadHeroRoster();
-    loadMestreRoster();
-    loadRollLog();
-    loadMesaHeroSummary();
+    setChatActiveTab('mesa');
   }
-  // "fechar" a Mesa agora é só virar o cartão de volta pra frente (mesmo giro/som de Ver Verso) --
-  // não existe mais um modal pra esconder.
   function closeMesaModal(){
-    if(!card.classList.contains('flipped')) return;
-    card.classList.remove('flipped');
-    $('flipBtn').textContent = '↺ Ver verso';
-    playFlipSound();
-    syncCardHeight(); // voltou pra frente -- ela é quem manda na altura de #card agora
-    loadMesaHeroSummary.detachLiveListeners();
-    detachRollLogLiveListener();
+    setChatActiveTab('chat');
   }
-  $('mesaBtn').addEventListener('click', openMesaModal);
-  $('closeMesa').addEventListener('click', closeMesaModal);
 
-  // botão "🗗" no cabeçalho do modal — abre a Mesa numa janela separada do navegador (útil pra
-  // deixar num monitor à parte enquanto o resto da ficha fica na tela principal). É a MESMA
-  // página, só que com "?mesa=1" na URL — ver AUTO_OPEN_MESA_FROM_URL mais abaixo, que detecta
-  // esse parâmetro assim que o login (mestre) terminar e abre o modal sozinho na janela nova, sem
-  // precisar clicar em "🖥️ Mesa" de novo lá dentro. Como é a mesma origem, a sessão já logada
-  // aqui normalmente já entra logada na janela nova também (mesmo Firebase Auth) — só pede login
-  // de novo se o navegador estiver isolando o armazenamento entre janelas (ex: aba anônima).
-  $('popoutMesaBtn').addEventListener('click', (e)=>{
-    e.stopPropagation();
-    const url = new URL(location.href);
-    url.searchParams.set('mesa', '1');
-    window.open(url.toString(), 'mesaJanela', 'width=1400,height=980,menubar=no,toolbar=no,location=no');
+  // Rodada nova, igual ao index_mag.html: seletor de abas do chat (💬 Chat / 📂 Gerenciar
+  // Tabuleiro, mestre-only) -- troca só qual <div> fica visível dentro de #chatPanel (mesmo
+  // mecanismo de "gaveta única aberta por vez" de sempre); o chat de verdade (#chatMessages)
+  // continua ao vivo o tempo todo por baixo, só escondido enquanto a Mesa está aberta.
+  const CHAT_TABS = {
+    chat: { btn: $('chatTabBtnChat'), body: $('chatPanelBody') },
+    fichas: { btn: $('chatTabBtnFichas'), body: $('fichaSummaryTabBody') },
+    mesa: { btn: $('chatTabBtnMesa'), body: mesaContent },
+  };
+  function setChatActiveTab(tab){
+    Object.keys(CHAT_TABS).forEach(key=>{
+      const { btn, body } = CHAT_TABS[key];
+      if(!btn || !body) return;
+      const active = key === tab;
+      body.hidden = !active;
+      btn.classList.toggle('mode-active', active);
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    if(tab === 'mesa'){
+      // mesma carga de sempre ao "abrir" a Mesa (ver o antigo openMesaModal(), de antes de virar
+      // aba) -- recarrega as bandejas de fichas. Não precisa mais reaplicar zoom nenhum aqui
+      // (rodada "FASE 2"): o tabuleiro que esta aba edita é o MESMO #liveBoardGrid da faixa fixa,
+      // que já fica visível/com zoom certo o tempo todo, mesmo com esta aba fechada. Rodada nova
+      // ("FASE 4b"), igual ao index_mag.html: não recarrega mais Histórico de Rolagens/Resumo ao
+      // vivo (loadRollLog()/loadMesaHeroSummary()) nem redesenha o "🧾 Resumo do Tabuleiro"
+      // (renderFichaSummaryBubbles()) -- os 2 primeiros não existem mais, e o terceiro é uma aba
+      // própria agora, redesenhada pelos próprios mecanismos dela (renderLiveBoardMini()/
+      // scheduleBoardTokensPush()/login), não precisa mais rodar de novo só por abrir a Mesa.
+      mesaSendHint.textContent = '';
+      loadHeroRoster();
+      loadMestreRoster();
+    }
+  }
+  Object.keys(CHAT_TABS).forEach(key=>{
+    const { btn } = CHAT_TABS[key];
+    if(btn) btn.addEventListener('click', ()=> setChatActiveTab(key));
   });
+  setChatActiveTab('chat');
 
   mesaImageInput.addEventListener('change', ()=>{
     const file = mesaImageInput.files && mesaImageInput.files[0];
@@ -10159,11 +10308,24 @@ body{
   // ---------- mesa: tabuleiro de batalha ----------
   let BOARD_ROWS = 24;
   let BOARD_COLS = 24;
-  const boardGrid        = $('boardGrid');
-  const boardOuterEl     = $('boardOuter');
-  const boardZoomSpacerEl = $('boardZoomSpacer');
-  const boardColHeader   = $('boardColHeader');
-  const boardRowHeader   = $('boardRowHeader');
+  // Rodada nova ("FASE 2" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao index_mag.html:
+  // o tabuleiro que o MESTRE edita deixou de ter sua própria grade/DOM separada dentro de
+  // #mesaContent -- ele desenha agora DIRETO em cima do mesmo #liveBoardGrid/#liveBoardColHeader/
+  // #liveBoardRowHeader que os jogadores sempre viram na faixa fixa (ver liveBoardGridEl etc.,
+  // declarados mais abaixo perto de renderLiveBoardMini()). boardGrid (e as centenas de linhas que
+  // dependem dela daqui pra baixo nesta seção -- buildBoardGrid()/renderBoardCell()/
+  // handleBoardDrop()/etc) continua com o MESMO nome de sempre, só passou a apontar pro elemento
+  // certo -- nenhuma dessas funções precisou mudar por dentro. boardOuterEl/boardZoomSpacerEl
+  // saíram -- o zoom do mestre agora É o mesmo zoom do Tabuleiro ao Vivo (ver applyLiveBoardZoom()
+  // mais abaixo) -- não existe mais um zoom separado pro tabuleiro de dentro de "Gerenciar
+  // Tabuleiro". O que garante que um JOGADOR nunca ganhe os controles de edição do mestre (pintar
+  // marcação, botão direito remove peça, arrastar QUALQUER peça sem restrição) é buildBoardGrid()
+  // -- quem PRENDE esses listeners nas casas -- só rodar pro mestre agora, dentro do login (ver
+  // "if(currentRole === 'mestre') buildBoardGrid();", mais abaixo no <script>), no lugar da chamada
+  // solta e incondicional que existia antes de qualquer login acontecer.
+  const boardGrid        = $('liveBoardGrid');
+  const boardColHeader   = $('liveBoardColHeader');
+  const boardRowHeader   = $('liveBoardRowHeader');
   const boardTrayCoins   = $('boardTrayCoins');
   const boardTrayMestreCoins = $('boardTrayMestreCoins');
   const boardTrayCoinsPvp = $('boardTrayCoinsPvp');
@@ -10171,6 +10333,9 @@ body{
   const boardEnemyCoins  = $('boardEnemyCoins');
   const boardInimigoFichaWrap  = $('boardInimigoFichaWrap');
   const boardInimigoFichaCoins = $('boardInimigoFichaCoins');
+  // Rodada nova ("FASE 4c"): bandeja repetível de Aliados, mirror exato da de Inimigos acima.
+  const boardAliadoFichaWrap   = $('boardAliadoFichaWrap');
+  const boardAliadoFichaCoins  = $('boardAliadoFichaCoins');
   const boardObstacleCoins = $('boardObstacleCoins');
   const boardBlockRowsInput = $('boardBlockRowsInput');
   const boardBlockColsInput = $('boardBlockColsInput');
@@ -10190,18 +10355,19 @@ body{
   const boardBgChooseBtn  = $('boardBgChooseBtn');
   const boardGridColorSwatches = document.querySelectorAll('.board-grid-color-swatch');
 
-  // ---------- zoom do tabuleiro (mestre e "Tabuleiro ao Vivo") ----------
-  // Mesma função serve os dois tabuleiros (chamada uma vez pra cada, mais abaixo e lá na seção do
-  // mini-tabuleiro ao vivo) — cada um guarda o próprio nível de zoom separado no localStorage (a
-  // aba Mesa do mestre normalmente quer um zoom bem menor, já que mostra o tabuleiro inteiro, do
-  // que o mini "Tabuleiro ao Vivo" acima do chat). Zoom de mapa de verdade: a "janela" (spacerEl.
-  // parentElement, .board-wrap/.live-board-wrap) fica do MESMO tamanho na tela sempre, só o
+  // ---------- zoom do tabuleiro ("Tabuleiro ao Vivo", agora também usado pelo Mestre) ----------
+  // Rodada nova ("FASE 2" do porte "MESA/tabuleiro iguais ao index_mag"): até então esta função
+  // servia DOIS tabuleiros (o do Mestre, dentro de "Gerenciar Tabuleiro", e o mini "Tabuleiro ao
+  // Vivo") -- agora serve só um (#liveBoardGrid é o MESMO elemento pros dois papéis, ver
+  // comentário grande em "const boardGrid" mais acima), então só sobrou UMA chamada dela, lá na
+  // seção do mini-tabuleiro ao vivo (applyLiveBoardZoom, mais abaixo). Zoom de mapa de verdade: a
+  // "janela" (spacerEl.parentElement, .live-board-wrap) fica do MESMO tamanho na tela sempre, só o
   // tabuleiro por dentro cresce/encolhe (transform:scale no .board-outer, ver comentário grande
   // junto de .board-zoom-controls no <style> pra entender por que não é a propriedade CSS "zoom"),
   // e o excesso vira scroll — spacerEl é redimensionado (largura/altura NATURAL do tabuleiro, lida
   // via offsetWidth/offsetHeight, que o transform não altera) só pra avisar o container com scroll
   // do tamanho real ocupado pelo desenho ampliado.
-  const BOARD_ZOOM_LEVELS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
+  const BOARD_ZOOM_LEVELS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
   function setupBoardZoom(spacerEl, outerEl, readoutEl, outBtn, inBtn, storageKey){
     if(!spacerEl || !outerEl || !outBtn || !inBtn) return function(){};
     let idx = BOARD_ZOOM_LEVELS.indexOf(1);
@@ -10221,11 +10387,12 @@ body{
       const naturalW = outerEl.offsetWidth;
       const naturalH = outerEl.offsetHeight;
       outerEl.style.transform = 'scale(' + level + ')';
-      // se o tabuleiro ainda não está visível agora (painel minimizado, modal da Mesa fechado —
-      // offsetWidth vem 0 nesses casos), não trava o spacer em 0: deixa "auto" (mesmo efeito de
-      // sempre, sem zoom nenhum aplicado ainda) até a próxima vez que apply() rodar com o tabuleiro
-      // já visível de verdade — ver applyBoardZoom()/applyLiveBoardZoom() chamados na abertura do
-      // modal da Mesa e ao desminimizar o Tabuleiro ao Vivo, mais abaixo no <script>.
+      // se o tabuleiro ainda não está visível agora (painel minimizado — offsetWidth vem 0 nesse
+      // caso), não trava o spacer em 0: deixa "auto" (mesmo efeito de sempre, sem zoom nenhum
+      // aplicado ainda) até a próxima vez que apply() rodar com o tabuleiro já visível de verdade —
+      // ver applyLiveBoardZoom() chamado ao desminimizar o Tabuleiro ao Vivo e no login (pro
+      // Mestre, ver comentário grande de "if(currentRole === 'mestre') buildBoardGrid();" mais
+      // abaixo), mais abaixo no <script>.
       if(naturalW > 0 && naturalH > 0){
         spacerEl.style.width = (naturalW * level) + 'px';
         spacerEl.style.height = (naturalH * level) + 'px';
@@ -10247,8 +10414,6 @@ body{
     apply();
     return apply;
   }
-  const applyBoardZoom = setupBoardZoom(boardZoomSpacerEl, boardOuterEl, $('boardZoomReadout'), $('boardZoomOutBtn'), $('boardZoomInBtn'), 'rpg_ficha_board_zoom');
-
   // ---- menu do tabuleiro: abas Fichas dos Jogadores / Fichas do Mestre / Geral / Blocos ----
   document.querySelectorAll('.board-menu-tab').forEach(tabBtn=>{
     tabBtn.addEventListener('click', ()=>{
@@ -10475,16 +10640,29 @@ body{
         // abaixo sobre o debounce) senão a seta de direção e a cor dela somem toda vez que o mestre
         // mexe em qualquer outra coisa do tabuleiro — ver FACING_ANGLES/DEITY_EYE_COLOR no <script>.
         facing: t.facing || null, deidade: t.deidade || '',
-        // heroId: só existe em peças kind:'inimigo_ficha' (ver handleBoardDrop()) -- de qual ficha
-        // de verdade (mestreRoster) essa peça veio, já que o retrato não é um ícone fixo e o
-        // jogador (resolveTokenPortrait()) precisa achar o retrato a partir do roster, não do id
-        // (que é único POR PEÇA, não por ficha, já que a mesma ficha pode ter várias peças).
+        // heroId: só existe em peças kind:'inimigo_ficha'/'aliado_ficha' (ver handleBoardDrop(),
+        // payload.kind==='inimigo_ficha'/'aliado_ficha') -- de qual ficha de verdade (mestreRoster)
+        // essa peça veio, já que o retrato não é um ícone fixo e o jogador (resolveTokenPortrait())
+        // precisa achar o retrato a partir do roster, não do id (que é único POR PEÇA, não por
+        // ficha, já que a mesma ficha pode ter várias peças).
         heroId: t.heroId || null,
         // desc: usado por Arbusto/Armadilha/Poça de Água (DECOR_KINDS) — escrito pelo mestre
         // clicando na peça já colocada (ver renderBoardCell()) — mas fica disponível de graça pra
         // qualquer kind futura que precise do mesmo tipo de texto livre, já que tokenTooltipText()
         // lê genericamente.
         desc: t.desc || null,
+        // Vida/Mana/Escudo "ao vivo" de cada instância de Inimigos/Aliados (rodada nova, ver
+        // buildFichaInstanceToken()/applyBoardData()/renderBoardInstancesPanel()) -- precisa
+        // sobreviver a este overwrite cheio igual dirMovPenalty/facing acima, senão o dano/cura já
+        // aplicado numa peça voltaria pro valor de fábrica toda vez que o mestre mexesse em qualquer
+        // outra coisa do tabuleiro. null (em vez de 0) em qualquer outro kind, pra não sujar o JSON
+        // salvo de campos sem sentido nenhum pra ele. Também é o que faz resolveTokenVitalsForCard()
+        // achar vitals pro JOGADOR em collectBoardOccupantsForSummary() ("🧾 Resumo do Tabuleiro") --
+        // sem isso, liveBoardState.tokens nunca carrega Vida/Mana/Escudo do lado do jogador, e a aba
+        // nova ficaria sempre vazia pra inimigo_ficha/aliado_ficha mesmo com Fog/Revelar corretos.
+        vidaMax: t.vidaMax != null ? t.vidaMax : null, vidaAtual: t.vidaAtual != null ? t.vidaAtual : null,
+        manaMax: t.manaMax != null ? t.manaMax : null, manaAtual: t.manaAtual != null ? t.manaAtual : null,
+        escudoMax: t.escudoMax != null ? t.escudoMax : null, escudoAtual: t.escudoAtual != null ? t.escudoAtual : null,
       };
     });
     return tokensOut;
@@ -10529,7 +10707,20 @@ body{
     ts: firebase.database.ServerValue.TIMESTAMP,
   }));
   const scheduleBoardMarksPush = makeDebouncedBoardPush('mesa/liveBoard/marks', ()=> Object.assign({}, boardMarks));
-  const scheduleBoardTokensPush = makeDebouncedBoardPush('mesa/liveBoard/tokens', collectBoardTokensOut);
+  const pushBoardTokensToFirebaseDebounced = makeDebouncedBoardPush('mesa/liveBoard/tokens', collectBoardTokensOut);
+  // Pedido explícito ("copie apenas o sistema do tabuleiro" pro Resumo do Tabuleiro, ver o
+  // comentário grande perto de renderFichaSummaryBubbles() mais abaixo): todo call site que já
+  // chamava scheduleBoardTokensPush() antes (handleBoardDrop/removeTokenAt/drag de peça/etc --
+  // qualquer mudança de peça feita pelo mestre) precisa também refletir na hora nas bolhas do
+  // Resumo -- mesmo esquema do Mag (ver o comentário grande dele em scheduleBoardTokensPush()), só
+  // que aqui a função já nascia como uma const (makeDebouncedBoardPush() puro); virou uma function
+  // de verdade só pra caber essa segunda chamada, sem precisar caçar cada call site um por um. O
+  // envio pro Firebase continua exatamente como sempre (debounced); só o redesenho das bolhas roda
+  // síncrono, na hora, porque é local (não depende de rede nenhuma).
+  function scheduleBoardTokensPush(){
+    pushBoardTokensToFirebaseDebounced();
+    renderFichaSummaryBubbles();
+  }
 
   // ---------- toggles Revelar / Dark / "Remover Fog" (ver .board-menu-bottom-actions no HTML) ----------
   // Os 3 são independentes entre si: Dark congela a publicação inteira; "Remover Fog" só decide se o
@@ -10720,7 +10911,8 @@ body{
     // outra casa, muda de direção pra "nenhuma" (facing null) ou é removido do tabuleiro.
     const existingArrow = cell.querySelector('.board-facing-arrow');
     if(existingArrow) existingArrow.remove();
-    // o seletor de 8 direções (inimigo_ficha/ficha do mestre, ver pendingBoardFacingTokenIds) é
+    // o seletor de 8 direções (inimigo_ficha/aliado_ficha/ficha do mestre, ver
+    // pendingBoardFacingTokenIds) é
     // outro elemento À PARTE, mesma lógica da seta acima -- sem esta limpeza, escolher uma direção
     // (chooseBoardFacing() chama renderBoardCell() só dessa casa) deixaria o seletor velho boiando
     // por cima da seta nova recém-desenhada.
@@ -10824,15 +11016,15 @@ body{
       // mestre só ENXERGA a seta já escolhida pra essas, sem seletor nenhum pra mexer nela por
       // aqui -- token.facing chega junto com o resto do token local (boardTokens) através de
       // mergeRemoteHeroTokensIntoLocalBoard(), que mantém esse campo sincronizado a partir do que
-      // cada jogador publica no Firebase, mesmo sem o mestre ter mexido em nada. inimigo_ficha e
-      // ficha do PRÓPRIO mestre (ver isBoardMoveRestrictedToken() mais abaixo, pedido explícito:
-      // "mesmas condições [de jogador]... as setas e tudo mais"): a escolha acontece AQUI mesmo, na
-      // aba Mesa, logo depois de mover a peça (ver handleBoardDrop()/pendingBoardFacingTokenIds/
-      // chooseBoardFacing() mais abaixo) -- por isso o seletor de 8 direções (buildFacingPickerEl())
-      // também pode aparecer nesta função, não só a seta já fixada.
+      // cada jogador publica no Firebase, mesmo sem o mestre ter mexido em nada. inimigo_ficha/
+      // aliado_ficha e ficha do PRÓPRIO mestre (ver isBoardMoveRestrictedToken() mais abaixo, pedido
+      // explícito: "mesmas condições [de jogador]... as setas e tudo mais"): a escolha acontece AQUI
+      // mesmo, na aba Mesa, logo depois de mover a peça (ver handleBoardDrop()/
+      // pendingBoardFacingTokenIds/chooseBoardFacing() mais abaixo) -- por isso o seletor de 8
+      // direções (buildFacingPickerEl()) também pode aparecer nesta função, não só a seta já fixada.
       if(pendingBoardFacingTokenIds.has(token.id) && isBoardMoveRestrictedToken(token)){
         cell.appendChild(buildFacingPickerEl(token, chooseBoardFacing));
-      } else if((token.kind === 'hero' || token.kind === 'inimigo_ficha') && token.facing){
+      } else if((token.kind === 'hero' || token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha') && token.facing){
         cell.appendChild(buildFacingArrowEl(token));
       }
     }
@@ -10906,7 +11098,7 @@ body{
   // dourado pra fichas de jogador/mestre, verde pra aliados, vermelho pra inimigo/monstro/boss.
   function tokenRingColorHex(kind){
     if(kind === 'hero') return '#ffd700';
-    if(kind === 'aliado' || kind === 'aliado_fera') return '#2f8d3e';
+    if(kind === 'aliado' || kind === 'aliado_fera' || kind === 'aliado_ficha') return '#2f8d3e';
     if(kind === 'inimigo' || kind === 'monstro' || kind === 'boss' || kind === 'inimigo_ficha') return '#b04a36';
     return null;
   }
@@ -10923,10 +11115,293 @@ body{
     if(!token) return false;
     if(token.kind === 'aliado' || token.kind === 'aliado_fera'
       || token.kind === 'inimigo' || token.kind === 'monstro' || token.kind === 'boss'
-      || token.kind === 'inimigo_ficha') return true;
+      || token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha') return true;
     if(token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0) return true;
     if(token.kind === 'hero' && token.pvp) return true;
     return false;
+  }
+
+  // ---------- "🧾 Resumo do Tabuleiro" (bolhas com retrato+nome+Vida/Escudo/Mana+atributos/XP,
+  // dentro da Mesa -- mestre-only, já que #mesaBtn é .mestre-only) ---------- Pedido explícito:
+  // "copia todo esse conceito [Resumo do Tabuleiro] pra index_bg também pra ficar igual a parte do
+  // tabuleiro, copie apenas o sistema do tabuleiro, como no index_BG não o conceito de habilidade
+  // não é fixo" -- porta o mesmo mecanismo de bolhas do Mag (resolveTokenVitalsForCard()/
+  // buildBoardVitalsCard()/buildFichaSummaryBubble()/renderFichaSummaryBubbles(), ver
+  // index_mag.html) pro Mesa modal daqui. Já nasce SEM o efeito de zoom no hover e já com a fonte
+  // grande do resumo de atributos (pedidos de rodadas SEPARADAS do Mag, feitos ali depois do
+  // conceito já existir -- aqui entram de saída, no formato final). NÃO inclui os botões de +/-
+  // Vida/Mana/Escudo pro mestre (outro pedido separado do Mag, pedido DEPOIS deste "copie o
+  // conceito" -- fora do escopo explícito aqui) nem nenhum conceito de habilidade fixa (BG não tem
+  // esse sistema, daí o próprio pedido já dizer pra pular essa parte).
+  //
+  // Diferença chave de arquitetura pro Mag: nem 'inimigo_ficha' nem 'aliado_ficha' (ver "FASE 4c"
+  // do porte "MESA/tabuleiro iguais ao index_mag") ganharam aqui Vida/Mana/Escudo PRÓPRIOS gravados
+  // na peça (aquela "Fase 1" de instâncias com vitais próprios foi feita só no Mag, nunca portada
+  // pra cá) -- por isso o ramo abaixo só entra quando a peça excepcionalmente já tiver vidaMax
+  // gravado (não acontece hoje, mas fica pronto caso uma rodada futura grave isso); o ramo de ficha
+  // 'hero' com ownerUid (jogador/mestre com ficha de verdade, lendo liveVitalsAll) fica idêntico ao
+  // Mag. Só aparece pro MESTRE (a guia inteira já é .mestre-only), então sempre lê boardTokens local
+  // sem nenhum filtro de Fog/Revelar (o Mag precisa filtrar porque a MESMA lista também aparece pro
+  // jogador, dentro do chat -- não é o caso aqui).
+  function pctFromValores(atual, max){
+    const maxN = parseFloat(max);
+    if(!(maxN > 0)) return 0;
+    const atualN = Math.max(0, parseFloat(atual) || 0);
+    return Math.max(0, Math.min(100, (atualN / maxN) * 100));
+  }
+  function roundedAtualValor(atual){
+    return Math.max(0, Math.round(parseFloat(atual) || 0));
+  }
+  function resolveTokenVitalsForCard(token){
+    if((token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha') && token.vidaMax != null){
+      return {
+        vidaPct: pctFromValores(token.vidaAtual, token.vidaMax),
+        manaPct: pctFromValores(token.manaAtual, token.manaMax),
+        escudoPct: pctFromValores(token.escudoAtual, token.escudoMax),
+        vidaAtual: roundedAtualValor(token.vidaAtual),
+        manaAtual: roundedAtualValor(token.manaAtual),
+        escudoAtual: roundedAtualValor(token.escudoAtual),
+        deidade: token.deidade || '',
+        totals: token.totals || null,
+        levelInfo: levelInfoFromXp(token.xp || 0),
+      };
+    }
+    if(token.kind === 'hero' && token.ownerUid){
+      const live = liveVitalsAll[token.ownerUid];
+      if(!live) return null;
+      return {
+        vidaPct: pctFromValores(live.vida, live.vidaMax),
+        manaPct: pctFromValores(live.mana, live.manaMax),
+        escudoPct: pctFromValores(live.escudo, live.escudoMax),
+        vidaAtual: roundedAtualValor(live.vida),
+        manaAtual: roundedAtualValor(live.mana),
+        escudoAtual: roundedAtualValor(live.escudo),
+        deidade: live.deidade || '',
+        totals: live.totals || null,
+        levelInfo: levelInfoFromXp(live.xp || 0),
+      };
+    }
+    return null;
+  }
+
+  // Geometria fixa das barrinhas do card (ver .bvc-* no <style>) -- mesmos números do Mag, pra CSS
+  // e JS nunca ficarem dessincronizados.
+  const BVC_BAR_W = 12, BVC_BAR_H = 54;
+  const BVC_RING_PAD = 4, BVC_RING_STROKE = 2.4, BVC_RING_RADIUS = 6.5;
+  const BVC_RING_W = BVC_BAR_W + BVC_RING_PAD * 2, BVC_RING_H = BVC_BAR_H + BVC_RING_PAD * 2;
+  const BVC_RING_PERIMETER = 2 * (BVC_RING_W - BVC_RING_STROKE - 2 * BVC_RING_RADIUS)
+                            + 2 * (BVC_RING_H - BVC_RING_STROKE - 2 * BVC_RING_RADIUS)
+                            + 2 * Math.PI * BVC_RING_RADIUS;
+  function buildBoardVitalsCard(vitals){
+    const deityColor = DEITY_EYE_COLOR[vitals.deidade] || '#e0b656';
+    const card = document.createElement('div');
+    card.className = 'board-token-vitalscard';
+
+    const colVida = document.createElement('div');
+    colVida.className = 'bvc-col';
+
+    const vidaSlot = document.createElement('div');
+    vidaSlot.className = 'bvc-vida-slot';
+    const vidaWrap = document.createElement('div');
+    vidaWrap.className = 'bvc-vida-wrap';
+    const vidaMask = document.createElement('div');
+    vidaMask.className = 'bvc-vida-mask';
+    vidaMask.style.height = (100 - vitals.vidaPct) + '%';
+    vidaWrap.appendChild(vidaMask);
+    vidaSlot.appendChild(vidaWrap);
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const ring = document.createElementNS(svgNS, 'svg');
+    ring.setAttribute('class', 'bvc-escudo-ring');
+    ring.setAttribute('viewBox', `0 0 ${BVC_RING_W} ${BVC_RING_H}`);
+    const ringRect = document.createElementNS(svgNS, 'rect');
+    ringRect.setAttribute('x', BVC_RING_STROKE / 2);
+    ringRect.setAttribute('y', BVC_RING_STROKE / 2);
+    ringRect.setAttribute('width', BVC_RING_W - BVC_RING_STROKE);
+    ringRect.setAttribute('height', BVC_RING_H - BVC_RING_STROKE);
+    ringRect.setAttribute('rx', BVC_RING_RADIUS);
+    ringRect.setAttribute('class', 'bvc-escudo-ring-fill');
+    ringRect.setAttribute('stroke-dasharray', BVC_RING_PERIMETER.toFixed(2));
+    ringRect.setAttribute('stroke-dashoffset', (BVC_RING_PERIMETER * (1 - vitals.escudoPct / 100)).toFixed(2));
+    ringRect.style.stroke = deityColor;
+    ringRect.style.filter = `drop-shadow(0 0 3px ${deityColor})`;
+    ring.appendChild(ringRect);
+    vidaSlot.appendChild(ring);
+    colVida.appendChild(vidaSlot);
+
+    const vidaNums = document.createElement('div');
+    vidaNums.className = 'bvc-nums';
+    const escudoNum = document.createElement('div');
+    escudoNum.className = 'bvc-num bvc-num-escudo';
+    escudoNum.textContent = vitals.escudoAtual;
+    escudoNum.style.color = deityColor;
+    vidaNums.appendChild(escudoNum);
+    const vidaNum = document.createElement('div');
+    vidaNum.className = 'bvc-num bvc-num-vida';
+    vidaNum.textContent = vitals.vidaAtual;
+    vidaNums.appendChild(vidaNum);
+    colVida.appendChild(vidaNums);
+    card.appendChild(colVida);
+
+    const colMana = document.createElement('div');
+    colMana.className = 'bvc-col';
+    const manaWrap = document.createElement('div');
+    manaWrap.className = 'bvc-mana-wrap';
+    const manaFill = document.createElement('div');
+    manaFill.className = 'bvc-mana-fill';
+    manaFill.style.height = vitals.manaPct + '%';
+    manaFill.style.background = deityColor;
+    manaWrap.appendChild(manaFill);
+    colMana.appendChild(manaWrap);
+    const manaNum = document.createElement('div');
+    manaNum.className = 'bvc-num bvc-num-mana';
+    manaNum.textContent = vitals.manaAtual;
+    manaNum.style.color = deityColor;
+    colMana.appendChild(manaNum);
+    card.appendChild(colMana);
+
+    return card;
+  }
+
+  // Resumo compacto de Atributos (FOR/CON/DES/INT/VON/CAR) + barra de XP/Nível de uma bolha --
+  // porte direto de buildFichaBubbleAttrsSummary() do Mag, já com a fonte grande (rodada nova do
+  // Mag: label 9px->11px, valor 11px->14px, label do XP 8.5px->10.5px, ver .ficha-bubble-attr-*
+  // no <style>) desde o início.
+  function buildFichaBubbleAttrsSummary(vitals){
+    if(!vitals.totals) return null;
+    const wrap = document.createElement('div');
+    wrap.className = 'ficha-bubble-attrs';
+    const grid = document.createElement('div');
+    grid.className = 'ficha-bubble-attrs-grid';
+    [['FOR','for'],['CON','con'],['DES','des'],['INT','int'],['VON','von'],['CAR','car']].forEach(([label, key])=>{
+      const cell = document.createElement('div');
+      cell.className = 'ficha-bubble-attr-cell';
+      const labelEl = document.createElement('span');
+      labelEl.className = 'ficha-bubble-attr-label';
+      labelEl.textContent = label;
+      const valEl = document.createElement('span');
+      valEl.className = 'ficha-bubble-attr-val';
+      valEl.textContent = Math.round(vitals.totals[key] || 0);
+      cell.appendChild(labelEl);
+      cell.appendChild(valEl);
+      grid.appendChild(cell);
+    });
+    wrap.appendChild(grid);
+    if(vitals.levelInfo){
+      const xpWrap = document.createElement('div');
+      xpWrap.className = 'ficha-bubble-xp-wrap';
+      const label = document.createElement('div');
+      label.className = 'ficha-bubble-xp-label';
+      label.textContent = `NÍVEL ${vitals.levelInfo.level}`;
+      const track = document.createElement('div');
+      track.className = 'ficha-bubble-xp-track';
+      const fill = document.createElement('div');
+      fill.className = 'ficha-bubble-xp-fill';
+      const pct = vitals.levelInfo.xpNeeded > 0 ? Math.max(0, Math.min(100, (vitals.levelInfo.xpInBlock / vitals.levelInfo.xpNeeded) * 100)) : 0;
+      fill.style.width = pct.toFixed(1) + '%';
+      track.appendChild(fill);
+      xpWrap.appendChild(label);
+      xpWrap.appendChild(track);
+      wrap.appendChild(xpWrap);
+    }
+    return wrap;
+  }
+
+  // Só peças que são de fato uma FICHA por trás (kind 'hero', 'inimigo_ficha' ou 'aliado_ficha')
+  // -- os ícones genéricos das outras bandejas (kind 'aliado'/'aliado_fera'/'inimigo'/'monstro'/
+  // 'boss', sem ficha por trás) nunca aparecem aqui,
+  // pelo mesmo motivo que nunca teriam Vida/Mana/Escudo pra mostrar: resolveTokenVitalsForCard()
+  // devolve null pra eles. Sem filtro de Fog/Revelar (ver o comentário grande acima) -- lê
+  // boardTokens direto, igual ao resto da aba Mesa.
+  // Rodada nova ("FASE 4"), igual ao index_mag.html: agora que "🧾 Resumo do Tabuleiro" é uma aba
+  // visível pro JOGADOR também (antes só existia dentro de "📂 Gerenciar Tabuleiro", mestre-only),
+  // esta função precisa respeitar a MESMA visibilidade de Revelar/Fog que o próprio Tabuleiro ao
+  // Vivo dele já respeita (ver renderLiveBoardMini() -- revealed/fogActive/fogReachable, mesmos
+  // nomes/mesma lógica aqui) -- senão uma ficha escondida pela neblina vazaria aqui, numa lista sem
+  // a mesma proteção espacial do tabuleiro. Mestre continua vendo tudo (lê boardTokens, a fonte de
+  // verdade local dele, sem filtro nenhum -- igual sempre foi).
+  function collectBoardOccupantsForSummary(){
+    const isMestre = currentRole === 'mestre';
+    const tokensMap = isMestre ? boardTokens : (liveBoardState.tokens || {});
+    const keyFn = isMestre ? boardKey : liveBoardKey;
+    const revealed = isMestre || !!liveBoardState.revealed;
+    const fogActive = !isMestre && !!liveBoardState.fog;
+    const fogReachable = (fogActive && revealed) ? computeFogReachableKeys() : null;
+    const out = [];
+    Object.keys(tokensMap || {}).forEach(key=>{
+      const tok = tokensMap[key];
+      if(!tok) return;
+      if(key !== keyFn(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça
+      if(tok.kind !== 'hero' && tok.kind !== 'inimigo_ficha' && tok.kind !== 'aliado_ficha') return;
+      if(!isMestre){
+        if(!revealed) return;
+        if(fogActive && fogReachable && !fogReachable.has(key)) return;
+      }
+      const vitals = resolveTokenVitalsForCard(tok);
+      if(!vitals) return; // sem Vida/Mana/Escudo disponível ainda
+      out.push({ token: tok, vitals });
+    });
+    return out;
+  }
+
+  // Mesma ordenação por INICIATIVA do Mag (ver sortSummaryEntriesByTurn() lá, comentário grande) --
+  // quem está NA VEZ agora sempre no topo, girando conforme os turnos passam; sem fila ativa,
+  // devolve a lista sem reordenação nenhuma.
+  function sortSummaryEntriesByTurn(entries){
+    if(!turnState.active || !turnState.order || !turnState.order.length) return entries;
+    const order = turnState.order;
+    const turnIndex = turnState.turnIndex || 0;
+    const posById = new Map();
+    order.forEach((it, idx)=>{
+      posById.set(it.id, (idx - turnIndex + order.length) % order.length);
+    });
+    return entries.slice().sort((a, b)=>{
+      const pa = posById.has(a.token.id) ? posById.get(a.token.id) : order.length;
+      const pb = posById.has(b.token.id) ? posById.get(b.token.id) : order.length;
+      return pa - pb;
+    });
+  }
+
+  function buildFichaSummaryBubble(entry){
+    const bubble = document.createElement('div');
+    bubble.className = 'ficha-bubble';
+    const portraitWrap = document.createElement('div');
+    portraitWrap.className = 'ficha-bubble-portrait';
+    const portrait = resolveTokenPortrait(entry.token);
+    if(portrait){
+      const img = document.createElement('img');
+      img.src = portrait; img.alt = '';
+      portraitWrap.appendChild(img);
+    } else {
+      portraitWrap.classList.add('ficha-bubble-portrait-empty');
+    }
+    bubble.appendChild(portraitWrap);
+    const info = document.createElement('div');
+    info.className = 'ficha-bubble-info';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'ficha-bubble-name';
+    nameEl.textContent = tokenTooltipText(entry.token);
+    info.appendChild(nameEl);
+    const statsRow = document.createElement('div');
+    statsRow.className = 'ficha-bubble-stats-row';
+    statsRow.appendChild(buildBoardVitalsCard(entry.vitals));
+    const attrsSummary = buildFichaBubbleAttrsSummary(entry.vitals);
+    if(attrsSummary) statsRow.appendChild(attrsSummary);
+    info.appendChild(statsRow);
+    bubble.appendChild(info);
+    return bubble;
+  }
+
+  const fichaSummaryListEl = $('fichaSummaryList');
+  function renderFichaSummaryBubbles(){
+    if(!fichaSummaryListEl) return;
+    const entries = sortSummaryEntriesByTurn(collectBoardOccupantsForSummary());
+    fichaSummaryListEl.innerHTML = '';
+    if(!entries.length){
+      fichaSummaryListEl.innerHTML = '<div class="master-empty">Nenhuma ficha no tabuleiro no momento.</div>';
+      return;
+    }
+    entries.forEach(entry=> fichaSummaryListEl.appendChild(buildFichaSummaryBubble(entry)));
   }
 
   // Avisa no chat da mesa e no Discord (mesmo canal usado pra rolagem/nível/morte — ver
@@ -10966,18 +11441,18 @@ body{
 
   // "Esta peça, movida pela aba Mesa, respeita alcance de movimento de verdade?" -- pedido
   // explícito (esclarecimento do mestre, opção escolhida: "Seta + limite de alcance só pros
-  // Inimigos-com-ficha e PCs do mestre na aba MESA"): inimigo_ficha (inimigo com ficha de NPC
-  // amarrada, ver payload.kind==='inimigo_ficha' mais acima) e fichas do PRÓPRIO mestre (id
-  // prefixado "mestre:", ver mestreRoster) passam a respeitar o mesmo alcance (1 + DES + Modificador
-  // de Movimento, ver computeEffectiveMoveLimit() mais abaixo) que uma ficha de jogador já respeita
-  // no Tabuleiro ao Vivo -- ficha de JOGADOR continua livre pra o mestre arrastar pela aba Mesa sem
-  // limite nenhum (só correções/ajustes, nunca precisou de limite). Peça sem ficha nenhuma amarrada
-  // (aliado/inimigo/monstro/boss "avulsos", sem heroId) nunca entra aqui -- exclusão explícita
-  // ("essas alterações só não afetam os ícones de personagem do tabuleiro que não possuem uma ficha
-  // amarrada").
+  // Inimigos-com-ficha e PCs do mestre na aba MESA"): inimigo_ficha/aliado_ficha (ficha de NPC
+  // amarrada, ver payload.kind==='inimigo_ficha'/'aliado_ficha' mais acima) e fichas do PRÓPRIO
+  // mestre (id prefixado "mestre:", ver mestreRoster) passam a respeitar o mesmo alcance (1 + DES +
+  // Modificador de Movimento, ver computeEffectiveMoveLimit() mais abaixo) que uma ficha de jogador
+  // já respeita no Tabuleiro ao Vivo -- ficha de JOGADOR continua livre pra o mestre arrastar pela
+  // aba Mesa sem limite nenhum (só correções/ajustes, nunca precisou de limite). Peça sem ficha
+  // nenhuma amarrada (aliado/inimigo/monstro/boss "avulsos", sem heroId) nunca entra aqui -- exclusão
+  // explícita ("essas alterações só não afetam os ícones de personagem do tabuleiro que não possuem
+  // uma ficha amarrada").
   function isBoardMoveRestrictedToken(tok){
     if(!tok) return false;
-    if(tok.kind === 'inimigo_ficha') return true;
+    if(tok.kind === 'inimigo_ficha' || tok.kind === 'aliado_ficha') return true;
     if(tok.kind === 'hero' && typeof tok.id === 'string' && tok.id.indexOf('mestre:') === 0) return true;
     return false;
   }
@@ -11089,6 +11564,23 @@ body{
         };
         // numera igual aliado/inimigo/monstro/boss (ex: "Goblin Batedor 1", "Goblin Batedor 2"),
         // agrupado pelo NOME da ficha (não por "Inimigo" genérico) -- ver tokenTooltipText().
+        token.seq = nextSeqForLabel(hero.name);
+        placeToken(r, c, token);
+        footprintCells(r, c, 1, 1).forEach(([fr,fc]) => renderBoardCell(fr,fc));
+      } else if(payload.kind === 'aliado_ficha'){
+        // Ficha de NPC marcada "Aliados" (ver #f_publica/renderAliadoFichaCoins()) -- mesmíssimo
+        // esquema do branch 'inimigo_ficha' logo acima, só que pro lado dos aliados (contorno verde
+        // no tabuleiro, ver boardTokenGlowGreen no <style>, em vez de vermelho) -- e aceitando
+        // QUALQUER ficha que NÃO seja Inimigos (mesmo "🔒 Privado"), já que toda ficha que não é
+        // Inimigos conta como Aliado nesta rodada (ver comentário de renderAliadoFichaCoins()).
+        const hero = mestreRoster.find(h => h.id === payload.heroId && !isInimigosValue(h.publica));
+        if(!hero) return;
+        if(!canPlace(r, c, 1, 1, null)) return;
+        const token = {
+          id: 'aliado_ficha:' + hero.id + '-' + (spawnCounter++), kind: 'aliado_ficha',
+          name: hero.name, portrait: hero.portrait, size: 1,
+          heroId: hero.id, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, deidade: hero.deidade || '',
+        };
         token.seq = nextSeqForLabel(hero.name);
         placeToken(r, c, token);
         footprintCells(r, c, 1, 1).forEach(([fr,fc]) => renderBoardCell(fr,fc));
@@ -11225,6 +11717,10 @@ body{
     if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens)
     refreshBoardHpBars(); // barrinha de Vida + caveira embaixo dos ícones — ver renderBoardCell()
     syncBoardTokenBonusFromLiveVitals(); // bônus de DES/Movimento de peça JÁ colocada — ver função abaixo
+    // "🧾 Resumo do Tabuleiro" (bolhas, ver o comentário grande perto de renderFichaSummaryBubbles())
+    // também acompanha Vida/Mana/Escudo/atributos/XP em tempo real -- mesma leitura de
+    // liveVitalsAll de tudo o mais nesta função.
+    renderFichaSummaryBubbles();
   }
 
   // Bug relatado: mudar o Modificador de Movimento (#m_mov, ou o próprio Atributo DES) de uma
@@ -11336,23 +11832,24 @@ body{
   // (normal + PVP) juntas, pra não precisar caçar e duplicar cada chamada existente.
   function renderHeroTray(){ renderHeroTrayNormal(); renderHeroTrayPvp(); }
 
-  // fichas do mestre: allowLarge=true (último argumento) — cada NPC ganha as duas moedas (1 casa e
-  // 2x2), ver comentário de makeRosterTrayRenderer() acima. Fichas marcadas "Inimigos" (ver
-  // #f_publica) saem daqui de propósito -- elas ficam SEPARADAS, só na bandeja de
-  // renderInimigoFichaCoins() (aba Geral), não nas duas abas de fichas do mestre abaixo.
-  const mestreRosterSemInimigos = ()=> mestreRoster.filter(h => !isInimigosValue(h.publica));
-  const renderMestreTrayNormal = makeRosterTrayRenderer(
-    mestreRosterSemInimigos, boardTrayMestreCoins,
-    'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".', false, true
-  );
+  // fichas do mestre (aba PVP, seção "Fichas do mestre"): allowLarge=true (último argumento) —
+  // cada NPC ganha as duas moedas (1 casa e 2x2), ver comentário de makeRosterTrayRenderer() acima.
+  // Fichas marcadas "Inimigos" ou "Aliados" (ver #f_publica) saem daqui de propósito -- só sobram
+  // as fichas realmente Privadas/"🔒 Fichas do Mestre". Rodada nova ("FASE 4c", igual ao
+  // index_mag.html): a antiga aba normal "Fichas do Mestre" (fora do PVP, peça única) saiu -- toda
+  // ficha "🔒 Fichas do Mestre" agora conta como Aliado e entra direto na bandeja repetível da aba
+  // "🧝 Aliados" (ver renderAliadoFichaCoins() abaixo), então mestreRosterSemInimigos só é usado
+  // pela seção PVP.
+  const mestreRosterSemInimigos = ()=> mestreRoster.filter(h => !isInimigosValue(h.publica) && !isAliadosValue(h.publica));
   const renderMestreTrayPvp = makeRosterTrayRenderer(
     mestreRosterSemInimigos, boardTrayMestreCoinsPvp,
     'Nenhuma ficha do mestre encontrada. Salve uma ficha do mestre com "SALVAR".', true, true
   );
-  // renderInimigoFichaCoins() depende do mesmo mestreRoster que as duas linhas acima -- chamada
-  // sempre junto, pra bandeja de "Fichas de Inimigos" (aba Geral) nunca ficar desatualizada em
-  // relação à de "Fichas do Mestre" (ex: mestre marca uma ficha como Inimigos e salva de novo).
-  function renderMestreTray(){ renderMestreTrayNormal(); renderMestreTrayPvp(); renderInimigoFichaCoins(); }
+  // renderInimigoFichaCoins()/renderAliadoFichaCoins() dependem do mesmo mestreRoster que a linha
+  // acima -- chamadas sempre junto, pra bandeja das abas "👹 Inimigos"/"🧝 Aliados" nunca ficar
+  // desatualizada em relação à seção PVP (ex: mestre marca uma ficha como Inimigos/Aliados e salva
+  // de novo).
+  function renderMestreTray(){ renderMestreTrayPvp(); renderInimigoFichaCoins(); renderAliadoFichaCoins(); }
 
   function renderEnemyCoins(){
     boardEnemyCoins.innerHTML = '';
@@ -11379,8 +11876,8 @@ body{
     });
   }
 
-  // Fichas de NPC marcadas "Inimigos" (ver #f_publica) viram moedas REPETÍVEIS aqui, dentro da aba
-  // "Geral" -- mesmo esquema de renderEnemyCoins() acima (sempre arrastáveis, nunca ficam
+  // Fichas de NPC marcadas "Inimigos" (ver #f_publica) viram moedas REPETÍVEIS aqui, na aba
+  // "👹 Inimigos" -- mesmo esquema de renderEnemyCoins() acima (sempre arrastáveis, nunca ficam
   // "placed"/travadas depois de soltas no tabuleiro, ao contrário das moedas de ficha de
   // jogador/mestre normais em makeRosterTrayRenderer(), que só entram uma vez cada), mas usando o
   // retrato/nome de verdade de cada ficha (vindo de mestreRoster) em vez de um ícone genérico —
@@ -11414,6 +11911,45 @@ body{
       wrap.appendChild(lbl);
       boardInimigoFichaCoins.appendChild(wrap);
     });
+  }
+
+  // Fichas de NPC marcadas "Aliados" OU "🔒 Fichas do Mestre" (ver #f_publica -- toda ficha que NÃO
+  // é Inimigos conta como Aliado nesta rodada) viram moedas REPETÍVEIS aqui, na aba "🧝 Aliados" --
+  // mesmíssimo esquema de renderInimigoFichaCoins() logo acima (sempre arrastáveis, nunca ficam
+  // "placed"/travadas depois de soltas no tabuleiro), só que pro lado dos aliados: kind
+  // 'aliado_ficha' (contorno verde no tabuleiro, ver boardTokenGlowGreen no <style>) em vez de
+  // 'inimigo_ficha'. buildAliadoFichaCoinEl() extraído (igual ao index_mag.html) pra deixar a moeda
+  // fácil de reaproveitar se um dia a aba PVP também ganhar essa seção (fora de escopo aqui -- o BG
+  // não replicou a reordenação da aba PVP que o index_mag.html fez nesta mesma rodada).
+  function buildAliadoFichaCoinEl(hero){
+    const wrap = document.createElement('div');
+    wrap.className = 'tray-coin-wrap';
+    const coin = document.createElement('div');
+    coin.className = 'tray-coin token-aliado_ficha';
+    coin.draggable = true;
+    if(hero.portrait){
+      coin.style.backgroundImage = `url("${hero.portrait}")`;
+    } else {
+      coin.innerHTML = `<span class="token-fallback">${escapeHtml((hero.name||'?').slice(0,2).toUpperCase())}</span>`;
+    }
+    coin.title = `${hero.name} — pode repetir quantas vezes quiser`;
+    coin.addEventListener('dragstart', (e)=>{
+      e.dataTransfer.setData('text/plain', JSON.stringify({source:'tray', kind:'aliado_ficha', heroId: hero.id}));
+    });
+    const lbl = document.createElement('div');
+    lbl.className = 'tray-coin-name';
+    lbl.textContent = hero.name;
+    wrap.appendChild(coin);
+    wrap.appendChild(lbl);
+    return wrap;
+  }
+
+  function renderAliadoFichaCoins(){
+    if(!boardAliadoFichaCoins) return;
+    const allies = mestreRoster.filter(h => !isInimigosValue(h.publica));
+    boardAliadoFichaWrap.hidden = allies.length === 0;
+    boardAliadoFichaCoins.innerHTML = '';
+    allies.forEach(hero=> boardAliadoFichaCoins.appendChild(buildAliadoFichaCoinEl(hero)));
   }
 
   // só existe UM tipo de barreira agora (ver OBSTACLE_KINDS acima) — sem seletor de material. O
@@ -12078,7 +12614,7 @@ body{
   }
 
   boardSendBtn.addEventListener('click', async ()=>{
-    const original = boardSendBtn.textContent;
+    const original = boardSendBtn.innerHTML;
     boardSendBtn.disabled = true;
     boardSendBtn.textContent = 'Gerando print...';
     boardSendHint.textContent = '';
@@ -12092,10 +12628,21 @@ body{
       boardSendHint.textContent = 'Não foi possível enviar agora. Tente de novo.';
     }
     boardSendBtn.disabled = false;
-    boardSendBtn.textContent = original;
+    boardSendBtn.innerHTML = original;
   });
 
-  buildBoardGrid();
+  // Rodada nova ("FASE 2" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao index_mag.html:
+  // buildBoardGrid() saiu daqui (chamada solta, incondicional, sem ainda saber se quem está vendo
+  // a página é mestre ou jogador) -- ela é quem PRENDE nas casas os listeners de edição sem
+  // restrição (pintar marcação, botão direito remove peça, soltar QUALQUER peça sem limite de
+  // alcance). Desde que boardGrid passou a ser o MESMO elemento #liveBoardGrid que fica sempre
+  // visível/alcançável na tela de todo mundo (ver comentário grande em "const boardGrid" mais
+  // acima), rodar isso pra um jogador também plantaria essas mesmas ferramentas de mestre no
+  // tabuleiro que ele realmente usa. Agora só roda dentro do login, condicionada a
+  // currentRole==='mestre' (ver mais abaixo, perto de applyLiveBoardZoom()/connectLiveBoard()). As
+  // chamadas abaixo continuam soltas aqui, iguais a sempre -- só preenchem bandejas/painéis que
+  // moram dentro de #mesaContent (mestre-only só por CSS, nunca dependeram de buildBoardGrid() ter
+  // rodado antes).
   renderHeroTray();
   renderMestreTray();
   renderEnemyCoins();
@@ -12136,14 +12683,14 @@ body{
     }
     cloudSaveBtn.disabled = true;
     const original = cloudSaveBtn.textContent;
-    cloudSaveBtn.textContent = 'Salvando...';
+    cloudSaveBtn.textContent = 'SALVANDO...';
     try{
       // salvar a ficha na mesa não deve gerar aviso no Discord — só as ações da aba Mesa
       // (dados, print do tabuleiro, iniciativa) e o histórico de rolagens fazem isso.
       // passa o sha já conhecido (se o caminho é o mesmo de antes) pra pular uma busca desnecessária
       // no GitHub antes de gravar — corta pela metade o tempo desse salvamento.
       const result = await githubPutFile(path, state, `Salva ficha de ${state.nome}`, path === loadedFichaPath ? loadedFichaSha : null);
-      cloudSaveBtn.textContent = '✓ Salvo!';
+      cloudSaveBtn.textContent = '✓ SALVO!';
       // fixa essa origem (e o sha novo, retornado pelo GitHub) — salvamentos seguintes nesta mesma
       // sessão continuam indo pro mesmo lugar e já pulam a busca do sha também.
       loadedFichaPath = path;
@@ -12155,13 +12702,13 @@ body{
     }catch(err){
       console.error(err);
       if(err.message === 'NO_TOKEN'){
-        cloudSaveBtn.textContent = 'Configure o token';
+        cloudSaveBtn.textContent = 'CONFIGURE O TOKEN';
       } else if(/401|Bad credentials/i.test(err.message)){
-        cloudSaveBtn.textContent = 'Token inválido';
+        cloudSaveBtn.textContent = 'TOKEN INVÁLIDO';
       } else if(/403/.test(err.message)){
-        cloudSaveBtn.textContent = 'Sem permissão';
+        cloudSaveBtn.textContent = 'SEM PERMISSÃO';
       } else {
-        cloudSaveBtn.textContent = 'Erro ao salvar';
+        cloudSaveBtn.textContent = 'ERRO AO SALVAR';
       }
     }
     // botão volta ao normal rápido — só o tempo de ler a confirmação, sem travar o próximo clique por muito tempo.
@@ -12176,6 +12723,9 @@ body{
   const masterMestreList = $('masterMestreList');
   const enemiesModal = $('enemiesModal');
   const masterEnemiesList = $('masterEnemiesList');
+  // Rodada nova ("FASE 4c"): modal "🧝 Fichas de Aliados", espelho do de Inimigos acima.
+  const alliesModal = $('alliesModal');
+  const masterAlliesList = $('masterAlliesList');
   const npcModal = $('npcModal');
   const npcList = $('npcList');
 
@@ -12217,8 +12767,19 @@ body{
   // caber o novo estado "Inimigos" (ver collectState()/applyState() mais abaixo). As duas funções
   // a seguir tratam os dois formatos ao mesmo tempo (string nova OU boolean antigo de ficha salva
   // antes desta rodada), pra nenhuma ficha já salva no GitHub quebrar ou ficar "Inimigos" à toa.
-  function isPublicaValue(v){ return v === 'Publico' || v === true; }
+  // Rodada nova ("FASE 4c" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao
+  // index_mag.html: a opção "Publico" saiu do <select> #f_publica (virou "Aliados"), mas
+  // isPublicaValue() (usada só pro filtro ao vivo de "🧚 Fichas de NPC") continua aceitando os
+  // formatos legados ('Publico' string, ou o boolean antigo true) de fichas salvas antes desta
+  // rodada, pra nenhuma ficha já salva sumir da consulta à toa.
+  function isPublicaValue(v){ return v === 'Aliados' || v === 'Publico' || v === true; }
   function isInimigosValue(v){ return v === 'Inimigos'; }
+  // Aliados: conta como Aliado no tabuleiro E aparece na consulta -- ver isPublicaValue() acima.
+  // Não existe formato legado boolean pra tratar aqui, é um rótulo totalmente novo (uma ficha
+  // antiga com true/'Publico' cai em isPublicaValue()==true mas isAliadosValue()==false; como ela
+  // é sempre uma ficha de NPC sem isInimigosValue(), o resto do código -- que passa a filtrar por
+  // !isInimigosValue() pra decidir quem conta como Aliado -- já trata ela como aliada mesmo assim).
+  function isAliadosValue(v){ return v === 'Aliados'; }
 
   // Gera a função que busca/renderiza uma lista de fichas do GitHub — reaproveitada tanto para
   // "Fichas de Jogador" (pasta FICHAS_PATH) quanto para "Fichas do Mestre"/"Fichas de Inimigos"
@@ -12253,7 +12814,10 @@ body{
     // "Atualizar lista" -- é essa a parte "tempo real" pedida pra esse recurso.
     const npcPublicFilter = !!(opts && opts.npcPublicFilter);
     // opts.excludeEnemies (usado só por "🔒 Fichas do Mestre") -- tira da lista as fichas marcadas
-    // como "Inimigos" (elas têm sua própria lista separada, ver opts.enemyFilter logo abaixo).
+    // como "Inimigos" OU "Aliados" (cada uma tem sua própria lista separada, ver opts.enemyFilter/
+    // opts.allyFilter logo abaixo -- rodada nova, "FASE 4c": passou a excluir também Aliados,
+    // mesmo nome de opção pra não precisar caçar/trocar o call site já existente de "Fichas do
+    // Mestre", igual ao index_mag.html fez).
     const excludeEnemies = !!(opts && opts.excludeEnemies);
     // opts.enemyFilter (usado só por "👹 Fichas de Inimigos") -- o espelho de excludeEnemies:
     // mostra SÓ as fichas marcadas como "Inimigos", escondendo todo o resto. Ao contrário de
@@ -12262,6 +12826,9 @@ body{
     // pra "Inimigos"/pra fora dele só reflete aqui na próxima vez que a lista for aberta ou em
     // "Atualizar lista", igual "Fichas do Mestre" já sempre funcionou.
     const enemyFilter = !!(opts && opts.enemyFilter);
+    // opts.allyFilter (usado só por "🧝 Fichas de Aliados") -- mesmíssimo esquema de enemyFilter
+    // acima, só que pro lado dos aliados (#f_publica === 'Aliados'). Rodada nova ("FASE 4c").
+    const allyFilter = !!(opts && opts.allyFilter);
     // "ao vivo": enquanto a lista estiver na tela, cada ficha com dono (ownerUid) escuta
     // mesa/live/{uid} (ver pushLiveVitals() lá em cima, perto de recalc()) e atualiza Vida/Mana/
     // Escudo na hora, sem precisar que ninguém clique em SALVAR nem reabra a lista. Preciso
@@ -12295,12 +12862,14 @@ body{
         );
         const sheets = sheetResults.filter(Boolean).filter(({data})=>{
           const isEnemy = isInimigosValue(data.publica);
+          const isAlly = isAliadosValue(data.publica);
           if(enemyFilter) return isEnemy;
-          if(excludeEnemies) return !isEnemy;
+          if(allyFilter) return isAlly;
+          if(excludeEnemies) return !isEnemy && !isAlly;
           return true;
         });
         if(sheets.length === 0){
-          listEl.innerHTML = `<div class="master-empty">${enemyFilter ? 'Nenhuma ficha marcada como "Inimigos" ainda.' : 'Nenhuma ficha legível encontrada.'}</div>`;
+          listEl.innerHTML = `<div class="master-empty">${enemyFilter ? 'Nenhuma ficha marcada como "Inimigos" ainda.' : (allyFilter ? 'Nenhuma ficha marcada como "Aliados" ainda.' : 'Nenhuma ficha legível encontrada.')}</div>`;
           return;
         }
         sheets.sort((a,b)=> (a.data.nome||'').localeCompare(b.data.nome||''));
@@ -12572,6 +13141,13 @@ body{
     'Nenhuma ficha marcada como "Inimigos" ainda.',
     { npcFicha: true, enemyFilter: true }
   );
+  // "🧝 Fichas de Aliados" -- rodada nova ("FASE 4c"), mesmíssima wiring de "👹 Fichas de
+  // Inimigos" acima, só com opts.allyFilter no lugar de opts.enemyFilter.
+  const loadMasterAlliesList = makeFichasListLoader(
+    FICHAS_MESTRE_PATH, masterAlliesList, alliesModal,
+    'Nenhuma ficha marcada como "Aliados" ainda.',
+    { npcFicha: true, allyFilter: true }
+  );
   // "🧚 Fichas de NPC" -- mesma pasta de "🔒 Fichas do Mestre" acima (FICHAS_MESTRE_PATH), só que
   // com opts.npcPublicFilter (só mostra as marcadas como "Publico", ao vivo) pra qualquer um
   // consultar; "Ver ficha" continua funcionando (carrega na tela principal), mas
@@ -12581,15 +13157,13 @@ body{
     'Nenhuma ficha de NPC pública no momento.',
     { npcFicha: true, npcPublicFilter: true }
   );
-  // painel "Fichas dos Jogadores (resumo ao vivo)" dentro da própria Mesa — mesmo card/dados ao
-  // vivo da lista "📜 Fichas de Jogador", só que só de leitura (sem "Ver ficha"/"Apagar") e sem
-  // modal pra fechar (por isso o 3º argumento null), pra dar uma visão rápida de todo mundo sem
-  // precisar abrir outra tela por cima da Mesa.
-  const loadMesaHeroSummary = makeFichasListLoader(
-    FICHAS_PATH, $('mesaHeroSummaryList'), null,
-    'Nenhuma ficha de jogador salva ainda. Peça para alguém usar "SALVAR" primeiro.',
-    { readOnly: true, xpControls: true, deidadeControl: true }
-  );
+  // Rodada nova ("FASE 4b"), igual ao index_mag.html: o painel "Fichas dos Jogadores (resumo ao
+  // vivo)" que morava dentro da própria Mesa saiu por completo (loadMesaHeroSummary() não existe
+  // mais) -- o "🧾 Resumo do Tabuleiro" em bolhas (aba própria do chat, ver Fase 4a) já cobre esse
+  // papel. opts.xpControls/opts.deidadeControl continuam existindo dentro de
+  // makeFichasListLoader() logo abaixo (só nunca mais são passados true por ninguém), pelo mesmo
+  // motivo do index_mag.html: não vale mexer numa função grande e compartilhada só por causa de
+  // uma opção que ficou sem chamador.
 
   $('masterBtn').addEventListener('click', ()=>{
     masterModal.hidden = false;
@@ -12624,6 +13198,20 @@ body{
   $('closeMasterEnemies').addEventListener('click', ()=>{ enemiesModal.hidden = true; loadMasterEnemiesList.detachLiveListeners(); });
   enemiesModal.addEventListener('click', (e)=>{ if(e.target === enemiesModal){ enemiesModal.hidden = true; loadMasterEnemiesList.detachLiveListeners(); } });
   $('refreshMasterEnemies').addEventListener('click', loadMasterEnemiesList);
+
+  // "🧝 Fichas de Aliados" -- rodada nova ("FASE 4c"), mesma wiring de "👹 Fichas de Inimigos"
+  // acima, botão/modal/lista próprios (masterAlliesBtn/alliesModal/loadMasterAlliesList).
+  $('masterAlliesBtn').addEventListener('click', ()=>{
+    if(fbReady && currentRole !== 'mestre'){
+      alert('Só o mestre da mesa pode acessar as fichas de aliados.');
+      return;
+    }
+    alliesModal.hidden = false;
+    loadMasterAlliesList();
+  });
+  $('closeMasterAllies').addEventListener('click', ()=>{ alliesModal.hidden = true; loadMasterAlliesList.detachLiveListeners(); });
+  alliesModal.addEventListener('click', (e)=>{ if(e.target === alliesModal){ alliesModal.hidden = true; loadMasterAlliesList.detachLiveListeners(); } });
+  $('refreshMasterAllies').addEventListener('click', loadMasterAlliesList);
 
   // "🧚 Fichas de NPC" -- o botão em si já fica escondido do mestre por CSS/JS (.jogador-only, ver
   // applyRoleVisibility()); a lista já vem filtrada pra só mostrar as fichas marcadas como
@@ -12812,7 +13400,7 @@ body{
     loginMode = mode;
     $('loginModeEntrarBtn').classList.toggle('selected', mode === 'entrar');
     $('loginModeCadastrarBtn').classList.toggle('selected', mode === 'cadastrar');
-    $('loginSubmitBtn').textContent = mode === 'entrar' ? 'Entrar' : 'Cadastrar';
+    $('loginSubmitBtn').textContent = mode === 'entrar' ? 'ENTRAR' : 'CADASTRAR';
     loginError.textContent = '';
     if(mode === 'entrar'){
       selectedLoginRole = null;
@@ -12996,12 +13584,13 @@ body{
       if(isMyLiveToken(tok) && portraitData) return portraitData;
       return null;
     }
-    // Ficha de Inimigos (ver handleBoardDrop()/renderInimigoFichaCoins()): o retrato não é um
-    // ícone fixo (ENEMY_KINDS), vem da própria ficha -- collectBoardTokensOut() não manda o
-    // portrait pela rede (economiza banda, igual já fazia pra 'hero'), só o heroId; resolve aqui
-    // pelo mesmo mestreRoster que o mestre já usa (jogador também busca essa pasta inteira, ver
-    // makeRosterLoader() -- não depende de ver a ficha em si, só do roster já carregado).
-    if(tok.kind === 'inimigo_ficha'){
+    // Ficha de Inimigos/Aliados (ver handleBoardDrop()/renderInimigoFichaCoins()/
+    // renderAliadoFichaCoins()): o retrato não é um ícone fixo (ENEMY_KINDS), vem da própria ficha
+    // -- collectBoardTokensOut() não manda o portrait pela rede (economiza banda, igual já fazia
+    // pra 'hero'), só o heroId; resolve aqui pelo mesmo mestreRoster que o mestre já usa (jogador
+    // também busca essa pasta inteira, ver makeRosterLoader() -- não depende de ver a ficha em si,
+    // só do roster já carregado).
+    if(tok.kind === 'inimigo_ficha' || tok.kind === 'aliado_ficha'){
       const hero = mestreRoster.find(h => h.id === tok.heroId);
       return hero ? hero.portrait : null;
     }
@@ -13286,6 +13875,31 @@ body{
 
   function renderLiveBoardMini(){
     if(!liveBoardGridEl) return;
+    // Rodada nova ("FASE 2" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao
+    // index_mag.html: o MESTRE nunca usa este redesenho -- o tabuleiro dele (boardGrid, que agora É
+    // o mesmo elemento #liveBoardGrid, ver comentário grande em "const boardGrid" mais acima) é
+    // redesenhado direto por renderBoardCell()/buildBoardGrid(), a partir do próprio estado local
+    // (boardTokens/boardMarks/BOARD_ROWS/BOARD_COLS), toda vez que algo muda -- SEM depender do
+    // round-trip pelo Firebase. Qualquer alteração feita por um JOGADOR (mover a própria ficha,
+    // escolher uma direção) chega no mestre por um caminho separado
+    // (mergeRemoteHeroTokensIntoLocalBoard(), mais abaixo) que já resolve pra dentro de boardTokens
+    // e já chama renderBoardCell() sozinha nas casas afetadas -- nada se perde ao pular esta função
+    // aqui. Sem este "return" cedo, o snapshot cru vindo do Firebase (liveBoardState, fielmente
+    // igual ao que o PRÓPRIO mestre acabou de publicar, sem nenhuma das informações extra que só
+    // existem no boardTokens local) reconstruiria a grade inteira por cima da edição rica do
+    // mestre a cada poucos milissegundos (toda vez que meta/marks/tokens do Firebase disparassem),
+    // brigando com ela e apagando coisas como o "arrastando agora" em andamento.
+    // BUG evitado nesta rodada: disconnectLiveBoard() chama esta função incondicionalmente já na
+    // carga inicial da página (currentRole ainda null, antes de qualquer login) e deixa a classe
+    // "reveal-hidden" (tabuleiro todo preto) plantada no elemento; antes desta rodada, o mestre
+    // logando sempre disparava esta função de novo depois (ver connectLiveBoard()) e ela mesma
+    // tirava a classe. Como agora ela nunca mais roda de verdade pro mestre, a classe ficaria presa
+    // pra sempre, apagando o tabuleiro que ele acabou de montar -- por isso tira ela na mão aqui
+    // antes de sair, toda vez.
+    if(currentRole === 'mestre'){
+      liveBoardGridEl.classList.remove('reveal-hidden');
+      return;
+    }
     const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
     buildLiveBoardHeaders();
     liveBoardGridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
@@ -13437,12 +14051,13 @@ body{
     if(revealed){
       Object.keys(liveBoardState.tokens).forEach(key=>{
         const tok = liveBoardState.tokens[key];
-        // inimigo_ficha entra aqui também (pedido explícito: "as setas... precisam aparecer em
-        // todas as fichas e para todo mundo") -- só que nunca é "minha" (isMyLiveToken() só
-        // reconhece kind 'hero'), então só cai no ramo "else if(tok.facing)" logo abaixo: o
-        // jogador vê a seta já escolhida pelo mestre (ver chooseBoardFacing(), aba Mesa), nunca o
-        // seletor de 8 direções -- essa peça só é movida pela aba Mesa, nunca por aqui.
-        if(!tok || (tok.kind !== 'hero' && tok.kind !== 'inimigo_ficha')) return;
+        // inimigo_ficha/aliado_ficha entram aqui também (pedido explícito: "as setas... precisam
+        // aparecer em todas as fichas e para todo mundo") -- só que nunca são "minhas"
+        // (isMyLiveToken() só reconhece kind 'hero'), então só caem no ramo "else if(tok.facing)"
+        // logo abaixo: o jogador vê a seta já escolhida pelo mestre (ver chooseBoardFacing(), aba
+        // Mesa), nunca o seletor de 8 direções -- essas peças só são movidas pela aba Mesa, nunca
+        // por aqui.
+        if(!tok || (tok.kind !== 'hero' && tok.kind !== 'inimigo_ficha' && tok.kind !== 'aliado_ficha')) return;
         if(key !== liveBoardKey(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça
         if(fogActive && fogReachable && !fogReachable.has(key)) return;
         const cellEl = liveBoardGridEl.children[tok.anchorR * cols + tok.anchorC];
@@ -13455,6 +14070,14 @@ body{
         }
       });
     }
+    // Rodada nova ("FASE 4" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao index_mag.html:
+    // toda vez que o mini-tabuleiro do JOGADOR é redesenhado (peça colocada/movida/removida,
+    // Revelar/Fog mudou etc.), a aba "🧾 Resumo do Tabuleiro" precisa acompanhar -- mesmo filtro de
+    // visibilidade já aplicado acima pras peças do tabuleiro em si, ver
+    // collectBoardOccupantsForSummary(). Só roda de verdade pro JOGADOR (esta função sempre retorna
+    // cedo pro mestre, ver o topo dela) -- o equivalente do mestre é o wrapper de
+    // scheduleBoardTokensPush(), que já chamava renderFichaSummaryBubbles() antes desta rodada.
+    renderFichaSummaryBubbles();
   }
 
   // Cor da seta fixada / dos botões do seletor — pedido explícito: "a seta respeita a cor da borda
@@ -15559,6 +16182,11 @@ body{
         $('chatPanel').hidden = true;
         disconnectLiveBoard();
         $('liveBoardPanel').hidden = true;
+        // faixa fixa (rodada nova) some junto -- ela só faz sentido logado (é onde moram
+        // #liveBoardPanel/#chatPanel/#mesaContent agora, ver comentário grande de .mesa-fixed-panel
+        // no HTML) -- igual ao index_mag.html.
+        $('mesaFixedPanel').hidden = true;
+        closeMesaModal();
         return;
       }
       // resolve o papel: primeiro tenta users/{uid} (contas cadastradas por aqui, ver
@@ -15640,12 +16268,32 @@ body{
       $('chatPanel').hidden = false;
       connectChat();
       $('liveBoardPanel').hidden = false;
+      // faixa fixa (rodada nova) aparece junto -- igual ao index_mag.html.
+      $('mesaFixedPanel').hidden = false;
+      // Rodada nova ("FASE 2" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao
+      // index_mag.html: só o MESTRE monta a grade de edição do tabuleiro (marcação/drag sem
+      // restrição/clique-direito remove) -- currentRole já está certo aqui (setado poucas linhas
+      // acima). Precisa rodar ANTES de applyLiveBoardZoom() medir o tamanho de verdade do tabuleiro
+      // logo abaixo, e antes de connectLiveBoard() começar a aplicar
+      // mergeRemoteHeroTokensIntoLocalBoard() em cima dela. setLiveBoardMinimized(false): o painel
+      // nasce minimizado por padrão toda vez que uma ficha é acessada (ver applyState(), lá em
+      // cima) -- pro mestre, que agora edita o tabuleiro de verdade aqui, ele começa DESDOBRADO já
+      // no login (a ficha já foi carregada/aplicada antes deste ponto no fluxo de login, então isto
+      // só precisa acontecer esta uma vez).
+      if(currentRole === 'mestre'){
+        buildBoardGrid();
+        setLiveBoardMinimized(false);
+      }
       // se o painel já estava desminimizado de uma sessão anterior (localStorage), ele acabou de
       // se tornar visível só agora (o "hidden" do painel inteiro só cai aqui, pós-login) — reaplica
-      // o zoom pra medir o tamanho de verdade (mesma ideia de openMesaModal()/setLiveBoardMinimized()
-      // lá em cima, ver o comentário grande dentro de setupBoardZoom() no <script>).
+      // o zoom pra medir o tamanho de verdade (mesma ideia de setLiveBoardMinimized() lá em cima,
+      // ver o comentário grande dentro de setupBoardZoom() no <script>).
       applyLiveBoardZoom();
       connectLiveBoard();
+      // Rodada nova ("FASE 4"), igual ao index_mag.html: "🧾 Resumo do Tabuleiro" mora na aba de
+      // chat, visível pros dois papéis o tempo todo -- carrega já aqui, no login, em vez de só
+      // quando alguém abre a aba pela primeira vez.
+      renderFichaSummaryBubbles();
       // carrega o Mapa salvo (imagem de fundo + ícones/linhas do mestre) já aqui, pros dois
       // papéis, ANTES mesmo de alguém abrir o modal "🗺️ Mapa" -- ver hydrateMapOnce() mais abaixo
       // (na seção do Mapa) pro motivo completo.
