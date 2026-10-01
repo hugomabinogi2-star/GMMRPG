@@ -529,37 +529,6 @@ body{
    zoom empurrando a peça pra cima da vizinha atrapalhava mais do que ajudava. O realce de fundo
    (só pra indicar "isto é clicável/hoverable") continua igual, sem esse aumento de tamanho. */
 .ficha-bubble:hover{background:rgba(0,0,0,.35);box-shadow:0 4px 14px rgba(0,0,0,.5);}
-/* Rodada nova, pedido explícito: bolha fica clicável (SÓ pro mestre, ver .ficha-bubble-selectable
-   em buildFichaSummaryBubble() no <script>) pra selecionar de qual ficha os botões de
-   Vida/Mana/Escudo (ver .ficha-bubble-controls abaixo) vão debitar/somar. ".selected" ganha uma
-   borda dourada pra ficar óbvio qual bolha está escolhida agora, sem precisar de mais nenhum
-   indicador de texto separado (o rótulo acima dos botões já mostra o nome de quem foi escolhido). */
-.ficha-bubble-selectable{cursor:pointer;}
-.ficha-bubble.selected{
-  background:rgba(227,197,140,.16);
-  box-shadow:0 0 0 2px var(--gold-bright),0 4px 14px rgba(0,0,0,.5);
-}
-/* Painel de botões do mestre no topo do Resumo do Tabuleiro (ver #fichaSummaryControls no HTML) --
-   3 linhas (Vida/Mana/Escudo), cada uma com ±1/±10, na mesma pegada visual dos botões ±1/±10/±100
-   de "Distribuir XP" já usados em "Fichas de Jogador" (ver .mc-xp-controls/.mc-xp-btn) -- mesma
-   classe .mini-btn de base, só reorganizados numa lista vertical compacta em vez de uma linha só,
-   já que aqui são 3 grupos em vez de 1. Some inteiro pro jogador via ".mestre-only"
-   (applyRoleVisibility() no <script>), igual qualquer outro controle exclusivo do mestre. */
-.ficha-bubble-controls{
-  display:flex;flex-direction:column;gap:6px;
-  padding:8px 10px;margin:0 2px 8px;border-radius:8px;
-  background:rgba(0,0,0,.25);border:1px solid var(--gold-text);
-}
-.ficha-bubble-controls-label{
-  font-family:'Cinzel Decorative',serif;font-size:11px;letter-spacing:.04em;
-  color:var(--ink-faint);text-transform:uppercase;
-}
-.ficha-bubble-controls-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.ficha-bubble-controls-tag{
-  font-family:'Cinzel Decorative',serif;font-size:11px;letter-spacing:.06em;
-  color:var(--ink-soft);text-transform:uppercase;min-width:52px;
-}
-.fsc-btn[disabled]{opacity:.35;cursor:not-allowed;}
 .ficha-bubble-portrait{
   width:52px;height:52px;border-radius:50%;overflow:hidden;flex:none;
   border:2px solid var(--gold-text);background:#1a1a1a;
@@ -1388,14 +1357,19 @@ body{
    personagem que a escolheu (não mais numa casa separada embaixo), pequena e encostada bem na
    borda do círculo do ícone (ver FACING_POINTS — raio calculado pra tocar o contorno), como se
    fosse uma continuação dele; cor = tokenRingColorForFacing() (dourado normal, vermelho em modo
-   PVP — o MESMO contorno do próprio ícone, não mais a cor da divindade). z-index acima do token
-   (2) mas abaixo do seletor de 8 direções (4, enquanto ele estiver aberto), e pointer-events:none
-   pra não atrapalhar arrastar/soltar peças. */
+   PVP — o MESMO contorno do próprio ícone, não mais a cor da divindade).
+   RODADA NOVA (pedido explícito: "as setinhas de direção no tabuleiro precisam ficar acima de
+   outras coisas no tabuleiro... a seta precisa ficar sempre acima"): z-index subiu de 3 pra ficar
+   acima até do ZOOM de uma ficha vizinha ao passar o mouse (.board-cell:hover
+   .board-token:not(.token-block), z-index:20 — antes cobria a seta quando uma ficha do lado dava
+   zoom) -- continua abaixo do seletor de 8 direções (25, enquanto ele estiver aberto, ver embaixo)
+   e pointer-events:none pra não atrapalhar arrastar/soltar peças (esta seta é só visual, nunca foi
+   clicável). */
 .board-facing-arrow{
   position:absolute;
   width:30%;height:30%;
   pointer-events:none;
-  z-index:3;
+  z-index:21;
   display:flex;align-items:center;justify-content:center;
   font-size:12px;line-height:1;
   filter:drop-shadow(0 1px 2px rgba(0,0,0,.9));
@@ -1408,10 +1382,18 @@ body{
    rotacionado pra apontar na direção que escolhe. O próprio "wrap" não recebe clique
    (pointer-events:none) — só os botões (pointer-events:auto) — pra não bloquear arrastar/soltar
    nas casas vizinhas que ele acabe cobrindo visualmente, já que o anel extrapola um pouco a
-   própria casa. */
+   própria casa.
+   RODADA NOVA (pedido explícito, mesmo relato da seta acima: "quando uma peça esta do lado de
+   outra eu não consigo clicar na setinha... pq o zoom da peça quando eu passo o mouse por cima
+   sobrescreve o botão da seta"): z-index subiu de 4 pra 25 -- acima do zoom de QUALQUER ficha do
+   tabuleiro (20, inclusive uma ficha vizinha cujo zoom vazava por cima do anel), não só da própria
+   ficha dona do seletor. O raio maior de FACING_PICKER_POINTS (ver comentário grande dele no
+   <script>) já ajudava a afastar o anel do centro do zoom, mas não resolvia o caso de uma ficha
+   VIZINHA (em outra casa) dando zoom por cima -- só o z-index resolve isso de vez, não importa de
+   qual casa venha o zoom por baixo. */
 .board-facing-picker{
   position:absolute;inset:0;
-  z-index:4;
+  z-index:25;
   pointer-events:none;
 }
 .board-facing-picker-btn{
@@ -1426,6 +1408,12 @@ body{
   font-size:10px;line-height:1;
   cursor:pointer;
   padding:0;
+  /* RODADA NOVA (pedido explícito: "da um efeito de zoom na setinha quando eu passar o mouse por
+     cima dela também... com um zoom menor para as do lado... dando um efeito de escala
+     diminuindo"): transform agora também recebe um scale() aplicado via JS no hover (ver
+     applyFacingPickerHoverZoom()/clearFacingPickerHoverZoom() perto de buildFacingPickerEl()) --
+     esta transition deixa a mudança de escala suave, mesmo esquema de .board-token acima. */
+  transition:transform .15s ease, background .15s ease;
 }
 .board-facing-picker-btn:hover{background:rgba(90,68,26,.95);}
 
@@ -5507,42 +5495,14 @@ body{
              rodada, pra não vazar segredo do mestre por uma lista sem a mesma proteção espacial do
              tabuleiro. -->
         <div class="chat-tab-body" id="fichaSummaryTabBody" hidden>
-          <!-- Rodada nova, pedido explícito: botões pro MESTRE (e só o mestre, ".mestre-only" ---
-               ver applyRoleVisibility()) aumentar/diminuir Vida, Mana e Escudo direto de uma bolha
-               selecionada aqui no Resumo do Tabuleiro, sem precisar abrir a ficha completa daquela
-               pessoa antes -- ver selectFichaSummaryEntry()/applyVitalDeltaToSelectedFicha() no
-               <script>. Clique numa bolha pra selecionar (fica com borda destacada, ver
-               .ficha-bubble.selected no <style>); os botões ficam desabilitados até uma bolha estar
-               selecionada (ver updateFichaSummaryControlsState()). Atualiza em tempo real pra todo
-               mundo: ficha de jogador/mestre (kind 'hero') usa o mesmo canal de "presente" já usado
-               pelo XP (ver grantVitalToPlayer()/mesa40k/vitalGrants no <script>); instância de
-               Inimigo/Aliado (kind 'inimigo_ficha'/'aliado_ficha', sem ninguém logado pra escutar
-               Firebase) é ajustada direto no boardTokens local do mestre e espalhada com o mesmo
-               scheduleBoardTokensPush() de sempre. -->
-          <div class="ficha-bubble-controls mestre-only" id="fichaSummaryControls">
-            <div class="ficha-bubble-controls-label" id="fichaSummaryControlsLabel">SELECIONE UMA FICHA ABAIXO PARA AJUSTAR VIDA/MANA/ESCUDO</div>
-            <div class="ficha-bubble-controls-row">
-              <span class="ficha-bubble-controls-tag">VIDA</span>
-              <button type="button" class="mini-btn fsc-btn" data-campo="vida" data-delta="-10" disabled>−10</button>
-              <button type="button" class="mini-btn fsc-btn" data-campo="vida" data-delta="-1" disabled>−1</button>
-              <button type="button" class="mini-btn fsc-btn" data-campo="vida" data-delta="1" disabled>+1</button>
-              <button type="button" class="mini-btn fsc-btn" data-campo="vida" data-delta="10" disabled>+10</button>
-            </div>
-            <div class="ficha-bubble-controls-row">
-              <span class="ficha-bubble-controls-tag">MANA</span>
-              <button type="button" class="mini-btn fsc-btn" data-campo="mana" data-delta="-10" disabled>−10</button>
-              <button type="button" class="mini-btn fsc-btn" data-campo="mana" data-delta="-1" disabled>−1</button>
-              <button type="button" class="mini-btn fsc-btn" data-campo="mana" data-delta="1" disabled>+1</button>
-              <button type="button" class="mini-btn fsc-btn" data-campo="mana" data-delta="10" disabled>+10</button>
-            </div>
-            <div class="ficha-bubble-controls-row">
-              <span class="ficha-bubble-controls-tag">ESCUDO</span>
-              <button type="button" class="mini-btn fsc-btn" data-campo="escudo" data-delta="-10" disabled>−10</button>
-              <button type="button" class="mini-btn fsc-btn" data-campo="escudo" data-delta="-1" disabled>−1</button>
-              <button type="button" class="mini-btn fsc-btn" data-campo="escudo" data-delta="1" disabled>+1</button>
-              <button type="button" class="mini-btn fsc-btn" data-campo="escudo" data-delta="10" disabled>+10</button>
-            </div>
-          </div>
+          <!-- RODADA REMOVIDA (pedido explícito: "no index_bag esses valores são calculados de
+               forma automática, remove essa guia de adicionar e remover valores da tela de resumo
+               do tabuleiro de lá") -- este painel chegou a existir aqui (botões pro mestre
+               aumentar/diminuir Vida/Mana/Escudo de uma bolha selecionada, ver
+               #fichaSummaryControls/.fsc-btn/applyVitalDeltaToSelectedFicha() em revisões
+               anteriores), mas saiu por completo nesta rodada -- sem equivalente nenhum aqui, nem
+               inline nem em painel à parte (diferente do index_BG.html, que ganhou botões inline
+               por bolha na MESMA rodada que removeu isto daqui). -->
           <div id="fichaSummaryList" class="ficha-bubble-list"></div>
         </div>
         <div class="mesa-content chat-tab-body mestre-only" id="mesaContent" hidden>
@@ -8873,30 +8833,6 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     });
   }
 
-  // ---------- Vida/Mana/Escudo ajustados pelo mestre pelas bolhas do Resumo do Tabuleiro (pedido
-  // explícito desta rodada) ---------- Mesmíssimo padrão de "presente"/delta consumido uma vez do
-  // XP acima (grantXpToPlayer()) -- NÃO o padrão de ESTADO simples usado por pushVidaMana()/
-  // pushAtributos() um pouco abaixo, porque aqueles dependem do mestre já ter aquela ficha
-  // especificamente aberta na tela (loadedFichaOwnerUid) — aqui o pedido é poder ajustar direto
-  // pela bolha do Resumo do Tabuleiro (clicar pra selecionar + apertar ±1/±10), sem precisar abrir
-  // a ficha completa daquela pessoa antes. campo é sempre 'vida'/'mana'/'escudo'. Cada bolha
-  // empurra {campo, delta} pra mesa40k/vitalGrants/{uid} (push, não set); quem estiver logado com
-  // esse uid escuta esse mesmo caminho (ver connectVitalGrantListener()/handleVitalGrant() perto de
-  // connectXpGrantListener()) e aplica o delta direto no campo certo, sempre limitado entre 0 e o
-  // máximo atual daquele campo. Só serve pra ficha kind 'hero' (peça de jogador/mestre com
-  // ownerUid) -- inimigo_ficha/aliado_ficha (instância solta de NPC, sem ninguém logado em conta
-  // nenhuma pra "receber" isso) usa outro caminho, totalmente local (ver adjustBoardTokenVital(),
-  // perto de applyDanoToToken(), chamado de dentro de applyVitalDeltaToSelectedFicha() no <script>).
-  function grantVitalToPlayer(ownerUid, campo, delta, nome){
-    if(!fbReady || !fbDb || !ownerUid || !delta || !campo) return;
-    fbDb.ref('mesa40k/vitalGrants/' + ownerUid).push({
-      campo, delta,
-      nome: nome || '',
-      from: (currentUser && currentUser.uid) || null,
-      ts: firebase.database.ServerValue.TIMESTAMP
-    });
-  }
-
   // ---------- divindade escolhida pelo mestre pelo resumo ao vivo (dentro de MESA) ----------
   // Diferente do XP (um "presente"/delta consumido uma vez, ver grantXpToPlayer() acima), a
   // divindade é um ESTADO — um .set() simples em mesa40k/deidade/{uid} (nunca um push), sempre
@@ -9247,23 +9183,6 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   wireHoldRepeat($('xpMinusBtn10'), ()=> xpStep(-10));
   wireHoldRepeat($('xpPlusBtn100'), ()=> xpStep(100));
   wireHoldRepeat($('xpMinusBtn100'), ()=> xpStep(-100));
-
-  // ---------- botões ±1/±10 de Vida/Mana/Escudo do topo do Resumo do Tabuleiro (pedido explícito
-  // desta rodada, ver #fichaSummaryControls no HTML/applyVitalDeltaToSelectedFicha() perto de
-  // renderFichaSummaryBubbles()) ---------- botões estáticos (sempre no HTML, nunca recriados por
-  // renderFichaSummaryBubbles() -- só as bolhas em si são refeitas do zero) -- por isso a fiação
-  // acontece uma única vez aqui, igual aos botões de XP acima (mesmo esquema: um 'click' pro
-  // primeiro passo + wireHoldRepeat() pra repetir segurando). Cada botão já nasce desabilitado no
-  // HTML (fica assim até uma bolha ser selecionada, ver updateFichaSummaryControlsState()) --
-  // applyVitalDeltaToSelectedFicha() também já confere sozinha (currentRole/seleção), então não tem
-  // problema nenhum se algum clique escapar por engano enquanto desabilitado.
-  document.querySelectorAll('.fsc-btn').forEach(btn=>{
-    const campo = btn.dataset.campo;
-    const delta = parseInt(btn.dataset.delta, 10);
-    const step = ()=> applyVitalDeltaToSelectedFicha(campo, delta);
-    btn.addEventListener('click', step);
-    wireHoldRepeat(btn, step);
-  });
 
   // ---------- atributos: só sobem/descem pelos botões < >, não são mais digitáveis ----------
   const ATTR_KEYS = ['for','con','des','int','von','car'];
@@ -16402,15 +16321,6 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // que nunca ganham o card de hover no tabuleiro de verdade: resolveTokenVitalsForCard() devolve
   // null pra eles (sem Vida/Mana/Escudo pra mostrar).
   const fichaSummaryListEl = $('fichaSummaryList');
-  // id (token.id) da bolha selecionada agora pelo MESTRE nos botões de Vida/Mana/Escudo do topo
-  // (ver #fichaSummaryControls no HTML/applyVitalDeltaToSelectedFicha() mais abaixo) -- null quando
-  // nada está selecionado (estado inicial, ou a ficha selecionada saiu do tabuleiro/da lista
-  // filtrada). Guardado à parte (não só uma classe CSS na bolha) porque renderFichaSummaryBubbles()
-  // recria a lista inteira do zero a cada atualização (peça se moveu, Vida mudou, etc.) -- sem
-  // guardar o id aqui, a seleção se perderia a cada um desses redesenhos.
-  let selectedFichaSummaryTokenId = null;
-  const fichaSummaryControlsEl = $('fichaSummaryControls');
-  const fichaSummaryControlsLabelEl = $('fichaSummaryControlsLabel');
 
   // Pro JOGADOR, respeita a MESMA visibilidade de Revelar/Fog do próprio tabuleiro ao vivo dele
   // (decisão explícita desta rodada) — uma ficha que a neblina esconderia no tabuleiro de verdade
@@ -16446,22 +16356,6 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   function buildFichaSummaryBubble(entry){
     const bubble = document.createElement('div');
     bubble.className = 'ficha-bubble';
-    // Rodada nova, pedido explícito: SÓ o mestre pode clicar numa bolha pra selecioná-la (fica
-    // marcada com .selected, ver o <style>) e usar os botões de Vida/Mana/Escudo do topo (ver
-    // #fichaSummaryControls no HTML) -- pro jogador a bolha continua igual de antes, sem nenhum
-    // comportamento de clique novo. Toda entrada que chega até aqui já passou por
-    // resolveTokenVitalsForCard() com sucesso (collectBoardOccupantsForSummary() descarta o resto),
-    // ou seja, já é sempre um tipo que applyVitalDeltaToSelectedFicha() sabe tratar (inimigo_ficha/
-    // aliado_ficha local, ou hero com ownerUid via grantVitalToPlayer()) -- sem precisar filtrar de
-    // novo aqui.
-    if(currentRole === 'mestre'){
-      bubble.classList.add('ficha-bubble-selectable');
-      if(entry.token.id === selectedFichaSummaryTokenId) bubble.classList.add('selected');
-      bubble.addEventListener('click', ()=>{
-        selectedFichaSummaryTokenId = (selectedFichaSummaryTokenId === entry.token.id) ? null : entry.token.id;
-        renderFichaSummaryBubbles();
-      });
-    }
     const portraitWrap = document.createElement('div');
     portraitWrap.className = 'ficha-bubble-portrait';
     const portrait = resolveTokenPortrait(entry.token);
@@ -16581,62 +16475,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     fichaSummaryListEl.innerHTML = '';
     if(!entries.length){
       fichaSummaryListEl.innerHTML = '<div class="master-empty">Nenhuma ficha no tabuleiro no momento.</div>';
-      updateFichaSummaryControlsState(null);
       return;
     }
     entries.forEach(entry=> fichaSummaryListEl.appendChild(buildFichaSummaryBubble(entry)));
-    // Rodada nova: mantém os botões de Vida/Mana/Escudo do topo em dia com a seleção atual --
-    // acha de novo a entrada selecionada (pode ter saído da lista: peça removida do tabuleiro,
-    // escondida pela Fog, etc.) e atualiza rótulo/habilitação (ver updateFichaSummaryControlsState()
-    // logo abaixo). Comparação por token.id, igual ao clique que grava selectedFichaSummaryTokenId
-    // em buildFichaSummaryBubble().
-    const selectedEntry = selectedFichaSummaryTokenId
-      ? entries.find(e=> e.token.id === selectedFichaSummaryTokenId) || null
-      : null;
-    if(selectedFichaSummaryTokenId && !selectedEntry) selectedFichaSummaryTokenId = null;
-    updateFichaSummaryControlsState(selectedEntry);
-  }
-
-  // Habilita/desabilita os botões ±1/±10 de Vida/Mana/Escudo (ver .fsc-btn no HTML) e atualiza o
-  // rótulo do painel conforme haja (ou não) uma bolha selecionada agora -- chamada só a partir de
-  // renderFichaSummaryBubbles() (o painel em si é ".mestre-only", então nem existe visível pro
-  // jogador, mas os elements continuam no DOM de qualquer forma -- sem checagem de currentRole
-  // aqui, não custa nada manter em dia mesmo escondido).
-  function updateFichaSummaryControlsState(selectedEntry){
-    if(!fichaSummaryControlsEl) return;
-    const btns = fichaSummaryControlsEl.querySelectorAll('.fsc-btn');
-    btns.forEach(btn=>{ btn.disabled = !selectedEntry; });
-    if(fichaSummaryControlsLabelEl){
-      fichaSummaryControlsLabelEl.textContent = selectedEntry
-        ? `AJUSTANDO: ${tokenTooltipText(selectedEntry.token).toUpperCase()}`
-        : 'SELECIONE UMA FICHA ABAIXO PARA AJUSTAR VIDA/MANA/ESCUDO';
-    }
-  }
-
-  // ---------- ajuste de Vida/Mana/Escudo pelos botões do topo do Resumo do Tabuleiro (pedido
-  // explícito desta rodada) ---------- Dois caminhos, conforme o tipo da bolha selecionada:
-  //   - inimigo_ficha/aliado_ficha (instância solta de NPC no tabuleiro, sem ninguém logado em
-  //     conta nenhuma pra "receber" nada por Firebase): ajusta direto no boardTokens local do
-  //     mestre (ver adjustBoardTokenVital(), perto de applyDanoToToken()) e espalha com o mesmo
-  //     scheduleBoardTokensPush() de sempre -- que já redesenha a casa do tabuleiro E as bolhas do
-  //     Resumo (ver o comentário grande dele).
-  //   - hero com ownerUid (ficha de jogador OU do próprio mestre salva com dono, ver
-  //     resolveTokenVitalsForCard()): empurra um "presente"/delta pra mesa40k/vitalGrants/{uid}
-  //     (ver grantVitalToPlayer(), mesmo padrão de grantXpToPlayer()) -- quem estiver logado
-  //     com esse uid aplica na hora (ver handleVitalGrant()), e a bolha atualiza sozinha quando essa
-  //     pessoa republica mesa40k/live/{uid} (pushLiveVitals(), disparado por recalc() depois do
-  //     ajuste) -- sem eco otimista aqui, mesmo comportamento (sem atualização local instantânea)
-  //     que o "Distribuir XP" já tinha antes desta rodada.
-  function applyVitalDeltaToSelectedFicha(campo, delta){
-    if(currentRole !== 'mestre' || !selectedFichaSummaryTokenId || !delta) return;
-    const tok = findBoardTokenById(selectedFichaSummaryTokenId);
-    if(!tok) return;
-    if(tok.kind === 'inimigo_ficha' || tok.kind === 'aliado_ficha'){
-      adjustBoardTokenVital(tok, campo, delta);
-      scheduleBoardTokensPush();
-    } else if(tok.kind === 'hero' && tok.ownerUid){
-      grantVitalToPlayer(tok.ownerUid, campo, delta, tok.name || '');
-    }
   }
 
   // chamado sempre que mesa/live muda (ver onLiveVitalsChanged() mais abaixo) — refaz cada casa do
@@ -17395,22 +17236,6 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     const vidaPerdida = vidaCur - vidaDepois;
     tok.vidaAtual = vidaDepois;
     return { escudoAbsorvido, vidaPerdida, vidaDepois, vidaMax, morreu: vidaMax > 0 && vidaDepois <= 0 };
-  }
-
-  // Ajuste direto de Vida/Mana/Escudo de uma instância de Inimigo/Aliado (token.kind
-  // 'inimigo_ficha'/'aliado_ficha') pelos botões do Resumo do Tabuleiro (ver
-  // applyVitalDeltaToSelectedFicha() perto de renderFichaSummaryBubbles()) -- bem mais simples que
-  // applyDanoToToken() acima (sem absorção de Escudo: aqui o mestre está corrigindo um valor
-  // específico direto, não aplicando dano de combate), sempre limitado entre 0 e o máximo daquele
-  // campo mesmo. campo é sempre 'vida'/'mana'/'escudo' -- os nomes batem exatamente com os campos
-  // já usados no token (tok.vidaAtual/vidaMax, tok.manaAtual/manaMax, tok.escudoAtual/escudoMax,
-  // ver resolveTokenVitalsForCard()/buildFichaInstanceToken()).
-  function adjustBoardTokenVital(tok, campo, delta){
-    if(!tok || !delta) return;
-    const curKey = campo + 'Atual', maxKey = campo + 'Max';
-    const max = tok[maxKey] || 0;
-    const cur = tok[curKey] != null ? tok[curKey] : max;
-    tok[curKey] = Math.max(0, Math.min(max, cur + delta));
   }
 
   // tamanho da Barreira (a única entrada resizable:true de OBSTACLE_KINDS) não é fixo — vem dos
@@ -20275,6 +20100,7 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       btn.type = 'button';
       btn.className = 'board-facing-picker-btn';
       btn.textContent = '▲';
+      btn.dataset.dir = dir;
       const [leftPct, topPct] = FACING_PICKER_POINTS[dir];
       btn.style.left = leftPct + '%';
       btn.style.top = topPct + '%';
@@ -20284,9 +20110,53 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         e.preventDefault(); e.stopPropagation();
         chooseFn(tok, dir);
       });
+      // Rodada nova, pedido explícito: zoom ao passar o mouse só na seta sob o cursor (as vizinhas
+      // dela no anel ganham um zoom menor, "diminuindo" — ver applyFacingPickerHoverZoom() logo
+      // abaixo, perto de buildFacingArrowEl()).
+      btn.addEventListener('mouseenter', ()=> applyFacingPickerHoverZoom(wrap, dir));
+      btn.addEventListener('mouseleave', ()=> clearFacingPickerHoverZoom(wrap));
       wrap.appendChild(btn);
     });
     return wrap;
+  }
+
+  // Zoom ao passar o mouse numa seta do seletor de 8 direções (pedido explícito: "da um efeito de
+  // zoom na setinha quando eu passar o mouse por cima dela também... só na seta que eu estiver
+  // passando o mouse por cima, com um zoom menor para as do lado... dando um efeito de escala
+  // diminuindo") — a seta sob o mouse ganha o maior zoom (distância 0); as duas vizinhas imediatas
+  // dela no anel (uma de cada lado — ex. N tem NW e NE como vizinhas) ganham um zoom menor
+  // (distância 1); o resto do anel fica no tamanho normal (distância >= 2). Distância é CIRCULAR
+  // (FACING_ORDER já é a volta completa do anel de 8 pontas, W e N também se tocam pelos dois
+  // lados do seletor) — por isso o cálculo usa o menor dos dois caminhos possíveis ao redor do
+  // círculo, não a diferença simples de índice. z-index do botão sob o mouse também sobe um pouco
+  // (e o das vizinhas, um pouco menos) — só entre eles mesmos, dentro do próprio
+  // .board-facing-picker (que já tem seu próprio z-index alto, ver <style>) — pra quem está em
+  // zoom nunca ficar tampado pela vizinha ao lado quando as duas se sobrepõem um pouco.
+  const FACING_HOVER_SCALE = { 0:1.55, 1:1.2 };
+  const FACING_HOVER_Z = { 0:2, 1:1 };
+  function applyFacingPickerHoverZoom(wrap, hoveredDir){
+    const hoveredIdx = FACING_ORDER.indexOf(hoveredDir);
+    wrap.querySelectorAll('.board-facing-picker-btn').forEach(btn=>{
+      const dir = btn.dataset.dir;
+      const idx = FACING_ORDER.indexOf(dir);
+      const rawDist = Math.abs(idx - hoveredIdx);
+      const dist = Math.min(rawDist, FACING_ORDER.length - rawDist);
+      // distância >= 2: fica exatamente na mesma string de transform do estado de repouso (sem
+      // scale() nenhum) -- só a sob o mouse (0) e as duas vizinhas imediatas (1) ganham o termo
+      // scale() extra.
+      const scale = FACING_HOVER_SCALE[dist];
+      btn.style.transform = scale
+        ? `translate(-50%,-50%) rotate(${FACING_ANGLES[dir]}deg) scale(${scale})`
+        : `translate(-50%,-50%) rotate(${FACING_ANGLES[dir]}deg)`;
+      btn.style.zIndex = FACING_HOVER_Z[dist] || '';
+    });
+  }
+  function clearFacingPickerHoverZoom(wrap){
+    wrap.querySelectorAll('.board-facing-picker-btn').forEach(btn=>{
+      const dir = btn.dataset.dir;
+      btn.style.transform = `translate(-50%,-50%) rotate(${FACING_ANGLES[dir]}deg)`;
+      btn.style.zIndex = '';
+    });
   }
 
   // Fixa a direção escolhida: grava em token.facing (local, pra já sumir com o seletor e desenhar a
@@ -21991,48 +21861,6 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     xpGrantListenerRef.on('child_added', handleXpGrant);
   }
 
-  // ---------- recebe Vida/Mana/Escudo ajustados pelo mestre pelas bolhas do Resumo do Tabuleiro
-  // (ver grantVitalToPlayer() lá em cima, perto de grantXpToPlayer()) ---------- escuta
-  // mesa40k/vitalGrants/{meuUid}: mesmo esquema do XP acima (fila de "presentes" consumidos um a
-  // um, não um estado pra sobrescrever). Aplica o delta direto no campo certo (els.curVida/
-  // els.curMana/els.barreiraCur), sempre limitado entre 0 e o máximo ATUAL daquele campo (vidaMax/
-  // manaMax vêm do próprio texto calculado em els.maxVida/els.maxMana -- igual pushLiveVitals() lê
-  // -- e escudoMax vem direto de els.barreiraMax, um campo de verdade da ficha). recalc() no final
-  // já cuida de tudo o mais (barra visual, pushLiveVitals() republicando pro resumo ao vivo de
-  // volta, etc.), igual qualquer outra edição manual desses campos.
-  let vitalGrantListenerRef = null;
-  function disconnectVitalGrantListener(){
-    if(vitalGrantListenerRef){
-      vitalGrantListenerRef.off('child_added', handleVitalGrant);
-      vitalGrantListenerRef = null;
-    }
-  }
-  function handleVitalGrant(snap){
-    const grant = snap.val();
-    if(grant && typeof grant.delta === 'number' && grant.delta && grant.campo){
-      let changed = true;
-      if(grant.campo === 'vida'){
-        const max = parseFloat(els.maxVida.textContent) || 0;
-        els.curVida.value = Math.max(0, Math.min(max, num(els.curVida) + grant.delta));
-      } else if(grant.campo === 'mana'){
-        const max = parseFloat(els.maxMana.textContent) || 0;
-        els.curMana.value = Math.max(0, Math.min(max, num(els.curMana) + grant.delta));
-      } else if(grant.campo === 'escudo'){
-        const max = num(els.barreiraMax) || 0;
-        els.barreiraCur.value = Math.max(0, Math.min(max, num(els.barreiraCur) + grant.delta));
-      } else {
-        changed = false;
-      }
-      if(changed){ recalc(); playPlim(); }
-    }
-    if(vitalGrantListenerRef) vitalGrantListenerRef.child(snap.key).remove();
-  }
-  function connectVitalGrantListener(){
-    if(vitalGrantListenerRef || !fbDb || !currentUser) return;
-    vitalGrantListenerRef = fbDb.ref('mesa40k/vitalGrants/' + currentUser.uid);
-    vitalGrantListenerRef.on('child_added', handleVitalGrant);
-  }
-
   // ---------- recebe a divindade escolhida pelo mestre (ver setHeroDeidade() lá em cima, perto de
   // grantXpToPlayer()) ---------- escuta mesa40k/deidade/{meuUid}: diferente do XP (uma fila de
   // "presentes" consumidos um a um), aqui é um ESTADO simples (.set(), não .push()) — cada mudança
@@ -22627,7 +22455,6 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
         disconnectAtributosJogadorListener();
         disconnectVidaManaListener();
         disconnectVidaManaJogadorListener();
-        disconnectVitalGrantListener();
         $('chatPanel').hidden = true;
         // Fase 4 do "tabuleiro único": Resumos de ficha agora fica ao vivo desde o login (não mais
         // só enquanto "📂 Gerenciar tabuleiro" estava aberto) -- por isso precisa de uma limpeza
@@ -22718,7 +22545,6 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
           connectElemento2Listener();
           connectAtributosListener();
           connectVidaManaListener();
-          connectVitalGrantListener();
         });
       }
       fbDb.ref('mesa40k/config/webhook').on('value', (snap)=>{
