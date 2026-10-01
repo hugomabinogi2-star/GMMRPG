@@ -3302,6 +3302,22 @@ body{
   background:linear-gradient(90deg,#8a661f,#e0b656);
   transition:width .3s ease;
 }
+/* Botões inline de +/- Vida/Mana/Escudo de cada bolha (ver buildFichaSummaryInlineControls() no
+   <script>, pedido explícito desta rodada) -- variante compacta do .mini-btn de sempre, 3 linhas
+   (VIDA/MANA/ESCUDO) com 4 botões cada, só pro mestre (a própria função só monta isto quando
+   currentRole === 'mestre'). */
+.ficha-bubble-inline-controls{display:flex;flex-direction:column;gap:3px;margin-top:4px;width:100%;}
+.fibc-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.fibc-tag{
+  font-family:'Cinzel Decorative',serif;font-size:9.5px;letter-spacing:.05em;
+  color:var(--ink-soft);text-transform:uppercase;min-width:38px;
+}
+.fibc-btn{
+  font-family:'Inter',sans-serif;font-size:10px;background:none;
+  border:1px solid var(--border-brown);color:var(--ink-soft);
+  border-radius:4px;padding:2px 6px;cursor:pointer;line-height:1.3;
+}
+.fibc-btn:hover{border-color:var(--ink);color:var(--ink);}
 /* Card de Vida/Mana/Escudo (Escudo = anel de luz ao redor da barrinha de Vida, Mana = barrinha
    sólida na cor da Divindade) -- porte direto de .board-token-vitalscard/.bvc-* do Mag. Aqui só é
    usado DENTRO da bolha (ver o override acima), nunca flutuando do lado de uma casa do tabuleiro
@@ -6563,6 +6579,24 @@ body{
     });
   }
 
+  // ---------- Vida/Mana/Escudo ajustados pelo mestre pelos botões inline de cada bolha do Resumo
+  // do Tabuleiro (ver buildFichaSummaryInlineControls()/applyVitalDeltaInline() perto de
+  // renderFichaSummaryBubbles()) ---------- Só serve pra ficha kind 'hero' (peça de jogador/mestre
+  // com ownerUid) -- mesmo padrão de "presente" (push, não set) já usado por grantXpToPlayer()
+  // acima, só que em mesa/vitalGrants/{uid}; inimigo_ficha/aliado_ficha (instância solta de NPC,
+  // sem ninguém logado em conta nenhuma pra "receber" isso) usa outro caminho, totalmente local
+  // (ver adjustBoardTokenVital(), chamado de dentro de applyVitalDeltaInline()). campo é sempre
+  // 'vida'/'mana'/'escudo'.
+  function grantVitalToPlayer(ownerUid, campo, delta, nome){
+    if(!fbReady || !fbDb || !ownerUid || !delta || !campo) return;
+    fbDb.ref('mesa/vitalGrants/' + ownerUid).push({
+      campo, delta,
+      nome: nome || '',
+      from: (currentUser && currentUser.uid) || null,
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+
   // ---------- divindade escolhida pelo mestre pelo resumo ao vivo (dentro de MESA) ----------
   // Diferente do XP (um "presente"/delta consumido uma vez, ver grantXpToPlayer() acima), a
   // divindade é um ESTADO — um .set() simples em mesa/deidade/{uid} (nunca um push), sempre
@@ -8593,6 +8627,14 @@ body{
     if(delayBtn) delayBtn.disabled = !(turnState.active && currentTurnEntry());
     if(undoBtn) undoBtn.disabled = !turnUndoHistory.length;
     renderTurnQueuePanel();
+    // BUG CORRIGIDO (pedido explícito: "o sistema de iniciativa e a guia de resumo do tabuleiro não
+    // estao funcionando no index_bg... precisa funcionar igual a do index_mag quanto a ordem de
+    // iniciativa"): renderTurnBars() já é o ÚNICO ponto central chamado depois de QUALQUER mutação
+    // de turnState (rodar iniciativa, avançar, segurar ação, voltar, encerrar por erro de
+    // rolagem...), então basta redesenhar as bolhas aqui pra cobrir todos os jeitos de o turno
+    // mudar, sem precisar caçar cada chamador -- mesma solução que o index_mag.html já tinha (ver
+    // o comentário grande dele dentro da função equivalente).
+    if(typeof renderFichaSummaryBubbles === 'function') renderFichaSummaryBubbles();
   }
   $('boardEndTurnBtn').addEventListener('click', handleEndTurnClick);
   $('liveEndTurnBtn').addEventListener('click', handleEndTurnClick);
@@ -11129,10 +11171,19 @@ body{
   // buildBoardVitalsCard()/buildFichaSummaryBubble()/renderFichaSummaryBubbles(), ver
   // index_mag.html) pro Mesa modal daqui. Já nasce SEM o efeito de zoom no hover e já com a fonte
   // grande do resumo de atributos (pedidos de rodadas SEPARADAS do Mag, feitos ali depois do
-  // conceito já existir -- aqui entram de saída, no formato final). NÃO inclui os botões de +/-
-  // Vida/Mana/Escudo pro mestre (outro pedido separado do Mag, pedido DEPOIS deste "copie o
-  // conceito" -- fora do escopo explícito aqui) nem nenhum conceito de habilidade fixa (BG não tem
-  // esse sistema, daí o próprio pedido já dizer pra pular essa parte).
+  // conceito já existir -- aqui entram de saída, no formato final). Não inclui nenhum conceito de
+  // habilidade fixa (BG não tem esse sistema, daí o próprio pedido já dizer pra pular essa parte).
+  //
+  // RODADA NOVA (pedido explícito, junto com o conserto do bug de ordenação por iniciativa): "no
+  // resumo de tabuleiro do index_bg, para cada resumo de ficha ali precisa constar os botoes para
+  // adicionar ou remover valores de vida, mana e escudo" -- ao contrário do painel COMPARTILHADO do
+  // Mag (selecione uma bolha, depois use os botões de cima, ver #fichaSummaryControls lá), aqui
+  // cada bolha ganha seus PRÓPRIOS botões inline (sem etapa de seleção) -- ver
+  // buildFichaSummaryInlineControls()/applyVitalDeltaInline() perto de buildFichaSummaryBubble()
+  // mais abaixo. Mesmo mecanismo de aplicação por trás do Mag (adjustBoardTokenVital() local pra
+  // inimigo_ficha/aliado_ficha, grantVitalToPlayer() via Firebase pra hero com ownerUid). Só
+  // aparece pro mestre (currentRole === 'mestre') -- igual ao mesmo recurso no Mag, que está inteiro
+  // atrás de ".mestre-only".
   //
   // Diferença chave de arquitetura pro Mag: nem 'inimigo_ficha' nem 'aliado_ficha' (ver "FASE 4c"
   // do porte "MESA/tabuleiro iguais ao index_mag") ganharam aqui Vida/Mana/Escudo PRÓPRIOS gravados
@@ -11182,6 +11233,25 @@ body{
       };
     }
     return null;
+  }
+
+  // Ajuste direto de Vida/Mana/Escudo de uma instância de Inimigo/Aliado (token.kind
+  // 'inimigo_ficha'/'aliado_ficha') pelos botões inline do Resumo do Tabuleiro (ver
+  // applyVitalDeltaInline() perto de renderFichaSummaryBubbles()) -- porte direto de
+  // adjustBoardTokenVital() do index_mag.html: sem absorção de Escudo (aqui o mestre está
+  // corrigindo um valor específico direto, não aplicando dano de combate), sempre limitado entre 0
+  // e o máximo daquele campo mesmo. campo é sempre 'vida'/'mana'/'escudo' -- os nomes batem
+  // exatamente com os campos já usados no token (tok.vidaAtual/vidaMax, tok.manaAtual/manaMax,
+  // tok.escudoAtual/escudoMax, ver resolveTokenVitalsForCard() acima). Só tem efeito quando o token
+  // já tiver vidaMax/manaMax/escudoMax gravados (ver o comentário grande no topo desta seção) --
+  // sem isso resolveTokenVitalsForCard() já devolve null e a bolha nem aparece, então os botões
+  // nem chegam a existir pra essa peça.
+  function adjustBoardTokenVital(tok, campo, delta){
+    if(!tok || !delta) return;
+    const curKey = campo + 'Atual', maxKey = campo + 'Max';
+    const max = tok[maxKey] || 0;
+    const cur = tok[curKey] != null ? tok[curKey] : max;
+    tok[curKey] = Math.max(0, Math.min(max, cur + delta));
   }
 
   // Geometria fixa das barrinhas do card (ver .bvc-* no <style>) -- mesmos números do Mag, pra CSS
@@ -11362,6 +11432,51 @@ body{
     });
   }
 
+  // Aplica um ajuste de Vida/Mana/Escudo vindo de um botão inline de uma bolha específica (ver
+  // buildFichaSummaryInlineControls() logo abaixo) -- mesma dinâmica do Mag (ver
+  // applyVitalDeltaToSelectedFicha() lá), só que aqui `tok` já vem direto da própria bolha (não
+  // precisa de nenhum "token selecionado" guardado à parte, já que não existe etapa de seleção
+  // nesta versão). Branca em silêncio fora do papel de mestre (defesa extra -- os botões só
+  // chegam a existir pro mestre, ver buildFichaSummaryBubble(), mas o handler confere de novo aqui
+  // mesmo assim).
+  function applyVitalDeltaInline(tok, campo, delta){
+    if(currentRole !== 'mestre' || !tok || !delta) return;
+    if(tok.kind === 'inimigo_ficha' || tok.kind === 'aliado_ficha'){
+      adjustBoardTokenVital(tok, campo, delta);
+      scheduleBoardTokensPush();
+    } else if(tok.kind === 'hero' && tok.ownerUid){
+      grantVitalToPlayer(tok.ownerUid, campo, delta, tok.name || '');
+    }
+  }
+
+  // Botões inline de +1/-1/+10/-10 pra Vida/Mana/Escudo de UMA bolha (ver o comentário grande no
+  // topo desta seção) -- 3 linhas (VIDA/MANA/ESCUDO), cada uma com 4 botões, mesma pegada visual
+  // do .mini-btn de sempre (ver .fibc-btn no <style>, uma variante compacta dele). Fecha por cima
+  // de `entry` (cada bolha chama isto com o SEU próprio entry.token), então o clique já sabe exatamente
+  // qual ficha ajustar, sem precisar de nenhuma seleção prévia.
+  function buildFichaSummaryInlineControls(entry){
+    const wrap = document.createElement('div');
+    wrap.className = 'ficha-bubble-inline-controls';
+    [['vida','VIDA'],['mana','MANA'],['escudo','ESCUDO']].forEach(([campo, label])=>{
+      const row = document.createElement('div');
+      row.className = 'fibc-row';
+      const tag = document.createElement('span');
+      tag.className = 'fibc-tag';
+      tag.textContent = label;
+      row.appendChild(tag);
+      [-10, -1, 1, 10].forEach(delta=>{
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'fibc-btn';
+        btn.textContent = (delta > 0 ? '+' : '−') + Math.abs(delta);
+        btn.addEventListener('click', ()=> applyVitalDeltaInline(entry.token, campo, delta));
+        row.appendChild(btn);
+      });
+      wrap.appendChild(row);
+    });
+    return wrap;
+  }
+
   function buildFichaSummaryBubble(entry){
     const bubble = document.createElement('div');
     bubble.className = 'ficha-bubble';
@@ -11388,6 +11503,12 @@ body{
     const attrsSummary = buildFichaBubbleAttrsSummary(entry.vitals);
     if(attrsSummary) statsRow.appendChild(attrsSummary);
     info.appendChild(statsRow);
+    // Pedido explícito desta rodada: botões de +/- Vida/Mana/Escudo direto em cada bolha -- só pro
+    // mestre (currentRole === 'mestre'), já que esta mesma lista agora também é visível pro
+    // jogador (ver o comentário grande de collectBoardOccupantsForSummary() acima).
+    if(currentRole === 'mestre'){
+      info.appendChild(buildFichaSummaryInlineControls(entry));
+    }
     bubble.appendChild(info);
     return bubble;
   }
@@ -15689,6 +15810,48 @@ body{
     xpGrantListenerRef.on('child_added', handleXpGrant);
   }
 
+  // ---------- recebe Vida/Mana/Escudo ajustados pelo mestre pelas bolhas do Resumo do Tabuleiro
+  // (ver grantVitalToPlayer() lá em cima, perto de grantXpToPlayer()) ---------- escuta
+  // mesa/vitalGrants/{meuUid}: mesmo esquema do XP acima (fila de "presentes" consumidos um a um,
+  // não um estado pra sobrescrever). Aplica o delta direto no campo certo (els.curVida/els.curMana/
+  // els.barreiraCur), sempre limitado entre 0 e o máximo ATUAL daquele campo (vidaMax/manaMax vêm
+  // do próprio texto calculado em els.maxVida/els.maxMana -- igual pushLiveVitals() lê -- e
+  // escudoMax vem direto de els.barreiraMax, um campo de verdade da ficha). recalc() no final já
+  // cuida de tudo o mais (barra visual, pushLiveVitals() republicando pro resumo ao vivo de volta,
+  // etc.), igual qualquer outra edição manual desses campos.
+  let vitalGrantListenerRef = null;
+  function disconnectVitalGrantListener(){
+    if(vitalGrantListenerRef){
+      vitalGrantListenerRef.off('child_added', handleVitalGrant);
+      vitalGrantListenerRef = null;
+    }
+  }
+  function handleVitalGrant(snap){
+    const grant = snap.val();
+    if(grant && typeof grant.delta === 'number' && grant.delta && grant.campo){
+      let changed = true;
+      if(grant.campo === 'vida'){
+        const max = parseFloat(els.maxVida.textContent) || 0;
+        els.curVida.value = Math.max(0, Math.min(max, num(els.curVida) + grant.delta));
+      } else if(grant.campo === 'mana'){
+        const max = parseFloat(els.maxMana.textContent) || 0;
+        els.curMana.value = Math.max(0, Math.min(max, num(els.curMana) + grant.delta));
+      } else if(grant.campo === 'escudo'){
+        const max = num(els.barreiraMax) || 0;
+        els.barreiraCur.value = Math.max(0, Math.min(max, num(els.barreiraCur) + grant.delta));
+      } else {
+        changed = false;
+      }
+      if(changed){ recalc(); playPlim(); }
+    }
+    if(vitalGrantListenerRef) vitalGrantListenerRef.child(snap.key).remove();
+  }
+  function connectVitalGrantListener(){
+    if(vitalGrantListenerRef || !fbDb || !currentUser) return;
+    vitalGrantListenerRef = fbDb.ref('mesa/vitalGrants/' + currentUser.uid);
+    vitalGrantListenerRef.on('child_added', handleVitalGrant);
+  }
+
   // ---------- recebe a divindade escolhida pelo mestre (ver setHeroDeidade() lá em cima, perto de
   // grantXpToPlayer()) ---------- escuta mesa/deidade/{meuUid}: diferente do XP (uma fila de
   // "presentes" consumidos um a um), aqui é um ESTADO simples (.set(), não .push()) — cada mudança
@@ -16174,6 +16337,7 @@ body{
         applyRoleVisibility();
         disconnectChat();
         disconnectXpGrantListener();
+        disconnectVitalGrantListener();
         disconnectDeidadeListener();
         disconnectAtributosListener();
         disconnectAtributosJogadorListener();
@@ -16255,6 +16419,7 @@ body{
       if(currentRole === 'jogador' && ownFichaLoaded && typeof ownFichaLoaded.then === 'function'){
         ownFichaLoaded.then(()=>{
           connectXpGrantListener();
+          connectVitalGrantListener();
           connectDeidadeListener();
           connectAtributosListener();
           connectVidaManaListener();
