@@ -229,5 +229,20 @@
     "habilidade": "Disparar Flecha",
     "alvo": "Dummy 1",
     "ts": 1790898156114
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 3,
+    "bonus": 3,
+    "rolls": [
+      3
+    ],
+    "resultado": 6,
+    "habilidade": "Disparar Flecha",
+    "danoTipo": "perfurante",
+    "alvo": "Dummy 1",
+    "ts": 1790898157282
   }
 ]
