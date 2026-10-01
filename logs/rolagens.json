@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "E7",
-    "para": "I7",
-    "ts": 1787832098099
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "I7",
     "para": "J7",
     "ts": 1787832102264
@@ -253,5 +246,14 @@
     "resultado": 16,
     "resultLabel": "Acerto",
     "ts": 1788347266872
+  },
+  {
+    "nome": "DUMMY",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 2,
+    "resultado": 6,
+    "resultLabel": "Erro",
+    "ts": 1790864876985
   }
 ]
