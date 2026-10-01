@@ -105,5 +105,16 @@
     "habilidade": "Disparar Flecha",
     "alvo": "Dummy 1",
     "ts": 1790891858794
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 8,
+    "resultado": 10,
+    "resultLabel": "Erro",
+    "habilidade": "Disparar Flecha",
+    "alvo": "Dummy 1",
+    "ts": 1790891869908
   }
 ]
