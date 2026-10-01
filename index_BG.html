@@ -12189,6 +12189,15 @@ body{
           id: 'inimigo_ficha:' + hero.id + '-' + (spawnCounter++), kind: 'inimigo_ficha',
           name: hero.name, portrait: hero.portrait, size: 1,
           heroId: hero.id, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, deidade: hero.deidade || '',
+          // Vida/Mana/Escudo (max+atual) + XP + Atributos totais, copiados prontos do roster (ver o
+          // comentário grande em makeRosterLoader(), perto de "vidaMax:") -- sem isto a bolha desta
+          // peça nunca aparecia no "🧾 Resumo do Tabuleiro" (resolveTokenVitalsForCard() exige
+          // vidaMax != null). Os botões +/- de cada bolha ajustam vidaAtual/manaAtual/escudoAtual
+          // a partir daqui pra frente (ver adjustBoardTokenVital()).
+          vidaAtual: hero.vida || 0, vidaMax: hero.vidaMax || 0,
+          manaAtual: hero.mana || 0, manaMax: hero.manaMax || 0,
+          escudoAtual: hero.escudo || 0, escudoMax: hero.escudoMax || 0,
+          xp: hero.xp || 0, totals: hero.totals || null,
         };
         // numera igual aliado/inimigo/monstro/boss (ex: "Goblin Batedor 1", "Goblin Batedor 2"),
         // agrupado pelo NOME da ficha (não por "Inimigo" genérico) -- ver tokenTooltipText().
@@ -12208,6 +12217,11 @@ body{
           id: 'aliado_ficha:' + hero.id + '-' + (spawnCounter++), kind: 'aliado_ficha',
           name: hero.name, portrait: hero.portrait, size: 1,
           heroId: hero.id, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, deidade: hero.deidade || '',
+          // ver comentário grande no branch 'inimigo_ficha' logo acima.
+          vidaAtual: hero.vida || 0, vidaMax: hero.vidaMax || 0,
+          manaAtual: hero.mana || 0, manaMax: hero.manaMax || 0,
+          escudoAtual: hero.escudo || 0, escudoMax: hero.escudoMax || 0,
+          xp: hero.xp || 0, totals: hero.totals || null,
         };
         token.seq = nextSeqForLabel(hero.name);
         placeToken(r, c, token);
@@ -12655,6 +12669,11 @@ body{
         const fetchedData = await mapWithConcurrency(files, 3, file =>
           fetch(file.download_url).then(r=>r.text()).then(JSON.parse).catch(()=>null)
         );
+        // soma base+modificador de um atributo salvo na ficha (mesma fórmula de recalc()) -- usada
+        // logo abaixo pra calcular vidaMax/manaMax/totals de cada ficha do roster (ver o comentário
+        // grande perto de "vidaMax:" mais abaixo, pedido explícito: "as fichas de inimigos não
+        // estão aparecendo no resumo da ficha").
+        const attrTotal = (data, key) => (parseFloat(data.base && data.base[key]) || 0) + (parseFloat(data.mods && data.mods[key]) || 0);
         const roster = fetchedData
           .filter(data => data && data.nome)
           .map(data => ({
@@ -12676,6 +12695,26 @@ body{
             // divindade salva na ficha — fonte da cor da seta de direção no tabuleiro ao vivo (ver
             // DEITY_EYE_COLOR/buildFacingArrowEl() no <script>).
             deidade: data.deidade || '',
+            // Vida/Mana/Escudo (max+atual) + XP + Atributos totais, calculados a partir do que foi
+            // salvo na ficha (mesma fórmula de recalc(): vidaMax = 10+FOR+CON+mod Vida, manaMax =
+            // INT+VON+mod Mana) -- pedido explícito ("as fichas de inimigos não estão aparecendo no
+            // resumo da ficha"): resolveTokenVitalsForCard() só desenha a bolha de "🧾 Resumo do
+            // Tabuleiro" pra um token inimigo_ficha/aliado_ficha quando ele já tem vidaMax gravado
+            // (ver o comentário grande dela, perto de "Diferença chave de arquitetura pro Mag") --
+            // handleBoardDrop() nunca gravava nada disso na peça até agora, então toda ficha de
+            // Inimigo/Aliado colocada no tabuleiro ficava sem bolha nenhuma no Resumo. Carregado
+            // aqui, no roster, pra handleBoardDrop() só copiar pronto pro token na hora de criar a
+            // peça (mesmo esquema de bonusDes/bonusMov/deidade acima) -- os botões +/- de cada
+            // bolha (ver applyVitalDeltaInline()/adjustBoardTokenVital()) seguem ajustando o token
+            // normalmente depois disso.
+            vida: parseFloat(data.curVida) || 0,
+            vidaMax: 10 + attrTotal(data, 'for') + attrTotal(data, 'con') + (parseFloat(data.mods && data.mods.vida) || 0),
+            mana: parseFloat(data.curMana) || 0,
+            manaMax: attrTotal(data, 'int') + attrTotal(data, 'von') + (parseFloat(data.mods && data.mods.mana) || 0),
+            escudo: parseFloat(data.barreiraCur) || 0,
+            escudoMax: parseFloat(data.barreiraMax) || 0,
+            xp: parseFloat(data.xp) || 0,
+            totals: { for: attrTotal(data,'for'), con: attrTotal(data,'con'), des: attrTotal(data,'des'), int: attrTotal(data,'int'), von: attrTotal(data,'von'), car: attrTotal(data,'car') },
             // Privado/Público/Inimigos (ver #f_publica) — só existe em fichas do mestre
             // (idPrefix 'mestre:'), mas carregado sempre (sem custo extra: já vem no mesmo JSON)
             // pra renderMestreTray()/renderInimigoFichaCoins() poderem filtrar localmente quem é
