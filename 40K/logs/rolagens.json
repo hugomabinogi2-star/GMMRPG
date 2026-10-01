@@ -207,5 +207,16 @@
     "de": "K5",
     "para": "J5",
     "ts": 1790898138511
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 14,
+    "resultLabel": "Acerto",
+    "habilidade": "Disparar Flecha",
+    "alvo": "Dummy 1",
+    "ts": 1790898145265
   }
 ]
