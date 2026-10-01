@@ -189,5 +189,16 @@
     "danoTipo": "perfurante",
     "alvo": "Dummy 1",
     "ts": 1790897910435
+  },
+  {
+    "nome": "Dummy",
+    "tipo": "atributo",
+    "statKey": "for",
+    "statValor": 2,
+    "resultado": 18,
+    "resultLabel": "Acerto",
+    "habilidade": "Corte Leve",
+    "alvo": "Arqueira",
+    "ts": 1790897960018
   }
 ]
