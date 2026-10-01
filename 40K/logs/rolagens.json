@@ -244,5 +244,16 @@
     "danoTipo": "perfurante",
     "alvo": "Dummy 1",
     "ts": 1790898157282
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "atributo",
+    "statKey": "des",
+    "statValor": 6,
+    "resultado": 5,
+    "resultLabel": "Erro",
+    "habilidade": "Disparar Flecha",
+    "alvo": "Dummy 1",
+    "ts": 1790898163581
   }
 ]
