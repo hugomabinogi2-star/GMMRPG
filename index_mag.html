@@ -10338,8 +10338,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     // precisa bater com o NOME BASE de uma entrada da fila (mesmo casamento de
     // markActionRollFromOpenSheet() logo abaixo) que NÃO seja a vez atual pra ser barrada aqui; uma
     // ficha de fora da fila (nunca esteve no tabuleiro quando a iniciativa foi rodada) continua livre
-    // pra rolar, mesmo com a fila ativa -- mesmo critério já usado pro movimento.
-    if(turnState.active && turnState.order){
+    // pra rolar, mesmo com a fila ativa -- mesmo critério já usado pro movimento. RODADA NOVA (pedido
+    // explícito): essa trava inteira só vale depois do tabuleiro REVELADO (ver
+    // isBoardRevealedForFicha(), mais abaixo no <script> mas já disponível aqui pelo mesmo motivo de
+    // turnState acima) -- antes de revelar, toda rolagem continua livre mesmo com a iniciativa rodada.
+    if(turnState.active && turnState.order && isBoardRevealedForFicha()){
       const sheetName = ((els.nome && els.nome.value) || '').trim();
       const turnEntry = sheetName ? turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha' || it.kind === 'aliado_ficha') && it.baseNome === sheetName) : null;
       if(turnEntry && !isCurrentTurnToken(turnEntry)){
@@ -11078,7 +11081,13 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // este aqui) que ainda não tinha aviso próprio (handleEndTurnClick()/autoEndTurnOnRollFailure()
   // já avisam cada um o seu).
   function markTurnMoved(){
-    if(!turnState.active) return;
+    // RODADA NOVA (pedido explícito, ver isBoardRevealedForFicha()): sem isto, um movimento feito
+    // ANTES de revelar (livre, sem nenhuma recusa -- ver handleBoardDrop()/handleLiveBoardDrop()
+    // acima) ainda assim consumiria silenciosamente a ação de movimento da vez, e até avançaria o
+    // turno sozinho pra peça avulsa (isFreeform, logo abaixo) -- deixando a fila toda desalinhada
+    // no momento em que o Mestre finalmente revela o tabuleiro. Enquanto não revelado, a fila fica
+    // congelada/inerte, como se não existisse.
+    if(!turnState.active || !isBoardRevealedForFicha()) return;
     const entry = currentTurnEntry();
     if(!entry) return;
     turnState.moved = true;
@@ -11117,7 +11126,11 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // vez — mesmo padrão já usado dentro de handleLiveBoardDrop() pro efeito SANGRANDO. verdict vem
   // direto de finishRoll() (mesma rolagem que acabou de decidir acerto/erro).
   function markActionRollFromOpenSheet(verdict){
-    if(!turnState.active) return;
+    // RODADA NOVA (pedido explícito, ver isBoardRevealedForFicha()): mesmo raciocínio de
+    // markTurnMoved() logo acima -- sem isto, uma rolagem livre feita antes de revelar consumiria
+    // silenciosamente a ação de rolagem da vez e, num erro, até disparia o encerramento automático
+    // do turno (ver markTurnRolled()/autoEndTurnOnRollFailure()) sem ninguém ter pedido isso.
+    if(!turnState.active || !isBoardRevealedForFicha()) return;
     const entry = currentTurnEntry();
     if(!entry || (entry.kind !== 'hero' && entry.kind !== 'inimigo_ficha' && entry.kind !== 'aliado_ficha')) return;
     const sheetName = ((els.nome && els.nome.value) || '').trim();
@@ -12528,14 +12541,33 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // openElementPicker()), só filtrados pra mostrar apenas o que o personagem já possui.
   function armasPossuidas(){ return [selectedArma].concat(selectedArmasExtra).filter(Boolean); }
   function elementosPossuidos(){ return [els.deidade.value, selectedElemento2].filter(Boolean); }
+  // "O tabuleiro já foi revelado agora?" -- pedido explícito ("Rolamentos são livres enquanto um
+  // tabuleiro não esta revelado, a partir do momento em que um tabuleiro foi revelado os rolamentos
+  // devem respeitar a fila de iniciativa, so quem esta no turno pode realizar ações"): até esta
+  // rodada, TODA trava de "fora da vez" (rollBtn/turnEntryDaFichaAberta()/canOpenAttackMenu()/
+  // handleBoardDrop()/handleLiveBoardDrop()) só conferia turnState.active -- bastava RODAR A
+  // INICIATIVA pra travar tudo, mesmo que o Mestre ainda não tivesse clicado em "Revelar". Esta
+  // função lê o estado de revelado certo conforme o papel de quem está chamando: o Mestre sempre
+  // tem boardRevealMode como fonte de verdade (é ele quem liga/desliga, ver setBoardRevealMode());
+  // o jogador só enxerga o espelho sincronizado em liveBoardState.revealed (ver o listener de
+  // mesa40k/liveBoard/meta, dentro de connectLiveBoard()) -- os dois são sempre o mesmo dado, só
+  // lidos da variável certa conforme quem está rodando este código agora. "let"s referenciados
+  // aqui (boardRevealMode/liveBoardState) são declarados mais abaixo no arquivo, mas por só serem
+  // LIDOS dentro do corpo desta função -- nunca no momento da própria declaração -- já estão prontos
+  // quando ela é efetivamente chamada (mesmo raciocínio já usado pra turnState em rollBtn, ver
+  // comentário dele).
+  function isBoardRevealedForFicha(){
+    return currentRole === 'mestre' ? !!boardRevealMode : !!liveBoardState.revealed;
+  }
   // "Esta ficha (aberta neste navegador) faz parte da fila de iniciativa AGORA?" -- mesmo casamento
   // por NOME BASE já usado em rollBtn/markActionRollFromOpenSheet() lá em cima (turnState/
   // isCurrentTurnToken() são function declarations, disponíveis aqui por hoisting mesmo definidas
-  // mais abaixo no <script>). null quando não há fila ativa OU esta ficha nunca entrou nela --
-  // nesses casos a troca é sempre livre, sem custo de turno nenhum (pedido explícito: "enquanto não
-  // estiver em um tabuleiro... pode trocar o armamento à vontade").
+  // mais abaixo no <script>). null quando não há fila ativa OU esta ficha nunca entrou nela OU o
+  // tabuleiro ainda não foi revelado (pedido explícito desta rodada, ver isBoardRevealedForFicha()
+  // acima) -- nesses casos a troca é sempre livre, sem custo de turno nenhum (pedido explícito:
+  // "enquanto não estiver em um tabuleiro... pode trocar o armamento à vontade").
   function turnEntryDaFichaAberta(){
-    if(!turnState.active || !turnState.order) return null;
+    if(!turnState.active || !turnState.order || !isBoardRevealedForFicha()) return null;
     const sheetName = ((els.nome && els.nome.value) || '').trim();
     if(!sheetName) return null;
     return turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha' || it.kind === 'aliado_ficha') && it.baseNome === sheetName) || null;
@@ -12546,7 +12578,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
   // Mestre só quando NÃO é a vez de um herói de jogador -- ou seja, na vez de Inimigo/Aliado/objeto
   // avulso (isFreeform), OU na vez de um herói do PRÓPRIO Mestre (id "mestre:...").
   function canOpenAttackMenu(entry){
-    if(!entry || !turnState.active) return false;
+    // RODADA NOVA (pedido explícito, ver isBoardRevealedForFicha()): o menu de ataque também é uma
+    // "ação" -- só pode ficar restrito à vez de quem está na fila depois do tabuleiro revelado.
+    if(!entry || !turnState.active || !isBoardRevealedForFicha()) return false;
     if(!isCurrentTurnToken(entry)) return false;
     if(currentRole === 'jogador'){
       if(entry.kind !== 'hero') return false;
@@ -16801,8 +16835,10 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() logo acima): só quem está NA VEZ
       // agora pode ser movido — vale pra QUALQUER peça que faça parte da fila (inclusive as que o
       // Mestre normalmente move livre, como ficha de jogador) e vale pro próprio Mestre também,
-      // pedido explícito, sem exceção de correção aqui.
-      if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok)){
+      // pedido explícito, sem exceção de correção aqui. RODADA NOVA (pedido explícito, ver
+      // isBoardRevealedForFicha()): só vale depois do tabuleiro revelado -- antes disso o Mestre
+      // pode reposicionar qualquer peça livremente, mesmo com a iniciativa já rodada.
+      if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok) && isBoardRevealedForFicha()){
         const entry = currentTurnEntry();
         alert(`Não é a vez desta peça! Turno atual (Rodada ${turnState.round}): ${entry ? entry.nome : '—'}.`);
         announceOutOfTurn(turnEntryForToken(tok));
@@ -16810,8 +16846,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
       }
       // REDESENHO desta rodada (pedido explícito): só 1 movimento por turno, e nenhum movimento
       // depois de já ter rolado neste turno (mesmo que ainda não tivesse se movido) — ver
-      // canMoveThisTurnToken()/markTurnRolled() lá em cima.
-      if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken()){
+      // canMoveThisTurnToken()/markTurnRolled() lá em cima. Mesma condição nova de revelado do
+      // bloco logo acima.
+      if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken() && isBoardRevealedForFicha()){
         alert(turnState.rolled ? 'Você já rolou o dado de ação neste turno — não é mais possível se mover.' : 'Você já usou o movimento deste turno.');
         return;
       }
@@ -20235,8 +20272,9 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     if(!tok || tok.id !== payload.id || !isMyLiveToken(tok)) return;
     if(r === payload.r && c === payload.c) return;
     // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() na aba Mesa): só quem está NA VEZ
-    // agora pode se mover — mesma trava usada em handleBoardDrop(), aqui do lado do jogador.
-    if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok)){
+    // agora pode se mover — mesma trava usada em handleBoardDrop(), aqui do lado do jogador. RODADA
+    // NOVA (pedido explícito, ver isBoardRevealedForFicha()): só vale depois do tabuleiro revelado.
+    if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok) && isBoardRevealedForFicha()){
       const entry = currentTurnEntry();
       liveBoardHintEl.textContent = `Não é a sua vez! Turno atual (Rodada ${turnState.round}): ${entry ? entry.nome : '—'}.`;
       announceOutOfTurn(turnEntryForToken(tok));
@@ -20244,8 +20282,8 @@ Vantagem: combina presença e força, permitindo influenciar o campo de batalha 
     }
     // REDESENHO desta rodada (pedido explícito): só 1 movimento por turno, e nenhum movimento
     // depois de já ter rolado neste turno (mesmo que ainda não tivesse se movido) — mesma trava de
-    // handleBoardDrop(), aqui do lado do jogador.
-    if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken()){
+    // handleBoardDrop(), aqui do lado do jogador. Mesma condição nova de revelado do bloco acima.
+    if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken() && isBoardRevealedForFicha()){
       liveBoardHintEl.textContent = turnState.rolled ? 'Você já rolou o dado de ação neste turno — não é mais possível se mover.' : 'Você já usou o movimento deste turno.';
       return;
     }
