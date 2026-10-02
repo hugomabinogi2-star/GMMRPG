@@ -883,7 +883,21 @@ body{
 .mesa-fixed-body .live-board-panel{flex:1 1 0;}
 .mesa-fixed-body .chat-panel{flex:0 1 400px;max-width:400px;}
 .mesa-fixed-body .live-board-panel[hidden], .mesa-fixed-body .chat-panel[hidden]{display:none;}
-.mesa-fixed-body .chat-panel{max-height:none;}
+/* Rodada nova, pedido explícito ("a guia onde fica o chat e o tabuleiro está crescendo conforme
+   mais informação é adicionada ao chat, isso não deve ocorrer, a guia em si deve manter sempre o
+   mesmo tamanho e deve ser adicionada uma barra de rolagem ao chat quando isso ocorrer"): o
+   max-height:none de uma rodada anterior (comentário grande logo acima) tirou QUALQUER teto desta
+   coluna -- sem um teto aqui, .chat-panel-body/.chat-tab-body/.chat-messages (flex:1 +
+   overflow-y:auto, ver os três no <style>) não têm contra o que "flexar": o pai (.chat-panel) só
+   cresce pra caber TODO o conteúdo (mensagens acumuladas, Histórico de Rolagens, Resumos de
+   ficha), e como esta coluna fica lado a lado com o tabuleiro dentro de um flex row
+   align-items:stretch (ver .mesa-fixed-body no <style>), a faixa inteira cresce junto, empurrando
+   o resto da página pra baixo -- exatamente o bug relatado. Volta a ter um teto (mesmo valor do
+   teto do tabuleiro, .live-board-panel-body{max-height:900px} mais acima, + folga pro título/abas
+   desta coluna) -- agora QUALQUER uma das 3 gavetas que passar desse teto ganha barra de rolagem
+   própria (.chat-messages/.chat-tab-body já tinham overflow-y:auto desde sempre, só não tinham
+   contra o que rolar) em vez de empurrar a guia inteira pra baixo. */
+.mesa-fixed-body .chat-panel{max-height:940px;}
 .mesa-fixed-bottom{
   min-height:34px;
   display:flex;align-items:center;flex-wrap:wrap;gap:8px;
