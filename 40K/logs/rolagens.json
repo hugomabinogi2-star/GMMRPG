@@ -273,5 +273,14 @@
     "resultado": 16,
     "resultLabel": "Acerto",
     "ts": 1790944374223
+  },
+  {
+    "nome": "Dummy",
+    "tipo": "atributo",
+    "statKey": "con",
+    "statValor": 14,
+    "resultado": 15,
+    "resultLabel": "Acerto",
+    "ts": 1790944379324
   }
 ]
