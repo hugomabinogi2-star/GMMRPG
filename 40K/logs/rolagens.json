@@ -4,15 +4,6 @@
     "tipo": "atributo",
     "statKey": "for",
     "statValor": 4,
-    "resultado": 10,
-    "resultLabel": "Erro",
-    "ts": 1790459136947
-  },
-  {
-    "nome": "Arqueira",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 4,
     "resultado": 11,
     "resultLabel": "Erro — Vantagem",
     "ts": 1790459145396,
@@ -317,5 +308,14 @@
     "danoTipo": null,
     "setEscudo": null,
     "ts": 1790960013054
+  },
+  {
+    "nome": "Dummy",
+    "tipo": "atributo",
+    "statKey": "con",
+    "statValor": 14,
+    "resultado": 4,
+    "resultLabel": "Erro",
+    "ts": 1790960015342
   }
 ]
