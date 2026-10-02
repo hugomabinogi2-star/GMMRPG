@@ -255,5 +255,14 @@
     "habilidade": "Disparar Flecha",
     "alvo": "Dummy 1",
     "ts": 1790898163581
+  },
+  {
+    "nome": "Dummy",
+    "tipo": "atributo",
+    "statKey": "con",
+    "statValor": 14,
+    "resultado": 1,
+    "resultLabel": "Erro Crítico",
+    "ts": 1790944367408
   }
 ]
