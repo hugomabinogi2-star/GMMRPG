@@ -264,5 +264,14 @@
     "resultado": 1,
     "resultLabel": "Erro Crítico",
     "ts": 1790944367408
+  },
+  {
+    "nome": "Dummy",
+    "tipo": "atributo",
+    "statKey": "con",
+    "statValor": 14,
+    "resultado": 16,
+    "resultLabel": "Acerto",
+    "ts": 1790944374223
   }
 ]
