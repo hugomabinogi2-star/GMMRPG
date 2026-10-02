@@ -1,22 +1,5 @@
 [
   {
-    "nome": "Arqueira",
-    "tipo": "dano",
-    "qtd": 1,
-    "maxVal": 3,
-    "bonus": 2,
-    "rolls": [
-      2
-    ],
-    "resultado": 4,
-    "habilidade": null,
-    "atributo": "FOR",
-    "grito": null,
-    "danoTipo": null,
-    "setEscudo": null,
-    "ts": 1790459149963
-  },
-  {
     "nome": "Dummy",
     "tipo": "atributo",
     "statKey": "for",
@@ -312,5 +295,22 @@
     "resultado": 3,
     "resultLabel": "Erro",
     "ts": 1790960019320
+  },
+  {
+    "nome": "Dummy",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 3,
+    "bonus": 7,
+    "rolls": [
+      1
+    ],
+    "resultado": 8,
+    "habilidade": null,
+    "atributo": "CON",
+    "grito": null,
+    "danoTipo": null,
+    "setEscudo": null,
+    "ts": 1790960022537
   }
 ]
