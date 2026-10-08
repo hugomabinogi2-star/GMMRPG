@@ -1001,15 +1001,19 @@ body{
 .board-cell.mark-green{box-shadow:inset 0 0 0 999px rgba(46,178,74,.45);}
 .board-cell.mark-yellow{box-shadow:inset 0 0 0 999px rgba(224,190,40,.5);}
 .board-cell.mark-red{box-shadow:inset 0 0 0 999px rgba(196,48,38,.5);}
-/* casa alcançável, pintada só enquanto o jogador arrasta a própria ficha no mini-tabuleiro ao vivo
-   (ver highlightLiveBoardReachable()/clearLiveBoardReachableHighlight() no <script>) — usa o MESMO
-   truque de inset box-shadow gigante das marcações verde/amarelo/vermelho logo acima (em vez da
-   propriedade "background"), justamente pra ficar por cima da cor de base da casa (cell-light/
-   cell-dark, que define "background" e ganharia da nossa se a gente também usasse "background" —
-   CSS resolve empate de especificidade pela ordem de quem vem depois na folha de estilo) e também
-   por cima de qualquer marcação de cor que já exista na casa (esta regra vem depois das 3 acima).
-   Isso faz a marcação azul aparecer de verdade na própria casa, não só uma borda fina quase
-   invisível por baixo do fundo dela. */
+/* casa alcançável, pintada enquanto alguém arrasta uma ficha com alcance de movimento restrito —
+   o jogador arrastando a própria ficha no mini-tabuleiro ao vivo (ver highlightLiveBoardReachable()/
+   clearLiveBoardReachableHighlight() no <script>) OU o MESTRE arrastando uma ficha (hero/
+   inimigo_ficha/aliado_ficha) direto na aba Mesa (ver highlightBoardReachable()/
+   clearBoardReachableHighlight(), rodada nova — pedido explícito "exibir os limites de movimento
+   no tabuleiro quando estiver movendo a peça", mesma classe reaproveitada porque as duas grades
+   usam a mesma .board-cell por baixo). Usa o MESMO truque de inset box-shadow gigante das
+   marcações verde/amarelo/vermelho logo acima (em vez da propriedade "background"), justamente
+   pra ficar por cima da cor de base da casa (cell-light/cell-dark, que define "background" e
+   ganharia da nossa se a gente também usasse "background" — CSS resolve empate de especificidade
+   pela ordem de quem vem depois na folha de estilo) e também por cima de qualquer marcação de cor
+   que já exista na casa (esta regra vem depois das 3 acima). Isso faz a marcação azul aparecer de
+   verdade na própria casa, não só uma borda fina quase invisível por baixo do fundo dela. */
 .board-cell.live-board-reachable{box-shadow:inset 0 0 0 999px rgba(70,150,255,.55);}
 .board-cell.drag-over{outline:2px solid var(--gold-bright);outline-offset:-2px;z-index:3;}
 /* FOG+ (ver boardFogPlusColor/setBoardFogPlusColor() e mistReachable dentro de renderLiveBoardMini()
@@ -11481,7 +11485,24 @@ body{
       }
       t.addEventListener('dragstart', (e)=>{
         e.dataTransfer.setData('text/plain', JSON.stringify({source:'board', r: token.anchorR, c: token.anchorC, id: token.id}));
+        // Rodada nova, pedido explícito ("exibir os limites de movimento no tabuleiro quando
+        // estiver movendo a peça", pra ficha movida pelo MESTRE na aba Mesa -- mesma mecânica que
+        // a ficha de jogador já tinha no Tabuleiro ao Vivo, ver highlightLiveBoardReachable()):
+        // isBoardMoveRangeRestrictedToken() é a MESMA checagem que handleBoardDrop() usa pra
+        // decidir se esta peça respeita o alcance de movimento de verdade (hero/inimigo_ficha/
+        // aliado_ficha -- peça avulsa sem ficha amarrada nunca entra aqui, continua livre de
+        // qualquer limite/prévia). highlightBoardReachable() pinta de azul, ANTES de soltar, toda
+        // casa que a peça de fato conseguiria alcançar -- nunca mente sobre o que handleBoardDrop()
+        // vai aceitar, porque usa a mesma computeEffectiveMoveLimit()/computeBoardReachable().
+        if(isBoardMoveRangeRestrictedToken(token)) highlightBoardReachable(token);
       });
+      // 'dragend' sempre dispara depois de um arrasto, tenha ele terminado num drop válido, num
+      // drop recusado (handleBoardDrop() volta cedo sem re-renderizar a grade nesses casos) ou
+      // solto fora do tabuleiro -- por isso é o gatilho certo pra sempre limpar o destaque azul,
+      // não só o 'drop' (mesmo raciocínio de clearLiveBoardReachableHighlight() no Tabuleiro ao
+      // Vivo). Chamar sempre, mesmo pra peça sem restrição nenhuma, é seguro -- clearBoardReachable
+      // Highlight() só remove uma classe que nunca foi adicionada nesse caso.
+      t.addEventListener('dragend', clearBoardReachableHighlight);
       // Arbusto/Armadilha/Poça de Água (DECOR_KINDS): descrição (o que tem dentro, ou o efeito da
       // armadilha) é editável pelo MESTRE clicando na peça já colocada no tabuleiro de verdade —
       // mesma ideia de icon.desc nos ícones do Mapa. Um clique simples (sem arrastar) continua
@@ -12114,6 +12135,34 @@ body{
     }
     visited.delete(startKey);
     return visited;
+  }
+
+  // Rodada nova, pedido explícito ("exibir os limites de movimento no tabuleiro quando estiver
+  // movendo a peça" -- pra ficha movida pelo MESTRE direto na aba Mesa): equivalente a
+  // highlightLiveBoardReachable()/clearLiveBoardReachableHighlight() (mais abaixo, lado do
+  // Tabuleiro ao Vivo/jogador), só que trabalhando em cima do tabuleiro DE VERDADE do mestre
+  // (boardTokens/boardGrid/computeBoardReachable, em vez de liveBoardState/liveBoardGridEl) --
+  // mesma classe CSS (.live-board-reachable, ver comentário dela no <style>) porque as duas grades
+  // usam a MESMA classe de casa (.board-cell) por baixo, então a regra visual já vale pras duas
+  // sem precisar duplicar nada no <style>. computeEffectiveMoveLimit() (mais abaixo, definição
+  // única, compartilhada pelas duas prévias) já aplica PARALIZADO/CONGELADO/ENJOADO/FERIDO por
+  // cima da conta de sempre (1 + bônus de DES + Movimento) -- a prévia nunca mente sobre o que
+  // handleBoardDrop() vai de fato aceitar, porque usa a mesma fórmula.
+  function highlightBoardReachable(tok){
+    if(!boardGrid || !tok) return;
+    const limit = computeEffectiveMoveLimit(tok);
+    computeBoardReachable(tok.anchorR, tok.anchorC, limit).forEach((dist, key)=>{
+      const occupant = boardTokens[key];
+      if(occupant && occupant.id !== tok.id) return; // casa ocupada por outra peça, não alcançável de verdade
+      const [r, c] = key.split('_').map(Number);
+      const cellEl = getCellEl(r, c);
+      if(cellEl) cellEl.classList.add('live-board-reachable');
+    });
+  }
+
+  function clearBoardReachableHighlight(){
+    if(!boardGrid) return;
+    boardGrid.querySelectorAll('.live-board-reachable').forEach(el=> el.classList.remove('live-board-reachable'));
   }
 
   // Fixa a direção escolhida pro seletor de 8 direções da aba Mesa (ver buildFacingPickerEl()/
