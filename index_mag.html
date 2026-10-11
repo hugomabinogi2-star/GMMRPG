@@ -1598,6 +1598,49 @@ body{
   pointer-events:none;
 }
 .board-token-tip-float.board-token-tip-float-visible{opacity:1;visibility:visible;}
+/* Menu de clique-direito do tabuleiro (rodada nova, "3 ações no tabuleiro": Ações Ofensivas/
+   Defensivas/Campo -- ver openBoardActionMenu()/buildBoardActionMenuContent() no <script>) --
+   mesmo truque de clone flutuante em document.body dos popups acima (.board-token-tip-float/
+   .cs-tooltip-float), só que este tem conteúdo CLICÁVEL (pointer-events:auto -- aqueles são só
+   leitura) e nasce/morre a cada clique com o botão direito, nunca fica "vivo" esperando hover. */
+.board-action-menu{
+  position:fixed;left:0;top:0;z-index:10050;
+  min-width:220px;max-width:280px;
+  background:linear-gradient(160deg,var(--paper-l),var(--paper));
+  border:1px solid var(--border-brown);border-radius:6px;
+  box-shadow:var(--shadow);
+  font-family:'Cinzel Decorative',serif;
+  color:var(--ink);
+  overflow:hidden;
+  pointer-events:auto;
+}
+.board-action-menu-header{
+  padding:6px 10px;
+  font-size:11px;letter-spacing:.05em;text-transform:uppercase;
+  background:var(--paper-d);color:var(--gold-text);
+  border-bottom:1px solid var(--border-brown);
+}
+.board-action-menu-body{padding:4px;}
+.board-action-menu-empty{
+  padding:8px 10px;font-size:11px;color:var(--ink-faint);text-transform:none;letter-spacing:normal;
+}
+.board-action-menu-item{
+  display:block;width:100%;text-align:left;
+  background:none;border:none;border-radius:4px;
+  padding:6px 8px;margin:1px 0;
+  font-family:inherit;font-size:11px;color:var(--ink);
+  cursor:pointer;
+}
+.board-action-menu-item:hover:not([disabled]){background:rgba(169,130,47,.18);}
+.board-action-menu-item[disabled]{cursor:default;color:var(--ink-faint);}
+.board-action-menu-item-name{display:block;font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--gold-text);}
+.board-action-menu-item[disabled] .board-action-menu-item-name{color:var(--ink-faint);}
+.board-action-menu-item-detail{display:block;font-size:10px;letter-spacing:normal;text-transform:none;color:var(--ink-soft);margin-top:2px;}
+.board-action-menu-item-reason{display:block;font-size:9.5px;letter-spacing:normal;text-transform:none;color:#a33;margin-top:2px;}
+.board-action-menu-remove{
+  border-top:1px solid var(--border-brown);
+  color:#a33;
+}
 /* barra de Vida "ao vivo" abaixo do ícone — só personagens de jogador (ver renderBoardCell()),
    só na visão do mestre (tabuleiro de verdade), e só ao passar o mouse (mesmo gatilho do menu
    suspenso acima, só que essa fica embaixo do ícone em vez de em cima). Filha da CASA pelo mesmo
@@ -3321,7 +3364,14 @@ body{
 .vital-potion-btn:hover:not(:disabled){filter:brightness(1.2);transform:translateY(-1px);}
 .vital-potion-btn:active:not(:disabled){transform:translateY(1px);filter:brightness(.95);}
 .vital-potion-btn:disabled{cursor:not-allowed;opacity:.35;filter:grayscale(.85);box-shadow:0 1px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08);border-color:var(--border-brown);}
-.ar-ap-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:10px;}
+/* Rodada nova (pedido explícito "Defesa e Resistencia agora serão exibidos um do lado do outro
+   dentro desta guia e Arma fica abaixo deles"): virou 2 colunas -- DEFESA FÍSICA e RESISTÊNCIA
+   ELEMENTAL ocupam a 1ª fileira (um .vital-box por coluna, nesta ordem no HTML), e NÍVEL DE
+   HABILIDADE COM A ARMA (.ar-ap-full, ver logo abaixo) cai sozinho pra 2ª fileira, esticado nas
+   2 colunas -- o grid de 2 colunas já posiciona tudo isso sozinho só pela ORDEM dos 3 .vital-box
+   no HTML (sem precisar de grid-area nomeada). */
+.ar-ap-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.ar-ap-grid .ar-ap-full{grid-column:1 / -1;}
 .ar-ap-grid .vital-box .vval{font-family:'EB Garamond',serif;font-size:17px;font-weight:700;color:var(--gold-text);}
 .ar-ap-tip{position:relative;display:inline-block;cursor:help;border-bottom:1px dotted var(--ink-faint);}
 /* Pedido explícito: "as telas de popup que possuem texto precisam aparecer sempre acima do
@@ -6401,7 +6451,7 @@ body{
               <h2>Modificadores <button type="button" class="panel-toggle-btn is-collapsed" id="modToggleBtn" aria-label="Expandir Modificadores" title="Minimizar/expandir Modificadores">▾</button></h2>
               <div class="mods-grid collapsed" id="modsGrid">
                 <div class="mod-row"><span class="lbl ar-ap-tip">DEFESA<div class="cs-tooltip">Defesa Física</div></span><input type="number" id="m_ar" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_ar" data-dir="-1" aria-label="Diminuir modificador de Defesa">−</button><button type="button" class="mod-step-btn" data-target="m_ar" data-dir="1" aria-label="Aumentar modificador de Defesa">+</button></div></div>
-                <div class="mod-row"><span class="lbl ar-ap-tip">RESISTÊNCIA<div class="cs-tooltip">Resistência Mágica</div></span><input type="number" id="m_ap" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_ap" data-dir="-1" aria-label="Diminuir modificador de Resistência">−</button><button type="button" class="mod-step-btn" data-target="m_ap" data-dir="1" aria-label="Aumentar modificador de Resistência">+</button></div></div>
+                <div class="mod-row"><span class="lbl ar-ap-tip">RESISTÊNCIA<div class="cs-tooltip">Resistência Elemental</div></span><input type="number" id="m_ap" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_ap" data-dir="-1" aria-label="Diminuir modificador de Resistência">−</button><button type="button" class="mod-step-btn" data-target="m_ap" data-dir="1" aria-label="Aumentar modificador de Resistência">+</button></div></div>
                 <div class="mod-row"><span class="lbl ar-ap-tip">VIDA<div class="cs-tooltip">Soma direto ao total de Vida</div></span><input type="number" id="m_vida" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_vida" data-dir="-1" aria-label="Diminuir modificador de Vida">−</button><button type="button" class="mod-step-btn" data-target="m_vida" data-dir="1" aria-label="Aumentar modificador de Vida">+</button></div></div>
                 <div class="mod-row"><span class="lbl ar-ap-tip">MANA<div class="cs-tooltip">Soma direto ao total de Mana</div></span><input type="number" id="m_mana" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_mana" data-dir="-1" aria-label="Diminuir modificador de Mana">−</button><button type="button" class="mod-step-btn" data-target="m_mana" data-dir="1" aria-label="Aumentar modificador de Mana">+</button></div></div>
                 <div class="mod-row"><span class="lbl">FOR</span><input type="number" id="m_for" value="0" readonly tabindex="-1"><div class="mod-step-row"><button type="button" class="mod-step-btn" data-target="m_for" data-dir="-1" aria-label="Diminuir modificador de FOR">−</button><button type="button" class="mod-step-btn" data-target="m_for" data-dir="1" aria-label="Aumentar modificador de FOR">+</button></div></div>
@@ -6443,15 +6493,21 @@ body{
                    wirePanelToggle() usado em Sorte/Talentos/Habilidades, reaproveitando o próprio
                    .ar-ap-grid como corpo (nasce aberto, não entra na lista de "sempre minimizado
                    ao acessar a ficha" -- mesma escolha feita pra Habilidades). -->
-              <h2>Armamento e Armadura <button type="button" class="panel-toggle-btn" id="armamentoToggleBtn" aria-label="Minimizar Armamento e Armadura" title="Minimizar/expandir Armamento e Armadura">▾</button></h2>
+              <h2>Equipamento <button type="button" class="panel-toggle-btn" id="armamentoToggleBtn" aria-label="Minimizar Equipamento" title="Minimizar/expandir Equipamento">▾</button></h2>
               <div class="ar-ap-grid" id="armamentoBody">
-                <!-- ARMA: espelha o modificador de Dano (guia Modificadores, #m_dano -- soma ao
-                     tamanho de todo dado de dano rolado) -- mesmo padrão de DEFESA/RESISTÊNCIA
-                     abaixo, que já espelhavam m_ar/m_ap direto, sem nenhuma conta a mais. Ordem
-                     empilhada (ARMA/DEFESA/RESISTÊNCIA) a pedido do usuário. -->
-                <div class="vital-box"><div class="vlabel ar-ap-tip">ARMA<div class="cs-tooltip">Modificador de Dano — soma ao tamanho de todo dado de dano rolado</div></div><div class="vval" id="val_arma">0</div></div>
-                <div class="vital-box"><div class="vlabel ar-ap-tip">DEFESA<div class="cs-tooltip">Defesa Física</div></div><div class="vval" id="val_ar">2</div></div>
-                <div class="vital-box"><div class="vlabel ar-ap-tip">RESISTÊNCIA<div class="cs-tooltip">Resistência Mágica</div></div><div class="vval" id="val_ap">2</div></div>
+                <!-- Rodada nova (pedido explícito, painel "Armamento e Armadura" virou
+                     "Equipamento"): DEFESA FÍSICA e RESISTÊNCIA ELEMENTAL agora lado a lado (1ª
+                     fileira), NÍVEL DE HABILIDADE COM A ARMA abaixo dos dois (2ª fileira, ver
+                     .ar-ap-full no <style>) -- só mudou ORDEM/rótulo/layout, o valor de cada um
+                     continua espelhando o mesmo modificador de sempre (guia Modificadores: #m_ar/
+                     #m_ap/#m_dano), sem nenhuma conta a mais. O valor INICIAL de DEFESA FÍSICA/
+                     RESISTÊNCIA ELEMENTAL (m_ar/m_ap) agora depende do tipo de Armadura da Classe
+                     escolhida (ver CLASSE_ARMADURA_INICIAL/openElementPicker() no <script>) --
+                     continuam ajustáveis livremente depois, pelas mesmas setinhas de sempre na
+                     guia Modificadores. -->
+                <div class="vital-box"><div class="vlabel ar-ap-tip">DEFESA FÍSICA<div class="cs-tooltip">Defesa Física — reduz o dano recebido de ataques Físicos</div></div><div class="vval" id="val_ar">2</div></div>
+                <div class="vital-box"><div class="vlabel ar-ap-tip">RESISTÊNCIA ELEMENTAL<div class="cs-tooltip">Resistência Elemental — reduz o dano recebido de ataques Elementais</div></div><div class="vval" id="val_ap">2</div></div>
+                <div class="vital-box ar-ap-full"><div class="vlabel ar-ap-tip">NÍVEL DE HABILIDADE COM A ARMA<div class="cs-tooltip">Soma ao tamanho de todo dado de dano rolado</div></div><div class="vval" id="val_arma">0</div></div>
               </div>
             </div>
           </div>
@@ -7315,6 +7371,438 @@ body{
     'ARQUEIRO ARCANO': '#ff7fc4',   // rosa
     'NPC': '#b0b0ba',           // cinza/prata neutro
   };
+  // Rodada nova (pedido explícito "vamos trabalhar no conceito de armaduras"): cada Classe usa um
+  // de 3 tipos de Armadura (Pesada/Média/Leve), que define os valores DE PARTIDA de DEFESA FÍSICA
+  // e RESISTÊNCIA ELEMENTAL (guia Equipamento, ver #val_ar/#val_ap no HTML -- por baixo, os
+  // mesmos m_ar/m_ap de sempre da guia Modificadores) -- aplicado só UMA VEZ, no instante em que a
+  // Classe é escolhida pelo painel de bolas ao criar uma ficha nova (ver openElementPicker() no
+  // handler de #newBtn, mais abaixo), nunca mais depois disso: dali em diante os valores ficam
+  // livres pras setinhas +/- de sempre (guia Modificadores) ajustarem pra cima ou pra baixo, sem
+  // nenhum recálculo automático sobrescrevendo o que o jogador/mestre já tiver mexido. 'NPC' de
+  // propósito não tem entrada aqui (nenhuma Armadura foi definida pra ela ainda) -- escolher NPC
+  // simplesmente não mexe em DEFESA FÍSICA/RESISTÊNCIA ELEMENTAL (ficam no valor que já estava).
+  const CLASSE_ARMADURA_INICIAL = {
+    'GUERREIRO ARCANO': { tipo:'Pesada', ar:3, ap:1 },
+    'GUARDIAO ARCANO':  { tipo:'Pesada', ar:3, ap:1 },
+    'DUELISTA ARCANO':  { tipo:'Média',  ar:2, ap:1 },
+    'ESPADACHIM ARCANO':{ tipo:'Média',  ar:2, ap:1 },
+    'MAGO ARCANO':      { tipo:'Leve',   ar:1, ap:3 },
+    'ARQUEIRO ARCANO':  { tipo:'Leve',   ar:1, ap:3 },
+  };
+
+  // Rodada nova (pedido explícito "além do movimento vamos trabalhar com mais 3 ações no tabuleiro
+  // durante o turno"): cada Classe nasce com UMA Habilidade gratuita (o ataque normal com a arma),
+  // disponível como Ação Ofensiva assim que a ficha é criada -- nunca precisa ser "aprendida" nem
+  // escolhida, é sempre a mesma pra cada Classe (não fica salva na ficha, só é lida daqui a partir
+  // de els.deidade.value sempre que o menu de Ações Ofensivas abre, exatamente como já acontece com
+  // CLASSE_ARMADURA_INICIAL/ELEMENT_ICON_IMG acima). 'dado' é o tamanho do dado de dano (tabela
+  // Leve=1d3/Médio=1d6/Pesado=1d9 definida na rodada da Armadura) -- as 3 Classes marcadas "Médio"
+  // nesta rodada (Guardião/Espadachim/Arqueiro) usam 1d6, confirmado com o usuário (a 1ª versão do
+  // pedido tinha 1d3 nelas, que bateria com Leve, não Médio). 'danoTipo' Físico é reduzido pela
+  // DEFESA FÍSICA do alvo, Elemental pela RESISTÊNCIA ELEMENTAL -- Mago/Arqueiro usam Elemental (e
+  // só eles custam Mana, mesma pista que o próprio usuário deu nos custos) por canalizarem a Classe
+  // Arcana no ataque à distância, enquanto os 4 ataques corpo-a-corpo (FOR/DES, alcance 1, sem
+  // custo de Mana) ficam Físicos. IMPORTANTE: a fórmula usada aqui é EXATAMENTE a que o usuário
+  // escreveu (dado + bônus do Atributo) -- o modificador NÍVEL DE HABILIDADE COM A ARMA (#m_dano,
+  // que noutras rolagens aumenta o TAMANHO do dado) NÃO entra nesta conta, já que não foi citado em
+  // nenhuma das 6 fórmulas; se depois fizer sentido somar ele também, é só avisar.
+  const HABILIDADE_INICIAL_CLASSE = {
+    'GUERREIRO ARCANO': { nome:'ATAQUE DE GUERREIRO',  dano:'Pesado', dado:{qtd:1,faces:9}, danoTipo:'Fisico',    atributo:'for', alcance:1, custoPA:3, custoMana:0 },
+    'GUARDIAO ARCANO':  { nome:'ATAQUE DE GUARDIÃO',   dano:'Médio',  dado:{qtd:1,faces:6}, danoTipo:'Fisico',    atributo:'for', alcance:1, custoPA:2, custoMana:0 },
+    'DUELISTA ARCANO':  { nome:'ATAQUE DE DUELISTA',   dano:'Leve',   dado:{qtd:1,faces:3}, danoTipo:'Fisico',    atributo:'des', alcance:1, custoPA:1, custoMana:0 },
+    'ESPADACHIM ARCANO':{ nome:'ATAQUE DE ESPADACHIM', dano:'Médio',  dado:{qtd:1,faces:6}, danoTipo:'Fisico',    atributo:'des', alcance:1, custoPA:2, custoMana:0 },
+    'MAGO ARCANO':      { nome:'ATAQUE DE MAGO',       dano:'Pesado', dado:{qtd:1,faces:9}, danoTipo:'Elemental', atributo:'int', alcance:4, custoPA:2, custoMana:2 },
+    'ARQUEIRO ARCANO':  { nome:'ATAQUE DE ARQUEIRO',   dano:'Médio',  dado:{qtd:1,faces:6}, danoTipo:'Elemental', atributo:'int', alcance:8, custoPA:2, custoMana:2 },
+    // 'NPC' de propósito não tem entrada aqui -- sem Classe Arcana, sem ataque gratuito.
+  };
+
+  // Rolagem genérica NdM (nenhuma função assim existia antes -- rollDanoBtn/finishDanoRoll() são
+  // só da UI da ficha, presas a elementos/animação da tela, não servem pra chamar programaticamente
+  // a partir do tabuleiro). Soma simples de 'qtd' dados de 'faces' lados, sem nenhum modificador
+  // embutido (o bônus de Atributo é somado por fora, em resolveOffensiveAction()).
+  function rolarDadosSimples(qtd, faces){
+    let total = 0;
+    for(let i = 0; i < Math.max(0, qtd|0); i++) total += 1 + Math.floor(Math.random() * Math.max(1, faces|0));
+    return total;
+  }
+  // Distância em casas (Chebyshev -- diagonal conta como 1 casa, igual à maioria dos jogos de
+  // grade tática) entre duas células -- nenhum helper de distância existia antes (o único cálculo
+  // parecido, computeBoardReachable(), é uma busca em largura só ortogonal pra alcance de
+  // MOVIMENTO, não serve pra "alvo está a X casas de distância").
+  function chebyshevDist(r1, c1, r2, c2){
+    return Math.max(Math.abs(r1 - r2), Math.abs(c1 - c2));
+  }
+
+  // "Atacante atual": SEMPRE quem está na vez agora (turnState/currentTurnEntry()) -- nunca um
+  // ator escolhido à parte. PA (turnState.apRemaining) é um valor GLOBAL único representando só a
+  // vez atual (ver comentário grande de "let turnState" mais abaixo), então não existe como
+  // acompanhar PA simultâneo de vários atores -- a lista de Ações Ofensivas/Defensivas mostrada
+  // sempre é a da ficha da vez, o token clicado só escolhe o ALVO. findTurnEntryToken() (já
+  // existente, ver handleEndTurnClick()/canEndCurrentTurn() mais abaixo) já resolve o token
+  // completo a partir da entrada da fila -- reaproveitado aqui de propósito, sem duplicar a busca.
+  function resolveAttackerToken(){
+    return findTurnEntryToken(currentTurnEntry());
+  }
+
+  // Normaliza o acesso aos dados de combate (Vida/Mana/Totais de Atributo/Defesa Física/
+  // Resistência Elemental) de QUALQUER token do tabuleiro, escondendo de quem chama a diferença
+  // entre os 3 formatos de token (ver comentário grande sobre o "modelo de dados" dos tokens, perto
+  // de buildFichaInstanceToken() mais abaixo):
+  //  - 'inimigo_ficha'/'aliado_ficha': tudo já mora na PRÓPRIA peça (capturado uma única vez na
+  //    colocação, ver buildFichaInstanceToken()) -- inclusive ar/ap, novos nesta rodada (ver
+  //    comentário grande deles lá).
+  //  - 'hero': Vida/Mana/Totais/ar/ap NUNCA ficam na própria peça -- vêm de liveVitalsAll[ownerUid]
+  //    (populado pelo listener de mesa40k/live/{uid}, ver pushLiveVitals(), que agora também publica
+  //    ar/ap). Sem ownerUid (ficha do Mestre só em modo PVP) ou sem nenhum dado ainda publicado
+  //    (instante entre o login e a 1ª publicação): devolve null, mesmo critério de
+  //    resolveTokenVitalsForCard() mais abaixo.
+  //  - qualquer peça avulsa sem ficha (ENEMY_KINDS/OBSTACLE_KINDS/CHEST_KINDS): nunca teve Vida/
+  //    Mana/Defesa pra começo -- devolve null (não é alvo nem atacante válido pra Ação Ofensiva).
+  function resolveCombatData(token){
+    if(!token) return null;
+    if(token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha'){
+      return {
+        token, deidade: token.deidade || '', totals: token.totals || null,
+        vida: roundedAtualValor(token.vidaAtual), vidaMax: token.vidaMax || 0,
+        mana: roundedAtualValor(token.manaAtual), manaMax: token.manaMax || 0,
+        ar: token.ar || 0, ap: token.ap || 0,
+        anchorR: token.anchorR, anchorC: token.anchorC,
+      };
+    }
+    if(token.kind === 'hero'){
+      if(!token.ownerUid) return null;
+      const live = liveVitalsAll[token.ownerUid];
+      if(!live) return null;
+      return {
+        token, deidade: live.deidade || '', totals: live.totals || null,
+        vida: roundedAtualValor(live.vida), vidaMax: live.vidaMax || 0,
+        mana: roundedAtualValor(live.mana), manaMax: live.manaMax || 0,
+        ar: live.ar || 0, ap: live.ap || 0,
+        anchorR: token.anchorR, anchorC: token.anchorC,
+      };
+    }
+    return null;
+  }
+
+  // Aplica uma variação de Vida OU Mana (delta positivo cura/recupera, negativo causa dano/gasta) a
+  // um token do tabuleiro, escrevendo de volta no lugar certo pra cada kind -- usada tanto pra
+  // aplicar o DANO de uma Ação Ofensiva no alvo quanto pra descontar o CUSTO DE MANA do próprio
+  // atacante (Mago/Arqueiro, ver HABILIDADE_INICIAL_CLASSE). campo: 'vida' (padrão) ou 'mana'.
+  //  - 'hero' com ownerUid: de propósito NUNCA grava direto em mesa40k/live/{uid} -- esse nó é
+  //    reescrito por INTEIRO pelo PRÓPRIO jogador a cada pushLiveVitals() (ver comentário grande de
+  //    setHeroDeidade() mais acima), então uma escrita de fora seria sobrescrita de volta na
+  //    primeira interação dessa pessoa com a própria ficha. Em vez disso, reaproveita o MESMO canal
+  //    que a correção manual de Vida/Mana do Mestre já usa (mesa40k/vidaMana/{uid}, ver
+  //    pushVidaMana()/handleVidaManaChange()) -- o PRÓPRIO jogador já escuta esse nó e aplica o
+  //    valor na própria ficha + recalc() (que por sua vez já republica mesa40k/live/{uid} certinho
+  //    por conta própria, fechando o ciclo sem nenhum nó novo). Escreve Vida E Mana juntos (mesmo
+  //    .set() inteiro de pushVidaMana(), nunca um update pontual) pra nunca apagar o outro valor por
+  //    engano. ASSUNÇÃO desta rodada (documentada no changelog): este nó era escrito só pelo Mestre
+  //    até agora -- aqui passa a ser escrito por QUALQUER atacante (Mestre OU jogador, ex.: ataque
+  //    PVP), mesmo espírito "qualquer conta logada pode escrever" já usado em mesa40k/liveBoard/
+  //    tokens; se as regras do Firebase um dia restringirem esse nó só ao Mestre, isto precisa de um
+  //    canal dedicado novo.
+  //  - 'inimigo_ficha'/'aliado_ficha': Vida/Mana moram na PRÓPRIA peça -- corrige local (reflete na
+  //    hora, sem esperar o Firebase) e republica em mesa40k/liveBoard/tokens: o MESTRE (boardTokens é
+  //    a fonte de verdade local) só reagenda o push debounced de sempre (scheduleBoardTokensPush());
+  //    o JOGADOR (sem boardTokens local) grava um update PONTUAL direto, mesmo padrão de
+  //    syncOwnPlacedTokenBonus()/handleLiveBoardDrop() -- só no campo que mudou, em TODAS as casas
+  //    que a peça ocupa (por token.id, não por key -- uma peça de vários quadros repete a MESMA
+  //    referência em cada casa que ocupa, ver placeToken()/footprintCells()).
+  function applyCombatVitalDelta(token, campo, delta){
+    if(!token || !delta) return;
+    if(token.kind === 'hero'){
+      if(!token.ownerUid || !fbDb) return;
+      const live = liveVitalsAll[token.ownerUid] || {};
+      const vidaMax = live.vidaMax || 0, manaMax = live.manaMax || 0;
+      let novaVida = live.vida || 0, novaMana = live.mana || 0;
+      if(campo === 'mana') novaMana = Math.max(0, Math.min(manaMax, novaMana + delta));
+      else novaVida = Math.max(0, Math.min(vidaMax, novaVida + delta));
+      live.vida = novaVida; live.mana = novaMana; // reflete local na hora, sem esperar o round-trip
+      fbDb.ref('mesa40k/vidaMana/' + token.ownerUid).set({ vida: novaVida, mana: novaMana, ts: firebase.database.ServerValue.TIMESTAMP })
+        .catch(err=> console.error('Não foi possível aplicar dano/cura/custo de Mana na ficha ao vivo:', err));
+      return;
+    }
+    if(token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha'){
+      const atualField = campo === 'mana' ? 'manaAtual' : 'vidaAtual';
+      const maxField = campo === 'mana' ? 'manaMax' : 'vidaMax';
+      const novo = Math.max(0, Math.min(token[maxField] || 0, (token[atualField] || 0) + delta));
+      token[atualField] = novo;
+      if(currentRole === 'mestre'){
+        scheduleBoardTokensPush();
+      } else if(fbDb){
+        const patch = {};
+        Object.keys(liveBoardState.tokens || {}).forEach(key=>{
+          const t = liveBoardState.tokens[key];
+          if(t && t.id === token.id) patch[key + '/' + atualField] = novo;
+        });
+        if(Object.keys(patch).length){
+          fbDb.ref('mesa40k/liveBoard/tokens').update(patch)
+            .catch(err=> console.error('Não foi possível aplicar dano/cura/custo de Mana na peça do tabuleiro ao vivo:', err));
+        }
+      }
+    }
+  }
+
+  // ---------- Menu de clique-direito do tabuleiro: Ações Ofensivas/Defensivas/Campo (rodada nova,
+  // pedido explícito: "além do movimento vamos trabalhar com mais 3 ações no tabuleiro durante o
+  // turno") ---------- SUBSTITUI a remoção instantânea de peça que o botão direito do Mestre tinha
+  // antes (pedido explícito do usuário, confirmado via pergunta: "menu substitui a remoção direta")
+  // -- "Remover peça" agora é um ITEM deste menu (ver buildBoardActionMenuContent() mais abaixo); a
+  // remoção RÁPIDA (sem abrir menu nenhum) virou o botão do MEIO do mouse (ver o novo listener
+  // 'auxclick' em buildBoardGrid(), pedido explícito do usuário: "altere o botão para o mestre
+  // remover coisas do tabuleiro para o botão do meio do mouse"). Construído pra abrir IGUAL nos
+  // dois tabuleiros (Mestre e Jogador, mesma pergunta respondida: "os dois ganham os 3 menus") --
+  // só o pool de tokens e o role mudam entre as duas chamadas (ver buildBoardGrid()/
+  // renderLiveBoardMini()). ----------
+
+  // Categoria é decidida só pelo kind do token CLICADO (nunca por quem está atacando agora, ver
+  // resolveAttackerToken() mais acima) -- mesmo critério de tokenRingColorHex() (dourado=hero,
+  // verde=aliado, vermelho=inimigo), estendido com hero+pvp contando como hostil:
+  //  - inimigo/monstro/boss/inimigo_ficha, OU hero em modo PVP -> Ações Ofensivas
+  //  - aliado/aliado_fera/aliado_ficha, OU hero fora de modo PVP -> Ações Defensivas
+  //  - qualquer outra coisa (casa vazia, Barreira/Porta/Rocha/Pedra de Gelo/Vila/Castelo/Templo/
+  //    Caverna/Forte, Baú/Arbusto/Armadilha/Poça) -> Ações de Campo
+  function classifyBoardActionCategory(token){
+    if(!token) return 'campo';
+    if(token.kind === 'inimigo' || token.kind === 'monstro' || token.kind === 'boss' || token.kind === 'inimigo_ficha') return 'ofensiva';
+    if(token.kind === 'hero' && token.pvp) return 'ofensiva';
+    if(token.kind === 'aliado' || token.kind === 'aliado_fera' || token.kind === 'aliado_ficha') return 'defensiva';
+    if(token.kind === 'hero') return 'defensiva';
+    return 'campo';
+  }
+
+  // "Quem clicou pode agir pela ficha da vez?" -- mesmo critério "sem restrição nenhuma" já usado
+  // por canEndCurrentTurn() mais acima (Mestre sempre pode, de qualquer ficha; Jogador só na
+  // PRÓPRIA ficha, ver isMyLiveToken() -- que só devolve true pra kind 'hero', então um Jogador
+  // nunca controla o ataque de uma ficha de Inimigo/Aliado/peça avulsa da vez, nem precisa de
+  // nenhuma conferência extra pra isso).
+  function canActAsBoardAttacker(attackerToken){
+    if(!attackerToken) return false;
+    if(currentRole === 'mestre') return true;
+    return isMyLiveToken(attackerToken);
+  }
+
+  const BOARD_ACTION_CATEGORY_LABEL = { ofensiva:'Ações Ofensivas', defensiva:'Ações Defensivas', campo:'Ações de Campo' };
+  // Nome diferente de propósito -- já existe um DANO_TIPO_LABEL mais abaixo (sistema ANTIGO de tipo
+  // de dano de Habilidade de arma: cortante/perfurante/contundente/real, nada a ver com o Físico/
+  // Elemental da Armadura desta rodada, ver HABILIDADE_INICIAL_CLASSE/ability.danoTipo).
+  const COMBAT_DANO_TIPO_LABEL = { Fisico:'Físico', Elemental:'Elemental' };
+
+  let boardActionMenuEl = null;
+  function closeBoardActionMenu(){
+    if(boardActionMenuEl){ boardActionMenuEl.remove(); boardActionMenuEl = null; }
+    document.removeEventListener('mousedown', boardActionMenuOutsideClick, true);
+    document.removeEventListener('keydown', boardActionMenuEscape, true);
+  }
+  function boardActionMenuOutsideClick(e){
+    if(boardActionMenuEl && !boardActionMenuEl.contains(e.target)) closeBoardActionMenu();
+  }
+  function boardActionMenuEscape(e){
+    if(e.key === 'Escape') closeBoardActionMenu();
+  }
+  function positionBoardActionMenu(x, y){
+    if(!boardActionMenuEl) return;
+    boardActionMenuEl.style.left = x + 'px';
+    boardActionMenuEl.style.top = y + 'px';
+    // depois de desenhado (tamanho real já conhecido), empurra pra dentro da tela se estiver
+    // vazando por baixo/pela direita -- mesma ideia de qualquer menu de contexto nativo.
+    requestAnimationFrame(()=>{
+      if(!boardActionMenuEl) return;
+      const rect = boardActionMenuEl.getBoundingClientRect();
+      let nx = x, ny = y;
+      if(rect.right > window.innerWidth) nx = Math.max(4, window.innerWidth - rect.width - 4);
+      if(rect.bottom > window.innerHeight) ny = Math.max(4, window.innerHeight - rect.height - 4);
+      boardActionMenuEl.style.left = nx + 'px';
+      boardActionMenuEl.style.top = ny + 'px';
+    });
+  }
+
+  // Monta o item de uma Ação Ofensiva -- cada Classe só tem UMA (o ataque normal com a arma, ver
+  // HABILIDADE_INICIAL_CLASSE), nascida de graça com a ficha, nunca "aprendida". Já calcula aqui se
+  // o item fica habilitado ou não (ficha da vez/alvo válido/alcance/PA/Mana) -- onAttack(ability)
+  // só é chamado quando o item está de fato HABILITADO (ver addEventListener mais abaixo).
+  function buildOfensivaMenuItem(attackerToken, attackerCombat, targetCombat, onAttack){
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'board-action-menu-item';
+    if(!attackerToken || !attackerCombat){
+      item.disabled = true;
+      item.innerHTML = `<span class="board-action-menu-item-reason">Nenhuma ficha na vez agora.</span>`;
+      return item;
+    }
+    const ability = HABILIDADE_INICIAL_CLASSE[attackerCombat.deidade];
+    if(!ability){
+      item.disabled = true;
+      item.innerHTML = `<span class="board-action-menu-item-reason">${escapeHtml(attackerCombat.deidade || 'Esta ficha')} não tem nenhuma Ação Ofensiva ainda.</span>`;
+      return item;
+    }
+    let reason = '';
+    if(!turnState.active || !isBoardRevealedForFicha()) reason = 'Fora de combate (nenhuma fila de iniciativa revelada agora).';
+    else if(!canActAsBoardAttacker(attackerToken)) reason = 'Não é a sua vez.';
+    else if(!targetCombat) reason = 'Alvo inválido.';
+    else if((targetCombat.vida || 0) <= 0) reason = 'O alvo já está sem Vida.';
+    else {
+      const dist = chebyshevDist(attackerCombat.anchorR, attackerCombat.anchorC, targetCombat.anchorR, targetCombat.anchorC);
+      if(dist > ability.alcance) reason = `Fora de alcance (${dist} casa${dist===1?'':'s'}, alcance ${ability.alcance}).`;
+      else if((turnState.apRemaining || 0) < ability.custoPA) reason = 'Pontos de Ação insuficientes.';
+      else if(ability.custoMana > 0 && (attackerCombat.mana || 0) < ability.custoMana) reason = 'Mana insuficiente.';
+    }
+    const custoTxt = 'Custo: ' + ability.custoPA + ' PA' + (ability.custoMana > 0 ? ' + ' + ability.custoMana + ' Mana' : '');
+    const detailTxt = `Dano ${ability.dano} (${ability.dado.qtd}d${ability.dado.faces} + bônus de ${ability.atributo.toUpperCase()}, ${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) · Alcance ${ability.alcance} casa${ability.alcance===1?'':'s'} · ${custoTxt}`;
+    item.innerHTML = `<span class="board-action-menu-item-name">${escapeHtml(ability.nome)}</span>`
+      + `<span class="board-action-menu-item-detail">${escapeHtml(detailTxt)}</span>`
+      + (reason ? `<span class="board-action-menu-item-reason">${escapeHtml(reason)}</span>` : '');
+    if(reason){
+      item.disabled = true;
+    } else {
+      item.addEventListener('click', ()=>{ closeBoardActionMenu(); onAttack(ability); });
+    }
+    return item;
+  }
+
+  // Monta o CONTEÚDO do menu (cabeçalho + corpo) de acordo com a categoria -- Defensivas/Campo
+  // ficam vazios por agora (pedido explícito do usuário: "deixa os 2 menus vazios por agora" --
+  // NÃO migra "Erguer Escudo"/"Erguer Escudo Pesado" pra dentro deles, que continuam exatamente
+  // onde já estavam, confirmado explicitamente com o usuário).
+  function buildBoardActionMenuContent(category, ctx){
+    const wrap = document.createElement('div');
+    const header = document.createElement('div');
+    header.className = 'board-action-menu-header';
+    header.textContent = BOARD_ACTION_CATEGORY_LABEL[category] || '';
+    wrap.appendChild(header);
+    const body = document.createElement('div');
+    body.className = 'board-action-menu-body';
+    if(category === 'ofensiva'){
+      body.appendChild(buildOfensivaMenuItem(ctx.attackerToken, ctx.attackerCombat, ctx.targetCombat, ctx.onAttack));
+    } else {
+      const empty = document.createElement('div');
+      empty.className = 'board-action-menu-empty';
+      empty.textContent = 'Nenhuma ação disponível ainda.';
+      body.appendChild(empty);
+    }
+    wrap.appendChild(body);
+    // "Remover peça": só o Mestre, só quando a casa clicada tem mesmo uma peça (pedido explícito:
+    // substitui a remoção instantânea de sempre, ver comentário grande lá em cima) -- aparece
+    // embaixo do conteúdo de QUALQUER categoria, sempre no fim do menu.
+    if(ctx.role === 'mestre' && ctx.targetToken){
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'board-action-menu-item board-action-menu-remove';
+      removeBtn.innerHTML = `<span class="board-action-menu-item-name">🗑️ Remover peça</span>`;
+      removeBtn.addEventListener('click', ()=>{ closeBoardActionMenu(); ctx.onRemove(); });
+      wrap.appendChild(removeBtn);
+    }
+    return wrap;
+  }
+
+  // Abre o menu -- chamado pelo 'contextmenu' de cada casa, tanto do tabuleiro de verdade do Mestre
+  // (buildBoardGrid(), pool=boardTokens, role='mestre') quanto do mini-tabuleiro do Jogador
+  // (renderLiveBoardMini(), pool=liveBoardState.tokens, role='jogador') -- mesmo r/c, mesma
+  // função, só o pool/role mudam. onAttack ainda é um placeholder nesta parte da rodada (resolução
+  // de ataque de verdade -- rolagem/alcance/PA/Mana/dano reduzido -- é a PRÓXIMA parte, ver
+  // tryResolveAttack() mais abaixo).
+  function openBoardActionMenu(r, c, clientX, clientY, pool, role){
+    closeBoardActionMenu();
+    const key = (role === 'mestre') ? boardKey(r,c) : liveBoardKey(r,c);
+    const targetToken = (pool && pool[key]) || null;
+    const category = classifyBoardActionCategory(targetToken);
+    const attackerToken = resolveAttackerToken();
+    const attackerCombat = resolveCombatData(attackerToken);
+    const targetCombat = resolveCombatData(targetToken);
+    const ctx = {
+      role, targetToken, attackerToken, attackerCombat, targetCombat,
+      onAttack: (ability)=>{ tryResolveBoardAttack(attackerToken, attackerCombat, targetToken, targetCombat, ability, pool, role, r, c); },
+      onRemove: ()=> removeTokenAt(r, c),
+    };
+    boardActionMenuEl = document.createElement('div');
+    boardActionMenuEl.className = 'board-action-menu';
+    boardActionMenuEl.appendChild(buildBoardActionMenuContent(category, ctx));
+    document.body.appendChild(boardActionMenuEl);
+    positionBoardActionMenu(clientX, clientY);
+    // delay 0: sem isto, o PRÓPRIO mousedown que abriu o menu (botão direito) já dispara o listener
+    // de fora e fecharia o menu no mesmo instante em que acabou de abrir.
+    setTimeout(()=>{
+      document.addEventListener('mousedown', boardActionMenuOutsideClick, true);
+      document.addEventListener('keydown', boardActionMenuEscape, true);
+    }, 0);
+  }
+
+  // Resolve de verdade uma Ação Ofensiva, depois de clicada no menu (ver buildOfensivaMenuItem()
+  // acima) -- SÓ é chamada quando o item já estava HABILITADO no instante do clique, mas confere
+  // tudo de novo aqui mesmo assim (mesmo cuidado de handleBoardDrop()/handleLiveBoardDrop(), que
+  // também re-confirmam tudo na hora de agir, nunca confiam cegamente no que a UI validou um
+  // instante atrás -- o estado pode ter mudado entre abrir o menu e clicar, ex: outra aba gastando
+  // PA ou o alvo morrendo nesse meio-tempo, sincronizado pelo Firebase). Por isso ignora de
+  // propósito os parâmetros attackerCombat/targetCombat/ability recebidos de openBoardActionMenu
+  // (podem estar desatualizados) e os RE-CALCULA aqui do zero -- r/c/pool/role (a CASA clicada)
+  // são a única coisa que não muda com o tempo, então esses sim são reaproveitados.
+  //   1) rola o dado (rolarDadosSimples()) + soma o bônus do Atributo certo (floor(total/2), MESMA
+  //      fórmula de sempre, ver recalc()/comentário grande de HABILIDADE_INICIAL_CLASSE)
+  //   2) reduz pela defesa do alvo (Físico -> ar/Defesa Física, Elemental -> ap/Resistência
+  //      Elemental, nunca abaixo de 0 -- pedido explícito original: "os danos físicos serão
+  //      reduzidos pela defesa física... e os danos mágicos reduzidos pela resistência magica")
+  //   3) aplica no alvo (applyCombatVitalDelta(), negativo) e desconta PA do atacante
+  //      (turnState.apRemaining, MESMO padrão de markTurnMoved() -- avança o turno automaticamente
+  //      se chegar a 0) e Mana (applyCombatVitalDelta(), também negativo, só quando custoMana>0) --
+  //      DE PROPÓSITO nunca passa por turnState.rolled (decisão documentada no changelog: Ações
+  //      Ofensivas usam só a própria economia de PA/Mana/alcance, não o trinco antigo do "rolar"
+  //      manual da ficha).
+  //   4) re-renderiza a casa/peça na hora (sem esperar o round-trip do Firebase) e posta o
+  //      resultado no chat/Discord (postToDiscord() já cuida dos dois, mesmo caminho de sempre).
+  function tryResolveBoardAttack(attackerTokenIgnored, attackerCombatIgnored, targetTokenIgnored, targetCombatIgnored, abilityIgnored, pool, role, r, c){
+    const attackerToken = resolveAttackerToken();
+    if(!attackerToken || !turnState.active || !isBoardRevealedForFicha() || !canActAsBoardAttacker(attackerToken)) return;
+    const attackerCombat = resolveCombatData(attackerToken);
+    if(!attackerCombat) return;
+    const ability = HABILIDADE_INICIAL_CLASSE[attackerCombat.deidade];
+    if(!ability) return;
+    const key = (role === 'mestre') ? boardKey(r, c) : liveBoardKey(r, c);
+    const targetToken = pool && pool[key];
+    const targetCombat = resolveCombatData(targetToken);
+    if(!targetCombat || (targetCombat.vida || 0) <= 0) return;
+    const dist = chebyshevDist(attackerCombat.anchorR, attackerCombat.anchorC, targetCombat.anchorR, targetCombat.anchorC);
+    if(dist > ability.alcance) return;
+    if((turnState.apRemaining || 0) < ability.custoPA) return;
+    if(ability.custoMana > 0 && (attackerCombat.mana || 0) < ability.custoMana) return;
+
+    const rolado = rolarDadosSimples(ability.dado.qtd, ability.dado.faces);
+    const bonusAtributo = Math.floor(((attackerCombat.totals && attackerCombat.totals[ability.atributo]) || 0) / 2);
+    const brutoAntesDefesa = rolado + bonusAtributo;
+    const defesaAlvo = ability.danoTipo === 'Elemental' ? (targetCombat.ap || 0) : (targetCombat.ar || 0);
+    const danoFinal = Math.max(0, brutoAntesDefesa - defesaAlvo);
+    const vidaAntes = targetCombat.vida || 0;
+    const vidaDepois = Math.max(0, vidaAntes - danoFinal);
+
+    applyCombatVitalDelta(targetToken, 'vida', -danoFinal);
+    if(ability.custoMana > 0) applyCombatVitalDelta(attackerToken, 'mana', -ability.custoMana);
+
+    turnState.apRemaining = Math.max(0, (turnState.apRemaining || 0) - ability.custoPA);
+    if(turnState.apRemaining <= 0){
+      const nomeAtacante = tokenTooltipText(attackerToken);
+      if(!isBlankName(nomeAtacante)) postToDiscord(`⏭️ ${nomeAtacante} GASTOU TODOS OS PONTOS DE AÇÃO — O TURNO FOI ENCERRADO AUTOMATICAMENTE`.toUpperCase(), null);
+      advanceTurn();
+    } else {
+      pushTurnState();
+      renderTurnBars();
+    }
+
+    // re-renderiza a casa/peça do alvo (e a do atacante, se for uma inimigo_ficha/aliado_ficha --
+    // o PRÓPRIO atacante também pode ter perdido Mana) na hora, sem esperar o round-trip do
+    // Firebase -- mesmo espírito de qualquer outra mutação local+render síncrono deste arquivo.
+    if(role === 'mestre'){
+      if(targetToken && targetToken.anchorR != null) renderBoardCell(targetToken.anchorR, targetToken.anchorC);
+      if(attackerToken && attackerToken.anchorR != null && attackerToken !== targetToken) renderBoardCell(attackerToken.anchorR, attackerToken.anchorC);
+    } else {
+      renderLiveBoardMini();
+    }
+    if(typeof renderFichaSummaryBubbles === 'function') renderFichaSummaryBubbles();
+
+    const atacanteNome = tokenTooltipText(attackerToken);
+    const alvoNome = tokenTooltipText(targetToken);
+    const custoTxt = ability.custoMana > 0 ? `${ability.custoPA} PA + ${ability.custoMana} Mana` : `${ability.custoPA} PA`;
+    postToDiscord(`⚔️ ${atacanteNome} usa ${ability.nome} em ${alvoNome}: ${rolado}+${bonusAtributo} (${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) −${defesaAlvo} de defesa = ${danoFinal} de dano (custo ${custoTxt}). Vida: ${vidaAntes} → ${vidaDepois}.`.toUpperCase(), null);
+  }
   // Ícones de cada Classe -- usados no seletor que aparece pro JOGADOR/MESTRE ao clicar "Nova
   // ficha" (ver #elementPickerModal no HTML e openElementPicker() mais abaixo). Arte definitiva
   // enviada nesta rodada (pedido explícito, substitui os medalhões-placeholder de antes): um símbolo
@@ -8093,6 +8581,12 @@ body{
       // sem isso, o resumo do mestre em MESA (mc-attrs, ver makeFichasListLoader()) só atualizava
       // ao salvar a ficha no GitHub, podendo ficar bem desatualizado numa sessão longa.
       payload.totals = { for: totals.for, con: totals.con, des: totals.des, int: totals.int, von: totals.von, car: totals.car };
+      // DEFESA FÍSICA/RESISTÊNCIA ELEMENTAL ao vivo (rodada nova, ver HABILIDADE_INICIAL_CLASSE/
+      // resolveCombatData() no <script>) -- mesmo motivo do totals acima: sem isto, um ataque de
+      // Ação Ofensiva contra um herói de verdade (kind 'hero', cujas vitais nunca ficam na própria
+      // peça do tabuleiro -- ver liveVitalsAll) não teria como saber quanto reduzir do dano.
+      payload.ar = num(els.mAr) || 0;
+      payload.ap = num(els.mAp) || 0;
       // Poções/Munição ao vivo (pedido explícito: "a atualização de poções e munição deve ocorrer
       // pra todos que estiverem observando a ficha em tempo real") -- mesmo caminho de sempre
       // (mesa40k/live/{uid}, já escutado pelos cartões de "📜 Fichas de Jogador"/"🔒 Fichas do
@@ -8455,7 +8949,7 @@ body{
   // que já cuidam sozinhas de mostrar/esconder o conteúdo -- os dois wirePanelToggle() que existiam
   // aqui pra eles saíram junto.
   wirePanelToggle('habilidadesToggleBtn', 'habilidadesBody', 'Habilidades');
-  wirePanelToggle('armamentoToggleBtn', 'armamentoBody', 'Armamento e Armadura');
+  wirePanelToggle('armamentoToggleBtn', 'armamentoBody', 'Equipamento');
   wirePanelToggle('inventarioToggleBtn', 'inventarioBody', 'Inventário');
 
   // Rodada nova: a guia "Rolamentos" não existe mais dentro da ficha (saiu pro tabuleiro, ver
@@ -11739,6 +12233,16 @@ body{
       // openElementPicker() mais acima), reaproveitado aqui.
       openElementPicker(nome=>{
         els.deidade.value = nome;
+        // Armadura da Classe escolhida (ver CLASSE_ARMADURA_INICIAL acima) define o valor DE
+        // PARTIDA de DEFESA FÍSICA/RESISTÊNCIA ELEMENTAL desta ficha nova -- só acontece aqui,
+        // nesse instante único de "Nova ficha" (nunca mais depois, mesmo que outra coisa dispare
+        // 'change' em els.deidade mais tarde, tipo carregar uma ficha salva). Setado ANTES do
+        // dispatchEvent logo abaixo de propósito, pra já entrar no recalc() que ele dispara.
+        const armaduraNova = CLASSE_ARMADURA_INICIAL[nome];
+        if(armaduraNova){
+          els.mAr.value = armaduraNova.ar;
+          els.mAp.value = armaduraNova.ap;
+        }
         els.deidade.dispatchEvent(new Event('change', { bubbles:true }));
         // publica na hora (sem esperar o debounce de 600ms de pushLiveVitals()) -- corrige
         // mesa40k/deidade/{uid} o quanto antes, encurtando ainda mais a janela em que o valor
@@ -13164,6 +13668,12 @@ body{
         vidaMax: t.vidaMax != null ? t.vidaMax : null, vidaAtual: t.vidaAtual != null ? t.vidaAtual : null,
         manaMax: t.manaMax != null ? t.manaMax : null, manaAtual: t.manaAtual != null ? t.manaAtual : null,
         escudoMax: t.escudoMax != null ? t.escudoMax : null, escudoAtual: t.escudoAtual != null ? t.escudoAtual : null,
+        // DEFESA FÍSICA/RESISTÊNCIA ELEMENTAL "de fábrica" (rodada nova, ver
+        // buildFichaInstanceToken()/HABILIDADE_INICIAL_CLASSE no <script>) -- mesmo motivo de
+        // vidaMax/manaMax acima: sem isto o jogador nunca recebe a Defesa/Resistência do alvo pelo
+        // espelho mesa40k/liveBoard/tokens, e o dano de uma Ação Ofensiva não teria como ser
+        // reduzido quando o alvo é uma ficha de Inimigo/Aliado (em vez de um herói de verdade).
+        ar: t.ar != null ? t.ar : null, ap: t.ap != null ? t.ap : null,
       };
     });
     return tokensOut;
@@ -13328,6 +13838,13 @@ body{
           boardPainting = true;
           boardPaintValue = cycleMark(r, c);
         });
+        // botão do MEIO (ver 'auxclick' mais abaixo, remoção rápida de peça): sem este
+        // preventDefault aqui, o navegador entra no modo de "autoscroll" dele (cursor vira uma
+        // mira, a página rola ao mover o mouse) assim que o botão do meio é pressionado, em vez de
+        // deixar o 'auxclick' disparar normalmente.
+        cell.addEventListener('mousedown', (e)=>{
+          if(e.button === 1) e.preventDefault();
+        });
         cell.addEventListener('mouseenter', ()=>{
           if(!boardPainting) return;
           setMark(r, c, boardPaintValue);
@@ -13335,11 +13852,26 @@ body{
         cell.addEventListener('contextmenu', (e)=>{
           e.preventDefault();
           // Fase 2 ("botão direito + arrastar" vira a câmera, pedido explícito do usuário): um
-          // clique direito RÁPIDO (sem arrastar) continua removendo a peça normalmente, igual
-          // sempre foi -- só quando o botão direito foi usado pra ARRASTAR a câmera (ver
-          // boardCameraJustPanned, setado por setupBoardCameraZoom() mais abaixo) é que a remoção
-          // é pulada desta vez (o próprio gesto já fez o trabalho dele, que foi mover a câmera).
+          // clique direito RÁPIDO (sem arrastar) abre o menu de Ações normalmente -- só quando o
+          // botão direito foi usado pra ARRASTAR a câmera (ver boardCameraJustPanned, setado por
+          // setupBoardCameraZoom() mais abaixo) é que a abertura do menu é pulada desta vez (o
+          // próprio gesto já fez o trabalho dele, que foi mover a câmera).
+          // RODADA NOVA ("3 ações no tabuleiro", pedido explícito): o clique direito deixou de
+          // remover a peça na hora -- agora abre o menu de Ações Ofensivas/Defensivas/Campo (ver
+          // openBoardActionMenu() mais acima); "Remover peça" virou um ITEM desse menu. A remoção
+          // RÁPIDA de sempre virou o botão do MEIO do mouse (ver o 'auxclick' logo abaixo).
           if(boardCameraJustPanned){ boardCameraJustPanned = false; return; }
+          openBoardActionMenu(r, c, e.clientX, e.clientY, boardTokens, 'mestre');
+        });
+        // RODADA NOVA (pedido explícito do usuário, ver comentário grande do 'contextmenu' acima):
+        // remoção rápida de peça sem abrir menu nenhum, só pro Mestre -- agora no botão do MEIO do
+        // mouse ('auxclick' dispara pra botões que não são o esquerdo, e.button===1 é o do meio).
+        // Nunca precisa do guard boardCameraJustPanned: o arrasto de câmera só reage ao botão
+        // DIREITO (button===2, ver setupBoardCameraZoom() mais abaixo), o do meio nunca aciona a
+        // câmera, então não existe o mesmo conflito "arrastou vs. clicou rápido" que o direito tinha.
+        cell.addEventListener('auxclick', (e)=>{
+          if(e.button !== 1) return;
+          e.preventDefault();
           removeTokenAt(r, c);
         });
         cell.addEventListener('dragover', (e)=>{ e.preventDefault(); cell.classList.add('drag-over'); });
@@ -14273,6 +14805,15 @@ body{
         for: attrTotalFromRaw(hero.raw, 'for'), con: attrTotalFromRaw(hero.raw, 'con'), des: attrTotalFromRaw(hero.raw, 'des'),
         int: attrTotalFromRaw(hero.raw, 'int'), von: attrTotalFromRaw(hero.raw, 'von'), car: attrTotalFromRaw(hero.raw, 'car'),
       },
+      // Rodada nova ("3 ações no tabuleiro" -- ver HABILIDADE_INICIAL_CLASSE/resolveCombatData()
+      // no <script>): DEFESA FÍSICA/RESISTÊNCIA ELEMENTAL "de fábrica" da ficha-molde, mesmo
+      // espírito de totals acima -- sem isto, dano aplicado numa cópia de Inimigo/Aliado no
+      // tabuleiro não teria como ser reduzido pela Defesa/Resistência do alvo. mods.ar/mods.ap são
+      // exatamente DEFESA FÍSICA/RESISTÊNCIA ELEMENTAL puras (sem base, ver collectState() --
+      // mesmo padrão de mods.dano) -- diferente de FOR/CON/etc acima, não precisa somar nenhum
+      // "base" separado.
+      ar: parseFloat(hero.raw && hero.raw.mods && hero.raw.mods.ar) || 0,
+      ap: parseFloat(hero.raw && hero.raw.mods && hero.raw.mods.ap) || 0,
       xp: parseFloat(hero.raw && hero.raw.xp) || 0,
     };
     // numera igual aliado/inimigo/monstro/boss (ex: "Goblin Batedor 1", "Goblin Batedor 2"),
@@ -17298,6 +17839,21 @@ body{
         const cellKey = liveBoardKey(r,c);
         cell.addEventListener('dragover', (e)=> e.preventDefault());
         cell.addEventListener('drop', (e)=>{ e.preventDefault(); handleLiveBoardDrop(r, c, e); });
+        // RODADA NOVA ("3 ações no tabuleiro", pedido explícito -- os dois tabuleiros ganham os
+        // mesmos 3 menus, ver comentário grande de openBoardActionMenu() na aba Mesa): o
+        // mini-tabuleiro do Jogador nunca teve 'contextmenu' nenhum antes desta rodada -- mesmo
+        // guard boardCameraJustPanned do lado do Mestre (buildBoardGrid()), já que os dois
+        // compartilham o MESMO mecanismo de câmera por arrasto do botão direito (ver
+        // setupBoardCameraZoom() mais abaixo, chamado uma única vez pra #liveBoardGrid inteiro).
+        // Antes de revelado (!revealed, logo abaixo) não tem NADA pra clicar ainda -- por isso este
+        // listener entra aqui, antes do "continue" cedo, igual ao dragover/drop acima, mas só abre o
+        // menu de fato depois de revelado.
+        cell.addEventListener('contextmenu', (e)=>{
+          e.preventDefault();
+          if(boardCameraJustPanned){ boardCameraJustPanned = false; return; }
+          if(!revealed) return;
+          openBoardActionMenu(r, c, e.clientX, e.clientY, liveBoardState.tokens, 'jogador');
+        });
         if(!revealed){ liveBoardGridEl.appendChild(cell); continue; }
         if(mistReachable && !mistReachable.has(cellKey)) cell.classList.add('board-cell-mist', 'mist-' + fogPlusColorActive);
         const mark = liveBoardState.marks[cellKey];
