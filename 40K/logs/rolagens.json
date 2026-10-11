@@ -4,13 +4,6 @@
     "tipo": "movimento",
     "de": "I7",
     "para": "J6",
-    "ts": 1790873724498
-  },
-  {
-    "nome": "Arqueira",
-    "tipo": "movimento",
-    "de": "I7",
-    "para": "J6",
     "ts": 1790891372445
   },
   {
@@ -306,5 +299,12 @@
     "de": "B4",
     "para": "C4",
     "ts": 1791759340911
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "movimento",
+    "de": "C4",
+    "para": "D3",
+    "ts": 1791761820500
   }
 ]
