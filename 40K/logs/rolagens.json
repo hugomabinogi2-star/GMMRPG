@@ -1,14 +1,5 @@
 [
   {
-    "nome": "Dummy",
-    "tipo": "atributo",
-    "statKey": "for",
-    "statValor": 2,
-    "resultado": 3,
-    "resultLabel": "Erro",
-    "ts": 1790855135004
-  },
-  {
     "nome": "Arqueira",
     "tipo": "movimento",
     "de": "I7",
@@ -308,5 +299,12 @@
     "de": "C4",
     "para": "B4",
     "ts": 1791759310987
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "movimento",
+    "de": "B4",
+    "para": "C4",
+    "ts": 1791759340911
   }
 ]
