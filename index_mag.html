@@ -6550,7 +6550,7 @@ body{
                       <circle class="barreira-ring-fill" id="barreiraRingFill" cx="86" cy="86" r="78" stroke-dasharray="490.09" stroke-dashoffset="0"/>
                     </svg>
                     <div class="barreira-shield" id="barreiraShield">
-                    <img src="https://raw.githubusercontent.com/hugomabinogi2-star/GMMRPG/main/40K/assets/barreirashield.webp" alt="Escudo" draggable="false">
+                    <img src="https://raw.githubusercontent.com/hugomabinogi2-star/GMMRPG/main/40K/assets/barreirashield.webp" alt="Escudo" draggable="false" crossorigin="anonymous">
                       <!-- Rodada 3 (Mag Mell): Vida e Mana agora aparecem DENTRO do coração de cristal da
                            foto acima (metade direita = Vida, esquerda = Mana — ver comentário grande perto de
                            updateBarreiraShield() no <script>), substituindo as garrafinhas que ficavam embaixo
@@ -8709,6 +8709,20 @@ body{
   // encolhe o cursor inteiro (flechinha + gema) — pedido do usuário pra deixar o mouse menor.
   const CURSOR_SCALE = 0.72;
   const cursorBaseImg = new Image();
+  // BUG corrigido nesta rodada ("tela não exibe mais as animações de ataque/rolagem de dados"
+  // investigado ao vivo no site publicado -- console mostrava "Uncaught SecurityError: Failed to
+  // execute 'toDataURL' on 'HTMLCanvasElement': Tainted canvases may not be exported" bem aqui):
+  // desde que cursor_base.webp (como os outros ícones abaixo, ver getRollIconImg()/
+  // getElementIconImg()) deixou de vir embutido como data URI (base64, mesma origem de sempre) e
+  // passou a vir de uma URL externa de verdade (raw.githubusercontent.com, otimização de
+  // carregamento de uma rodada anterior), desenhar essa imagem num <canvas> e depois chamar
+  // .toDataURL() nele (ver updateCursorForDeity() logo abaixo) "suja" o canvas pra sempre — a
+  // menos que o navegador saiba, ANTES de carregar a imagem, que ela tem permissão CORS (o
+  // raw.githubusercontent.com já manda Access-Control-Allow-Origin: * em toda resposta, só
+  // faltava avisar o <img> pra pedir isso). "anonymous" = pede o CORS sem mandar cookies/credenciais
+  // (não precisa, é um arquivo público) -- precisa ser setado ANTES de atribuir .src, senão o
+  // navegador já começou a buscar a imagem sem o modo CORS e o problema continua.
+  cursorBaseImg.crossOrigin = 'anonymous';
   let cursorBaseImgReady = false;
   cursorBaseImg.onload = () => {
     cursorBaseImgReady = true;
@@ -13313,6 +13327,12 @@ body{
   function getRollIconImg(key){
     if(rollIconImgCache[key]) return rollIconImgCache[key];
     const img = new Image();
+    // mesmo problema/correção de cursorBaseImg (ver comentário grande lá, perto de "const
+    // cursorBaseImg") -- estes 9 ícones (dano/habilidade/for/des/con/int/von/car/sorte) também vêm
+    // de URL externa agora, e buildRollIconDataUrl() (logo abaixo) desenha cada um num <canvas>
+    // pra gerar a imagem mandada pro Discord a cada rolagem -- sem isto, .toDataURL() lá embaixo
+    // lançava "Tainted canvases may not be exported" TODA rolagem.
+    img.crossOrigin = 'anonymous';
     img.src = ROLL_ICON_SOURCES[key];
     rollIconImgCache[key] = img;
     return img;
@@ -13438,6 +13458,9 @@ body{
   function getElementIconImg(key){
     if(elementIconImgCache[key]) return elementIconImgCache[key];
     const img = new Image();
+    // mesma correção de getRollIconImg()/cursorBaseImg (ver comentário grande em cursorBaseImg) --
+    // buildElementIconDataUrl() logo abaixo desenha esta imagem num <canvas> e chama .toDataURL().
+    img.crossOrigin = 'anonymous';
     img.src = ELEMENT_ICON_IMG[key];
     elementIconImgCache[key] = img;
     return img;
