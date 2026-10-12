@@ -948,12 +948,13 @@ body{
   .ficha-lock-banner{white-space:normal;max-width:88%;text-align:center;top:-56px;}
 }
 
-/* ---------- portão "nenhuma ficha escolhida" (rodada nova, só pro JOGADOR) ---------- */
+/* ---------- portão "nenhuma ficha escolhida" (pros DOIS papéis, mestre incluso desde uma rodada
+   seguinte -- pedido explícito "faz ela ocorrer para o mestre também") ---------- */
 /* pedido explícito: "sempre que se logar na pagina nenhuma ficha vai ser carregada... não mostrando
    nenhuma pagina ate que uma nova seja criada ou carregada" -- ao contrário do cadeado de
    .ficha-locked acima (que só TRAVA os campos, mas continua MOSTRANDO a ficha em modo leitura), este
-   aqui ESCONDE a ficha inteira (ver setFichaGate() no <script>), até o jogador clicar em "Nova
-   Ficha" ou carregar uma ficha salva por "Fichas de Jogador". */
+   aqui ESCONDE a ficha inteira (ver setFichaGate() no <script>), até a pessoa clicar em "Nova
+   Ficha" ou carregar uma ficha salva por qualquer uma das listas de fichas. */
 .card.ficha-gate-hidden{display:none;}
 .ficha-gate-panel{
   max-width:480px;margin:40px auto;padding:28px 24px;text-align:center;
@@ -6193,15 +6194,17 @@ body{
 
 <div class="stage">
   <div class="ficha-lock-banner" id="fichaLockBanner" hidden>🔒 Ficha de outro jogador — somente visualização. Peça pro dono ou pro mestre editar.</div>
-  <!-- portão "nenhuma ficha escolhida" (rodada nova, só pro JOGADOR -- ver setFichaGate()/comentário
-       grande em onAuthStateChanged() no <script>): fica visível no lugar da ficha (que some de vez,
-       ver .card.ficha-gate-hidden no <style>) logo após o login, até o jogador clicar em "Nova
-       Ficha" ou carregar uma ficha salva por "Fichas de Jogador" -- os botões aqui só disparam o
-       clique nos botões DE VERDADE da barra de topo (#newBtn/#masterBtn), sem duplicar nenhuma
-       lógica. -->
+  <!-- portão "nenhuma ficha escolhida" (ver setFichaGate()/comentário grande em
+       onAuthStateChanged() no <script>): fica visível no lugar da ficha (que some de vez, ver
+       .card.ficha-gate-hidden no <style>) logo após o login, PRO MESTRE E PRO JOGADOR, até a pessoa
+       clicar em "Nova Ficha" ou carregar uma ficha salva por qualquer uma das listas ("Fichas de
+       Jogador"/"Fichas do Mestre"/"Fichas de Inimigos"/"Fichas de Aliados"/"Fichas de NPC") -- os
+       botões aqui só disparam o clique nos botões DE VERDADE da barra de topo (#newBtn/#masterBtn),
+       sem duplicar nenhuma lógica; quem quiser ir direto numa das outras listas (mestre-only) clica
+       nela normalmente na barra de topo, mesmo com o portão em pé. -->
   <div class="ficha-gate-panel" id="fichaGatePanel" hidden>
     <h3>Nenhuma ficha carregada</h3>
-    <p>Escolha "Nova Ficha" pra criar uma ficha nova, ou abra "Fichas de Jogador" pra carregar a sua.</p>
+    <p>Escolha "Nova Ficha" pra criar uma ficha nova, ou abra "Fichas de Jogador" (ou outra lista, na barra de topo) pra carregar uma já existente.</p>
     <div class="ficha-gate-actions">
       <button type="button" id="fichaGateNewBtn">🆕 Nova Ficha</button>
       <button type="button" id="fichaGateLoadBtn">📜 Fichas de Jogador</button>
@@ -12889,10 +12892,10 @@ body{
 
   // Reseta a tela pra uma ficha nova em branco — usado pelo botão "Nova ficha" (com confirmação,
   // ver logo abaixo) e como ponto de partida sempre que alguém acessa a página (ver
-  // onAuthStateChanged mais abaixo): pro mestre a tela sempre abre em branco e pronta pra editar;
-  // pro jogador, fica ESCONDIDA atrás do portão (ver setFichaGate() logo abaixo) até ele escolher
-  // "Nova Ficha" ou carregar uma ficha salva — nada é carregado sozinho mais (ver comentário grande
-  // em onAuthStateChanged(), pedido explícito desta rodada).
+  // onAuthStateChanged mais abaixo). Pros DOIS papéis a tela fica ESCONDIDA atrás do portão (ver
+  // setFichaGate() logo abaixo) até uma ação explícita — nada aparece sozinho mais (ver comentário
+  // grande em onAuthStateChanged(), pedido explícito desta rodada, estendido pro mestre também numa
+  // rodada seguinte).
   function startNewFicha(){
     // applyState() já cuida de deixar Modificadores/Rolagens/Histórico minimizados (ver o final
     // dela) — vale pra qualquer acesso de ficha, não só ficha nova.
@@ -12902,16 +12905,20 @@ body{
   // PORTÃO "nenhuma ficha escolhida" (rodada nova, pedido explícito: "forçar o jogador a sempre
   // carregar a própria ficha e não ficar usando uma ficha em cache do navegador ou algo do tipo,
   // sempre que se logar na pagina nenhuma ficha vai ser carregada, não mostrando nenhuma pagina ate
-  // que uma nova seja criada ou carregada"). Antes desta rodada, autoLoadOwnFicha() (mais abaixo,
+  // que uma nova seja criada ou carregada" -- e, numa rodada seguinte, pedido explícito "faz ela
+  // ocorrer para o mestre também"). Antes da primeira rodada, autoLoadOwnFicha() (mais abaixo,
   // função mantida mas sem nenhum chamador mais -- ver o comentário dela) buscava e aplicava a
-  // última ficha salva do jogador SOZINHA, assim que ele logava, sem ele pedir. Agora, pro JOGADOR
-  // (nunca pro mestre -- ele não tem "uma" ficha própria, continua abrindo direto em branco e
-  // editável, como sempre), a ficha fica ESCONDIDA (ver .card.ficha-gate-hidden no <style>) atrás
-  // deste portão até uma ação explícita: "Nova Ficha" (#newBtn) ou "Ver ficha" numa ficha carregada
-  // por "Fichas de Jogador" (#masterBtn → .mc-view) -- ambos chamam setFichaGate(false) +
-  // connectOwnFichaLiveListeners() assim que o jogador escolhe (ver os dois pontos marcados "GATE:"
-  // mais abaixo). Isso elimina de vez qualquer chance de mostrar uma ficha desatualizada sem o
-  // jogador pedir -- o próprio navegador nunca decide isso sozinho.
+  // última ficha salva do jogador SOZINHA, assim que ele logava, sem ele pedir; o mestre, por não
+  // ter "uma" ficha própria, sempre abriu direto em branco, sem portão nenhum -- isso TAMBÉM mudou
+  // nesta rodada. Agora, pros DOIS papéis, a ficha fica ESCONDIDA (ver .card.ficha-gate-hidden no
+  // <style>) atrás deste portão até uma ação explícita: "Nova Ficha" (#newBtn) ou "Ver ficha" numa
+  // ficha carregada por qualquer uma das listas ("Fichas de Jogador"/"Fichas do Mestre"/"Fichas de
+  // Inimigos"/"Fichas de Aliados"/"Fichas de NPC", todas passando por makeFichasListLoader()) --
+  // ambos chamam setFichaGate(false) (+ connectOwnFichaLiveListeners(), que continua um no-op fora
+  // do papel de jogador -- o mestre não tem os 4 listeners "ao vivo" da própria conta, só o jogador
+  // tem) assim que a pessoa escolhe (ver os pontos marcados "GATE:" mais abaixo). Isso elimina de
+  // vez qualquer chance de mostrar uma ficha desatualizada sem pedir -- o próprio navegador nunca
+  // decide isso sozinho, pra nenhum dos dois papéis.
   function setFichaGate(active){
     const cardEl = $('card');
     if(cardEl) cardEl.classList.toggle('ficha-gate-hidden', active);
@@ -17452,16 +17459,15 @@ body{
                 // salva) e pula a busca do sha, já que acabamos de buscá-lo agora.
                 loadedFichaPath = path;
                 loadedFichaSha = sha;
-                // GATE: "Ver ficha" (a partir de "Fichas de Jogador"/"Fichas do Mestre"/etc, todas
-                // passam por makeFichasListLoader()) também conta como a ação explícita que tira o
-                // jogador do portão (ver comentário grande de setFichaGate(), perto de
-                // startNewFicha()) -- no-op pro mestre (setFichaGate() e
-                // connectOwnFichaLiveListeners() não fazem nada fora do papel de jogador, e o portão
-                // nunca chega a aparecer pra ele de qualquer jeito).
-                if(currentRole === 'jogador'){
-                  setFichaGate(false);
-                  connectOwnFichaLiveListeners();
-                }
+                // GATE: "Ver ficha" (a partir de "Fichas de Jogador"/"Fichas do Mestre"/"Fichas de
+                // Inimigos"/"Fichas de Aliados"/"Fichas de NPC", todas passam por
+                // makeFichasListLoader()) também conta como a ação explícita que tira QUALQUER papel
+                // do portão (ver comentário grande de setFichaGate(), perto de startNewFicha()) --
+                // connectOwnFichaLiveListeners() continua um no-op fora do papel de jogador (o
+                // mestre não tem os 4 listeners "ao vivo" da própria conta), sem problema nenhum
+                // chamar ela aqui pros dois papéis.
+                setFichaGate(false);
+                connectOwnFichaLiveListeners();
                 modalEl.hidden = true;
               }
             });
@@ -21514,20 +21520,17 @@ body{
       // tela começa em branco (startNewFicha()). Pedido explícito desta rodada: "forçar o jogador a
       // sempre carregar a própria ficha e não ficar usando uma ficha em cache do navegador ou algo
       // do tipo, sempre que se logar na pagina nenhuma ficha vai ser carregada, não mostrando
-      // nenhuma pagina ate que uma nova seja criada ou carregada" -- antes desta rodada,
+      // nenhuma pagina ate que uma nova seja criada ou carregada" -- antes dessa rodada,
       // autoLoadOwnFicha() (ver comentário na própria função, agora sem chamador) rodava bem aqui e
       // substituía esse branco pela última ficha salva do jogador SOZINHA, sem ele pedir. Isso saiu
-      // de vez: agora, pro JOGADOR, o branco fica ESCONDIDO atrás do portão (setFichaGate(true), ver
-      // comentário grande da função lá em cima, perto de startNewFicha()) até uma ação explícita
-      // dele. Pro MESTRE nada muda: ele não tem "uma" ficha própria (edita a de qualquer jogador),
-      // então o portão nunca aparece pra ele -- setFichaGate(false) aqui é só por clareza/segurança
-      // (o HTML já nasce com o painel "hidden"), não por necessidade.
+      // de vez: o branco fica ESCONDIDO atrás do portão (setFichaGate(true), ver comentário grande
+      // da função lá em cima, perto de startNewFicha()) até uma ação explícita. NUMA RODADA SEGUINTE
+      // (pedido explícito: "faz ela ocorrer para o mestre também") isso deixou de ser só do jogador
+      // -- antes disso, o mestre sempre abria direto em branco e editável, sem portão nenhum (ele
+      // não tem "uma" ficha própria, edita a de qualquer jogador, então não havia risco de mostrar
+      // "a ficha errada" pra ele); agora os DOIS papéis sempre começam atrás do portão, igualzinho.
       startNewFicha();
-      if(currentRole === 'jogador'){
-        setFichaGate(true);
-      }else{
-        setFichaGate(false);
-      }
+      setFichaGate(true);
       // os 4 listeners "ao vivo" da própria conta (XP/Divindade/Atributos/Vida-Mana corrigidos pelo
       // mestre) NÃO conectam mais aqui no login -- só depois que o jogador escolher "Nova Ficha" ou
       // carregar uma ficha de verdade (ver connectOwnFichaLiveListeners(), chamada nos 2 pontos
