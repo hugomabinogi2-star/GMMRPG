@@ -810,16 +810,11 @@ body{
 .mesa-fixed-toolbar-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .mesa-fixed-label{font-family:'Cinzel Decorative',serif;font-size:12px;color:var(--ink);text-transform:uppercase;letter-spacing:.03em;}
 .mesa-fixed-toolbar-hide{display:flex;align-items:center;gap:6px;margin-left:auto;}
-/* os 2 botões de ocultar (canto superior direito no desenho de referência) -- cada um esconde só a
-   própria coluna (tabuleiro OU chat), a outra expande sozinha pra ocupar o espaço (ver
-   .mesa-fixed-body .live-board-panel[hidden]/.chat-panel[hidden] abaixo e o wiring de
-   hideBoardColBtn/hideChatColBtn no <script>). aria-pressed reflete se está ocultando no momento. */
-.mesa-hide-btn{
-  flex:none;background:none;border:1px solid var(--ink-faint);border-radius:4px;
-  width:28px;height:28px;line-height:1;font-size:14px;color:var(--ink-soft);cursor:pointer;
-}
-.mesa-hide-btn:hover{border-color:var(--gold-bright);color:var(--ink);}
-.mesa-hide-btn[aria-pressed="true"]{background:rgba(178,59,46,.25);border-color:#b23b2e;color:#fff;}
+/* Rodada nova: os 2 botões de ocultar coluna-a-coluna (🗺️ tabuleiro / 💬 chat, canto superior
+   direito) que viviam aqui, e a classe .mesa-hide-btn deles, saíram -- pedido explícito pra manter
+   só UMA forma de "minimizar" tabuleiro+chat (o usuário via os dois botões de ocultar coluna como
+   mais uma versão disso), que continua sendo #mesaFixedMinimizeBtn (ver comentário grande dele no
+   HTML, perto de .mesa-fixed-toolbar-hide). */
 /* Rodada nova, pedido explícito ("adiciona uma linha acima do tabuleiro na visão de mestre, igual a
    linha que tem o botão de rodar sorte em baixo mas na parte de cima da guia") -- espelha
    .mesa-fixed-bottom (mesmo tom --paper-d, mesmo padding/gap/flex-wrap), só que entre
@@ -867,9 +862,11 @@ body{
 }
 /* dentro da faixa fixa, os próprios .panel (live-board-panel/chat-panel) perdem a margem inferior
    de .panel genérico (senão sobra um respiro estranho embaixo deles aqui dentro) e viram colunas
-   flex lado a lado, nunca encostando uma na outra (gap acima). Escondendo uma coluna
-   (hideBoardColBtn/hideChatColBtn), a outra ocupa a faixa inteira sozinha (min-width:0 evita que o
-   conteúdo interno force a coluna a ficar mais larga que isso). */
+   flex lado a lado, nunca encostando uma na outra (gap acima). min-width:0 evita que o conteúdo
+   interno force a coluna a ficar mais larga do que devia. Escondendo uma delas via o atributo
+   "hidden" (hoje só o login/logout faz isso, ver [hidden]{display:none} abaixo -- os botões
+   manuais de ocultar coluna-a-coluna que existiam aqui saíram numa rodada nova), a outra ocupa a
+   faixa inteira sozinha. */
 .mesa-fixed-body .live-board-panel, .mesa-fixed-body .chat-panel{
   margin-bottom:0;min-width:0;
 }
@@ -4352,6 +4349,25 @@ body{
   position:relative;z-index:1;
 }
 .turn-phase-banner[hidden]{display:none;}
+/* Rodada nova (investigação do bug report "o tabuleiro continua não aparecendo para o jogador"):
+   ESCURIDÃO TOTAL (🌑/#boardDarkModeLabel) sempre congelou TODA a publicação de
+   mesa40k/liveBoard/* de propósito (ver comentário grande de boardDarkMode no <script>) -- inclusive
+   o próprio campo "revealed" (REVELAR), então ligar Dark e esquecer de desligar deixa o jogador
+   olhando pra um tabuleiro preto/congelado pro resto do combate, mesmo com o chat/turno sincronizando
+   normal (ref diferente no Firebase) -- bate exatamente com o print do usuário. Mantém o
+   comportamento de Dark como já era (decisão de design: "congela a publicação inteira, ponto"), só
+   adiciona este aviso BEM visível pro Mestre (nunca aparece pro jogador -- fica dentro de
+   #mesaFixedTopActions, que já é .mestre-only) enquanto Dark estiver ligado, pra não ser possível
+   esquecer sem notar -- ver setBoardDarkMode() no <script>. */
+.board-dark-mode-warning{
+  text-align:center;font-size:12px;font-weight:700;letter-spacing:.02em;
+  color:#ffb4a8;text-shadow:0 1px 2px #000;
+  padding:5px 10px;margin:2px 0 0;width:100%;
+  border:1px solid #b23b2e;border-radius:6px;
+  background:rgba(178,59,46,.25);
+  position:relative;z-index:1;
+}
+.board-dark-mode-warning[hidden]{display:none;}
 /* PONTOS DE AÇÃO (NOVO, pedido explícito -- "uma bolinha/estrela na cor da classe na ficha para
    cada ponto de ação, conforme o jogador vai gastando os pontos em seu turno essas bolinhas vão
    apagando"): uma .ap-dot por PA MÁXIMO da vez atual -- as que já foram GASTAS ganham .spent
@@ -5526,8 +5542,8 @@ body{
      realocados de novo, primeiro de dentro de .ribbon pra dentro de .stage numa rodada anterior,
      agora só trocando de PAI mais uma vez), então toda a lógica de mostrar/esconder no login,
      conectar ao Firebase, zoom, minimizar etc continua funcionando sem nenhuma mudança no
-     <script> além do wiring dos botões de ocultar/do painel de Gerenciar tabuleiro (ver perto de
-     "hideBoardColBtn" no <script>) -- nada disso dependia de estar dentro de .stage. -->
+     <script> além do wiring do painel de Gerenciar tabuleiro -- nada disso dependia de estar
+     dentro de .stage. -->
 <div class="mesa-fixed-panel" id="mesaFixedPanel" hidden>
     <div class="mesa-fixed-toolbar" id="mesaFixedToolbar">
       <div class="mesa-fixed-toolbar-group">
@@ -5552,9 +5568,14 @@ body{
              (ainda usados em vários lugares que não são este botão -- ex.: o tabuleiro sempre nasce
              minimizado pro jogador a cada ficha aberta, ou se expande sozinho quando um dado rola
              escondido, ver expandDicePanelIfCollapsed()) -- só o botão MANUAL de cada um sumiu daqui. -->
+        <!-- Rodada nova, pedido explícito ("remove a opção de minimizar o chat e o tabuleiro
+             separadamente, deixe apenas a de minimizar toda a guia"): os 2 botões de ocultar
+             coluna-a-coluna que ficavam aqui (#hideBoardColBtn 🗺️/#hideChatColBtn 💬, cada um
+             escondia só a própria coluna) saíram -- o usuário os via como "mais uma forma de
+             minimizar tabuleiro/chat separadamente", igual ao par antigo #liveBoardMinimizeBtn/
+             #chatMinimizeBtn já removido numa rodada anterior (comentário acima). Agora só
+             #mesaFixedMinimizeBtn (tabuleiro+chat juntos) continua existindo nesta faixa. -->
         <button id="mesaFixedMinimizeBtn" class="chat-min-btn" title="Minimizar tabuleiro+chat" type="button">▾</button>
-        <button id="hideBoardColBtn" class="mesa-hide-btn" type="button" aria-pressed="false" title="Ocultar/mostrar o tabuleiro">🗺️</button>
-        <button id="hideChatColBtn" class="mesa-hide-btn" type="button" aria-pressed="false" title="Ocultar/mostrar o chat">💬</button>
       </div>
     </div>
     <!-- Rodada nova, pedido explícito ("adiciona uma linha acima do tabuleiro na visão de mestre,
@@ -5617,6 +5638,11 @@ body{
       </button>
       <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
       <div id="boardSendHint" class="mesa-hint"></div>
+      <!-- Rodada nova: aviso bem visível SÓ pro Mestre (ver .board-dark-mode-warning no <style> e
+           setBoardDarkMode() no <script>) enquanto ESCURIDÃO TOTAL estiver ligada -- sem isso é fácil
+           esquecer ligada e achar que o tabuleiro do jogador "quebrou" (ele só está congelado/preto
+           de propósito, ver comentário grande de boardDarkMode mais abaixo). -->
+      <div id="boardDarkModeWarning" class="board-dark-mode-warning" hidden>🌑 ESCURIDÃO TOTAL ligada — nada do tabuleiro está sendo publicado pros jogadores agora (fica congelado/preto pra eles até você desligar).</div>
     </div>
     <div class="mesa-fixed-body" id="mesaFixedBody">
       <!-- mini-tabuleiro ao vivo -- espelha em tempo real o tabuleiro que o Mestre monta no painel
@@ -9360,8 +9386,9 @@ body{
   // agora garante que o tabuleiro esteja visível de verdade, caso esteja escondendo o resultado
   // da rolagem de dois jeitos possíveis -- pedido explícito ("Se o jogador tiver escondido o
   // tabuleiro... Tabuleiro reaparece sozinho pra mostrar"):
-  // 1) a COLUNA inteira oculta pelo botão 🗺️ da barra fixa (hideBoardColBtn/#liveBoardPanel.hidden,
-  //    ver wireMesaHideToggle() mais abaixo);
+  // 1) a COLUNA inteira oculta (hoje só o login/logout usa #liveBoardPanel.hidden -- o botão
+  //    manual que também fazia isso saiu numa rodada nova, ver comentário de
+  //    #mesaFixedMinimizeBtn no HTML);
   // 2) o corpo do painel MINIMIZADO (diferente de "oculto" -- o "🗺️ Tabuleiro ao Vivo" sempre
   //    nasce minimizado ao acessar qualquer ficha, ver setLiveBoardMinimized(true) e o comentário
   //    grande perto dela, bem mais abaixo no <script>) -- sem isso, o tabuleiro ficaria com
@@ -9371,10 +9398,9 @@ body{
   //    setLiveBoardMinimized() por baixo -- continua coberto por este item 2 sem precisar de nada
   //    a mais aqui.
   function expandDicePanelIfCollapsed(){
-    const panel = $('liveBoardPanel'), btn = $('hideBoardColBtn');
+    const panel = $('liveBoardPanel');
     if(panel && panel.hidden){
       panel.hidden = false;
-      if(btn) btn.setAttribute('aria-pressed', 'false');
     }
     if(typeof setLiveBoardMinimized === 'function' && panel && panel.classList.contains('minimized')){
       setLiveBoardMinimized(false);
@@ -10619,14 +10645,9 @@ body{
         announceOutOfTurn(turnEntry);
         return;
       }
-      // REDESENHO desta rodada (pedido explícito): só 1 rolagem de Habilidade/Atributo/Talento por
-      // turno — ver canRollThisTurnToken(). Ficha JÁ na própria vez, mas que já rolou o dado de
-      // ação desta vez, é recusada aqui, antes de qualquer animação.
-      if(turnEntry && isCurrentTurnToken(turnEntry) && !canRollThisTurnToken()){
-        expandDicePanelIfCollapsed();
-        diceHint.textContent = 'Você já rolou o dado de ação neste turno — encerre o turno pra continuar.';
-        return;
-      }
+      // REDESENHO (pedido explícito: "não precisa existir um limite na quantidade de ações por
+      // turno"): a trava de "só 1 rolagem de Habilidade/Atributo/Talento por turno" que existia
+      // aqui saiu -- canRollThisTurnToken() não bloqueia mais uma 2ª/3ª rolagem na própria vez.
     }
     expandDicePanelIfCollapsed();
     // TONTO (painel EFEITOS): "força os rolamentos a serem feitos em desvantagem" -- sobrescreve o
@@ -11130,19 +11151,23 @@ body{
   // exceção de "correção livre" aqui, diferente do limite de alcance de isBoardMoveRestrictedToken()
   // mais acima).
   //
-  // REDESENHO desta rodada (pedido explícito, substitui o antigo modelo de "até 2 ações" pareadas
-  // movimento+rolagem): agora são exatamente 2 AÇÕES INDEPENDENTES por turno -- 1 movimento
-  // (respeitando o alcance de sempre) e 1 rolagem de Habilidade/Talento/Atributo (sucesso ou falha,
-  // ver verdict em finishRoll()) -- cada uma só pode acontecer 1 vez por turno, sem exigir a outra
-  // (ver canMoveThisTurnToken()/canRollThisTurnToken()). Assim que a ROLAGEM acontece (mesmo que o
-  // movimento ainda não tivesse sido usado), o movimento fica travado pro resto do turno (pedido
-  // explícito: "ao personagem não pode mais se mover"). O resultado da rolagem decide o fim do
-  // turno: ERRO encerra o turno automaticamente (ver markTurnRolled()/autoEndTurnOnRollFailure());
-  // ACERTO NÃO encerra sozinho -- precisa clicar em "Encerrar Turno" manualmente (pedido explícito:
-  // "assumindo que ainda possa ser necessário rolar dano"). Peça SEM ficha nenhuma (Aliado/Inimigo/
-  // Monstro/Boss avulsos, sem heroId) nunca tem Habilidade/Talento/Atributo pra rolar — pra essas, o
-  // próprio movimento já encerra o turno sozinho (ver isFreeform em markTurnMoved()), senão a fila
-  // travaria pra sempre nelas, igual já era antes desta rodada.
+  // REDESENHO desta rodada (pedido explícito: "agora com o sistema de pontos de ação não precisa
+  // existir um limite na quantidade de ações que o personagem pode fazer por turno, desde que ele
+  // tenha pontos o suficiente pra realizar estas ações") -- substitui o modelo anterior de "até 2
+  // ações" pareadas movimento+rolagem (1 movimento + 1 rolagem, cada uma só 1x por turno, a
+  // rolagem travando o movimento pro resto do turno). AGORA: movimento (1 PA por casa, ver
+  // markTurnMoved()) e Ações Ofensivas de ataque (custoPA próprio, ver buildOfensivaMenuItem()) já
+  // eram só limitados pelo PA restante, sem contador de "1 por turno" -- a rolagem solta de
+  // Habilidade/Talento/Atributo (ver finishRoll()) era a ÚLTIMA ação ainda travada em "só 1x por
+  // turno" (canRollThisTurnToken()) e travando o movimento junto depois de rolar; essa trava saiu
+  // -- rolagem agora também é livre pra repetir quantas vezes quiser no mesmo turno, sem travar o
+  // movimento (ver canMoveThisTurnToken()/canRollThisTurnToken()). O resultado da rolagem continua
+  // decidindo o fim do turno: ERRO encerra o turno automaticamente (ver markTurnRolled()/
+  // autoEndTurnOnRollFailure()); ACERTO NÃO encerra sozinho -- precisa clicar em "Encerrar Turno"
+  // manualmente (pedido explícito: "assumindo que ainda possa ser necessário rolar dano"). Peça SEM
+  // ficha nenhuma (Aliado/Inimigo/Monstro/Boss avulsos, sem heroId) nunca tem Habilidade/Talento/
+  // Atributo pra rolar -- continua só com movimento, que agora encerra o turno dela quando o PA
+  // zerar (ver isFreeform em markTurnMoved()), não mais no primeiro passo.
   //
   // Sincronizado em mesa40k/liveBoard/turn — ao contrário de meta/marks/tokens (só o Mestre
   // escreve, write-only, sem ouvir de volta — ver o comentário grande logo depois de
@@ -11226,22 +11251,29 @@ body{
   }
 
   // "Já dá pra mover/rolar neste turno?" — ver o comentário grande lá em cima (REDESENHO desta
-  // rodada): movimento só 1x por turno, E nunca depois de já ter rolado (mesmo que ainda não
-  // tivesse se movido) — por isso canMoveThisTurnToken() confere os DOIS campos, não só "moved".
-  // Rolagem também só 1x por turno.
+  // rodada, pedido explícito: "não precisa existir um limite na quantidade de ações... desde que
+  // ele tenha pontos o suficiente"). Movimento: só limitado pelo PA restante, sem contador de
+  // "1 por turno" e sem travar por já ter rolado (essa trava cruzada saiu). Rolagem: sem limite de
+  // quantas vezes por turno -- a rolagem solta de Habilidade/Talento/Atributo nunca teve custo em
+  // PA próprio (sempre foi 0), então "ter pontos suficiente" pra ela é sempre verdade.
   function canMoveThisTurnToken(){
-    // PONTOS DE AÇÃO (NOVO, pedido explícito: "vários movimentos por turno" em vez de só 1):
-    // substitui a antiga flag única turnState.moved -- agora dá pra mover de novo e de novo
-    // enquanto sobrar PA (turnState.apRemaining), nunca depois de já ter rolado (igual antes).
-    return (turnState.apRemaining || 0) > 0 && !turnState.rolled;
+    // PONTOS DE AÇÃO: dá pra mover de novo e de novo enquanto sobrar PA (turnState.apRemaining) --
+    // não depende mais de turnState.rolled (antes, já ter rolado travava o movimento pro resto do
+    // turno; essa trava saiu junto com o limite de "só 1 rolagem por turno", ver
+    // canRollThisTurnToken()).
+    return (turnState.apRemaining || 0) > 0;
   }
   function canRollThisTurnToken(){
-    return !turnState.rolled;
+    // Sem limite de quantidade por turno (antes era só 1x, ver turnState.rolled) -- turnState.rolled
+    // continua existindo e sendo marcado em markTurnRolled() (histórico/UI: decide o fim automático
+    // do turno em caso de ERRO, ver autoEndTurnOnRollFailure()), só não bloqueia mais uma 2ª, 3ª...
+    // rolagem no mesmo turno.
+    return true;
   }
 
   // Marca a AÇÃO DE MOVIMENTO da vez atual como usada (ver canMoveThisTurnToken(), chamada ANTES
   // desta função nos dois pontos de movimento — handleBoardDrop()/handleLiveBoardDrop() — pra
-  // recusar uma 2ª tentativa). Peça SEM ficha (Aliado/Inimigo/Monstro/Boss avulsos, isFreeform)
+  // recusar um movimento sem PA suficiente). Peça SEM ficha (Aliado/Inimigo/Monstro/Boss avulsos, isFreeform)
   // nunca tem Habilidade/Talento/Atributo pra rolar — pra essas o próprio movimento já encerra o
   // turno sozinho, senão a fila travaria nelas pra sempre (mesmo comportamento de antes desta
   // rodada, só que agora sem depender de nenhum contador de ações). PEDIDO EXPLÍCITO desta rodada:
@@ -11278,12 +11310,13 @@ body{
     renderTurnBars();
   }
 
-  // Marca a AÇÃO DE ROLAGEM da vez atual como usada e decide o destino do turno a partir do
+  // Marca a AÇÃO DE ROLAGEM da vez atual como usada (histórico/UI -- não bloqueia mais uma 2ª/3ª
+  // rolagem no mesmo turno, ver canRollThisTurnToken()) e decide o destino do turno a partir do
   // resultado (verdict, 'acerto'/'erro' — ver finishRoll()): ERRO encerra o turno sozinho, com o
   // efeito da ampulheta girando ao contrário + a explosão de caveirinhas (pedido explícito, ver
-  // autoEndTurnOnRollFailure() abaixo); ACERTO só marca a rolagem como usada (travando o movimento
-  // pro resto do turno, ver canMoveThisTurnToken()) e deixa o turno aberto — precisa de um clique
-  // manual em "Encerrar Turno" (ver handleEndTurnClick()) pra passar a vez, exatamente como pedido
+  // autoEndTurnOnRollFailure() abaixo); ACERTO deixa o turno aberto, livre pra mover (sem travar
+  // mais, ver canMoveThisTurnToken()) e/ou rolar de novo — precisa de um clique manual em
+  // "Encerrar Turno" (ver handleEndTurnClick()) pra passar a vez, exatamente como pedido
   // ("assumindo que ainda possa ser necessário rolar dano").
   function markTurnRolled(verdict){
     if(!turnState.active) return;
@@ -11488,11 +11521,11 @@ body{
     if(!entry) return null;
     const isFichaDriven = entry.kind === 'hero' || entry.kind === 'inimigo_ficha' || entry.kind === 'aliado_ficha';
     if(!isFichaDriven) return null;
-    if(turnState.rolled) return null; // já rolou -- a ação começou, a fase de movimento ficou pra trás
-    // PONTOS DE AÇÃO (NOVO, pedido explícito: "vários movimentos por turno"): continua na fase de
-    // movimento enquanto sobrar PA pra gastar (turnState.apRemaining) -- não é mais uma flag única
-    // de "já se moveu" (antigo turnState.moved), já que agora dá pra mover de novo e de novo
-    // enquanto o PA não zerar.
+    // PONTOS DE AÇÃO (pedido explícito: "não precisa existir um limite na quantidade de ações por
+    // turno... desde que tenha pontos suficiente"): continua na fase de movimento enquanto sobrar
+    // PA pra gastar (turnState.apRemaining) -- não depende mais de turnState.rolled (já ter rolado
+    // não encerra mais a fase de movimento sozinho; essa trava cruzada saiu, ver
+    // canMoveThisTurnToken()).
     if((turnState.apRemaining || 0) > 0) return entry;
     const tok = findTurnEntryToken(entry);
     if(tok && !tok.facing) return entry; // já se moveu, mas ainda não confirmou pra que lado está olhando
@@ -11569,8 +11602,11 @@ body{
     // apMaxForToken()/markTurnMoved()) -- "3 + bônus de DES", só gasto por movimento nesta
     // rodada (1 ponto por casa).
     const apMax = turnState.apMax || 0, apRemaining = turnState.apRemaining || 0;
-    bits.push(turnState.rolled ? `movimento travado (já rolou) — ${apRemaining}/${apMax} PA` : `${apRemaining}/${apMax} PA disponíveis`);
-    if(!isFreeform) bits.push(turnState.rolled ? 'rolagem já usada' : 'rolagem disponível');
+    // Rodada nova (pedido explícito: sem limite de ações por turno, só limite de PA): "movimento
+    // travado (já rolou)"/"rolagem já usada" saíram daqui -- rolar não trava mais o movimento, e
+    // rolagem não tem limite de quantidade, então nenhum dos dois textos faz sentido mais.
+    bits.push(`${apRemaining}/${apMax} PA disponíveis`);
+    if(!isFreeform) bits.push('rolagem disponível');
     return `Rodada ${turnState.round} — vez de ${entry.nome} (${bits.join(' · ')})`;
   }
   function renderTurnBars(){
@@ -13587,23 +13623,13 @@ body{
     setChatActiveTab('chat');
   }
 
-  // Botões de ocultar (rodada nova, referência visual do usuário): cada um esconde só a PRÓPRIA
-  // coluna (tabuleiro OU chat) dentro da faixa fixa -- a outra expande sozinha pra ocupar o espaço
-  // (ver ".mesa-fixed-body .live-board-panel[hidden]/.chat-panel[hidden]{display:none}" no
-  // <style>). Reaproveita o mesmo atributo "hidden" que já existia nesses elementos (controlado
-  // hoje pelo login/logout, ver "$('liveBoardPanel').hidden"/"$('chatPanel').hidden" — esconder por
-  // aqui não interfere: no login o atributo volta a "false" de qualquer forma, então o estado de
-  // ocultar não "vaza" de uma sessão pra outra). aria-pressed reflete se está ocultando agora, só
-  // pra estilo (ver .mesa-hide-btn[aria-pressed="true"] no <style>).
-  function wireMesaHideToggle(btnId, panelEl){
-    const btn = $(btnId);
-    btn.addEventListener('click', ()=>{
-      panelEl.hidden = !panelEl.hidden;
-      btn.setAttribute('aria-pressed', panelEl.hidden ? 'true' : 'false');
-    });
-  }
-  wireMesaHideToggle('hideBoardColBtn', $('liveBoardPanel'));
-  wireMesaHideToggle('hideChatColBtn', $('chatPanel'));
+  // Rodada nova, pedido explícito ("remove a opção de minimizar o chat e o tabuleiro
+  // separadamente, deixe apenas a de minimizar toda a guia"): os botões de ocultar coluna-a-coluna
+  // (#hideBoardColBtn/#hideChatColBtn) e a função que os ligava (wireMesaHideToggle) saíram -- o
+  // usuário via esses dois botões como "mais uma forma de minimizar tabuleiro/chat separado", igual
+  // ao par antigo #liveBoardMinimizeBtn/#chatMinimizeBtn já removido numa rodada anterior (ver
+  // comentário de #mesaFixedMinimizeBtn no HTML). Só #mesaFixedMinimizeBtn (tabuleiro+chat juntos,
+  // ver setMesaFixedMinimized() mais abaixo) continua existindo pra isso.
 
   // Rodada nova, pedido explícito: o botão "🗗" (#popoutMesaBtn, abria a Mesa numa janela separada
   // via "?mesa=1" na URL) saiu do HTML -- o suporte a abrir automaticamente quando a página já
@@ -14173,6 +14199,11 @@ body{
       darkLabel.classList.toggle('mode-active', boardDarkMode);
       darkLabel.setAttribute('aria-pressed', boardDarkMode ? 'true' : 'false');
     }
+    // Rodada nova: aviso bem visível só pro Mestre (ver .board-dark-mode-warning no <style>) --
+    // Dark continua congelando a publicação inteira de propósito, mas sem este aviso é fácil
+    // esquecer ligada e achar, mais tarde, que o tabuleiro do jogador "quebrou" sozinho.
+    const darkWarning = $('boardDarkModeWarning');
+    if(darkWarning) darkWarning.hidden = !boardDarkMode;
     // ligar Dark não precisa publicar nada (o guard no topo de scheduleBoard*Push já barra
     // sozinho); desligar precisa republicar tudo de uma vez pra sincronizar os jogadores com o
     // que está na tela agora — chamar as 3 funções sempre, sem risco, cobre os dois casos.
@@ -15397,12 +15428,13 @@ body{
         announceOutOfTurn(turnEntryForToken(tok));
         return;
       }
-      // REDESENHO desta rodada (pedido explícito): só 1 movimento por turno, e nenhum movimento
-      // depois de já ter rolado neste turno (mesmo que ainda não tivesse se movido) — ver
-      // canMoveThisTurnToken()/markTurnRolled() lá em cima. Mesma correção do bloco logo acima: não
-      // depende mais de isBoardRevealedForFicha().
+      // REDESENHO (pedido explícito: "não precisa existir um limite na quantidade de ações por
+      // turno... desde que tenha pontos suficiente"): movimento só é recusado por falta de PA, sem
+      // mais nenhum contador de "1 por turno" nem trava por já ter rolado — ver
+      // canMoveThisTurnToken(). Mesma correção do bloco logo acima: não depende mais de
+      // isBoardRevealedForFicha().
       if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken()){
-        alert(turnState.rolled ? 'Você já rolou o dado de ação neste turno — não é mais possível se mover.' : 'Você não tem mais Pontos de Ação neste turno.');
+        alert('Você não tem mais Pontos de Ação neste turno.');
         return;
       }
       // inimigo_ficha, ficha do próprio mestre E (pedido explícito desta rodada, ver
@@ -18666,12 +18698,13 @@ body{
       announceOutOfTurn(turnEntryForToken(tok));
       return;
     }
-    // REDESENHO desta rodada (pedido explícito): só 1 movimento por turno, e nenhum movimento
-    // depois de já ter rolado neste turno (mesmo que ainda não tivesse se movido) — mesma trava de
+    // REDESENHO (pedido explícito: "não precisa existir um limite na quantidade de ações por
+    // turno... desde que tenha pontos suficiente"): movimento só é recusado por falta de PA, sem
+    // mais nenhum contador de "1 por turno" nem trava por já ter rolado — mesma trava de
     // handleBoardDrop(), aqui do lado do jogador. Mesma correção do bloco acima: não depende mais
     // de isBoardRevealedForFicha().
     if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken()){
-      liveBoardHintEl.textContent = turnState.rolled ? 'Você já rolou o dado de ação neste turno — não é mais possível se mover.' : 'Você não tem mais Pontos de Ação neste turno.';
+      liveBoardHintEl.textContent = 'Você não tem mais Pontos de Ação neste turno.';
       return;
     }
     // PONTOS DE AÇÃO (NOVO, pedido explícito -- "vale pra todo mundo na fila de turnos"): reusado
