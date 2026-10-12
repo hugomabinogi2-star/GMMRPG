@@ -11250,12 +11250,13 @@ body{
   // este aqui) que ainda não tinha aviso próprio (handleEndTurnClick()/autoEndTurnOnRollFailure()
   // já avisam cada um o seu).
   function markTurnMoved(passos){
-    // RODADA NOVA (pedido explícito, ver isBoardRevealedForFicha()): sem isto, um movimento feito
-    // ANTES de revelar (livre, sem nenhuma recusa -- ver handleBoardDrop()/handleLiveBoardDrop()
-    // acima) ainda assim consumiria silenciosamente PA da vez, e até avançaria o turno sozinho --
-    // deixando a fila toda desalinhada no momento em que o Mestre finalmente revela o tabuleiro.
-    // Enquanto não revelado, a fila fica congelada/inerte, como se não existisse.
-    if(!turnState.active || !isBoardRevealedForFicha()) return;
+    // CORREÇÃO (bug report "o mestre so move as fichas de inimigos no turno das ficas de
+    // inimigos"): esta trava dependia de isBoardRevealedForFicha() pro mesmo motivo de
+    // handleBoardDrop()/handleLiveBoardDrop() (ambas corrigidas, ver comentário grande delas) --
+    // agora que o movimento é bloqueado pela fila de turno desde a Iniciativa rolada, SEM esperar
+    // o tabuleiro ser Revelado, o gasto de PA precisa acompanhar na mesma hora, senão a fila ficaria
+    // bloqueando o movimento mas sem gastar/avançar PA nenhum, travando o turno pra sempre.
+    if(!turnState.active) return;
     const entry = currentTurnEntry();
     if(!entry) return;
     turnState.moved = true;
@@ -11480,7 +11481,9 @@ body{
   // abaixo), não só pra quem moveu. Peça SEM ficha (isFreeform) nunca entra aqui -- o próprio
   // movimento já encerra o turno dela inteiro, sem fase de ação nenhuma (ver markTurnMoved()).
   function currentMovementPhaseEntry(){
-    if(!turnState.active || !isBoardRevealedForFicha()) return null;
+    // CORREÇÃO (mesmo bug report/raciocínio de markTurnMoved() acima): não depende mais de
+    // isBoardRevealedForFicha(), pra ficar em sincronia com a trava de movimento de verdade.
+    if(!turnState.active) return null;
     const entry = currentTurnEntry();
     if(!entry) return null;
     const isFichaDriven = entry.kind === 'hero' || entry.kind === 'inimigo_ficha' || entry.kind === 'aliado_ficha';
@@ -11536,7 +11539,9 @@ body{
     if(!el) return;
     const entry = currentTurnEntry();
     const apMax = turnState.apMax || 0;
-    if(!turnState.active || !isBoardRevealedForFicha() || !entry || apMax <= 0){
+    // CORREÇÃO (mesmo bug report/raciocínio de markTurnMoved() acima): não depende mais de
+    // isBoardRevealedForFicha(), pra ficar em sincronia com a trava de movimento de verdade.
+    if(!turnState.active || !entry || apMax <= 0){
       el.hidden = true;
       el.innerHTML = '';
       return;
@@ -15376,10 +15381,17 @@ body{
       // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() logo acima): só quem está NA VEZ
       // agora pode ser movido — vale pra QUALQUER peça que faça parte da fila (inclusive as que o
       // Mestre normalmente move livre, como ficha de jogador) e vale pro próprio Mestre também,
-      // pedido explícito, sem exceção de correção aqui. RODADA NOVA (pedido explícito, ver
-      // isBoardRevealedForFicha()): só vale depois do tabuleiro revelado -- antes disso o Mestre
-      // pode reposicionar qualquer peça livremente, mesmo com a iniciativa já rodada.
-      if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok) && isBoardRevealedForFicha()){
+      // pedido explícito, sem exceção de correção aqui. CORREÇÃO (pedido explícito, bug report: "o
+      // mestre esta podendo mover as fichas de jogador, ele nao pode, o mestre so move as fichas de
+      // inimigos no turno das ficas de inimigos"): a trava de turno agora vale a partir do momento
+      // que a Iniciativa é rolada, SEM depender de isBoardRevealedForFicha() -- antes, o Mestre
+      // continuava podendo reposicionar qualquer peça (inclusive ficha de jogador) livremente
+      // enquanto o tabuleiro não fosse Revelado, mesmo com a fila já ativa; isso deixava de valer
+      // pra sempre nesse meio-tempo (ex.: se o Mestre relogar e o Revelar resetar sem querer no
+      // meio de uma rodada já em andamento). Rolagem/Ações Ofensivas continuam livres antes de
+      // Revelar (ver isBoardRevealedForFicha() nos outros usos, intocados) -- só o MOVIMENTO pela
+      // fila de turno perdeu essa exceção.
+      if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok)){
         const entry = currentTurnEntry();
         alert(`Não é a vez desta peça! Turno atual (Rodada ${turnState.round}): ${entry ? entry.nome : '—'}.`);
         announceOutOfTurn(turnEntryForToken(tok));
@@ -15387,9 +15399,9 @@ body{
       }
       // REDESENHO desta rodada (pedido explícito): só 1 movimento por turno, e nenhum movimento
       // depois de já ter rolado neste turno (mesmo que ainda não tivesse se movido) — ver
-      // canMoveThisTurnToken()/markTurnRolled() lá em cima. Mesma condição nova de revelado do
-      // bloco logo acima.
-      if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken() && isBoardRevealedForFicha()){
+      // canMoveThisTurnToken()/markTurnRolled() lá em cima. Mesma correção do bloco logo acima: não
+      // depende mais de isBoardRevealedForFicha().
+      if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken()){
         alert(turnState.rolled ? 'Você já rolou o dado de ação neste turno — não é mais possível se mover.' : 'Você não tem mais Pontos de Ação neste turno.');
         return;
       }
@@ -15403,11 +15415,14 @@ body{
       const restricted = isBoardMoveRestrictedToken(tok);
       // PONTOS DE AÇÃO (NOVO, pedido explícito -- "vale pra todo mundo na fila de turnos"): peça
       // SEM ficha (aliado/inimigo/monstro/boss avulsos) normalmente nunca tem alcance limitado (ver
-      // isBoardMoveRangeRestrictedToken() acima) -- mas durante a PRÓPRIA vez dela, já revelada,
-      // também precisa respeitar o que sobrou de PA (computeEffectiveMoveLimit() já usa
-      // turnState.apRemaining nesse caso, ver definição mais abaixo), senão ela andaria qualquer
-      // distância de uma vez só e nunca gastaria PA nenhum.
-      const apGatedNow = turnState.active && isCurrentTurnToken(tok) && isBoardRevealedForFicha();
+      // isBoardMoveRangeRestrictedToken() acima) -- mas durante a PRÓPRIA vez dela também precisa
+      // respeitar o que sobrou de PA (computeEffectiveMoveLimit() já usa turnState.apRemaining
+      // nesse caso, ver definição mais abaixo), senão ela andaria qualquer distância de uma vez só e
+      // nunca gastaria PA nenhum. CORREÇÃO (mesmo bug report do bloco de trava de turno acima): não
+      // depende mais de isBoardRevealedForFicha(), pra ficar em sincronia com a trava de movimento
+      // (sem isto, o aviso/alcance aqui ficaria "fora de combate" enquanto a trava de cima já
+      // estivesse ativa, uma contradição).
+      const apGatedNow = turnState.active && isCurrentTurnToken(tok);
       const rangeChecked = isBoardMoveRangeRestrictedToken(tok) || apGatedNow;
       // distância real do caminho encontrado (não a distância em linha reta) -- usada mais abaixo
       // pra descontar de turnState.apRemaining (ver markTurnMoved()); só existe de verdade quando
@@ -18574,14 +18589,18 @@ body{
     if(efeitos.paralizado || efeitos.congelado) return 0;
     // PONTOS DE AÇÃO (NOVO, pedido explícito: "o movimento do personagem no tabuleiro custa 1
     // ponto por casa" / "vale pra todo mundo na fila de turnos"): durante a PRÓPRIA vez desta
-    // peça, já revelada (ver isCurrentTurnToken()/isBoardRevealedForFicha()), o alcance É o que
-    // sobrou de PA (turnState.apRemaining, ver apMaxForToken()/markTurnMoved()) -- SUBSTITUI a
-    // conta antiga (1 + bônus de DES + Movimento) por completo nesse momento, não é só um teto por
-    // cima dela: uma peça SEM ficha (bonusDes/bonusMov sempre 0, "velha" conta sempre = 1) senão
-    // ficaria presa a 1 casa por vez mesmo tendo PA de sobra pra andar mais (o Math.min usado numa
-    // versão anterior tinha exatamente esse bug). Fora da própria vez (ou antes de revelar/sem
-    // fila ativa) o movimento livre continua exatamente como antes, sem PA nenhum envolvido.
-    const apDriven = turnState.active && isCurrentTurnToken(tok) && isBoardRevealedForFicha();
+    // peça (ver isCurrentTurnToken()), o alcance É o que sobrou de PA (turnState.apRemaining, ver
+    // apMaxForToken()/markTurnMoved()) -- SUBSTITUI a conta antiga (1 + bônus de DES + Movimento)
+    // por completo nesse momento, não é só um teto por cima dela: uma peça SEM ficha (bonusDes/
+    // bonusMov sempre 0, "velha" conta sempre = 1) senão ficaria presa a 1 casa por vez mesmo tendo
+    // PA de sobra pra andar mais (o Math.min usado numa versão anterior tinha exatamente esse
+    // bug). Fora da própria vez (ou sem fila ativa) o movimento livre continua exatamente como
+    // antes, sem PA nenhum envolvido. CORREÇÃO (bug report "o mestre so move as fichas de inimigos
+    // no turno das ficas de inimigos"): não depende mais de isBoardRevealedForFicha() -- precisa
+    // ficar em sincronia com a trava de turno de handleBoardDrop()/handleLiveBoardDrop() (ambas já
+    // corrigidas, ver comentário grande delas), que agora vale a partir da Iniciativa rolada, sem
+    // esperar o tabuleiro ser Revelado.
+    const apDriven = turnState.active && isCurrentTurnToken(tok);
     let limit;
     if(apDriven){
       limit = Math.max(0, turnState.apRemaining || 0);
@@ -18637,9 +18656,11 @@ body{
     if(!tok || tok.id !== payload.id || !isMyLiveToken(tok)) return;
     if(r === payload.r && c === payload.c) return;
     // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() na aba Mesa): só quem está NA VEZ
-    // agora pode se mover — mesma trava usada em handleBoardDrop(), aqui do lado do jogador. RODADA
-    // NOVA (pedido explícito, ver isBoardRevealedForFicha()): só vale depois do tabuleiro revelado.
-    if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok) && isBoardRevealedForFicha()){
+    // agora pode se mover — mesma trava usada em handleBoardDrop(), aqui do lado do jogador.
+    // CORREÇÃO (pedido explícito, bug report: "o mestre so move as fichas de inimigos no turno das
+    // ficas de inimigos" -- mesma correção de handleBoardDrop() acima): não depende mais de
+    // isBoardRevealedForFicha(), vale a partir do momento que a Iniciativa é rolada.
+    if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok)){
       const entry = currentTurnEntry();
       liveBoardHintEl.textContent = `Não é a sua vez! Turno atual (Rodada ${turnState.round}): ${entry ? entry.nome : '—'}.`;
       announceOutOfTurn(turnEntryForToken(tok));
@@ -18647,16 +18668,18 @@ body{
     }
     // REDESENHO desta rodada (pedido explícito): só 1 movimento por turno, e nenhum movimento
     // depois de já ter rolado neste turno (mesmo que ainda não tivesse se movido) — mesma trava de
-    // handleBoardDrop(), aqui do lado do jogador. Mesma condição nova de revelado do bloco acima.
-    if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken() && isBoardRevealedForFicha()){
+    // handleBoardDrop(), aqui do lado do jogador. Mesma correção do bloco acima: não depende mais
+    // de isBoardRevealedForFicha().
+    if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken()){
       liveBoardHintEl.textContent = turnState.rolled ? 'Você já rolou o dado de ação neste turno — não é mais possível se mover.' : 'Você não tem mais Pontos de Ação neste turno.';
       return;
     }
     // PONTOS DE AÇÃO (NOVO, pedido explícito -- "vale pra todo mundo na fila de turnos"): reusado
     // mais abaixo (aviso de "muito longe") pra saber se o limite de movimento agora É o PA restante
     // (computeEffectiveMoveLimit() já aplica isto por dentro, ver definição mais abaixo) ou ainda a
-    // conta antiga de DES+Movimento (fora de combate/fora da própria vez).
-    const apGatedNow = turnState.active && isCurrentTurnToken(tok) && isBoardRevealedForFicha();
+    // conta antiga de DES+Movimento (fora de combate/fora da própria vez). CORREÇÃO: não depende
+    // mais de isBoardRevealedForFicha(), mesma sincronia do bloco de trava acima.
+    const apGatedNow = turnState.active && isCurrentTurnToken(tok);
     const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
     if(r < 0 || c < 0 || r >= rows || c >= cols) return;
     const newKey = liveBoardKey(r, c);
@@ -20967,8 +20990,25 @@ body{
       // fog:true e revealed:false (só esses 2 campos, com update() — não mexe em rows/cols/fundo/cor,
       // que continuam os que já estavam publicados) pra manter o Firebase sempre igual ao que a tela
       // do mestre realmente mostra logo após entrar.
+      // CORREÇÃO (bug report: "o tabuleiro nao esta aparecendo para os jogadores" / "o mestre esta
+      // podendo mover as fichas de jogador" -- aconteceu mesmo depois de já ter clicado Revelar,
+      // confirmado pelo usuário: a aba/conexão do Mestre recarregou/reconectou no meio da mesma
+      // sessão já em andamento): este reset achava que SEMPRE era uma sessão nova (navegador
+      // fechado e reaberto outro dia), mas também disparava num simples F5/reconexão de rede no
+      // meio de um combate já rolando -- apagando o Revelar que os jogadores já estavam vendo (board
+      // escurece de novo) e reabrindo a brecha de movimento livre do Mestre, sem ele ter feito nada
+      // de errado. Agora só aplica esse reset quando NÃO há uma fila de Iniciativa ativa agora
+      // (mesa40k/liveBoard/turn.active) -- combate em andamento é um sinal forte de que isto é uma
+      // RECONEXÃO no meio da campanha, não uma sessão nova, então o estado de Revelar/Fog que os
+      // jogadores já estão vendo fica intacto.
       if(currentRole === 'mestre'){
-        try{ fbDb.ref('mesa40k/liveBoard/meta').update({ fog: true, revealed: false }); }catch(err){}
+        try{
+          const turnSnap = await fbDb.ref('mesa40k/liveBoard/turn').once('value');
+          const turnVal = turnSnap.val();
+          if(!turnVal || !turnVal.active){
+            await fbDb.ref('mesa40k/liveBoard/meta').update({ fog: true, revealed: false });
+          }
+        }catch(err){}
       }
       // "?mesa=1" na URL (posto pelo botão "🗗" do modal da Mesa, ver popoutMesaBtn mais acima) —
       // essa é a janela separada, abre a aba Mesa sozinha assim que o login (mestre) termina, sem
