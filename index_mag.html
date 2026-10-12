@@ -9439,8 +9439,12 @@ body{
       // jogador aberta na tela) também escreve. Sem isto, a troca de elemento feita pelo PRÓPRIO
       // jogador só apareceria pro mestre depois de salvar a ficha e reabrir "Ver ficha" (mesmo
       // problema que XP/atributos/Vida-Mana já tiveram antes de ganhar esse mesmo tratamento).
+      // Formato {deidade, path} (ver comentário grande de setHeroDeidade()) -- path identifica
+      // exatamente esta ficha (loadedFichaPath), pra não vazar essa Classe pra outra ficha salva
+      // da mesma conta (bug corrigido: "criei uma Arqueira, mas ao carregar ela abriu como
+      // Guerreira").
       if(els.deidade && els.deidade.value){
-        fbDb.ref('mesa40k/deidade/' + ownerUid).set(els.deidade.value);
+        fbDb.ref('mesa40k/deidade/' + ownerUid).set({ deidade: els.deidade.value, path: loadedFichaPath || null });
       }
     }
   }
@@ -9570,9 +9574,16 @@ body{
   // updateBarreiraShield()). NUNCA grava em mesa40k/live/{uid} (esse nó é reescrito por inteiro pelo
   // PRÓPRIO jogador a cada pushLiveVitals() — gravar a divindade lá seria sobrescrita de volta na
   // primeira interação da pessoa com a própria ficha).
-  function setHeroDeidade(ownerUid, deidade, nome){
+  // CORREÇÃO (bug relatado: "criei uma Arqueira, mas ao carregar ela abriu como Guerreira"): esse
+  // nó é ÚNICO POR CONTA (uid), não por ficha -- uma conta com várias fichas salvas (Classes
+  // diferentes) tinha a Classe de UMA ficha vazando pra outra, porque quem lia esse nó (handleDeidadeChange,
+  // o miniseletor do resumo ao vivo, "Ver ficha") confiava em "o valor mais recente", sem saber a
+  // qual ficha ele pertencia. Agora grava um OBJETO {deidade, path} -- path identifica exatamente a
+  // ficha (loadedFichaPath/caminho do arquivo, ou null pra uma ficha nova ainda não salva) -- e cada
+  // lugar que lê esse nó só aplica o valor se o path bater com a ficha que está olhando/abrindo.
+  function setHeroDeidade(ownerUid, deidade, nome, fichaPath){
     if(!fbReady || !fbDb || !ownerUid || !deidade) return;
-    fbDb.ref('mesa40k/deidade/' + ownerUid).set(deidade)
+    fbDb.ref('mesa40k/deidade/' + ownerUid).set({ deidade, path: fichaPath || null })
       .catch(err=> console.error('Não foi possível definir a divindade dessa ficha:', err));
   }
 
@@ -9588,7 +9599,7 @@ body{
   els.deidade.addEventListener('change', ()=>{
     if(suppressDeidadePush) return;
     if(currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
-    setHeroDeidade(loadedFichaOwnerUid, els.deidade.value, els.nome.value);
+    setHeroDeidade(loadedFichaOwnerUid, els.deidade.value, els.nome.value, loadedFichaPath);
   });
 
   // Público/Privado ao vivo: só o mestre mexe neste campo (ele fica escondido pra qualquer outra
@@ -13133,9 +13144,12 @@ body{
         // publica na hora (sem esperar o debounce de 600ms de pushLiveVitals()) -- corrige
         // mesa40k/deidade/{uid} o quanto antes, encurtando ainda mais a janela em que o valor
         // antigo (deidadeStaleValueToIgnore, ignorado acima em handleDeidadeChange()) poderia
-        // aparecer de novo por aí.
+        // aparecer de novo por aí. Formato {deidade, path} (ver comentário grande de
+        // setHeroDeidade()) -- loadedFichaPath aqui é null (ficha nova, ainda não salva), o que é
+        // exatamente certo: essa correção só deve valer PRA ESTA ficha nova, nunca pra outra ficha
+        // já salva da mesma conta.
         if(fbReady && fbDb && currentUser && currentRole === 'jogador'){
-          fbDb.ref('mesa40k/deidade/' + currentUser.uid).set(nome)
+          fbDb.ref('mesa40k/deidade/' + currentUser.uid).set({ deidade: nome, path: loadedFichaPath || null })
             .catch(err=> console.error('Não foi possível publicar a Classe escolhida:', err));
         }
       }, { intro: (currentRole === 'mestre' ? ELEMENT_PICKER_INTRO_MESTRE : ELEMENT_PICKER_INTRO_JOGADOR), exclude: (currentRole === 'mestre' ? [] : ['NPC']) });
@@ -17404,12 +17418,22 @@ body{
               // salvo no GitHub.
               deidadeSel.value = data.deidade || 'GUERREIRO ARCANO';
               deidadeSel.addEventListener('change', ()=>{
-                setHeroDeidade(data.ownerUid, deidadeSel.value, data.nome || '');
+                setHeroDeidade(data.ownerUid, deidadeSel.value, data.nome || '', path);
               });
               if(fbReady && fbDb){
                 const deidadeRef = fbDb.ref('mesa40k/deidade/' + data.ownerUid);
                 const deidadeCb = deidadeRef.on('value', (snap)=>{
-                  const val = snap.val();
+                  const raw = snap.val();
+                  if(!raw) return;
+                  // mesa40k/deidade/{uid} é ÚNICO por conta, não por ficha -- uma conta pode ter
+                  // várias fichas salvas (cada card aqui é uma delas). Formato novo {deidade, path}
+                  // (ver setHeroDeidade()) só aplica se path bater com ESTE card exatamente; senão é
+                  // uma correção de OUTRA ficha da mesma conta e teria vazado a Classe errada pra
+                  // este card (bug relatado: "criei uma Arqueira, mas ao carregar ela abriu como
+                  // Guerreira"). Formato antigo (string solta) não carrega path -- ignora, por
+                  // segurança, já que não dá pra saber a qual ficha pertencia.
+                  if(typeof raw === 'string' || raw.path !== path) return;
+                  const val = raw.deidade;
                   if(val){
                     deidadeSel.value = val;
                     // o miniseletor em si já reagia na hora (linha acima) -- mas o nome da
@@ -17439,12 +17463,19 @@ body{
                 // ainda ter salvo a ficha de novo -- sem isso, "Ver ficha" abria mostrando a
                 // Divindade antiga até a próxima vez que alguém salvasse. Busca o valor mais
                 // recente antes de aplicar, pra a ficha já abrir sincronizada com o resto da mesa.
+                // CORREÇÃO (bug relatado: "criei uma Arqueira, mas ao carregar ela abriu como
+                // Guerreira"): mesa40k/deidade/{uid} é ÚNICO por conta, não por ficha -- uma conta
+                // com várias fichas salvas tinha a Classe de QUALQUER UMA delas (a mais
+                // recentemente editada/criada) vazando pra esta aqui. Formato novo {deidade, path}
+                // (ver setHeroDeidade()) só sobrescreve se path bater EXATAMENTE com a ficha que
+                // está sendo aberta agora; formato antigo (string solta, sem path) é ignorado, por
+                // segurança, já que não dá pra saber a qual ficha pertencia.
                 let deidadeParaAbrir = data.deidade;
                 if(fbReady && fbDb && data.ownerUid){
                   try{
                     const snap = await fbDb.ref('mesa40k/deidade/' + data.ownerUid).once('value');
-                    const liveVal = snap.val();
-                    if(liveVal) deidadeParaAbrir = liveVal;
+                    const raw = snap.val();
+                    if(raw && typeof raw === 'object' && raw.path === path && raw.deidade) deidadeParaAbrir = raw.deidade;
                   }catch(err){ /* sem live disponível, segue com o valor salvo no arquivo mesmo */ }
                 }
                 const dataParaAbrir = deidadeParaAbrir !== data.deidade ? { ...data, deidade: deidadeParaAbrir } : data;
@@ -20905,7 +20936,20 @@ body{
     // cima). Preservar o valor local atual quando o nó está vazio -- um nó vazio significa "o
     // mestre não escolheu nada por fora ainda", não "resete pra FOGO": só aplica de verdade quando
     // vem um valor de verdade do Firebase.
-    const novaDeidade = snap.val();
+    const raw = snap.val();
+    if(!raw) return;
+    // CORREÇÃO (bug relatado: "criei uma Arqueira, mas ao carregar ela abriu como Guerreira"):
+    // mesa40k/deidade/{meuUid} é ÚNICO por conta, não por ficha -- uma conta com várias fichas
+    // salvas (Classes diferentes) tinha a Classe de OUTRA ficha da mesma conta (a mais
+    // recentemente editada/criada em qualquer sessão, inclusive pelo miniseletor do mestre)
+    // vazando pra ESTA ficha que está aberta aqui agora. Formato novo {deidade, path} (ver
+    // setHeroDeidade()) só aplica se path bater com loadedFichaPath (a ficha aberta nesta tela
+    // agora); formato antigo (string solta, de antes desta correção) não carrega path -- aceita
+    // incondicionalmente só nesse caso, só pra não quebrar quem ainda tiver esse formato antigo
+    // gravado (a próxima troca de Classe, de qualquer lado, já regrava no formato novo).
+    const isLegacyDeidadeFormat = typeof raw === 'string';
+    if(!isLegacyDeidadeFormat && raw.path !== loadedFichaPath) return;
+    const novaDeidade = isLegacyDeidadeFormat ? raw : raw.deidade;
     if(!novaDeidade) return;
     // ver o comentário grande de "let deidadeStaleValueToIgnore" lá em cima (perto de
     // "suppressDeidadePush") -- ignora especificamente o valor ANTIGO capturado ao clicar "Nova
