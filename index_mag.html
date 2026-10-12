@@ -2863,11 +2863,127 @@ body{
   filter:drop-shadow(0 0 14px var(--deity-eye-glow-soft, rgba(224,182,86,.55))) drop-shadow(0 0 30px var(--deity-eye-glow-soft, rgba(224,182,86,.3)));
 }
 .grid-cell-habil{grid-area:habil;}
-/* texto reservado do painel "Habilidades da Classe" (célula cheia embaixo de tudo, vazia por
-   enquanto -- ver comentário grande no HTML, perto de .grid-cell-habil). */
-.hab-classe-placeholder{
-  text-align:center;color:var(--ink-faint);font-style:italic;padding:18px 0;margin:0;
+/* ---------- Habilidades da Classe: árvores de habilidade (célula cheia embaixo de tudo, ver
+   .grid-cell-habil no HTML/comentário grande lá, e HAB_ARVORES_ESQUELETO/renderHabilidadesArvores()
+   no <script>) ---------- */
+.hab-pontos-badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:20px;padding:0 6px;margin-left:6px;
+  border-radius:10px;
+  border:1px solid var(--border-brown);
+  background:linear-gradient(180deg,var(--paper-l),var(--paper));
+  color:var(--gold-text);
+  font-family:'EB Garamond',serif;font-size:12px;font-weight:700;
+  vertical-align:middle;
+  cursor:help;
 }
+/* cada árvore JÁ É a própria habilidade (ver comentário grande de HAB_ARVORES_ESQUELETO no
+   <script>) -- #habArvoresWrap vira direto uma pilha de cards, sem nenhum agrupamento/título de
+   árvore por cima. A 4ª (bônus do nível 10) nem é desenhada até lá, então não existe mais nenhum
+   estado "card bloqueado/cinza" pra estilizar aqui. Pedido explícito desta rodada: "coloca um
+   card em baixo do outro e faz ele ficar mais largo pegando toda a parte de baixo da guia" -- um
+   card por linha (não mais lado a lado em grid), cada um ocupando a largura inteira da guia. */
+.hab-arvores-wrap{display:flex;flex-direction:column;gap:12px;}
+
+/* cada habilidade é um <button> grande (pedido explícito "a caixa da habilidade são na verdade
+   botões grandes que ao clicar neles o jogador aplica um ponto de habilidade") -- cor fixa (não
+   muda com o nível distribuído) e zoom no hover, mesma técnica já usada em
+   .barreira-shield-wrap:hover/.board-action-menu-item:hover no resto da ficha. */
+.hab-ability-card{
+  display:flex;flex-direction:column;gap:8px;
+  width:100%;text-align:left;font:inherit;
+  border:1px solid var(--border-brown);border-radius:10px;
+  padding:10px 12px 12px;
+  background:linear-gradient(160deg,var(--paper-l),var(--paper));
+  box-shadow:1px 2px 4px rgba(90,60,20,.18);
+  cursor:pointer;
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+.hab-ability-card:hover{
+  transform:scale(1.035);
+  box-shadow:0 4px 14px rgba(0,0,0,.35);
+  z-index:1;position:relative;
+}
+.hab-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.hab-card-top-text{min-width:0;}
+.hab-card-nome{
+  font-family:'Cinzel Decorative',serif;font-size:12.5px;letter-spacing:.04em;
+  color:var(--ink);text-transform:uppercase;
+}
+.hab-card-desc{
+  font-family:'EB Garamond',serif;font-size:11.5px;color:var(--ink-soft);margin-top:2px;
+}
+.hab-card-nivel{
+  flex:0 0 auto;text-align:right;
+  font-family:'Cinzel Decorative',serif;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-faint);white-space:nowrap;
+}
+.hab-card-nivel-num{
+  display:block;font-family:'EB Garamond',serif;font-size:15px;font-weight:700;color:var(--gold-text);
+  text-align:right;
+}
+
+/* barrinha de 5 bolinhas -- trilha preta fixa (.hab-pip-track) sempre visível por baixo,
+   preenchimento dourado (.hab-pip-fill) por cima só até a bolinha do nível atual (pedido
+   explícito: bolinhas/linha pretas enquanto não houver ponto, acendem conforme pontos são
+   distribuídos). O brilho deslizante reaproveita a MESMA técnica/keyframes da barra de XP
+   (.xp-bar-fill::after/@keyframes xpBarShine), só que correndo da DIREITA pra ESQUERDA dentro
+   do preenchimento (pedido explícito "efeito de brilho... da direita para esquerda como se
+   estivesse enchendo a barrinha"). */
+.hab-pip-bar{position:relative;height:20px;margin:2px 2px 0;}
+.hab-pip-track{
+  position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;
+  background:#000;border-radius:2px;
+}
+.hab-pip-fill{
+  position:absolute;left:0;top:50%;height:2px;margin-top:-1px;width:0%;
+  background:linear-gradient(90deg, var(--deity-eye-color,#e0b656), var(--gold-bright));
+  border-radius:2px;overflow:hidden;
+  box-shadow:0 0 6px 1px var(--deity-eye-glow-soft, rgba(224,182,86,.65));
+  animation:habPipGlowPulse 2.4s ease-in-out infinite;
+}
+@keyframes habPipGlowPulse{
+  0%,100%{ filter:brightness(1) saturate(1); }
+  50%{ filter:brightness(1.4) saturate(1.3); }
+}
+.hab-pip-fill::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg, transparent 0%, rgba(255,255,255,.65) 45%, rgba(255,255,255,.95) 50%, rgba(255,255,255,.65) 55%, transparent 100%);
+  background-size:250% 100%;
+  mix-blend-mode:screen;opacity:0;
+  animation:habPipShine 2.4s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes habPipShine{
+  0%{ background-position:140% 0; opacity:0; }
+  12%{ opacity:1; }
+  55%{ background-position:-40% 0; opacity:1; }
+  72%{ opacity:0; }
+  100%{ background-position:-40% 0; opacity:0; }
+}
+@media (prefers-reduced-motion: reduce){
+  .hab-pip-fill, .hab-pip-fill::after{ animation:none !important; }
+}
+.hab-pip-dots{
+  position:relative;z-index:1;
+  display:flex;justify-content:space-between;align-items:center;height:100%;
+}
+.hab-pip-wrap{display:flex;align-items:center;justify-content:center;padding:4px;cursor:help;}
+.hab-pip{
+  width:13px;height:13px;border-radius:50%;
+  background:#000;border:2px solid #000;display:block;
+  transition:background .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.hab-pip-wrap.lit .hab-pip{
+  background:var(--deity-eye-color,#e0b656);
+  border-color:var(--gold-bright);
+  box-shadow:0 0 8px 2px var(--deity-eye-glow-soft, rgba(224,182,86,.75));
+  animation:habPipGlowPulse 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce){
+  .hab-pip-wrap.lit .hab-pip{ animation:none !important; }
+}
+
 @media (max-width:760px){
   .front-grid{
     grid-template-columns:1fr;
@@ -6521,13 +6637,21 @@ body{
           <!-- ======= faixa cheia embaixo de tudo ======= -->
 
           <!-- Habilidades da Classe: pedido explícito desta rodada (desenho/wireframe enviado) --
-               painel reservado vazio por enquanto; as habilidades de verdade saíram da ficha faz
-               tempo (Segmento 4, "remove todas as habilidades") e ainda não voltaram. Fica aqui já
-               criado, pronto pra receber conteúdo quando houver. -->
+               3 árvores de habilidade + uma 4ª que só aparece a partir do nível 10 (cada árvore JÁ
+               É a própria habilidade, um card/botão grande cada uma -- CORREÇÃO explícita do
+               usuário em cima da 1ª versão: "são apenas 3 habilidades e uma quarta que so deve
+               aparecer a partir do nivel 10, cada habilidade ja é uma arvore", ver
+               HAB_ARVORES_ESQUELETO/renderHabilidadesArvores() no <script>). Ainda sem conteúdo de
+               verdade (nomes/descrições/efeitos) -- pedido explícito "pode deixar a guia já
+               pronta com os textos só como TEXTO e o nível como 0, futuramente vamos definir o
+               que cada uma delas faz e o tipo de cada uma". #habArvoresWrap nasce vazio aqui; quem
+               preenche é renderHabilidadesArvores(), chamada de dentro de recalc() (então já
+               aparece preenchido assim que a página carrega, sem precisar de nenhum gatilho
+               extra). -->
           <div class="grid-cell-habil">
-            <div class="panel">
-              <h2>Habilidades da Classe</h2>
-              <p class="hab-classe-placeholder">Em breve.</p>
+            <div class="panel hab-arvores-panel">
+              <h2>Habilidades da Classe <span class="hab-pontos-badge" id="habPontosBadge" title="Pontos de Habilidade disponíveis para distribuir (1 por nível do personagem)">0</span></h2>
+              <div class="hab-arvores-wrap" id="habArvoresWrap"></div>
             </div>
           </div>
 
@@ -7402,6 +7526,203 @@ body{
     'ARQUEIRO ARCANO':  { nome:'ATAQUE DE ARQUEIRO',   dano:'Médio',  dado:{qtd:1,faces:6}, danoTipo:'Elemental', atributo:'int', alcance:8, custoPA:2, custoMana:2 },
     // 'NPC' de propósito não tem entrada aqui -- sem Classe Arcana, sem ataque gratuito.
   };
+
+  // ---------- Habilidades da Classe: árvores de habilidade ----------
+  // Rodada nova (pedido explícito, com imagem de referência enviada pelo usuário): a guia
+  // "Habilidades da Classe" (célula cheia embaixo de tudo, ver .grid-cell-habil no HTML/<style>,
+  // reservada vazia desde a rodada da "Armadura/Resistência Elemental") ganha conteúdo de verdade
+  // -- cada Classe tem 3 árvores de habilidade + uma 4ª que só aparece a partir do nível 10.
+  // CORREÇÃO desta rodada (erro da 1ª versão): cada ÁRVORE JÁ É A PRÓPRIA HABILIDADE -- não é um
+  // grupo contendo várias habilidades dentro. Pedido explícito: "houve um erro, são apenas 3
+  // habilidades e uma quarta que so deve aparecer a partir do nivel 10, cada habilidade ja é uma
+  // arvore, considerando os efeitos que as bolinhas vao adicionar mais pra frente" -- ou seja, a
+  // "árvore" de cada habilidade é a progressão das 5 bolinhas dela mesma (os efeitos que cada
+  // bolinha for ganhar numa rodada futura), não uma lista de cards separados. Card errado desta
+  // 1ª versão (3 árvores x 3/4 espaços = 9/10 cards) virou 4 cards no total, lado a lado, sem
+  // nenhum agrupamento (ver HAB_ARVORES_ESQUELETO logo abaixo): 3 sempre visíveis + a 4ª some até
+  // o personagem chegar no nível 10, aí aparece já com 1 ponto de graça. Todas as habilidades têm
+  // 5 níveis (pedido explícito "todas elas tem 5 níveis"). IMPORTANTE: isto é só o ESQUELETO
+  // visual/interativo -- nome, descrição e o que cada habilidade FAZ de verdade ainda não foram
+  // definidos (pedido explícito "pode deixar a guia já pronta com os textos só como TEXTO e o
+  // nível como 0, futuramente vamos definir o que cada uma delas faz e o tipo de cada uma"). A
+  // estrutura das 4 árvores é a MESMA pras 6 Classes por enquanto -- se cada Classe vier a ter
+  // habilidades diferentes numa rodada futura, HAB_ARVORES_ESQUELETO/habilidadesState (logo
+  // abaixo) precisarão passar a variar por els.deidade.value nessa hora.
+  const HAB_ARVORES_ESQUELETO = [
+    { id:'arv1', titulo:'Árvore 1' },
+    { id:'arv2', titulo:'Árvore 2' },
+    { id:'arv3', titulo:'Árvore 3' },
+    { id:'arv4', titulo:'Árvore 4', bonus:true }, // só aparece a partir do nível 10, ver HAB_NIVEL_BONUS_NIVEL
+  ];
+  const HAB_NIVEL_MAX = 5;          // níveis (bolinhas) por habilidade (pedido explícito)
+  const HAB_NIVEL_BONUS_NIVEL = 10; // nível do PERSONAGEM que libera a 4ª árvore/habilidade
+
+  // Pontos já distribuídos em cada árvore/habilidade (0..HAB_NIVEL_MAX, um número por árvore --
+  // não mais um array de vários espaços, ver correção acima) -- salvo/carregado junto com o
+  // resto da ficha, ver collectState()/applyState() mais abaixo. Só CRESCE (clicar no card soma 1
+  // ponto; não existe botão de remover, mesma filosofia de "só o mestre reduz algo já distribuído"
+  // usada em Atributos, só que aqui nem o mestre tem como reduzir por enquanto -- ninguém pediu
+  // isso ainda).
+  let habilidadesState = { arv1:0, arv2:0, arv3:0, arv4:0 };
+  // nível ATUAL do personagem (espelha levelFloor de dentro de recalc() -- ver "currentCharLevel ="
+  // logo depois de "const levelFloor" em recalc()) -- guardado à parte porque as funções de
+  // Habilidade abaixo (chamadas tanto de dentro de recalc() quanto do clique no card) precisam
+  // dele fora da função recalc() em si.
+  let currentCharLevel = 1;
+
+  // Garante que toda árvore salva tenha o formato esperado (um número entre 0 e HAB_NIVEL_MAX por
+  // árvore de HAB_ARVORES_ESQUELETO) mesmo vindo de uma ficha salva por uma versão futura com mais
+  // árvores, pelo formato ANTIGO desta guia (array por árvore, da 1ª versão desta rodada, antes da
+  // correção acima), ou de um valor corrompido/ausente -- nunca deixa renderHabilidadesArvores()
+  // (mais abaixo) estourar por causa de um valor inesperado.
+  function normalizeHabilidadesState(saved){
+    const src = saved || {};
+    const out = {};
+    HAB_ARVORES_ESQUELETO.forEach(arv=>{
+      // formato antigo (array, 1ª versão) -- usa o 1º valor do array como aproximação, pra não
+      // perder pontos de quem já salvou a ficha entre as duas versões desta mesma rodada.
+      const bruto = Array.isArray(src[arv.id]) ? src[arv.id][0] : src[arv.id];
+      const n = Number(bruto) || 0;
+      out[arv.id] = Math.max(0, Math.min(HAB_NIVEL_MAX, Math.round(n)));
+    });
+    return out;
+  }
+
+  // Quantos pontos já foram GASTOS do total disponível pro jogador distribuir -- soma o nível de
+  // toda árvore, exceto o 1º ponto da 4ª árvore (bônus do nível 10, um PRESENTE que não sai do
+  // total, ver maybeUnlockHabilidadeBonus() logo abaixo).
+  function habilidadesPontosGastos(){
+    let total = 0;
+    HAB_ARVORES_ESQUELETO.forEach(arv=>{
+      const nivel = habilidadesState[arv.id] || 0;
+      total += (arv.bonus && nivel > 0) ? Math.max(0, nivel - 1) : nivel;
+    });
+    return total;
+  }
+  // 1 Ponto de Habilidade por nível do personagem (pedido explícito "ele recebe 1 por nível").
+  function habilidadesPontosTotais(nivelPersonagem){
+    return Math.max(0, nivelPersonagem | 0);
+  }
+  function habilidadesPontosDisponiveis(nivelPersonagem){
+    return Math.max(0, habilidadesPontosTotais(nivelPersonagem) - habilidadesPontosGastos());
+  }
+  // Concede de graça o 1º ponto da 4ª árvore assim que o personagem alcança o nível 10 -- só
+  // GANHA, nunca tira de volta (se o nível cair por algum motivo depois, o ponto de graça fica).
+  // Chamada sempre que o nível é recalculado, ver recalc() mais abaixo.
+  function maybeUnlockHabilidadeBonus(nivelPersonagem){
+    if(nivelPersonagem < HAB_NIVEL_BONUS_NIVEL) return;
+    if((habilidadesState.arv4 || 0) === 0) habilidadesState.arv4 = 1;
+  }
+  function habilidadeArvoreDesbloqueada(arv, nivelPersonagem){
+    return arv.bonus ? (nivelPersonagem >= HAB_NIVEL_BONUS_NIVEL) : true;
+  }
+
+  // Clique no card inteiro = gasta 1 Ponto de Habilidade naquela árvore (pedido explícito "a caixa
+  // da habilidade são na verdade botões grandes que ao clicar neles o jogador aplica um ponto de
+  // habilidade naquela habilidade") -- trava em 5 níveis (HAB_NIVEL_MAX), na 4ª árvore antes do
+  // nível 10 (ainda nem aparece, ver renderHabilidadesArvores()) e em "sem pontos sobrando".
+  function habilidadeCardClick(arvoreId){
+    const arv = HAB_ARVORES_ESQUELETO.find(a=> a.id === arvoreId);
+    if(!arv || !habilidadeArvoreDesbloqueada(arv, currentCharLevel)) return;
+    const nivelAtual = habilidadesState[arvoreId] || 0;
+    if(nivelAtual >= HAB_NIVEL_MAX) return;
+    if(habilidadesPontosDisponiveis(currentCharLevel) <= 0) return;
+    habilidadesState[arvoreId] = nivelAtual + 1;
+    renderHabilidadesArvores();
+    playPlim(); // mesmo "ding" já usado nos outros pontos distribuídos da ficha (XP, Atributos)
+  }
+
+  // Monta a barrinha de 5 bolinhas de uma habilidade -- trilha (.hab-pip-track) sempre preta por
+  // baixo, "preenchimento" dourado brilhante (.hab-pip-fill) por cima só até a bolinha do nível
+  // atual (pedido explícito: acende da bolinha 1 em diante conforme pontos são distribuídos,
+  // ficando preta fixa enquanto não houver nenhum ponto) -- o efeito de luz deslizando da DIREITA
+  // pra ESQUERDA (pedido explícito) reaproveita a MESMA técnica/keyframes da barra de XP
+  // (.xp-bar-fill::after/@keyframes xpBarShine no <style>), só que com nomes próprios
+  // (.hab-pip-fill::after/@keyframes habPipShine) por estar fora da Barra de XP. Cada bolinha usa
+  // o mecanismo de tooltip flutuante já existente (.ar-ap-tip + .cs-tooltip, ver
+  // wireMouseTrackedTooltip('.ar-ap-tip', ...) mais abaixo) pra mostrar o texto detalhado daquele
+  // nível específico ao passar o mouse -- nenhum JS extra de hover precisa ser escrito aqui. Cada
+  // bolinha É a própria "árvore" da habilidade (pedido explícito "considerando os efeitos que as
+  // bolinhas vao adicionar mais pra frente") -- o efeito de cada nível ainda não foi definido, só
+  // o texto placeholder por enquanto.
+  function buildHabilidadePips(nivelAtual){
+    const bar = document.createElement('div');
+    bar.className = 'hab-pip-bar';
+    const track = document.createElement('div');
+    track.className = 'hab-pip-track';
+    bar.appendChild(track);
+    if(nivelAtual > 0){
+      const fill = document.createElement('div');
+      fill.className = 'hab-pip-fill';
+      fill.style.width = (((nivelAtual - 1) / (HAB_NIVEL_MAX - 1)) * 100) + '%';
+      bar.appendChild(fill);
+    }
+    const dots = document.createElement('div');
+    dots.className = 'hab-pip-dots';
+    for(let i = 1; i <= HAB_NIVEL_MAX; i++){
+      const pipWrap = document.createElement('div');
+      pipWrap.className = 'hab-pip-wrap ar-ap-tip' + (i <= nivelAtual ? ' lit' : '');
+      const pip = document.createElement('span');
+      pip.className = 'hab-pip';
+      pipWrap.appendChild(pip);
+      const tip = document.createElement('div');
+      tip.className = 'cs-tooltip';
+      tip.textContent = `NÍVEL ${i}: TEXTO`;
+      pipWrap.appendChild(tip);
+      dots.appendChild(pipWrap);
+    }
+    bar.appendChild(dots);
+    return bar;
+  }
+
+  function buildHabilidadeCard(arvoreId, nivelAtual){
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'hab-ability-card';
+    const top = document.createElement('div');
+    top.className = 'hab-card-top';
+    const topText = document.createElement('div');
+    topText.className = 'hab-card-top-text';
+    const nomeEl = document.createElement('div');
+    nomeEl.className = 'hab-card-nome';
+    nomeEl.textContent = 'TEXTO'; // nome de verdade ainda não definido, ver comentário grande acima
+    const descEl = document.createElement('div');
+    descEl.className = 'hab-card-desc';
+    descEl.textContent = 'TEXTO'; // descrição de verdade ainda não definida, idem
+    topText.appendChild(nomeEl);
+    topText.appendChild(descEl);
+    const nivelEl = document.createElement('div');
+    nivelEl.className = 'hab-card-nivel';
+    nivelEl.innerHTML = 'NÍVEL<span class="hab-card-nivel-num">' + nivelAtual + '</span>';
+    top.appendChild(topText);
+    top.appendChild(nivelEl);
+    card.appendChild(top);
+    card.appendChild(buildHabilidadePips(nivelAtual));
+    // as 2 caixas cinzas vazias embaixo (reservadas, da imagem de referência original) saíram a
+    // pedido explícito desta rodada ("remove esses quadrados cinza de baixo de cada card") -- o
+    // card agora termina na barrinha de bolinhas.
+    card.addEventListener('click', ()=> habilidadeCardClick(arvoreId));
+    return card;
+  }
+
+  // Redesenha a guia inteira (badge de pontos + os cards) -- chamada de dentro de recalc() (toda
+  // vez que o nível pode ter mudado) e a cada clique num card (habilidadeCardClick() acima). A 4ª
+  // árvore/habilidade (bonus:true) só é incluída no grid a partir do nível 10 -- pedido explícito
+  // "uma quarta que so deve aparecer a partir do nivel 10" (nem aparece cinza/trancada antes
+  // disso, simplesmente não é desenhada ainda). Simples o bastante (poucos elementos) pra não
+  // precisar de nenhum diff/cache -- sempre reconstrói do zero, mesmo padrão já usado por outras
+  // guias dinâmicas da ficha.
+  function renderHabilidadesArvores(){
+    const wrap = $('habArvoresWrap');
+    if(!wrap) return;
+    const badge = $('habPontosBadge');
+    if(badge) badge.textContent = habilidadesPontosDisponiveis(currentCharLevel);
+    wrap.innerHTML = '';
+    HAB_ARVORES_ESQUELETO.forEach(arv=>{
+      if(!habilidadeArvoreDesbloqueada(arv, currentCharLevel)) return;
+      wrap.appendChild(buildHabilidadeCard(arv.id, habilidadesState[arv.id] || 0));
+    });
+  }
 
   // Rolagem genérica NdM (nenhuma função assim existia antes -- rollDanoBtn/finishDanoRoll() são
   // só da UI da ficha, presas a elementos/animação da tela, não servem pra chamar programaticamente
@@ -8450,6 +8771,14 @@ body{
     // caixa ao lado do título "Atributos" — mesma informação do "remaining" acima, só que num
     // relance rápido, sem precisar ler a barra de pontos lá embaixo do grid.
     if(els.attrPointsBadge) els.attrPointsBadge.textContent = Math.max(0, Math.round(remaining*10)/10);
+
+    // Habilidades da Classe (árvores) -- desbloqueia o 4º espaço bônus se o nível já chegou em
+    // HAB_NIVEL_BONUS_NIVEL e redesenha a guia inteira (badge de pontos + os cards), ver
+    // HAB_ARVORES_ESQUELETO/renderHabilidadesArvores() mais acima no <script>. currentCharLevel
+    // precisa ficar atualizado ANTES de qualquer um dos dois, já que ambos dependem dele.
+    currentCharLevel = levelFloor;
+    maybeUnlockHabilidadeBonus(currentCharLevel);
+    renderHabilidadesArvores();
 
     // botões < > de cada atributo: desabilita ">" quando não há pontos suficientes pro próximo
     // rank (ou já no máximo de 18), desabilita "<" quando já está no mínimo (1) ou quando essa
@@ -11915,6 +12244,9 @@ body{
         const descEl = r.querySelector('.item-desc');
         return { nome: inputs[0].value, qtd: inputs[1].value, desc: descEl ? descEl.value : '' };
       }),
+      // Habilidades da Classe (árvores) -- pontos distribuídos em cada espaço, ver
+      // habilidadesState/HAB_ARVORES_ESQUELETO mais acima no <script>.
+      habilidades: habilidadesState,
     };
   }
 
@@ -12013,6 +12345,12 @@ body{
     document.querySelectorAll('.effect-btn[data-effect]').forEach(btn=>{
       btn.classList.toggle('active', hasActiveEffect(btn.dataset.effect));
     });
+
+    // Habilidades da Classe (árvores) -- "Nova ficha" (s={}) volta todo mundo pra 0 espaços/
+    // pontos; normalizeHabilidadesState() blinda contra formato velho/ausente/corrompido. O
+    // redesenho de verdade (renderHabilidadesArvores()) acontece dentro de recalc(), chamado
+    // logo abaixo nesta mesma função -- não precisa chamar aqui também.
+    habilidadesState = normalizeHabilidadesState(s.habilidades);
 
     // carregar uma ficha nova reinicia a referência de "pontos já distribuídos" (senão os valores
     // do personagem anterior/carregado seriam comparados com os daquele que acabou de ser aberto)
