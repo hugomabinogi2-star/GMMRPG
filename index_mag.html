@@ -5965,32 +5965,19 @@ body{
          um quadrado com a moeda" + "remove os botões de poção da guia de vitalidade e coloca eles
          ao lado do botão de rolar sorte na linha de baixo do tabuleiro, tente manter todos os
          botões no mesmo estilo, ao passar o mouse por cima desses botões de zoom neles e mostre um
-         texto informando o que o botao faz". Os 3 viram botões quadrados (.mesa-fixed-icon-btn,
-         mesmo visual base de .dice-roll-btn/.vital-potion-btn) com zoom no hover (mesma técnica de
-         transform:scale já usada em .barreira-shield-wrap:hover) e o tooltip flutuante de sempre
-         (.ar-ap-tip/.cs-tooltip, ver wireMouseTrackedTooltip() no <script> -- funciona sozinho, sem
-         nenhuma wiring nova, só de ganhar a classe/marcação). refill_vida/refill_mana mantêm os
-         MESMOS ids/SVGs de sempre (usePotion()/refreshPotionButtons() no <script> não mudam nada). -->
+         texto informando o que o botao faz". O botão de Sorte virou quadrado (.mesa-fixed-icon-btn,
+         mesmo visual base de .dice-roll-btn) com zoom no hover (mesma técnica de transform:scale já
+         usada em .barreira-shield-wrap:hover) e o tooltip flutuante de sempre (.ar-ap-tip/
+         .cs-tooltip, ver wireMouseTrackedTooltip() no <script>).
+         RODADA NOVA ("3 ações no tabuleiro", pedido explícito: "o uso de poções sai da barra abaixo
+         do tabuleiro e passam a ser uma ação defensiva"): refill_vida/refill_mana, que moraram aqui
+         por uma rodada, SAÍRAM de vez desta faixa -- usar Poção de Vida/Mana agora é um item do
+         menu de Ações Defensivas (clique direito no próprio token ou no de um aliado no tabuleiro,
+         ver buildPotionMenuItem()/usePotion() no <script>). As classes .vital-potion-btn/
+         .vital-refill-btn (CSS) ficam no arquivo sem nenhum elemento mais as usando -- de propósito,
+         pra não arriscar quebrar nada só pra limpar CSS morto; dá pra remover numa faxina futura. -->
     <div class="mesa-fixed-bottom" id="mesaFixedBottom">
       <button id="rollSorteBtn" type="button" class="dice-roll-btn mesa-fixed-sorte-btn mesa-fixed-icon-btn ar-ap-tip" aria-label="Jogar a Sorte">🪙<div class="cs-tooltip">RODA SORTE</div></button>
-      <button type="button" class="refill vital-refill-btn vital-potion-btn vital-potion-btn-vida mesa-fixed-icon-btn ar-ap-tip" id="refill_vida" aria-label="Usar Poção de Vida">
-        <div class="dice-particle-layer" id="vidaPotionParticleLayer"></div>
-        <svg class="vital-potion-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <rect x="9" y="2" width="6" height="3.4" rx="1" class="vital-potion-cap"/>
-          <path d="M8.4 5.4h7.2v3.3l3.1 6.2c1.5 3-.8 6.5-4.2 6.5H9.5c-3.4 0-5.7-3.5-4.2-6.5l3.1-6.2V5.4z" class="vital-potion-liquid"/>
-          <path d="M6.6 14.6h10.8" class="vital-potion-shine"/>
-        </svg>
-        <div class="cs-tooltip">USA POÇÃO DE VIDA</div>
-      </button>
-      <button type="button" class="refill vital-refill-btn vital-potion-btn vital-potion-btn-mana mesa-fixed-icon-btn ar-ap-tip" id="refill_mana" aria-label="Usar Poção de Mana">
-        <div class="dice-particle-layer" id="manaPotionParticleLayer"></div>
-        <svg class="vital-potion-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <rect x="9" y="2" width="6" height="3.4" rx="1" class="vital-potion-cap"/>
-          <path d="M8.4 5.4h7.2v3.3l3.1 6.2c1.5 3-.8 6.5-4.2 6.5H9.5c-3.4 0-5.7-3.5-4.2-6.5l3.1-6.2V5.4z" class="vital-potion-liquid"/>
-          <path d="M6.6 14.6h10.8" class="vital-potion-shine"/>
-        </svg>
-        <div class="cs-tooltip">USA POÇÃO DE MANA</div>
-      </button>
     </div>
   </div>
 
@@ -7556,20 +7543,41 @@ body{
   // só o pool de tokens e o role mudam entre as duas chamadas (ver buildBoardGrid()/
   // renderLiveBoardMini()). ----------
 
-  // Categoria é decidida só pelo kind do token CLICADO (nunca por quem está atacando agora, ver
-  // resolveAttackerToken() mais acima) -- mesmo critério de tokenRingColorHex() (dourado=hero,
-  // verde=aliado, vermelho=inimigo), estendido com hero+pvp contando como hostil:
-  //  - inimigo/monstro/boss/inimigo_ficha, OU hero em modo PVP -> Ações Ofensivas
-  //  - aliado/aliado_fera/aliado_ficha, OU hero fora de modo PVP -> Ações Defensivas
-  //  - qualquer outra coisa (casa vazia, Barreira/Porta/Rocha/Pedra de Gelo/Vila/Castelo/Templo/
-  //    Caverna/Forte, Baú/Arbusto/Armadilha/Poça) -> Ações de Campo
-  function classifyBoardActionCategory(token){
+  // CORREÇÃO DE LÓGICA (pedido explícito do usuário: "ações ofensivas de jogadores são aplicadas a
+  // inimigos / ações ofensivas de inimigos são aplicadas a jogadores e aliados / essa mesma
+  // dinâmica precisa ocorrer para os demais tipos de ação"): a categoria NÃO pode depender só do
+  // kind do token CLICADO -- precisa comparar o LADO de quem está atacando AGORA
+  // (resolveAttackerToken(), a ficha da vez) com o LADO do alvo clicado. boardActionSide() dá o
+  // lado de um token: 'jogador' (hero fora de modo PVP, aliado/aliado_fera/aliado_ficha) ou
+  // 'inimigo' (inimigo/monstro/boss/inimigo_ficha); qualquer outra coisa (casa vazia, Barreira/
+  // Porta/Rocha/Pedra de Gelo/Vila/Castelo/Templo/Caverna/Forte, Baú/Arbusto/Armadilha/Poça) não
+  // tem lado -> sempre Ações de Campo, não importa quem está atacando. Com os dois lados em mãos:
+  //  - lados IGUAIS (ex.: Mestre controla um Monstro na vez e clica em si mesmo ou em OUTRO
+  //    Monstro/Aliado do Monstro; ou um Herói/Aliado na vez clica em si mesmo ou noutro Aliado) ->
+  //    Ações Defensivas (apoiar/curar o próprio lado) -- é exatamente o pedido original ("clicar no
+  //    próprio token ou no token de um aliado").
+  //  - lados DIFERENTES (ex.: Herói/Aliado na vez clica num Monstro, OU Monstro na vez clica num
+  //    Herói/Aliado -- este 2º caso é o bug que estava faltando) -> Ações Ofensivas.
+  // Um hero com PVP ligado continua sendo alvo OFENSIVO válido pra QUALQUER atacante (mesma
+  // excessão de sempre, pedido original de PVP entre jogadores), independente do lado calculado.
+  // Sem nenhuma ficha na vez agora (fora de combate, turnState.active false) não dá pra comparar
+  // lado nenhum -- cai de volta no critério antigo só-pelo-kind, só pra decidir que CABEÇALHO
+  // mostrar (o item em si já vem desabilitado por "Fora de combate", ver buildOfensivaMenuItem()).
+  function boardActionSide(token){
+    if(!token) return null;
+    if(token.kind === 'inimigo' || token.kind === 'monstro' || token.kind === 'boss' || token.kind === 'inimigo_ficha') return 'inimigo';
+    if(token.kind === 'aliado' || token.kind === 'aliado_fera' || token.kind === 'aliado_ficha') return 'jogador';
+    if(token.kind === 'hero') return 'jogador';
+    return null;
+  }
+  function classifyBoardActionCategory(token, attackerToken){
     if(!token) return 'campo';
-    if(token.kind === 'inimigo' || token.kind === 'monstro' || token.kind === 'boss' || token.kind === 'inimigo_ficha') return 'ofensiva';
+    const targetSide = boardActionSide(token);
+    if(!targetSide) return 'campo';
     if(token.kind === 'hero' && token.pvp) return 'ofensiva';
-    if(token.kind === 'aliado' || token.kind === 'aliado_fera' || token.kind === 'aliado_ficha') return 'defensiva';
-    if(token.kind === 'hero') return 'defensiva';
-    return 'campo';
+    const attackerSide = boardActionSide(attackerToken);
+    if(!attackerSide) return targetSide === 'inimigo' ? 'ofensiva' : 'defensiva';
+    return attackerSide === targetSide ? 'defensiva' : 'ofensiva';
   }
 
   // "Quem clicou pode agir pela ficha da vez?" -- mesmo critério "sem restrição nenhuma" já usado
@@ -7661,10 +7669,50 @@ body{
     return item;
   }
 
-  // Monta o CONTEÚDO do menu (cabeçalho + corpo) de acordo com a categoria -- Defensivas/Campo
-  // ficam vazios por agora (pedido explícito do usuário: "deixa os 2 menus vazios por agora" --
-  // NÃO migra "Erguer Escudo"/"Erguer Escudo Pesado" pra dentro deles, que continuam exatamente
-  // onde já estavam, confirmado explicitamente com o usuário).
+  // Monta UM item de Poção (Vida OU Mana) do menu de Ações Defensivas -- rodada nova, pedido
+  // explícito do usuário: "o uso de poções sai da barra abaixo do tabuleiro e passam a ser uma
+  // ação defensiva" (as duas antigas refill_vida/refill_mana, ver comentário grande de usePotion()
+  // mais acima). Aparece sempre que a categoria é 'defensiva' (clique no próprio token ou no de um
+  // ALIADO), SEM depender de quem está na vez -- confirmado via pergunta: a cura cai no alvo
+  // CLICADO (self ou aliado), e usar a poção continua consumindo do Inventário da ficha que EU
+  // tenho aberta agora (não do atacante da vez, ver usePotion()). Igual a buildOfensivaMenuItem(),
+  // já calcula aqui se fica habilitado (poção sobrando/alvo válido/alvo não cheio/é a vez da ficha
+  // aberta, se ela estiver numa fila ativa) -- onUsePotion() só é chamado quando o item já está de
+  // fato HABILITADO.
+  function buildPotionMenuItem(kind, targetCombat, onUsePotion){
+    const nome = kind === 'vida' ? 'POÇÃO DE VIDA' : 'POÇÃO DE MANA';
+    const label = kind === 'vida' ? 'Usar Poção de Vida' : 'Usar Poção de Mana';
+    const item = document.createElement('button');
+    item.type = 'button';
+    item.className = 'board-action-menu-item';
+    const qty = getLockedItemQty(nome);
+    let reason = '';
+    const entry = turnEntryDaFichaAberta();
+    if(entry && !isCurrentTurnToken(entry)) reason = 'Não é a sua vez.';
+    else if(!targetCombat) reason = 'Alvo inválido.';
+    else if(qty <= 0) reason = `Sem ${nome.toLowerCase()} no Inventário.`;
+    else {
+      const atual = kind === 'vida' ? (targetCombat.vida || 0) : (targetCombat.mana || 0);
+      const max = kind === 'vida' ? (targetCombat.vidaMax || 0) : (targetCombat.manaMax || 0);
+      if(atual >= max) reason = kind === 'vida' ? 'O alvo já está com Vida cheia.' : 'O alvo já está com Mana cheia.';
+    }
+    const detailTxt = `Restaura ${kind === 'vida' ? 'Vida' : 'Mana'} até o máximo · Consome 1 ${nome} do seu Inventário · Sobrando: ${qty}`;
+    item.innerHTML = `<span class="board-action-menu-item-name">${escapeHtml(label)}</span>`
+      + `<span class="board-action-menu-item-detail">${escapeHtml(detailTxt)}</span>`
+      + (reason ? `<span class="board-action-menu-item-reason">${escapeHtml(reason)}</span>` : '');
+    if(reason){
+      item.disabled = true;
+    } else {
+      item.addEventListener('click', ()=>{ closeBoardActionMenu(); onUsePotion(kind); });
+    }
+    return item;
+  }
+
+  // Monta o CONTEÚDO do menu (cabeçalho + corpo) de acordo com a categoria -- Ações de Campo fica
+  // vazia por agora (pedido explícito do usuário: "deixa o menu vazio por agora" -- NÃO migra
+  // "Erguer Escudo"/"Erguer Escudo Pesado" pra dentro dela, que continua exatamente onde já
+  // estava, confirmado explicitamente com o usuário). Ações Defensivas ganhou os 2 itens de Poção
+  // nesta rodada (ver buildPotionMenuItem() acima).
   function buildBoardActionMenuContent(category, ctx){
     const wrap = document.createElement('div');
     const header = document.createElement('div');
@@ -7675,6 +7723,9 @@ body{
     body.className = 'board-action-menu-body';
     if(category === 'ofensiva'){
       body.appendChild(buildOfensivaMenuItem(ctx.attackerToken, ctx.attackerCombat, ctx.targetCombat, ctx.onAttack));
+    } else if(category === 'defensiva'){
+      body.appendChild(buildPotionMenuItem('vida', ctx.targetCombat, ctx.onUsePotion));
+      body.appendChild(buildPotionMenuItem('mana', ctx.targetCombat, ctx.onUsePotion));
     } else {
       const empty = document.createElement('div');
       empty.className = 'board-action-menu-empty';
@@ -7706,13 +7757,14 @@ body{
     closeBoardActionMenu();
     const key = (role === 'mestre') ? boardKey(r,c) : liveBoardKey(r,c);
     const targetToken = (pool && pool[key]) || null;
-    const category = classifyBoardActionCategory(targetToken);
     const attackerToken = resolveAttackerToken();
+    const category = classifyBoardActionCategory(targetToken, attackerToken);
     const attackerCombat = resolveCombatData(attackerToken);
     const targetCombat = resolveCombatData(targetToken);
     const ctx = {
       role, targetToken, attackerToken, attackerCombat, targetCombat,
       onAttack: (ability)=>{ tryResolveBoardAttack(attackerToken, attackerCombat, targetToken, targetCombat, ability, pool, role, r, c); },
+      onUsePotion: (kind)=>{ tryResolveBoardPotion(pool, role, r, c, kind); },
       onRemove: ()=> removeTokenAt(r, c),
     };
     boardActionMenuEl = document.createElement('div');
@@ -7802,6 +7854,27 @@ body{
     const alvoNome = tokenTooltipText(targetToken);
     const custoTxt = ability.custoMana > 0 ? `${ability.custoPA} PA + ${ability.custoMana} Mana` : `${ability.custoPA} PA`;
     postToDiscord(`⚔️ ${atacanteNome} usa ${ability.nome} em ${alvoNome}: ${rolado}+${bonusAtributo} (${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) −${defesaAlvo} de defesa = ${danoFinal} de dano (custo ${custoTxt}). Vida: ${vidaAntes} → ${vidaDepois}.`.toUpperCase(), null);
+  }
+
+  // Resolve de verdade o uso de uma Poção clicada no menu de Ações Defensivas (ver
+  // buildPotionMenuItem() acima) -- SÓ é chamada quando o item já estava HABILITADO no instante do
+  // clique, mas (mesmo cuidado de tryResolveBoardAttack()) re-resolve o alvo do ZERO a partir de
+  // r/c/pool/role (a CASA clicada é a única coisa que não muda com o tempo) em vez de confiar num
+  // token recebido que pode estar desatualizado. Quem gasta a Poção (qual ficha, qual Inventário) e
+  // se isso encerra o turno é tudo decidido dentro de usePotion() (gate por turnEntryDaFichaAberta(),
+  // ver comentário grande dela) -- esta função só re-renderiza a casa/peça curada depois.
+  function tryResolveBoardPotion(pool, role, r, c, kind){
+    const key = (role === 'mestre') ? boardKey(r, c) : liveBoardKey(r, c);
+    const targetToken = pool && pool[key];
+    if(!targetToken) return;
+    const usou = usePotion(kind, targetToken);
+    if(!usou) return;
+    if(role === 'mestre'){
+      if(targetToken.anchorR != null) renderBoardCell(targetToken.anchorR, targetToken.anchorC);
+    } else {
+      renderLiveBoardMini();
+    }
+    if(typeof renderFichaSummaryBubbles === 'function') renderFichaSummaryBubbles();
   }
   // Ícones de cada Classe -- usados no seletor que aparece pro JOGADOR/MESTRE ao clicar "Nova
   // ficha" (ver #elementPickerModal no HTML e openElementPicker() mais abaixo). Arte definitiva
@@ -10594,48 +10667,56 @@ body{
     return el ? (parseFloat(el.value) || 0) : 0;
   }
 
-  // botões refill_vida/refill_mana (pote vermelho/pote azul, ver HTML/CSS) — só funcionam com PELO
-  // MENOS 1 poção correspondente sobrando no Inventário (ficam desabilitados/apagados sem nenhuma);
-  // clicar consome exatamente 1 poção (mesmo com só 1 sobrando -- ela some, some com a última) e
-  // enche a Vida/Mana até o máximo atual de uma vez, não importa o quanto estava faltando.
+  // ---------- "o uso de poções sai da barra abaixo do tabuleiro e passam a ser uma ação
+  // defensiva" (rodada nova, pedido explícito do usuário) ---------- os botões refill_vida/
+  // refill_mana (pote vermelho/pote azul) SAÍRAM de #mesaFixedBottom por completo (ver HTML) --
+  // usar uma Poção agora é um item do menu de Ações Defensivas (clique direito no próprio token ou
+  // no de um aliado no tabuleiro, ver buildPotionMenuItem()/tryResolveBoardPotion() mais abaixo),
+  // confirmado via pergunta: a cura cai no TOKEN CLICADO (você mesmo ou o aliado), nunca mais
+  // sempre a própria ficha. refreshPotionButtons() continua existindo (ainda chamada depois de
+  // editar o Inventário/subir de nível) mas virou um no-op seguro -- os ids refill_vida/
+  // refill_mana não existem mais no DOM, e os `if(vidaBtn)`/`if(manaBtn)` já protegiam contra
+  // elemento ausente mesmo antes desta rodada.
   function refreshPotionButtons(){
     const vidaBtn = $('refill_vida');
     const manaBtn = $('refill_mana');
     if(vidaBtn) vidaBtn.disabled = getLockedItemQty('POÇÃO DE VIDA') <= 0;
     if(manaBtn) manaBtn.disabled = getLockedItemQty('POÇÃO DE MANA') <= 0;
   }
-  const vidaPotionParticleLayer = $('vidaPotionParticleLayer');
-  const manaPotionParticleLayer = $('manaPotionParticleLayer');
-  function usePotion(kind){
+  // Consome exatamente 1 Poção correspondente do Inventário da FICHA QUE EU TENHO ABERTA agora
+  // (getLockedItemQtyInput(), mesmo limite de sempre -- o Mestre só gasta poção de qualquer ficha
+  // que ele tenha carregada no próprio formulário no momento, igual já era antes desta rodada) e
+  // aplica a cura (até o máximo, nunca parcial, mesma conta de sempre) no TOKEN ALVO recebido --
+  // por cima de applyCombatVitalDelta() (MESMO canal seguro já usado pelo dano de Ação Ofensiva:
+  // mesa40k/vidaMana/{uid} pra hero, campo direto + mesa40k/liveBoard/tokens pra peça de ficha),
+  // mesmo quando o alvo é a PRÓPRIA ficha -- o PRÓPRIO cliente já escuta o nó vidaMana dele e
+  // aplica de volta sozinho (ver handleVidaManaChange()), fechando o ciclo sem precisar tocar em
+  // els.curVida/curMana direto. Devolve true/false (sucesso) pra quem chamou decidir se
+  // re-renderiza/fecha o menu (ver tryResolveBoardPotion() mais abaixo).
+  function usePotion(kind, targetToken){
     const nome = kind === 'vida' ? 'POÇÃO DE VIDA' : 'POÇÃO DE MANA';
     const qtyInput = getLockedItemQtyInput(nome);
     const qty = qtyInput ? (parseFloat(qtyInput.value) || 0) : 0;
-    if(qty <= 0) return; // trava de segurança -- o próprio botão já vem desabilitado nesse caso
+    if(qty <= 0) return false; // trava de segurança -- o próprio item do menu já vem desabilitado nesse caso
+    const targetCombat = resolveCombatData(targetToken);
+    if(!targetCombat) return false;
+    const campo = kind === 'vida' ? 'vida' : 'mana';
+    const atual = targetCombat[campo] || 0;
+    const max = kind === 'vida' ? (targetCombat.vidaMax || 0) : (targetCombat.manaMax || 0);
+    const delta = max - atual;
+    if(delta <= 0) return false; // alvo já está cheio -- não gasta a poção de graça
     // mesmo gate de turno das outras ações (mover/rolar/trocar arma ou elemento) -- só fora da vez
     // dentro de uma fila ativa é que recusa; sem fila ativa, ou fora da fila, continua livre.
     const entry = turnEntryDaFichaAberta();
-    if(entry && !isCurrentTurnToken(entry)){ announceOutOfTurn(entry); return; }
+    if(entry && !isCurrentTurnToken(entry)){ announceOutOfTurn(entry); return false; }
     if(qtyInput) qtyInput.value = qty - 1;
-    if(kind === 'vida') els.curVida.value = els.maxVida.textContent;
-    else els.curMana.value = els.maxMana.textContent;
-    recalc();
+    applyCombatVitalDelta(targetToken, campo, delta);
     refreshPotionButtons();
-    // Fase 4 da "dinâmica de turnos": usar poção pode NÃO encerrar o turno (1ª poção grátis com
-    // Espada Leve, ver isentaEspadaLeve abaixo) -- atualiza o baralho na hora de qualquer jeito,
-    // pra o cartão de quantidade nunca ficar com o número antigo.
-    renderTurnActionPanel();
-    // efeito comemorativo ao usar a Poção -- vários coraçõezinhos "como fogos" (❤️, já vermelho por
-    // padrão) estourando ao redor da caixa de Vida, ou estrelinhas AZUIS ao redor da de Mana (ver
-    // spawnDiceParticles()/.mana-star-particle no <style> -- mesmo mecanismo já usado nas
-    // partículas de acerto crítico/sorte, só que aqui SEMPRE dispara, não só num resultado especial).
-    if(kind === 'vida') spawnDiceParticles(vidaPotionParticleLayer, '❤️', 16);
-    else spawnDiceParticles(manaPotionParticleLayer, '✦', 14, 'mana-star-particle');
-    if(entry){
-      advanceTurn();
-    }
+    const nomeAlvo = tokenTooltipText(targetToken);
+    postToDiscord(`${kind === 'vida' ? '❤️' : '✦'} ${nomeAlvo} USA ${nome}: ${campo.toUpperCase()} ${atual} → ${max}.`.toUpperCase(), null);
+    if(entry) advanceTurn();
+    return true;
   }
-  $('refill_vida').addEventListener('click', ()=> usePotion('vida'));
-  $('refill_mana').addEventListener('click', ()=> usePotion('mana'));
 
   rollSorteBtn.addEventListener('click', ()=>{
     if(sorteRollBusy) return; // já rolando, ignora clique duplo (ver comentário grande perto de "let sorteRollBusy" mais acima)
