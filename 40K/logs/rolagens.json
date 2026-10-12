@@ -1,16 +1,5 @@
 [
   {
-    "nome": "Arqueira",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 8,
-    "resultado": 2,
-    "resultLabel": "Erro",
-    "habilidade": "Disparar Flecha",
-    "alvo": "Dummy 1",
-    "ts": 1790891882386
-  },
-  {
     "nome": "Dummy",
     "tipo": "atributo",
     "statKey": "for",
@@ -290,5 +279,12 @@
     "de": "D1",
     "para": "D2",
     "ts": 1791823491714
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "movimento",
+    "de": "C3",
+    "para": "E3",
+    "ts": 1791836884004
   }
 ]
