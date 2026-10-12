@@ -4,17 +4,6 @@
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 8,
-    "resultado": 12,
-    "resultLabel": "Acerto",
-    "habilidade": "Disparar Flecha",
-    "alvo": "Dummy 1",
-    "ts": 1790891854418
-  },
-  {
-    "nome": "Arqueira",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 8,
     "resultado": 15,
     "resultLabel": "Acerto",
     "habilidade": "Disparar Flecha",
@@ -302,5 +291,12 @@
     "de": "C2",
     "para": "D6",
     "ts": 1791823318080
+  },
+  {
+    "nome": "Arqueira",
+    "tipo": "movimento",
+    "de": "D6",
+    "para": "D8",
+    "ts": 1791823373406
   }
 ]
