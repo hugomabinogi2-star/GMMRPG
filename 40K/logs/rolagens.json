@@ -1,13 +1,6 @@
 [
   {
     "nome": "Arqueira",
-    "tipo": "movimento",
-    "de": "J6",
-    "para": "G4",
-    "ts": 1790893123167
-  },
-  {
-    "nome": "Arqueira",
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 8,
@@ -282,5 +275,12 @@
     "de": "C4",
     "para": "D8",
     "ts": 1791840029913
+  },
+  {
+    "nome": "Arqueira2",
+    "tipo": "movimento",
+    "de": "C4",
+    "para": "D8",
+    "ts": 1791843895140
   }
 ]
