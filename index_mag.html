@@ -1564,6 +1564,35 @@ body{
   filter:drop-shadow(0 1px 3px rgba(0,0,0,.75));
   animation:boardHitFxFloat .85s ease-out forwards;
 }
+/* Rodada nova, pedido explícito ("quando houver um ataque este precisa ser animado... balance o
+   atacante na direção do atacado, o atacado recebe um efeito de tremida e uma animação de corte,
+   então sobe na tela um numero representando o dano causado... caso nenhum dano seja causado sobe
+   um texto escrito ERROU") -- primeira versão ("por hora"), ver spawnBoardHitFx()/broadcastHitFx()
+   no <script>, que finalmente dão uso de verdade a .board-token-shake/.board-hit-fx-emoji acima
+   (ficavam órfãs desde que o Menu de Ataque antigo saiu, Segmento 4). .board-token-lean é a peça do
+   ATACANTE balançando pra cima do alvo -- --lean-x/--lean-y (setadas por JS antes de ligar a
+   classe) carregam a DIREÇÃO de verdade (sinal de linha/coluna entre atacante e alvo), um único
+   keyframe serve pras 8 direções. .board-hit-fx-text reaproveita o MESMO keyframe boardHitFxFloat
+   já usado por .board-hit-fx-emoji (mesmo "sobe e desaparece"), só que com texto em vez de emoji --
+   vermelho pro número de dano, cinza/menor pro "ERROU". */
+@keyframes boardTokenLean{
+  0%,100%{ transform:translate(0,0) rotate(0deg); }
+  40%{ transform:translate(var(--lean-x,0),var(--lean-y,0)) rotate(var(--lean-rot,0deg)); }
+}
+.board-token.board-token-lean{ animation:boardTokenLean .45s ease-in-out; }
+.board-hit-fx-text{
+  position:fixed;left:0;top:0;
+  font-family:'Cinzel Decorative',serif;font-weight:700;letter-spacing:.02em;
+  line-height:1;pointer-events:none;z-index:601;white-space:nowrap;
+  text-shadow:0 1px 2px #000,0 0 6px rgba(0,0,0,.65);
+  animation:boardHitFxFloat .85s ease-out forwards;
+}
+.board-hit-fx-text.board-hit-fx-dano{ font-size:22px;color:#ff5c4d; }
+.board-hit-fx-text.board-hit-fx-miss{ font-size:14px;color:#d8d2c4;text-transform:uppercase; }
+@media (prefers-reduced-motion: reduce){
+  .board-token.board-token-lean{ animation:none !important; }
+  .board-hit-fx-emoji, .board-hit-fx-text{ animation:none !important;opacity:0; }
+}
 /* menu suspenso ao passar o mouse num token do tabuleiro — mostra o nome do personagem (fichas) ou
    o tipo + número de ordem de colocação (aliados/inimigos/monstros/boss), pra o mestre identificar
    quem é quem de relance.
@@ -2900,6 +2929,21 @@ body{
   transform:scale(1.035);
   box-shadow:0 4px 14px rgba(0,0,0,.35);
   z-index:1;position:relative;
+}
+/* card do "Ataque normal" (NOVO, pedido explícito: "mais uma habilidade no topo com um nivel fixo
+   para representar o ataque normal do personagem, este que cada classe ja tem", ver
+   buildAtaqueNormalCard() no <script>) -- sempre o 1º card da guia. Não é um <button> clicável (não
+   gasta Ponto de Habilidade nenhum, nível sempre fixo/cheio), então não ganha nem o cursor de
+   "pode clicar" nem o zoom de hover dos cards normais -- só um contorno dourado sutil, pra
+   diferenciar visualmente "habilidade inata" de "habilidade pra investir pontos". */
+.hab-ability-card-fixed{
+  cursor:default;
+  border-color:var(--gold-bright, #e0b656);
+  box-shadow:0 0 8px 1px rgba(224,182,86,.25), 1px 2px 4px rgba(90,60,20,.18);
+}
+.hab-ability-card-fixed:hover{
+  transform:none;
+  box-shadow:0 0 10px 2px rgba(224,182,86,.35), 1px 2px 4px rgba(90,60,20,.18);
 }
 .hab-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
 .hab-card-top-text{min-width:0;}
@@ -7113,6 +7157,26 @@ body{
   </div>
 </div>
 
+<!-- Confirmação antes de gastar um Ponto de Habilidade (NOVO, pedido explícito: "quando clicar para
+     distribuir pontos nas habilidades ele precisa mostrar uma tela informando que a ação não pode
+     ser desfeita e perguntando se o jogador tem certeza de aplicar aquele ponto ali com um botão de
+     sim e não") -- habilidadeCardClick() no <script> não aplica mais o ponto na hora do clique: só
+     abre este modal, guardando a árvore clicada; a aplicação de verdade só roda dentro do listener
+     de "SIM" (ver "habPontoConfirmSimBtn" mais abaixo no <script>). -->
+<div class="modal-overlay" id="habPontoConfirmModal" hidden>
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>CONFIRMAR PONTO DE HABILIDADE</h2>
+      <button id="closeHabPontoConfirm" class="modal-close">✕</button>
+    </div>
+    <p class="modal-sub">Aplicar 1 Ponto de Habilidade em <strong id="habPontoConfirmNome">—</strong>? <strong>Esta ação não pode ser desfeita.</strong></p>
+    <div class="modal-actions">
+      <button id="habPontoConfirmNaoBtn">NÃO</button>
+      <button id="habPontoConfirmSimBtn" class="danger">SIM</button>
+    </div>
+  </div>
+</div>
+
 <!-- Zoom ao passar o mouse em cima de uma imagem da ficha (retrato da frente e as 4 imagens do
      verso -- fada/pixie/animal/humana). Fica FORA de #card de propósito: tanto .face quanto
      .face-inner têm overflow:hidden/overflow-x:hidden (pra cortar o conteúdo certinho nas bordas
@@ -7643,11 +7707,42 @@ body{
     return arv.bonus ? (nivelPersonagem >= HAB_NIVEL_BONUS_NIVEL) : true;
   }
 
-  // Clique no card inteiro = gasta 1 Ponto de Habilidade naquela árvore (pedido explícito "a caixa
-  // da habilidade são na verdade botões grandes que ao clicar neles o jogador aplica um ponto de
-  // habilidade naquela habilidade") -- trava em 5 níveis (HAB_NIVEL_MAX), na 4ª árvore antes do
-  // nível 10 (ainda nem aparece, ver renderHabilidadesArvores()) e em "sem pontos sobrando".
-  function habilidadeCardClick(arvoreId){
+  // Clique no card inteiro = PEDE PRA gastar 1 Ponto de Habilidade naquela árvore (pedido explícito
+  // "a caixa da habilidade são na verdade botões grandes que ao clicar neles o jogador aplica um
+  // ponto de habilidade naquela habilidade") -- trava em 5 níveis (HAB_NIVEL_MAX), na 4ª árvore
+  // antes do nível 10 (ainda nem aparece, ver renderHabilidadesArvores()) e em "sem pontos
+  // sobrando". NOVO (pedido explícito: "quando clicar para distribuir pontos nas habilidades ele
+  // precisa mostrar uma tela informando que a ação não pode ser desfeita e perguntando se o
+  // jogador tem certeza... com um botão de sim e não") -- o clique só ABRE o modal de confirmação
+  // (#habPontoConfirmModal) guardando a árvore pendente; quem de fato aplica o ponto é
+  // applyPendingHabilidadePonto(), chamada só pelo botão "SIM" (ver a wiring dos 3 botões do modal
+  // mais abaixo no <script>, perto de "const habPontoConfirmModal"). nomeTxt é só o texto JÁ
+  // RENDERIZADO no card clicado (ver buildHabilidadeCard() logo abaixo) -- mostrado de volta no
+  // modal pra deixar claro EM QUAL habilidade o ponto cairia.
+  let habPontoConfirmArvoreId = null;
+  function habilidadeCardClick(arvoreId, nomeTxt){
+    const arv = HAB_ARVORES_ESQUELETO.find(a=> a.id === arvoreId);
+    if(!arv || !habilidadeArvoreDesbloqueada(arv, currentCharLevel)) return;
+    const nivelAtual = habilidadesState[arvoreId] || 0;
+    if(nivelAtual >= HAB_NIVEL_MAX) return;
+    if(habilidadesPontosDisponiveis(currentCharLevel) <= 0) return;
+    habPontoConfirmArvoreId = arvoreId;
+    const nomeEl = $('habPontoConfirmNome');
+    if(nomeEl) nomeEl.textContent = nomeTxt || 'esta habilidade';
+    const modal = $('habPontoConfirmModal');
+    if(modal) modal.hidden = false;
+  }
+  // Aplica de verdade o ponto pendente (botão "SIM" do modal) -- torna a conferir TODAS as mesmas
+  // condições de habilidadeCardClick() do zero (mesmo cuidado de "nunca confiar em estado antigo"
+  // já usado por tryResolveBoardAttack()/tryResolveBoardPotion() no tabuleiro: o jogador pode ter
+  // deixado o modal aberto por um tempo, e os pontos disponíveis/nível podem ter mudado nesse meio
+  // tempo) antes de gastar o ponto.
+  function applyPendingHabilidadePonto(){
+    const arvoreId = habPontoConfirmArvoreId;
+    habPontoConfirmArvoreId = null;
+    const modal = $('habPontoConfirmModal');
+    if(modal) modal.hidden = true;
+    if(!arvoreId) return;
     const arv = HAB_ARVORES_ESQUELETO.find(a=> a.id === arvoreId);
     if(!arv || !habilidadeArvoreDesbloqueada(arv, currentCharLevel)) return;
     const nivelAtual = habilidadesState[arvoreId] || 0;
@@ -7656,6 +7751,12 @@ body{
     habilidadesState[arvoreId] = nivelAtual + 1;
     renderHabilidadesArvores();
     playPlim(); // mesmo "ding" já usado nos outros pontos distribuídos da ficha (XP, Atributos)
+  }
+  // Botão "NÃO"/✕/clique fora -- só fecha o modal sem aplicar nada.
+  function cancelPendingHabilidadePonto(){
+    habPontoConfirmArvoreId = null;
+    const modal = $('habPontoConfirmModal');
+    if(modal) modal.hidden = true;
   }
 
   // Monta a barrinha de 5 bolinhas de uma habilidade -- trilha (.hab-pip-track) sempre preta por
@@ -7701,6 +7802,39 @@ body{
     return bar;
   }
 
+  // Barrinha do card de "Ataque normal" (ver buildAtaqueNormalCard() logo abaixo) -- pedido
+  // explícito desta rodada, CORRIGINDO a 1ª versão (que acendia as 5 bolinhas, como se fosse um
+  // nível 5 "todo investido"): "a primeira habilidade só tem uma bolinha, ultima da barra" -- ou
+  // seja, nível FIXO não é "5 de 5 pontos", é uma coisa só/binária (tem ou não tem), então só a
+  // ÚLTIMA bolinha (a 5ª, mais à direita) acende, sem a linha de preenchimento dourada (que
+  // representa PROGRESSO entre várias bolinhas -- não faz sentido pra algo fixo). Mesma trilha/
+  // espaçamento/tooltip das outras barrinhas, só pra manter a largura e o alinhamento idênticos aos
+  // outros cards da guia.
+  function buildAtaqueNormalPips(){
+    const bar = document.createElement('div');
+    bar.className = 'hab-pip-bar';
+    const track = document.createElement('div');
+    track.className = 'hab-pip-track';
+    bar.appendChild(track);
+    const dots = document.createElement('div');
+    dots.className = 'hab-pip-dots';
+    for(let i = 1; i <= HAB_NIVEL_MAX; i++){
+      const isLast = i === HAB_NIVEL_MAX;
+      const pipWrap = document.createElement('div');
+      pipWrap.className = 'hab-pip-wrap ar-ap-tip' + (isLast ? ' lit' : '');
+      const pip = document.createElement('span');
+      pip.className = 'hab-pip';
+      pipWrap.appendChild(pip);
+      const tip = document.createElement('div');
+      tip.className = 'cs-tooltip';
+      tip.textContent = isLast ? 'HABILIDADE FIXA -- SEMPRE DISPONÍVEL, NÃO USA PONTOS' : '';
+      pipWrap.appendChild(tip);
+      dots.appendChild(pipWrap);
+    }
+    bar.appendChild(dots);
+    return bar;
+  }
+
   function buildHabilidadeCard(arvoreId, nivelAtual){
     const card = document.createElement('button');
     card.type = 'button';
@@ -7727,23 +7861,68 @@ body{
     // as 2 caixas cinzas vazias embaixo (reservadas, da imagem de referência original) saíram a
     // pedido explícito desta rodada ("remove esses quadrados cinza de baixo de cada card") -- o
     // card agora termina na barrinha de bolinhas.
-    card.addEventListener('click', ()=> habilidadeCardClick(arvoreId));
+    card.addEventListener('click', ()=> habilidadeCardClick(arvoreId, nomeEl.textContent));
     return card;
   }
 
-  // Redesenha a guia inteira (badge de pontos + os cards) -- chamada de dentro de recalc() (toda
-  // vez que o nível pode ter mudado) e a cada clique num card (habilidadeCardClick() acima). A 4ª
-  // árvore/habilidade (bonus:true) só é incluída no grid a partir do nível 10 -- pedido explícito
-  // "uma quarta que so deve aparecer a partir do nivel 10" (nem aparece cinza/trancada antes
-  // disso, simplesmente não é desenhada ainda). Simples o bastante (poucos elementos) pra não
-  // precisar de nenhum diff/cache -- sempre reconstrói do zero, mesmo padrão já usado por outras
-  // guias dinâmicas da ficha.
+  // ---------- "Ataque normal" (NOVO, pedido explícito: "Adiciona mais uma habilidade no topo com
+  // um nivel fixo para representar o ataque normal do personagem, este que cada classe ja tem") ----
+  // Card fixo, sempre o 1º da guia (antes de arv1/arv2/arv3/arv4) -- representa a Habilidade de
+  // ataque gratuito que toda Classe Arcana já tem de fábrica (ver HABILIDADE_INICIAL_CLASSE/
+  // tryResolveBoardAttack() mais abaixo), mostrando os dados DE VERDADE dela (nome/dano/alcance/
+  // custo) -- diferente dos cards arv1-4 acima, que ainda são só esqueleto/placeholder "TEXTO" (o
+  // conteúdo deles ainda não foi definido). Não entra em habilidadesPontosGastos() (não gasta nem
+  // depende de nenhum Ponto de Habilidade) e não é um <button> clicável pra "subir de nível" --
+  // "nível fixo" (pedido explícito) significa que as 5 bolinhas aparecem sempre cheias, já nascendo
+  // pronta, sem precisar (nem dar pra) investir nada nela. Sem Classe Arcana escolhida ainda (ou
+  // 'NPC', que de propósito não tem entrada em HABILIDADE_INICIAL_CLASSE) não existe ataque normal
+  // nenhum pra mostrar -- devolve null, e renderHabilidadesArvores() simplesmente não desenha nada
+  // no lugar (mesmo critério de "sem dado ainda, sem card ainda" do resto da ficha).
+  function buildAtaqueNormalCard(){
+    const ability = HABILIDADE_INICIAL_CLASSE[els.deidade.value];
+    if(!ability) return null;
+    const card = document.createElement('div');
+    card.className = 'hab-ability-card hab-ability-card-fixed';
+    card.title = 'Habilidade inata -- todo personagem já nasce com ela, de acordo com a Classe escolhida. Não usa nem depende de Pontos de Habilidade.';
+    const top = document.createElement('div');
+    top.className = 'hab-card-top';
+    const topText = document.createElement('div');
+    topText.className = 'hab-card-top-text';
+    const nomeEl = document.createElement('div');
+    nomeEl.className = 'hab-card-nome';
+    nomeEl.textContent = ability.nome;
+    const descEl = document.createElement('div');
+    descEl.className = 'hab-card-desc';
+    const custoTxt = ability.custoMana > 0 ? `${ability.custoPA} PA + ${ability.custoMana} Mana` : `${ability.custoPA} PA`;
+    const danoTipoTxt = ability.danoTipo === 'Elemental' ? 'Elemental' : 'Físico';
+    descEl.textContent = `Dano ${ability.dado.qtd}d${ability.dado.faces} (${danoTipoTxt}) • Alcance ${ability.alcance} casa${ability.alcance > 1 ? 's' : ''} • Custo ${custoTxt}`;
+    topText.appendChild(nomeEl);
+    topText.appendChild(descEl);
+    const nivelEl = document.createElement('div');
+    nivelEl.className = 'hab-card-nivel';
+    nivelEl.innerHTML = 'NÍVEL<span class="hab-card-nivel-num">FIXO</span>';
+    top.appendChild(topText);
+    top.appendChild(nivelEl);
+    card.appendChild(top);
+    card.appendChild(buildAtaqueNormalPips()); // só a última bolinha acesa -- ver comentário grande dela
+    return card;
+  }
+
+  // Redesenha a guia inteira (card de ataque normal + badge de pontos + os cards das árvores) --
+  // chamada de dentro de recalc() (toda vez que o nível pode ter mudado) e a cada clique num card
+  // (habilidadeCardClick() acima). A 4ª árvore/habilidade (bonus:true) só é incluída no grid a
+  // partir do nível 10 -- pedido explícito "uma quarta que so deve aparecer a partir do nivel 10"
+  // (nem aparece cinza/trancada antes disso, simplesmente não é desenhada ainda). Simples o
+  // bastante (poucos elementos) pra não precisar de nenhum diff/cache -- sempre reconstrói do zero,
+  // mesmo padrão já usado por outras guias dinâmicas da ficha.
   function renderHabilidadesArvores(){
     const wrap = $('habArvoresWrap');
     if(!wrap) return;
     const badge = $('habPontosBadge');
     if(badge) badge.textContent = habilidadesPontosDisponiveis(currentCharLevel);
     wrap.innerHTML = '';
+    const ataqueNormalCard = buildAtaqueNormalCard();
+    if(ataqueNormalCard) wrap.appendChild(ataqueNormalCard);
     HAB_ARVORES_ESQUELETO.forEach(arv=>{
       if(!habilidadeArvoreDesbloqueada(arv, currentCharLevel)) return;
       wrap.appendChild(buildHabilidadeCard(arv.id, habilidadesState[arv.id] || 0));
@@ -7876,6 +8055,128 @@ body{
         }
       }
     }
+  }
+
+  // ---------- Animação de ataque no tabuleiro (pedido explícito: "quando houver um ataque este
+  // precisa ser animado... balance o atacante na direção do atacado, o atacado recebe um efeito de
+  // tremida e uma animação de corte, então sobe na tela um numero representando o dano causado...
+  // caso nenhum dano seja causado sobe um texto escrito ERROU", "a animação deve ocorrer para todos
+  // vendo o tabuleiro") ----------
+  // spawnBoardHitFx()/.board-token-lean/.board-hit-fx-text (ver <style>) finalmente dão uso de
+  // verdade a .board-token-shake/.board-hit-fx-emoji, que ficavam órfãs desde que o Menu de Ataque
+  // antigo saiu (Segmento 4) -- esta função só DESENHA o resultado (danoFinal) que quem chama já
+  // calculou, nunca decide regra nenhuma. Primeira versão ("por hora"): balança o atacante na
+  // direção do alvo (--lean-x/--lean-y/--lean-rot, setadas aqui com o SINAL certo pras 8 direções,
+  // um único keyframe serve pras 8), soma tremida (.board-token-shake, reaproveitada) + um emoji de
+  // impacto (⚔️, reaproveitando .board-hit-fx-emoji) no alvo, e por fim sobe o número do dano (ou
+  // "ERROU" quando danoFinal é 0) -- mesmo keyframe boardHitFxFloat, só que com texto
+  // (.board-hit-fx-text). Devolve uma Promise que só resolve quando a sequência inteira termina,
+  // pro chamador (ver tryResolveBoardAttack()) atrasar a mensagem no chat/Discord até lá -- mesmo
+  // espírito de scheduleSyncedRoll().then() já usado pelas 3 rolagens de dado/moeda.
+  function boardHitFxCenterXY(r, c){
+    const cell = (r != null && c != null) ? getCellEl(r, c) : null;
+    if(!cell) return null;
+    const rect = cell.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+  function boardHitFxTokenEl(r, c){
+    const cell = (r != null && c != null) ? getCellEl(r, c) : null;
+    return cell ? cell.querySelector('.board-token') : null;
+  }
+  // nasce direto em document.body (nunca dentro da casa/peça -- sobrevive tranquilo a um
+  // re-render do tabuleiro no meio da animação, mesmo raciocínio de .board-token-tip-float/
+  // .cs-tooltip-float, ver comentário grande deles no <style>), position:fixed na coordenada já
+  // calculada (boardHitFxCenterXY) e remove a si mesmo ao terminar (animationend) -- o setTimeout
+  // extra é só uma rede de segurança pra quem tiver "reduzir movimento" ativado no sistema (aí a
+  // animação nem roda, e "animationend" nunca disparava, deixando o elemento órfão pra sempre).
+  function spawnBoardHitFxFloating(xy, el, durationMs){
+    if(!xy) return;
+    el.style.left = xy.x + 'px';
+    el.style.top = xy.y + 'px';
+    document.body.appendChild(el);
+    const cleanup = ()=>{ el.remove(); };
+    el.addEventListener('animationend', cleanup, { once: true });
+    setTimeout(cleanup, durationMs + 300);
+  }
+  function spawnBoardHitFx(attackerAnchor, targetAnchor, danoFinal){
+    const targetXY = targetAnchor && boardHitFxCenterXY(targetAnchor.r, targetAnchor.c);
+    const attackerTokenEl = attackerAnchor && boardHitFxTokenEl(attackerAnchor.r, attackerAnchor.c);
+    const targetTokenEl = targetAnchor && boardHitFxTokenEl(targetAnchor.r, targetAnchor.c);
+    if(attackerTokenEl && attackerAnchor && targetAnchor){
+      const dr = Math.sign((targetAnchor.r || 0) - (attackerAnchor.r || 0));
+      const dc = Math.sign((targetAnchor.c || 0) - (attackerAnchor.c || 0));
+      attackerTokenEl.style.setProperty('--lean-x', (dc * 7) + 'px');
+      attackerTokenEl.style.setProperty('--lean-y', (dr * 7) + 'px');
+      attackerTokenEl.style.setProperty('--lean-rot', (dc * 6) + 'deg');
+      attackerTokenEl.classList.remove('board-token-lean');
+      void attackerTokenEl.offsetWidth; // força reflow -- mesmo truque de .settle nos dados, senão reiniciar a MESMA animação (2 ataques seguidos) não reanima nada
+      attackerTokenEl.classList.add('board-token-lean');
+    }
+    if(targetTokenEl){
+      targetTokenEl.classList.remove('board-token-shake');
+      void targetTokenEl.offsetWidth;
+      targetTokenEl.classList.add('board-token-shake');
+    }
+    if(targetXY){
+      const cutEmojiEl = document.createElement('div');
+      cutEmojiEl.className = 'board-hit-fx-emoji';
+      cutEmojiEl.textContent = '⚔️';
+      spawnBoardHitFxFloating(targetXY, cutEmojiEl, 850);
+    }
+    return new Promise(resolve=>{
+      setTimeout(()=>{
+        if(targetXY){
+          const isMiss = !danoFinal || danoFinal <= 0;
+          const textEl = document.createElement('div');
+          textEl.className = 'board-hit-fx-text ' + (isMiss ? 'board-hit-fx-miss' : 'board-hit-fx-dano');
+          textEl.textContent = isMiss ? 'ERROU' : ('-' + danoFinal);
+          spawnBoardHitFxFloating(targetXY, textEl, 850);
+        }
+        setTimeout(resolve, 850);
+      }, 380);
+    });
+  }
+  // Réplica em tempo real pros outros navegadores (ver broadcastHitFx()/o listener de
+  // mesa40k/liveBoard/lastHit dentro de connectLiveBoard(), mesmo padrão exato de
+  // broadcastDiceRoll()/playRemoteAtributoRoll() etc. mais abaixo no <script>) -- resolve a posição
+  // de atacante/alvo pelo ID na lista de peças que ESTE navegador já tem agora (pool: boardTokens
+  // pro Mestre, liveBoardState.tokens pro jogador), com a linha/coluna já guardada no próprio
+  // payload como fallback (peça pode ter sido removida do tabuleiro entre o ataque de verdade e
+  // esta entrega).
+  function resolveLiveHitAnchorById(id, fallbackR, fallbackC){
+    if(id){
+      const pool = (currentRole === 'mestre') ? boardTokens : liveBoardState.tokens;
+      const found = pool && Object.keys(pool).map(k=> pool[k]).find(t=> t && t.id === id);
+      if(found && found.anchorR != null) return { r: found.anchorR, c: found.anchorC };
+    }
+    if(fallbackR != null && fallbackC != null) return { r: fallbackR, c: fallbackC };
+    return null;
+  }
+  function playRemoteHitFx(val){
+    if(!val) return Promise.resolve();
+    const attackerAnchor = resolveLiveHitAnchorById(val.attackerId, val.attackerR, val.attackerC);
+    const targetAnchor = resolveLiveHitAnchorById(val.targetId, val.targetR, val.targetC);
+    return spawnBoardHitFx(attackerAnchor, targetAnchor, val.danoFinal || 0);
+  }
+  // publica o ataque pro Firebase (ver listener em connectLiveBoard()) -- "playAt" vem de QUEM
+  // CHAMOU (ver tryResolveBoardAttack()), calculado uma única vez e reusado tanto aqui quanto na
+  // chamada local de spawnBoardHitFx(), pra a peça de quem atacou tocar a animação no MESMO
+  // instante combinado que todo mundo (mesmo padrão de scheduleSyncedRoll()/playAt nas 3 rolagens
+  // de dado/moeda -- ver comentário grande delas).
+  function broadcastHitFx(attackerToken, targetToken, danoFinal, playAt){
+    if(!fbReady || !fbDb || isSilenceActive()) return;
+    fbDb.ref('mesa40k/liveBoard/lastHit').set({
+      attackerId: (attackerToken && attackerToken.id) || null,
+      targetId: (targetToken && targetToken.id) || null,
+      attackerR: attackerToken ? attackerToken.anchorR : null,
+      attackerC: attackerToken ? attackerToken.anchorC : null,
+      targetR: targetToken ? targetToken.anchorR : null,
+      targetC: targetToken ? targetToken.anchorC : null,
+      danoFinal: danoFinal || 0,
+      playAt,
+      by: currentUserKey || null,
+      ts: firebase.database.ServerValue.TIMESTAMP,
+    }).catch(()=>{});
   }
 
   // ---------- Menu de clique-direito do tabuleiro: Ações Ofensivas/Defensivas/Campo (rodada nova,
@@ -8172,6 +8473,12 @@ body{
     const danoFinal = Math.max(0, brutoAntesDefesa - defesaAlvo);
     const vidaAntes = targetCombat.vida || 0;
     const vidaDepois = Math.max(0, vidaAntes - danoFinal);
+    // playAt: mesmo instante combinado (relógio do servidor + margem fixa) usado pelas 3 rolagens de
+    // dado/moeda (ver comentário grande de scheduleSyncedRoll()/DICE_SYNC_BUFFER_MS) -- calculado
+    // AQUI, uma única vez, e reusado tanto na réplica (broadcastHitFx(), pros outros navegadores)
+    // quanto na própria animação local agendada mais abaixo, pra ESTA tela tocar a animação no
+    // mesmo instante que todo mundo.
+    const playAt = serverNow() + DICE_SYNC_BUFFER_MS;
 
     applyCombatVitalDelta(targetToken, 'vida', -danoFinal);
     if(ability.custoMana > 0) applyCombatVitalDelta(attackerToken, 'mana', -ability.custoMana);
@@ -8197,10 +8504,23 @@ body{
     }
     if(typeof renderFichaSummaryBubbles === 'function') renderFichaSummaryBubbles();
 
-    const atacanteNome = tokenTooltipText(attackerToken);
-    const alvoNome = tokenTooltipText(targetToken);
-    const custoTxt = ability.custoMana > 0 ? `${ability.custoPA} PA + ${ability.custoMana} Mana` : `${ability.custoPA} PA`;
-    postToDiscord(`⚔️ ${atacanteNome} usa ${ability.nome} em ${alvoNome}: ${rolado}+${bonusAtributo} (${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) −${defesaAlvo} de defesa = ${danoFinal} de dano (custo ${custoTxt}). Vida: ${vidaAntes} → ${vidaDepois}.`.toUpperCase(), null);
+    // animação do ataque (ver comentário grande de spawnBoardHitFx() mais acima) -- réplica pros
+    // outros navegadores primeiro (broadcastHitFx(), não bloqueia nada), depois a MESMA animação
+    // agendada localmente pro instante combinado (playAt); a mensagem no chat/Discord só sai depois
+    // que a sequência inteira termina de tocar NESTA tela -- mesmo espírito de
+    // scheduleSyncedRoll(playAt, ...).then(finishRoll/finishDanoRoll/finishSorteRoll) já usado pelas
+    // 3 rolagens de dado/moeda ("a mensagem deve aparecer no chat apenas depois da animação
+    // terminar", pedido explícito estendido aqui pro ataque: "lembrando que a animação deve ocorrer
+    // para todos vendo o tabuleiro").
+    broadcastHitFx(attackerToken, targetToken, danoFinal, playAt);
+    const attackerAnchor = attackerToken ? { r: attackerToken.anchorR, c: attackerToken.anchorC } : null;
+    const targetAnchor = targetToken ? { r: targetToken.anchorR, c: targetToken.anchorC } : null;
+    scheduleSyncedRoll(playAt, ()=> spawnBoardHitFx(attackerAnchor, targetAnchor, danoFinal)).then(()=>{
+      const atacanteNome = tokenTooltipText(attackerToken);
+      const alvoNome = tokenTooltipText(targetToken);
+      const custoTxt = ability.custoMana > 0 ? `${ability.custoPA} PA + ${ability.custoMana} Mana` : `${ability.custoPA} PA`;
+      postToDiscord(`⚔️ ${atacanteNome} usa ${ability.nome} em ${alvoNome}: ${rolado}+${bonusAtributo} (${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) −${defesaAlvo} de defesa = ${danoFinal} de dano (custo ${custoTxt}). Vida: ${vidaAntes} → ${vidaDepois}.`.toUpperCase(), null);
+    });
   }
 
   // Resolve de verdade o uso de uma Poção clicada no menu de Ações Defensivas (ver
@@ -13675,6 +13995,15 @@ body{
     refreshTokenStatus();
   });
 
+  // ---------- modal de confirmação de Ponto de Habilidade (ver comentário grande de
+  // habilidadeCardClick()/applyPendingHabilidadePonto()/cancelPendingHabilidadePonto() perto de
+  // "let habPontoConfirmArvoreId" lá em cima) ----------
+  const habPontoConfirmModal = $('habPontoConfirmModal');
+  $('habPontoConfirmSimBtn').addEventListener('click', applyPendingHabilidadePonto);
+  $('habPontoConfirmNaoBtn').addEventListener('click', cancelPendingHabilidadePonto);
+  $('closeHabPontoConfirm').addEventListener('click', cancelPendingHabilidadePonto);
+  habPontoConfirmModal.addEventListener('click', (e)=>{ if(e.target === habPontoConfirmModal) cancelPendingHabilidadePonto(); });
+
   // ---------- modal de configuração do webhook do Discord ----------
   const webhookModal  = $('webhookModal');
   const webhookStatus = $('webhookStatus');
@@ -17938,6 +18267,11 @@ body{
   // NPC, que só o Mestre pode aplicar de verdade em boardTokens) só liga pro Mestre.
   let liveBoardLastHitRef = null, liveBoardLastHitCb = null, liveBoardDamageReqRef = null, liveBoardDamageReqCb = null;
   let lastHitSeenTs = null;
+  // Mesmo furo (e mesma correção) do lastRollListenerPrimed abaixo -- ver o comentário grande dele:
+  // sem esta flag SEPARADA de lastHitSeenTs, a 1ª rolagem de ataque de verdade feita depois de
+  // conectar (quando ainda não existia nenhum "lastHit" salvo no Firebase) seria descartada por
+  // engano, como se fosse réplica de algo antigo.
+  let lastHitListenerPrimed = false;
   // Réplica em tempo real da animação de rolagem de dado/moeda (ver broadcastDiceRoll()/
   // playRemoteAtributoRoll()/playRemoteDanoRoll()/playRemoteSorteRoll() mais acima) -- mesmo
   // padrão exato de liveBoardLastHitRef/lastHitSeenTs, uma linha acima.
@@ -18980,6 +19314,7 @@ body{
     // réplica de rolagem de dado/moeda (ver comentário grande perto de "let liveBoardLastRollRef").
     if(liveBoardLastRollRef){ liveBoardLastRollRef.off('value', liveBoardLastRollCb); liveBoardLastRollRef = null; liveBoardLastRollCb = null; }
     lastHitSeenTs = null;
+    lastHitListenerPrimed = false;
     lastRollSeenTs = null;
     lastRollListenerPrimed = false;
     turnState = { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false, apMax:0, apRemaining:0 };
@@ -19065,6 +19400,22 @@ body{
     // isso -- MAIS um auto-ignorar específico daqui: quem de fato rolou (val.by, gravado em
     // broadcastDiceRoll() via currentUserKey) já agendou a própria rolagem pra tocar no mesmo
     // playAt localmente, não precisa (e não deve) agendá-la de novo pela rede.
+    // réplica em tempo real da animação de ataque (ver broadcastHitFx()/spawnBoardHitFx()/
+    // playRemoteHitFx() mais acima, mesmo padrão exato do lastRoll logo abaixo, inclusive o cuidado
+    // com a 1ª entrega via lastHitListenerPrimed em vez de "lastHitSeenTs === null" -- ver o
+    // comentário grande dela).
+    liveBoardLastHitRef = fbDb.ref('mesa40k/liveBoard/lastHit');
+    liveBoardLastHitCb = liveBoardLastHitRef.on('value', (snap)=>{
+      const val = snap.val();
+      const isFirstDelivery = !lastHitListenerPrimed;
+      lastHitListenerPrimed = true;
+      if(!val || !val.ts) return;
+      if(val.ts === lastHitSeenTs) return;
+      lastHitSeenTs = val.ts;
+      if(isFirstDelivery) return;
+      if(val.by && val.by === currentUserKey) return;
+      scheduleSyncedRoll(val.playAt, ()=> playRemoteHitFx(val));
+    });
     liveBoardLastRollRef = fbDb.ref('mesa40k/liveBoard/lastRoll');
     liveBoardLastRollCb = liveBoardLastRollRef.on('value', (snap)=>{
       const val = snap.val();
