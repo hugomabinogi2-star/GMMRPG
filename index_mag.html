@@ -1716,10 +1716,23 @@ body{
   pointer-events:auto;
   transition:transform .12s ease, box-shadow .12s ease;
 }
-.board-ability-circle:hover:not([disabled]){
+.board-ability-circle:hover:not([disabled]):not(.board-ability-circle-blocked){
   box-shadow:0 2px 8px rgba(0,0,0,.7), 0 0 10px 1px rgba(224,182,86,.65), 0 0 0 1px rgba(0,0,0,.4);
 }
-.board-ability-circle[disabled]{
+/* RODADA NOVA (pedido explícito do usuário -- "o tabuleiro não está permitindo que eu execute as
+   ações ofensivas ou defensivas"): investigando, a REGRA em si (alcance/PA/Mana/Inventário/vez)
+   sempre esteve certa -- o problema era só que, ao virar bolinha de ícone sem nenhum texto, o
+   MOTIVO de uma bolinha estar bloqueada passou a morar só no `title` nativo (precisa passar o
+   mouse e esperar -- fácil de não notar, e inexistente em toque/celular), diferente do menu antigo
+   de lista que sempre mostrava o motivo escrito do lado. Por isso as bolinhas bloqueadas NÃO usam
+   mais o atributo `disabled` de verdade (um <button disabled> sequer dispara 'click' no navegador,
+   então não daria pra avisar nada ao tentar clicar) -- em vez disso ganham esta classe
+   ".board-ability-circle-blocked" (MESMO visual apagado/cursor de proibido de antes) e CONTINUAM
+   clicáveis: o clique nelas (ver buildOfensivaAbilityCircle()/buildPotionAbilityCircle() no
+   <script>) posta o motivo no chat/Discord na hora, em vez de simplesmente não fazer nada.
+   `[disabled]` continua valendo também (outros botões do arquivo que usam o atributo de verdade). */
+.board-ability-circle[disabled],
+.board-ability-circle-blocked{
   opacity:.4;
   cursor:not-allowed;
   filter:grayscale(.4);
@@ -8492,27 +8505,44 @@ body{
     });
   }
 
+  // RODADA NOVA (pedido explícito do usuário, depurando "o tabuleiro não está permitindo que eu
+  // execute as ações ofensivas ou defensivas"): a REGRA de quando uma bolinha pode ou não agir
+  // sempre esteve certa (mesma validação de sempre -- ficha da vez/alvo válido/alcance/PA/Mana/
+  // Inventário) -- o que faltava era deixar claro o MOTIVO quando ela vem bloqueada. No antigo menu
+  // de lista (clique direito) o motivo sempre aparecia escrito do lado do item; na bolinha sem
+  // texto (pedido explícito desta rodada) ele só sobrou no `title` nativo -- fácil de nunca notar
+  // (precisa passar o mouse e esperar, e nem existe em toque/celular), o que fazia a bolinha
+  // bloqueada parecer simplesmente "quebrada". Esta função centraliza o bloqueio: em vez do
+  // atributo `disabled` de verdade (que nem dispara 'click' no navegador, então não daria pra
+  // avisar nada), a bolinha ganha a classe ".board-ability-circle-blocked" (MESMO visual apagado de
+  // antes) e continua clicável -- o clique nela posta o motivo no chat/Discord na hora.
+  function blockAbilityCircle(circle, title, chatReason){
+    circle.classList.add('board-ability-circle-blocked');
+    circle.title = title;
+    const msg = chatReason || title;
+    circle.addEventListener('click', ()=>{ postToDiscord(`⛔ ${msg}`.toUpperCase(), null); });
+  }
+
   // Monta o círculo de uma Ação Ofensiva -- cada Classe só tem UMA (o ataque normal com a arma, ver
   // HABILIDADE_INICIAL_CLASSE), nascida de graça com a ficha, nunca "aprendida". Ícone de espada
   // (pedido explícito: "entre as primeiras habilidades o ataque padrão vai ter o ícone de uma
   // espada") -- mesma validação de sempre (ficha da vez/alvo válido/alcance/PA/Mana) decide se o
   // círculo fica habilitado; sem espaço pra nenhum resumo escrito dentro da bolinha (pedido
-  // explícito), nome/detalhe/motivo de bloqueio viram só o `title` nativo (dica ao passar o mouse)
-  // -- onAttack(ability) só é chamado quando o círculo está de fato HABILITADO.
+  // explícito), nome/detalhe viram só o `title` nativo (dica ao passar o mouse) -- o motivo de
+  // bloqueio, além do `title`, também sai no chat ao clicar (ver blockAbilityCircle() acima).
+  // onAttack(ability) só é chamado quando o círculo está de fato HABILITADO.
   function buildOfensivaAbilityCircle(attackerToken, attackerCombat, targetCombat, onAttack){
     const circle = document.createElement('button');
     circle.type = 'button';
     circle.className = 'board-ability-circle board-ability-circle-ofensiva';
     circle.innerHTML = '<span class="board-ability-circle-icon">⚔️</span>';
     if(!attackerToken || !attackerCombat){
-      circle.disabled = true;
-      circle.title = 'Nenhuma ficha na vez agora.';
+      blockAbilityCircle(circle, 'Nenhuma ficha na vez agora.');
       return circle;
     }
     const ability = HABILIDADE_INICIAL_CLASSE[attackerCombat.deidade];
     if(!ability){
-      circle.disabled = true;
-      circle.title = `${attackerCombat.deidade || 'Esta ficha'} não tem nenhuma Ação Ofensiva ainda.`;
+      blockAbilityCircle(circle, `${attackerCombat.deidade || 'Esta ficha'} não tem nenhuma Ação Ofensiva ainda.`);
       return circle;
     }
     let reason = '';
@@ -8528,10 +8558,10 @@ body{
     }
     const custoTxt = 'Custo: ' + ability.custoPA + ' PA' + (ability.custoMana > 0 ? ' + ' + ability.custoMana + ' Mana' : '');
     const detailTxt = `${ability.nome} — Dano ${ability.dano} (${ability.dado.qtd}d${ability.dado.faces} + bônus de ${ability.atributo.toUpperCase()}, ${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) · Alcance ${ability.alcance} casa${ability.alcance===1?'':'s'} · ${custoTxt}`;
-    circle.title = reason ? `${detailTxt}\n${reason}` : detailTxt;
     if(reason){
-      circle.disabled = true;
+      blockAbilityCircle(circle, `${detailTxt}\n${reason}`, reason);
     } else {
+      circle.title = detailTxt;
       circle.addEventListener('click', ()=>{ closeBoardActionMenu(); onAttack(ability); });
     }
     return circle;
@@ -8548,12 +8578,26 @@ body{
       + `<path d="M9.3 2h5.4" stroke="#e0b656" stroke-width="1.3" stroke-linecap="round"/>`
       + `</svg>`;
   }
+  // PONTOS DE AÇÃO da Poção (RODADA NOVA, pedido explícito do usuário: "o uso das poções deve
+  // respeitar o custo de ações... as habilidades precisam respeitar o custo de pontos de ação e de
+  // mana caso exista custo de mana"): antes, usar uma Poção não gastava PA nenhum -- só consumia 1
+  // unidade do Inventário e, se fosse a vez de alguém na fila, encerrava o turno na hora
+  // INCONDICIONALMENTE (advanceTurn() direto, sem olhar quanto de PA sobrava). Perguntado quanto
+  // deveria custar, a resposta escolhida foi "3 PA (igual a hoje, na prática)" -- ou seja, o mesmo
+  // efeito de encerrar o turno pra um personagem comum (3 PA padrão = apMax de quem não tem bônus
+  // de DES), só que agora através do desconto NORMAL de PA (mesmo padrão de
+  // tryResolveBoardAttack()/ability.custoPA) em vez de um advanceTurn() forçado -- um personagem
+  // com bônus de DES alto (apMax > 3) passa a SOBRAR PA depois de uma Poção e pode continuar
+  // agindo no mesmo turno, em vez de ser sempre interrompido.
+  const POTION_CUSTO_PA = 3;
+
   // Monta UM círculo de Poção (Vida OU Mana) -- aparece sempre que a categoria é 'defensiva'
   // (clique no próprio token ou no de um ALIADO), SEM depender de quem está na vez -- confirmado
   // via pergunta de uma rodada anterior: a cura cai no alvo CLICADO (self ou aliado), e usar a
   // poção continua consumindo do Inventário da ficha que EU tenho aberta agora (não do atacante da
   // vez, ver usePotion()). Mesma validação de sempre (poção sobrando/alvo válido/alvo não cheio/é a
-  // vez da ficha aberta) -- onUsePotion() só é chamado quando o círculo está de fato HABILITADO.
+  // vez da ficha aberta), mais o novo custo de PA (POTION_CUSTO_PA, acima) -- onUsePotion() só é
+  // chamado quando o círculo está de fato HABILITADO.
   function buildPotionAbilityCircle(kind, targetCombat, onUsePotion){
     const nome = kind === 'vida' ? 'POÇÃO DE VIDA' : 'POÇÃO DE MANA';
     const label = kind === 'vida' ? 'Usar Poção de Vida' : 'Usar Poção de Mana';
@@ -8567,16 +8611,18 @@ body{
     if(entry && !isCurrentTurnToken(entry)) reason = 'Não é a sua vez.';
     else if(!targetCombat) reason = 'Alvo inválido.';
     else if(qty <= 0) reason = `Sem ${nome.toLowerCase()} no Inventário.`;
+    else if(entry && (turnState.apRemaining || 0) < POTION_CUSTO_PA) reason = 'Pontos de Ação insuficientes.';
     else {
       const atual = kind === 'vida' ? (targetCombat.vida || 0) : (targetCombat.mana || 0);
       const max = kind === 'vida' ? (targetCombat.vidaMax || 0) : (targetCombat.manaMax || 0);
       if(atual >= max) reason = kind === 'vida' ? 'O alvo já está com Vida cheia.' : 'O alvo já está com Mana cheia.';
     }
-    const detailTxt = `${label} — Restaura ${kind === 'vida' ? 'Vida' : 'Mana'} até o máximo · Sobrando: ${qty}`;
-    circle.title = reason ? `${detailTxt}\n${reason}` : detailTxt;
+    const custoTxt = entry ? ` · Custo: ${POTION_CUSTO_PA} PA` : '';
+    const detailTxt = `${label} — Restaura ${kind === 'vida' ? 'Vida' : 'Mana'} até o máximo${custoTxt} · Consome 1 ${nome} do Inventário · Sobrando: ${qty}`;
     if(reason){
-      circle.disabled = true;
+      blockAbilityCircle(circle, `${detailTxt}\n${reason}`, reason);
     } else {
+      circle.title = detailTxt;
       circle.addEventListener('click', ()=>{ closeBoardActionMenu(); onUsePotion(kind); });
     }
     return circle;
@@ -11637,12 +11683,31 @@ body{
     // dentro de uma fila ativa é que recusa; sem fila ativa, ou fora da fila, continua livre.
     const entry = turnEntryDaFichaAberta();
     if(entry && !isCurrentTurnToken(entry)){ announceOutOfTurn(entry); return false; }
+    // RODADA NOVA (pedido explícito do usuário: "o uso das poções deve respeitar o custo de
+    // ações") -- trava de segurança mesmo caso do círculo já vir bloqueado (ver
+    // buildPotionAbilityCircle()): dentro de uma fila ativa, só usa se sobrar POTION_CUSTO_PA de
+    // PA; sem fila ativa (entry null) continua de graça, igual a sempre.
+    if(entry && (turnState.apRemaining || 0) < POTION_CUSTO_PA) return false;
     if(qtyInput) qtyInput.value = qty - 1;
     applyCombatVitalDelta(targetToken, campo, delta);
     refreshPotionButtons();
     const nomeAlvo = tokenTooltipText(targetToken);
-    postToDiscord(`${kind === 'vida' ? '❤️' : '✦'} ${nomeAlvo} USA ${nome}: ${campo.toUpperCase()} ${atual} → ${max}.`.toUpperCase(), null);
-    if(entry) advanceTurn();
+    const custoTxt = entry ? ` (custo ${POTION_CUSTO_PA} PA)` : '';
+    postToDiscord(`${kind === 'vida' ? '❤️' : '✦'} ${nomeAlvo} USA ${nome}: ${campo.toUpperCase()} ${atual} → ${max}${custoTxt}.`.toUpperCase(), null);
+    // RODADA NOVA: descontava PA nenhum e encerrava o turno INCONDICIONALMENTE (advanceTurn()
+    // direto) -- agora desconta POTION_CUSTO_PA de verdade (mesmo padrão de
+    // tryResolveBoardAttack()/ability.custoPA) e só encerra o turno quando o PA de fato zera; uma
+    // ficha com bônus de DES alto (apMax > POTION_CUSTO_PA) passa a sobrar PA e pode continuar
+    // agindo no mesmo turno.
+    if(entry){
+      turnState.apRemaining = Math.max(0, (turnState.apRemaining || 0) - POTION_CUSTO_PA);
+      if(turnState.apRemaining <= 0){
+        advanceTurn();
+      } else {
+        pushTurnState();
+        renderTurnBars();
+      }
+    }
     return true;
   }
 
