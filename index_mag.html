@@ -1681,49 +1681,59 @@ body{
   pointer-events:none;
 }
 .board-token-tip-float.board-token-tip-float-visible{opacity:1;visibility:visible;}
-/* Menu de clique-direito do tabuleiro (rodada nova, "3 ações no tabuleiro": Ações Ofensivas/
-   Defensivas/Campo -- ver openBoardActionMenu()/buildBoardActionMenuContent() no <script>) --
-   mesmo truque de clone flutuante em document.body dos popups acima (.board-token-tip-float/
-   .cs-tooltip-float), só que este tem conteúdo CLICÁVEL (pointer-events:auto -- aqueles são só
-   leitura) e nasce/morre a cada clique com o botão direito, nunca fica "vivo" esperando hover. */
-.board-action-menu{
-  position:fixed;left:0;top:0;z-index:10050;
-  min-width:220px;max-width:280px;
-  background:linear-gradient(160deg,var(--paper-l),var(--paper));
-  border:1px solid var(--border-brown);border-radius:6px;
-  box-shadow:var(--shadow);
-  font-family:'Cinzel Decorative',serif;
-  color:var(--ink);
-  overflow:hidden;
-  pointer-events:auto;
+/* Menu CIRCULAR de Habilidades no tabuleiro (RODADA NOVA, pedido explícito com imagem de
+   referência em anexo: "alteração no menu e de como são escolhidas as habilidades... agora quando
+   o jogador clica no próprio token com o botão esquerdo ele exibe um menu circular com as
+   habilidades defensivas e itens, e quando clica com o botão esquerdo no inimigo ele exibe o mesmo
+   menu apenas com as habilidades ofensivas... as bolas vermelhas indicam como os botões de cada
+   habilidade devem aparecer, não será necessário um resumo da habilidade ali mas dentro da
+   bolinha que deve ser preta com um contorno dourado e dentro um ícone representando a
+   habilidade") -- SUBSTITUI de vez o antigo menu de clique-direito (lista de texto Ações
+   Ofensivas/Defensivas/Remover peça): o botão direito "saiu de cena" (confirmado com o usuário) --
+   "Remover peça" (Mestre) continua só no botão do MEIO do mouse, como já era antes desta rodada.
+   Ver openBoardAbilityWheel()/buildOfensivaAbilityCircle()/buildPotionAbilityCircle() no <script>.
+   .board-ability-wheel é só uma ÂNCORA invisível (0×0, position:fixed no CENTRO do token clicado,
+   mesmo truque position:fixed+getBoundingClientRect() já usado por .dice-particle-fixed/
+   .board-erro-explosion-text) -- cada .board-ability-circle filho se posiciona por cima dela via
+   transform (calculado em JS por boardAbilityWheelOffset(): um arco acima do token, 1 bolinha
+   sozinha fica centralizada, 2+ se distribuem simétricas, igual à imagem de referência). */
+.board-ability-wheel{
+  position:fixed;left:0;top:0;
+  width:0;height:0;
+  z-index:10050;
+  pointer-events:none;
 }
-.board-action-menu-header{
-  padding:6px 10px;
-  font-size:11px;letter-spacing:.05em;text-transform:uppercase;
-  background:var(--paper-d);color:var(--gold-text);
-  border-bottom:1px solid var(--border-brown);
-}
-.board-action-menu-body{padding:4px;}
-.board-action-menu-empty{
-  padding:8px 10px;font-size:11px;color:var(--ink-faint);text-transform:none;letter-spacing:normal;
-}
-.board-action-menu-item{
-  display:block;width:100%;text-align:left;
-  background:none;border:none;border-radius:4px;
-  padding:6px 8px;margin:1px 0;
-  font-family:inherit;font-size:11px;color:var(--ink);
+.board-ability-circle{
+  position:absolute;left:0;top:0;
+  width:40px;height:40px;
+  border-radius:50%;
+  background:#0c0a08;
+  border:2px solid var(--gold-bright);
+  box-shadow:0 2px 6px rgba(0,0,0,.6), 0 0 0 1px rgba(0,0,0,.4);
+  display:flex;align-items:center;justify-content:center;
   cursor:pointer;
+  padding:0;
+  pointer-events:auto;
+  transition:transform .12s ease, box-shadow .12s ease;
 }
-.board-action-menu-item:hover:not([disabled]){background:rgba(169,130,47,.18);}
-.board-action-menu-item[disabled]{cursor:default;color:var(--ink-faint);}
-.board-action-menu-item-name{display:block;font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--gold-text);}
-.board-action-menu-item[disabled] .board-action-menu-item-name{color:var(--ink-faint);}
-.board-action-menu-item-detail{display:block;font-size:10px;letter-spacing:normal;text-transform:none;color:var(--ink-soft);margin-top:2px;}
-.board-action-menu-item-reason{display:block;font-size:9.5px;letter-spacing:normal;text-transform:none;color:#a33;margin-top:2px;}
-.board-action-menu-remove{
-  border-top:1px solid var(--border-brown);
-  color:#a33;
+.board-ability-circle:hover:not([disabled]){
+  box-shadow:0 2px 8px rgba(0,0,0,.7), 0 0 10px 1px rgba(224,182,86,.65), 0 0 0 1px rgba(0,0,0,.4);
 }
+.board-ability-circle[disabled]{
+  opacity:.4;
+  cursor:not-allowed;
+  filter:grayscale(.4);
+}
+.board-ability-circle-icon{
+  font-size:18px;line-height:1;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.7));
+}
+/* ícone de garrafa (Poção de Vida/Mana, SVG inline -- ver boardPotionIconSvg() no <script>, pedido
+   explícito: "a poção de vida uma garrafa com um liquido vermelho e a de mana uma garrafa com um
+   liquido azul") -- SVG em vez de emoji porque nenhum emoji de garrafa tem a cor do líquido
+   controlável; a cor de cada uma já vem fixa no próprio SVG (fill inline), este seletor só cuida
+   do tamanho dentro da bolinha. */
+.board-ability-circle-icon-potion{width:20px;height:20px;}
 /* barra de Vida "ao vivo" abaixo do ícone — só personagens de jogador (ver renderBoardCell()),
    só na visão do mestre (tabuleiro de verdade), e só ao passar o mouse (mesmo gatilho do menu
    suspenso acima, só que essa fica embaixo do ícone em vez de em cima). Filha da CASA pelo mesmo
@@ -6214,9 +6224,9 @@ body{
          .cs-tooltip, ver wireMouseTrackedTooltip() no <script>).
          RODADA NOVA ("3 ações no tabuleiro", pedido explícito: "o uso de poções sai da barra abaixo
          do tabuleiro e passam a ser uma ação defensiva"): refill_vida/refill_mana, que moraram aqui
-         por uma rodada, SAÍRAM de vez desta faixa -- usar Poção de Vida/Mana agora é um item do
-         menu de Ações Defensivas (clique direito no próprio token ou no de um aliado no tabuleiro,
-         ver buildPotionMenuItem()/usePotion() no <script>). As classes .vital-potion-btn/
+         por uma rodada, SAÍRAM de vez desta faixa -- usar Poção de Vida/Mana agora é um círculo do
+         menu circular de habilidades (clique ESQUERDO no próprio token ou no de um aliado no
+         tabuleiro, ver buildPotionAbilityCircle()/usePotion() no <script>). As classes .vital-potion-btn/
          .vital-refill-btn (CSS) ficam no arquivo sem nenhum elemento mais as usando -- de propósito,
          pra não arriscar quebrar nada só pra limpar CSS morto; dá pra remover numa faxina futura. -->
     <div class="mesa-fixed-bottom" id="mesaFixedBottom">
@@ -8376,17 +8386,18 @@ body{
     fbDb.ref('mesa40k/liveBoard/lastHit').set(payload).catch(()=>{});
   }
 
-  // ---------- Menu de clique-direito do tabuleiro: Ações Ofensivas/Defensivas/Campo (rodada nova,
-  // pedido explícito: "além do movimento vamos trabalhar com mais 3 ações no tabuleiro durante o
-  // turno") ---------- SUBSTITUI a remoção instantânea de peça que o botão direito do Mestre tinha
-  // antes (pedido explícito do usuário, confirmado via pergunta: "menu substitui a remoção direta")
-  // -- "Remover peça" agora é um ITEM deste menu (ver buildBoardActionMenuContent() mais abaixo); a
-  // remoção RÁPIDA (sem abrir menu nenhum) virou o botão do MEIO do mouse (ver o novo listener
-  // 'auxclick' em buildBoardGrid(), pedido explícito do usuário: "altere o botão para o mestre
-  // remover coisas do tabuleiro para o botão do meio do mouse"). Construído pra abrir IGUAL nos
-  // dois tabuleiros (Mestre e Jogador, mesma pergunta respondida: "os dois ganham os 3 menus") --
-  // só o pool de tokens e o role mudam entre as duas chamadas (ver buildBoardGrid()/
-  // renderLiveBoardMini()). ----------
+  // ---------- Menu circular de habilidades (clique ESQUERDO no token): Ações Ofensivas/Defensivas
+  // (rodada nova, pedido explícito do usuário, com imagem de referência anexada: "agora quando o
+  // jogador clica no próprio token com o botão esquerdo ele exibe um menu circular com as
+  // habilidades defensivas e itens, e quando clica com o botão esquerdo no inimigo ele exibe o
+  // mesmo menu apenas com as habilidades ofensivas... dentro da bolinha que deve ser preta com um
+  // contorno dourado e dentro um ícone representando a habilidade"). O clique DIREITO "saiu de
+  // cena" por completo (confirmado com o usuário via pergunta) -- não abre mais menu nenhum, só
+  // segue suprimindo o menu nativo do navegador durante o arrasto de câmera (boardCameraJustPanned).
+  // "Remover peça" continua exclusivamente no botão do MEIO do mouse (ver 'auxclick' em
+  // buildBoardGrid(), de uma rodada anterior). Construído pra abrir IGUAL nos dois tabuleiros
+  // (Mestre e Jogador) -- só o pool de tokens e o role mudam entre as duas chamadas (ver
+  // buildBoardGrid()/renderLiveBoardMini()). ----------
 
   // CORREÇÃO DE LÓGICA (pedido explícito do usuário: "ações ofensivas de jogadores são aplicadas a
   // inimigos / ações ofensivas de inimigos são aplicadas a jogadores e aliados / essa mesma
@@ -8407,7 +8418,7 @@ body{
   // excessão de sempre, pedido original de PVP entre jogadores), independente do lado calculado.
   // Sem nenhuma ficha na vez agora (fora de combate, turnState.active false) não dá pra comparar
   // lado nenhum -- cai de volta no critério antigo só-pelo-kind, só pra decidir que CABEÇALHO
-  // mostrar (o item em si já vem desabilitado por "Fora de combate", ver buildOfensivaMenuItem()).
+  // mostrar (o círculo em si já vem desabilitado por "Fora de combate", ver buildOfensivaAbilityCircle()).
   function boardActionSide(token){
     if(!token) return null;
     if(token.kind === 'inimigo' || token.kind === 'monstro' || token.kind === 'boss' || token.kind === 'inimigo_ficha') return 'inimigo';
@@ -8436,7 +8447,6 @@ body{
     return isMyLiveToken(attackerToken);
   }
 
-  const BOARD_ACTION_CATEGORY_LABEL = { ofensiva:'Ações Ofensivas', defensiva:'Ações Defensivas', campo:'Ações de Campo' };
   // Nome diferente de propósito -- já existe um DANO_TIPO_LABEL mais abaixo (sistema ANTIGO de tipo
   // de dano de Habilidade de arma: cortante/perfurante/contundente/real, nada a ver com o Físico/
   // Elemental da Armadura desta rodada, ver HABILIDADE_INICIAL_CLASSE/ability.danoTipo).
@@ -8454,41 +8464,56 @@ body{
   function boardActionMenuEscape(e){
     if(e.key === 'Escape') closeBoardActionMenu();
   }
-  function positionBoardActionMenu(x, y){
-    if(!boardActionMenuEl) return;
-    boardActionMenuEl.style.left = x + 'px';
-    boardActionMenuEl.style.top = y + 'px';
-    // depois de desenhado (tamanho real já conhecido), empurra pra dentro da tela se estiver
-    // vazando por baixo/pela direita -- mesma ideia de qualquer menu de contexto nativo.
-    requestAnimationFrame(()=>{
-      if(!boardActionMenuEl) return;
-      const rect = boardActionMenuEl.getBoundingClientRect();
-      let nx = x, ny = y;
-      if(rect.right > window.innerWidth) nx = Math.max(4, window.innerWidth - rect.width - 4);
-      if(rect.bottom > window.innerHeight) ny = Math.max(4, window.innerHeight - rect.height - 4);
-      boardActionMenuEl.style.left = nx + 'px';
-      boardActionMenuEl.style.top = ny + 'px';
+  // Distribui N círculos num arco acima do token (pedido explícito, com imagem de referência em
+  // anexo: "as bolas vermelhas indicam como os botões de cada habilidade devem aparecer") --
+  // centralizado "pra cima" do token (-90°), que abre mais conforme mais círculos precisam caber.
+  // 1 círculo só (Ação Ofensiva -- cada Classe só tem UMA, o ataque padrão) fica centralizado bem
+  // em cima do token; 2 (Poção de Vida + Poção de Mana) ficam um de cada lado, simétricos.
+  function boardAbilityWheelOffset(i, n, radius){
+    if(n <= 1) return { dx: 0, dy: -radius };
+    const spreadDeg = Math.min(170, 50 + n * 35);
+    const startDeg = -90 - spreadDeg / 2;
+    const stepDeg = spreadDeg / (n - 1);
+    const rad = (startDeg + stepDeg * i) * Math.PI / 180;
+    return { dx: Math.cos(rad) * radius, dy: Math.sin(rad) * radius };
+  }
+  // Ancora a "roda" (elemento 0×0, ver .board-ability-wheel no <style>) no CENTRO do token clicado
+  // (getBoundingClientRect(), mesma técnica de spawnDiceExplosionAtElement()/
+  // spawnMissExplosionAtElement()) e posiciona cada círculo por cima dela via transform.
+  function positionBoardAbilityWheel(tokenEl, circles){
+    if(!boardActionMenuEl || !tokenEl) return;
+    const rect = tokenEl.getBoundingClientRect();
+    boardActionMenuEl.style.left = (rect.left + rect.width / 2) + 'px';
+    boardActionMenuEl.style.top = (rect.top + rect.height / 2) + 'px';
+    const radius = Math.max(46, rect.width * 0.95);
+    circles.forEach((circle, i)=>{
+      const { dx, dy } = boardAbilityWheelOffset(i, circles.length, radius);
+      circle.style.transform = `translate(calc(-50% + ${dx.toFixed(1)}px), calc(-50% + ${dy.toFixed(1)}px))`;
     });
   }
 
-  // Monta o item de uma Ação Ofensiva -- cada Classe só tem UMA (o ataque normal com a arma, ver
-  // HABILIDADE_INICIAL_CLASSE), nascida de graça com a ficha, nunca "aprendida". Já calcula aqui se
-  // o item fica habilitado ou não (ficha da vez/alvo válido/alcance/PA/Mana) -- onAttack(ability)
-  // só é chamado quando o item está de fato HABILITADO (ver addEventListener mais abaixo).
-  function buildOfensivaMenuItem(attackerToken, attackerCombat, targetCombat, onAttack){
-    const item = document.createElement('button');
-    item.type = 'button';
-    item.className = 'board-action-menu-item';
+  // Monta o círculo de uma Ação Ofensiva -- cada Classe só tem UMA (o ataque normal com a arma, ver
+  // HABILIDADE_INICIAL_CLASSE), nascida de graça com a ficha, nunca "aprendida". Ícone de espada
+  // (pedido explícito: "entre as primeiras habilidades o ataque padrão vai ter o ícone de uma
+  // espada") -- mesma validação de sempre (ficha da vez/alvo válido/alcance/PA/Mana) decide se o
+  // círculo fica habilitado; sem espaço pra nenhum resumo escrito dentro da bolinha (pedido
+  // explícito), nome/detalhe/motivo de bloqueio viram só o `title` nativo (dica ao passar o mouse)
+  // -- onAttack(ability) só é chamado quando o círculo está de fato HABILITADO.
+  function buildOfensivaAbilityCircle(attackerToken, attackerCombat, targetCombat, onAttack){
+    const circle = document.createElement('button');
+    circle.type = 'button';
+    circle.className = 'board-ability-circle board-ability-circle-ofensiva';
+    circle.innerHTML = '<span class="board-ability-circle-icon">⚔️</span>';
     if(!attackerToken || !attackerCombat){
-      item.disabled = true;
-      item.innerHTML = `<span class="board-action-menu-item-reason">Nenhuma ficha na vez agora.</span>`;
-      return item;
+      circle.disabled = true;
+      circle.title = 'Nenhuma ficha na vez agora.';
+      return circle;
     }
     const ability = HABILIDADE_INICIAL_CLASSE[attackerCombat.deidade];
     if(!ability){
-      item.disabled = true;
-      item.innerHTML = `<span class="board-action-menu-item-reason">${escapeHtml(attackerCombat.deidade || 'Esta ficha')} não tem nenhuma Ação Ofensiva ainda.</span>`;
-      return item;
+      circle.disabled = true;
+      circle.title = `${attackerCombat.deidade || 'Esta ficha'} não tem nenhuma Ação Ofensiva ainda.`;
+      return circle;
     }
     let reason = '';
     if(!turnState.active || !isBoardRevealedForFicha()) reason = 'Fora de combate (nenhuma fila de iniciativa revelada agora).';
@@ -8502,34 +8527,40 @@ body{
       else if(ability.custoMana > 0 && (attackerCombat.mana || 0) < ability.custoMana) reason = 'Mana insuficiente.';
     }
     const custoTxt = 'Custo: ' + ability.custoPA + ' PA' + (ability.custoMana > 0 ? ' + ' + ability.custoMana + ' Mana' : '');
-    const detailTxt = `Dano ${ability.dano} (${ability.dado.qtd}d${ability.dado.faces} + bônus de ${ability.atributo.toUpperCase()}, ${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) · Alcance ${ability.alcance} casa${ability.alcance===1?'':'s'} · ${custoTxt}`;
-    item.innerHTML = `<span class="board-action-menu-item-name">${escapeHtml(ability.nome)}</span>`
-      + `<span class="board-action-menu-item-detail">${escapeHtml(detailTxt)}</span>`
-      + (reason ? `<span class="board-action-menu-item-reason">${escapeHtml(reason)}</span>` : '');
+    const detailTxt = `${ability.nome} — Dano ${ability.dano} (${ability.dado.qtd}d${ability.dado.faces} + bônus de ${ability.atributo.toUpperCase()}, ${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) · Alcance ${ability.alcance} casa${ability.alcance===1?'':'s'} · ${custoTxt}`;
+    circle.title = reason ? `${detailTxt}\n${reason}` : detailTxt;
     if(reason){
-      item.disabled = true;
+      circle.disabled = true;
     } else {
-      item.addEventListener('click', ()=>{ closeBoardActionMenu(); onAttack(ability); });
+      circle.addEventListener('click', ()=>{ closeBoardActionMenu(); onAttack(ability); });
     }
-    return item;
+    return circle;
   }
 
-  // Monta UM item de Poção (Vida OU Mana) do menu de Ações Defensivas -- rodada nova, pedido
-  // explícito do usuário: "o uso de poções sai da barra abaixo do tabuleiro e passam a ser uma
-  // ação defensiva" (as duas antigas refill_vida/refill_mana, ver comentário grande de usePotion()
-  // mais acima). Aparece sempre que a categoria é 'defensiva' (clique no próprio token ou no de um
-  // ALIADO), SEM depender de quem está na vez -- confirmado via pergunta: a cura cai no alvo
-  // CLICADO (self ou aliado), e usar a poção continua consumindo do Inventário da ficha que EU
-  // tenho aberta agora (não do atacante da vez, ver usePotion()). Igual a buildOfensivaMenuItem(),
-  // já calcula aqui se fica habilitado (poção sobrando/alvo válido/alvo não cheio/é a vez da ficha
-  // aberta, se ela estiver numa fila ativa) -- onUsePotion() só é chamado quando o item já está de
-  // fato HABILITADO.
-  function buildPotionMenuItem(kind, targetCombat, onUsePotion){
+  // Ícone de garrafa (Poção de Vida = líquido vermelho, Poção de Mana = líquido azul -- pedido
+  // explícito) em SVG inline, já que nenhum emoji de garrafa tem o líquido colorível por CSS; a cor
+  // de cada uma vem fixa no próprio `fill` do SVG.
+  function boardPotionIconSvg(kind){
+    const color = kind === 'vida' ? '#c23b2e' : '#2e6fc2';
+    return `<svg class="board-ability-circle-icon board-ability-circle-icon-potion" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">`
+      + `<path d="M9.6 2h4.8v4.4l3.3 5.9c1 1.8.4 4.1-1.4 5.1a4 4 0 0 1-2 .5H9.7a4 4 0 0 1-2-.5c-1.8-1-2.4-3.3-1.4-5.1l3.3-5.9V2Z" stroke="#e0b656" stroke-width="1.3" stroke-linejoin="round"/>`
+      + `<path d="M7.1 14h9.8l.9 1.6c1 1.8.4 4.1-1.4 5.1a4 4 0 0 1-2 .5h-4c-.7 0-1.4-.2-2-.5-1.8-1-2.4-3.3-1.4-5.1L7.1 14Z" fill="${color}" opacity=".88"/>`
+      + `<path d="M9.3 2h5.4" stroke="#e0b656" stroke-width="1.3" stroke-linecap="round"/>`
+      + `</svg>`;
+  }
+  // Monta UM círculo de Poção (Vida OU Mana) -- aparece sempre que a categoria é 'defensiva'
+  // (clique no próprio token ou no de um ALIADO), SEM depender de quem está na vez -- confirmado
+  // via pergunta de uma rodada anterior: a cura cai no alvo CLICADO (self ou aliado), e usar a
+  // poção continua consumindo do Inventário da ficha que EU tenho aberta agora (não do atacante da
+  // vez, ver usePotion()). Mesma validação de sempre (poção sobrando/alvo válido/alvo não cheio/é a
+  // vez da ficha aberta) -- onUsePotion() só é chamado quando o círculo está de fato HABILITADO.
+  function buildPotionAbilityCircle(kind, targetCombat, onUsePotion){
     const nome = kind === 'vida' ? 'POÇÃO DE VIDA' : 'POÇÃO DE MANA';
     const label = kind === 'vida' ? 'Usar Poção de Vida' : 'Usar Poção de Mana';
-    const item = document.createElement('button');
-    item.type = 'button';
-    item.className = 'board-action-menu-item';
+    const circle = document.createElement('button');
+    circle.type = 'button';
+    circle.className = 'board-ability-circle board-ability-circle-potion board-ability-circle-potion-' + kind;
+    circle.innerHTML = boardPotionIconSvg(kind);
     const qty = getLockedItemQty(nome);
     let reason = '';
     const entry = turnEntryDaFichaAberta();
@@ -8541,99 +8572,61 @@ body{
       const max = kind === 'vida' ? (targetCombat.vidaMax || 0) : (targetCombat.manaMax || 0);
       if(atual >= max) reason = kind === 'vida' ? 'O alvo já está com Vida cheia.' : 'O alvo já está com Mana cheia.';
     }
-    const detailTxt = `Restaura ${kind === 'vida' ? 'Vida' : 'Mana'} até o máximo · Consome 1 ${nome} do seu Inventário · Sobrando: ${qty}`;
-    item.innerHTML = `<span class="board-action-menu-item-name">${escapeHtml(label)}</span>`
-      + `<span class="board-action-menu-item-detail">${escapeHtml(detailTxt)}</span>`
-      + (reason ? `<span class="board-action-menu-item-reason">${escapeHtml(reason)}</span>` : '');
+    const detailTxt = `${label} — Restaura ${kind === 'vida' ? 'Vida' : 'Mana'} até o máximo · Sobrando: ${qty}`;
+    circle.title = reason ? `${detailTxt}\n${reason}` : detailTxt;
     if(reason){
-      item.disabled = true;
+      circle.disabled = true;
     } else {
-      item.addEventListener('click', ()=>{ closeBoardActionMenu(); onUsePotion(kind); });
+      circle.addEventListener('click', ()=>{ closeBoardActionMenu(); onUsePotion(kind); });
     }
-    return item;
+    return circle;
   }
 
-  // Monta o CONTEÚDO do menu (cabeçalho + corpo) de acordo com a categoria -- Ações de Campo fica
-  // vazia por agora (pedido explícito do usuário: "deixa o menu vazio por agora" -- NÃO migra
-  // "Erguer Escudo"/"Erguer Escudo Pesado" pra dentro dela, que continua exatamente onde já
-  // estava, confirmado explicitamente com o usuário). Ações Defensivas ganhou os 2 itens de Poção
-  // nesta rodada (ver buildPotionMenuItem() acima).
-  function buildBoardActionMenuContent(category, ctx){
-    const wrap = document.createElement('div');
-    const header = document.createElement('div');
-    header.className = 'board-action-menu-header';
-    header.textContent = BOARD_ACTION_CATEGORY_LABEL[category] || '';
-    wrap.appendChild(header);
-    const body = document.createElement('div');
-    body.className = 'board-action-menu-body';
-    if(category === 'ofensiva'){
-      body.appendChild(buildOfensivaMenuItem(ctx.attackerToken, ctx.attackerCombat, ctx.targetCombat, ctx.onAttack));
-    } else if(category === 'defensiva'){
-      body.appendChild(buildPotionMenuItem('vida', ctx.targetCombat, ctx.onUsePotion));
-      body.appendChild(buildPotionMenuItem('mana', ctx.targetCombat, ctx.onUsePotion));
-    } else {
-      const empty = document.createElement('div');
-      empty.className = 'board-action-menu-empty';
-      empty.textContent = 'Nenhuma ação disponível ainda.';
-      body.appendChild(empty);
-    }
-    wrap.appendChild(body);
-    // "Remover peça": só o Mestre, só quando a casa clicada tem mesmo uma peça (pedido explícito:
-    // substitui a remoção instantânea de sempre, ver comentário grande lá em cima) -- aparece
-    // embaixo do conteúdo de QUALQUER categoria, sempre no fim do menu.
-    if(ctx.role === 'mestre' && ctx.targetToken){
-      const removeBtn = document.createElement('button');
-      removeBtn.type = 'button';
-      removeBtn.className = 'board-action-menu-item board-action-menu-remove';
-      removeBtn.innerHTML = `<span class="board-action-menu-item-name">🗑️ Remover peça</span>`;
-      removeBtn.addEventListener('click', ()=>{ closeBoardActionMenu(); ctx.onRemove(); });
-      wrap.appendChild(removeBtn);
-    }
-    return wrap;
-  }
-
-  // Abre o menu -- chamado pelo 'contextmenu' de cada casa, tanto do tabuleiro de verdade do Mestre
-  // (buildBoardGrid(), pool=boardTokens, role='mestre') quanto do mini-tabuleiro do Jogador
-  // (renderLiveBoardMini(), pool=liveBoardState.tokens, role='jogador') -- mesmo r/c, mesma
-  // função, só o pool/role mudam. onAttack ainda é um placeholder nesta parte da rodada (resolução
-  // de ataque de verdade -- rolagem/alcance/PA/Mana/dano reduzido -- é a PRÓXIMA parte, ver
-  // tryResolveAttack() mais abaixo).
-  function openBoardActionMenu(r, c, clientX, clientY, pool, role){
+  // Abre o menu circular -- chamado pelo 'click' (botão esquerdo) de cada TOKEN com lado (ver
+  // boardActionSide()), tanto do tabuleiro de verdade do Mestre (renderBoardCell(),
+  // pool=boardTokens, role='mestre') quanto do mini-tabuleiro do Jogador (renderLiveBoardMini(),
+  // pool=liveBoardState.tokens, role='jogador') -- mesmo r/c, mesma função, só o pool/role/âncora
+  // (tokenEl, o próprio ícone clicado -- as bolinhas orbitam o CENTRO dele) mudam. Categoria
+  // 'campo' (alvo sem lado -- obstáculo/baú/casa vazia -- ou nenhum alvo) não abre nada: desde que
+  // o clique direito saiu de cena, não sobrou ação nenhuma pra mostrar nesses casos ("Ações de
+  // Campo" continua vazia, "Remover peça" é só o botão do meio do mouse).
+  function openBoardAbilityWheel(r, c, tokenEl, pool, role){
     closeBoardActionMenu();
     const key = (role === 'mestre') ? boardKey(r,c) : liveBoardKey(r,c);
     const targetToken = (pool && pool[key]) || null;
     const attackerToken = resolveAttackerToken();
     const category = classifyBoardActionCategory(targetToken, attackerToken);
+    if(category !== 'ofensiva' && category !== 'defensiva') return;
     const attackerCombat = resolveCombatData(attackerToken);
     const targetCombat = resolveCombatData(targetToken);
-    const ctx = {
-      role, targetToken, attackerToken, attackerCombat, targetCombat,
-      onAttack: (ability)=>{ tryResolveBoardAttack(attackerToken, attackerCombat, targetToken, targetCombat, ability, pool, role, r, c); },
-      onUsePotion: (kind)=>{ tryResolveBoardPotion(pool, role, r, c, kind); },
-      onRemove: ()=> removeTokenAt(r, c),
-    };
+    const onAttack = (ability)=>{ tryResolveBoardAttack(attackerToken, attackerCombat, targetToken, targetCombat, ability, pool, role, r, c); };
+    const onUsePotion = (kind)=>{ tryResolveBoardPotion(pool, role, r, c, kind); };
+    const circles = (category === 'ofensiva')
+      ? [buildOfensivaAbilityCircle(attackerToken, attackerCombat, targetCombat, onAttack)]
+      : [buildPotionAbilityCircle('vida', targetCombat, onUsePotion), buildPotionAbilityCircle('mana', targetCombat, onUsePotion)];
     boardActionMenuEl = document.createElement('div');
-    boardActionMenuEl.className = 'board-action-menu';
-    boardActionMenuEl.appendChild(buildBoardActionMenuContent(category, ctx));
+    boardActionMenuEl.className = 'board-ability-wheel';
+    circles.forEach(circle=> boardActionMenuEl.appendChild(circle));
     document.body.appendChild(boardActionMenuEl);
-    positionBoardActionMenu(clientX, clientY);
-    // delay 0: sem isto, o PRÓPRIO mousedown que abriu o menu (botão direito) já dispara o listener
-    // de fora e fecharia o menu no mesmo instante em que acabou de abrir.
+    positionBoardAbilityWheel(tokenEl, circles);
+    // delay 0: sem isto, o PRÓPRIO clique que abriu o menu já dispara o listener de fora e fecharia
+    // o menu no mesmo instante em que acabou de abrir.
     setTimeout(()=>{
       document.addEventListener('mousedown', boardActionMenuOutsideClick, true);
       document.addEventListener('keydown', boardActionMenuEscape, true);
     }, 0);
   }
 
-  // Resolve de verdade uma Ação Ofensiva, depois de clicada no menu (ver buildOfensivaMenuItem()
-  // acima) -- SÓ é chamada quando o item já estava HABILITADO no instante do clique, mas confere
-  // tudo de novo aqui mesmo assim (mesmo cuidado de handleBoardDrop()/handleLiveBoardDrop(), que
-  // também re-confirmam tudo na hora de agir, nunca confiam cegamente no que a UI validou um
-  // instante atrás -- o estado pode ter mudado entre abrir o menu e clicar, ex: outra aba gastando
-  // PA ou o alvo morrendo nesse meio-tempo, sincronizado pelo Firebase). Por isso ignora de
-  // propósito os parâmetros attackerCombat/targetCombat/ability recebidos de openBoardActionMenu
-  // (podem estar desatualizados) e os RE-CALCULA aqui do zero -- r/c/pool/role (a CASA clicada)
-  // são a única coisa que não muda com o tempo, então esses sim são reaproveitados.
+  // Resolve de verdade uma Ação Ofensiva, depois de clicada no círculo do menu (ver
+  // buildOfensivaAbilityCircle() acima) -- SÓ é chamada quando o círculo já estava HABILITADO no
+  // instante do clique, mas confere tudo de novo aqui mesmo assim (mesmo cuidado de
+  // handleBoardDrop()/handleLiveBoardDrop(), que também re-confirmam tudo na hora de agir, nunca
+  // confiam cegamente no que a UI validou um instante atrás -- o estado pode ter mudado entre abrir
+  // o menu e clicar, ex: outra aba gastando PA ou o alvo morrendo nesse meio-tempo, sincronizado
+  // pelo Firebase). Por isso ignora de propósito os parâmetros attackerCombat/targetCombat/ability
+  // recebidos de openBoardAbilityWheel (podem estar desatualizados) e os RE-CALCULA aqui do zero --
+  // r/c/pool/role (a CASA clicada) são a única coisa que não muda com o tempo, então esses sim são
+  // reaproveitados.
   //   1) RODADA NOVA (pedido explícito: "o calculo de acerto é feito em cima das regras de
   //      rolamento do atributo" -- NUNCA comparando contra a Defesa do alvo, que continua só
   //      reduzindo o DANO, ver passo 2): rola 1d20 ("rolagem de Acerto") e aplica a MESMA fórmula
@@ -8762,9 +8755,9 @@ body{
     });
   }
 
-  // Resolve de verdade o uso de uma Poção clicada no menu de Ações Defensivas (ver
-  // buildPotionMenuItem() acima) -- SÓ é chamada quando o item já estava HABILITADO no instante do
-  // clique, mas (mesmo cuidado de tryResolveBoardAttack()) re-resolve o alvo do ZERO a partir de
+  // Resolve de verdade o uso de uma Poção clicada no círculo do menu (ver buildPotionAbilityCircle()
+  // acima) -- SÓ é chamada quando o círculo já estava HABILITADO no instante do clique, mas (mesmo
+  // cuidado de tryResolveBoardAttack()) re-resolve o alvo do ZERO a partir de
   // r/c/pool/role (a CASA clicada é a única coisa que não muda com o tempo) em vez de confiar num
   // token recebido que pode estar desatualizado. Quem gasta a Poção (qual ficha, qual Inventário) e
   // se isso encerra o turno é tudo decidido dentro de usePotion() (gate por turnEntryDaFichaAberta(),
@@ -11604,8 +11597,9 @@ body{
   // ---------- "o uso de poções sai da barra abaixo do tabuleiro e passam a ser uma ação
   // defensiva" (rodada nova, pedido explícito do usuário) ---------- os botões refill_vida/
   // refill_mana (pote vermelho/pote azul) SAÍRAM de #mesaFixedBottom por completo (ver HTML) --
-  // usar uma Poção agora é um item do menu de Ações Defensivas (clique direito no próprio token ou
-  // no de um aliado no tabuleiro, ver buildPotionMenuItem()/tryResolveBoardPotion() mais abaixo),
+  // usar uma Poção agora é um círculo do menu circular de habilidades (clique ESQUERDO no próprio
+  // token ou no de um aliado no tabuleiro, ver buildPotionAbilityCircle()/tryResolveBoardPotion()
+  // mais abaixo),
   // confirmado via pergunta: a cura cai no TOKEN CLICADO (você mesmo ou o aliado), nunca mais
   // sempre a própria ficha. refreshPotionButtons() continua existindo (ainda chamada depois de
   // editar o Inventário/subir de nível) mas virou um no-op seguro -- os ids refill_vida/
@@ -11740,7 +11734,7 @@ body{
   // tenha pontos o suficiente pra realizar estas ações") -- substitui o modelo anterior de "até 2
   // ações" pareadas movimento+rolagem (1 movimento + 1 rolagem, cada uma só 1x por turno, a
   // rolagem travando o movimento pro resto do turno). AGORA: movimento (1 PA por casa, ver
-  // markTurnMoved()) e Ações Ofensivas de ataque (custoPA próprio, ver buildOfensivaMenuItem()) já
+  // markTurnMoved()) e Ações Ofensivas de ataque (custoPA próprio, ver buildOfensivaAbilityCircle()) já
   // eram só limitados pelo PA restante, sem contador de "1 por turno" -- a rolagem solta de
   // Habilidade/Talento/Atributo (ver finishRoll()) era a ÚLTIMA ação ainda travada em "só 1x por
   // turno" (canRollThisTurnToken()) e travando o movimento junto depois de rolar; essa trava saiu
@@ -14971,17 +14965,17 @@ body{
         });
         cell.addEventListener('contextmenu', (e)=>{
           e.preventDefault();
-          // Fase 2 ("botão direito + arrastar" vira a câmera, pedido explícito do usuário): um
-          // clique direito RÁPIDO (sem arrastar) abre o menu de Ações normalmente -- só quando o
-          // botão direito foi usado pra ARRASTAR a câmera (ver boardCameraJustPanned, setado por
-          // setupBoardCameraZoom() mais abaixo) é que a abertura do menu é pulada desta vez (o
-          // próprio gesto já fez o trabalho dele, que foi mover a câmera).
-          // RODADA NOVA ("3 ações no tabuleiro", pedido explícito): o clique direito deixou de
-          // remover a peça na hora -- agora abre o menu de Ações Ofensivas/Defensivas/Campo (ver
-          // openBoardActionMenu() mais acima); "Remover peça" virou um ITEM desse menu. A remoção
-          // RÁPIDA de sempre virou o botão do MEIO do mouse (ver o 'auxclick' logo abaixo).
-          if(boardCameraJustPanned){ boardCameraJustPanned = false; return; }
-          openBoardActionMenu(r, c, e.clientX, e.clientY, boardTokens, 'mestre');
+          // Fase 2 ("botão direito + arrastar" vira a câmera, pedido explícito do usuário): o botão
+          // direito continua servindo só pra ARRASTAR a câmera (ver boardCameraJustPanned, setado por
+          // setupBoardCameraZoom() mais abaixo) -- o preventDefault() acima segue necessário pra
+          // suprimir o menu de contexto nativo do navegador durante esse arrasto.
+          // RODADA NOVA ("menu circular de habilidades", pedido explícito do usuário -- ver
+          // openBoardAbilityWheel() mais acima): o clique direito deixou de abrir QUALQUER menu
+          // ("sai de cena", confirmado com o usuário) -- escolher Habilidade/Poção agora é feito só
+          // pelo clique ESQUERDO no próprio token (ver 'click' em renderBoardCell() mais abaixo).
+          // "Remover peça" continua exclusivamente no botão do MEIO do mouse (ver 'auxclick' abaixo),
+          // como já era desde a rodada anterior.
+          if(boardCameraJustPanned){ boardCameraJustPanned = false; }
         });
         // RODADA NOVA (pedido explícito do usuário, ver comentário grande do 'contextmenu' acima):
         // remoção rápida de peça sem abrir menu nenhum, só pro Mestre -- agora no botão do MEIO do
@@ -15137,6 +15131,18 @@ body{
       // recusado ou solto fora do tabuleiro -- por isso é o gatilho certo pra sempre limpar o
       // destaque azul, não só o 'drop' (mesmo raciocínio já usado no Tabuleiro ao Vivo).
       t.addEventListener('dragend', clearBoardReachableHighlight);
+      // RODADA NOVA ("menu circular de habilidades", pedido explícito do usuário -- ver
+      // openBoardAbilityWheel() mais acima): clique ESQUERDO simples no próprio token (sem arrastar,
+      // mesmo raciocínio do Baú logo abaixo) abre o menu circular -- defensivas/poções se for o
+      // próprio Mestre/aliado, ofensivas se for inimigo; openBoardAbilityWheel() já decide isso (via
+      // classifyBoardActionCategory()) e simplesmente não abre nada pra peças sem lado (bloco/baú/
+      // obstáculo). Blocos (isBlockKind()) seguem de fora, nunca tiveram ação nenhuma associada.
+      if(!isBlockKind(token.kind)){
+        t.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          openBoardAbilityWheel(r, c, t, boardTokens, 'mestre');
+        });
+      }
       // Baú (CHEST_KINDS): descrição (o que tem dentro) é editável pelo MESTRE clicando no baú já
       // colocado no tabuleiro de verdade — mesma ideia de icon.desc nos ícones do Mapa (ver
       // .map-icon-marker mais abaixo no <script>). Um clique simples (sem arrastar) continua
@@ -19088,20 +19094,17 @@ body{
         const cellKey = liveBoardKey(r,c);
         cell.addEventListener('dragover', (e)=> e.preventDefault());
         cell.addEventListener('drop', (e)=>{ e.preventDefault(); handleLiveBoardDrop(r, c, e); });
-        // RODADA NOVA ("3 ações no tabuleiro", pedido explícito -- os dois tabuleiros ganham os
-        // mesmos 3 menus, ver comentário grande de openBoardActionMenu() na aba Mesa): o
-        // mini-tabuleiro do Jogador nunca teve 'contextmenu' nenhum antes desta rodada -- mesmo
-        // guard boardCameraJustPanned do lado do Mestre (buildBoardGrid()), já que os dois
-        // compartilham o MESMO mecanismo de câmera por arrasto do botão direito (ver
+        // RODADA NOVA ("menu circular de habilidades", pedido explícito do usuário -- ver
+        // openBoardAbilityWheel() na aba Mesa): o clique direito deixou de abrir QUALQUER menu
+        // ("sai de cena", confirmado com o usuário) -- escolher Habilidade/Poção agora é feito só
+        // pelo clique ESQUERDO no próprio token (ver 'click' logo abaixo). Este listener de
+        // 'contextmenu' continua existindo só pra suprimir o menu nativo do navegador durante o
+        // arrasto de câmera do botão direito (mesmo guard boardCameraJustPanned do lado do Mestre em
+        // buildBoardGrid(), já que os dois compartilham o MESMO mecanismo de câmera -- ver
         // setupBoardCameraZoom() mais abaixo, chamado uma única vez pra #liveBoardGrid inteiro).
-        // Antes de revelado (!revealed, logo abaixo) não tem NADA pra clicar ainda -- por isso este
-        // listener entra aqui, antes do "continue" cedo, igual ao dragover/drop acima, mas só abre o
-        // menu de fato depois de revelado.
         cell.addEventListener('contextmenu', (e)=>{
           e.preventDefault();
-          if(boardCameraJustPanned){ boardCameraJustPanned = false; return; }
-          if(!revealed) return;
-          openBoardActionMenu(r, c, e.clientX, e.clientY, liveBoardState.tokens, 'jogador');
+          if(boardCameraJustPanned) boardCameraJustPanned = false;
         });
         if(!revealed){ liveBoardGridEl.appendChild(cell); continue; }
         if(mistReachable && !mistReachable.has(cellKey)) cell.classList.add('board-cell-mist', 'mist-' + fogPlusColorActive);
@@ -19180,6 +19183,18 @@ body{
             // casos) ou solto fora do tabuleiro — por isso é o gatilho certo pra sempre limpar o
             // destaque azul, não só o 'drop'.
             t.addEventListener('dragend', clearLiveBoardReachableHighlight);
+          }
+          // RODADA NOVA ("menu circular de habilidades", pedido explícito do usuário -- ver
+          // openBoardAbilityWheel() na aba Mesa): clique ESQUERDO simples no token (qualquer um, não
+          // só os "mine"/arrastáveis -- precisa abrir pra aliado/inimigo também, não só pra ficha
+          // própria) abre o menu circular aqui no mini-tabuleiro do Jogador. openBoardAbilityWheel()
+          // já decide sozinho (via classifyBoardActionCategory()) se mostra defensivas/poções ou
+          // ofensivas, e simplesmente não abre nada pra peças sem lado (bloco/baú/obstáculo).
+          if(!isBlockKind(token.kind)){
+            t.addEventListener('click', (e)=>{
+              e.stopPropagation();
+              openBoardAbilityWheel(r, c, t, liveBoardState.tokens, 'jogador');
+            });
           }
           cell.appendChild(t);
           if(!isBlockKind(token.kind)){
