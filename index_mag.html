@@ -1589,17 +1589,20 @@ body{
   filter:drop-shadow(0 1px 3px rgba(0,0,0,.75));
   animation:boardHitFxFloat .85s ease-out forwards;
 }
-/* Rodada nova, pedido explícito ("quando houver um ataque este precisa ser animado... balance o
+/* Rodada antiga, pedido explícito ("quando houver um ataque este precisa ser animado... balance o
    atacante na direção do atacado, o atacado recebe um efeito de tremida e uma animação de corte,
    então sobe na tela um numero representando o dano causado... caso nenhum dano seja causado sobe
-   um texto escrito ERROU") -- primeira versão ("por hora"), ver spawnBoardHitFx()/broadcastHitFx()
-   no <script>, que finalmente dão uso de verdade a .board-token-shake/.board-hit-fx-emoji acima
-   (ficavam órfãs desde que o Menu de Ataque antigo saiu, Segmento 4). .board-token-lean é a peça do
-   ATACANTE balançando pra cima do alvo -- --lean-x/--lean-y (setadas por JS antes de ligar a
-   classe) carregam a DIREÇÃO de verdade (sinal de linha/coluna entre atacante e alvo), um único
-   keyframe serve pras 8 direções. .board-hit-fx-text reaproveita o MESMO keyframe boardHitFxFloat
-   já usado por .board-hit-fx-emoji (mesmo "sobe e desaparece"), só que com texto em vez de emoji --
-   vermelho pro número de dano, cinza/menor pro "ERROU". */
+   um texto escrito ERROU") -- ver spawnBoardHitFx()/broadcastHitFx() no <script>, que finalmente
+   dão uso de verdade a .board-token-shake/.board-hit-fx-emoji acima (ficavam órfãs desde que o Menu
+   de Ataque antigo saiu, Segmento 4). .board-token-lean é a peça do ATACANTE balançando pra cima do
+   alvo -- --lean-x/--lean-y (setadas por JS antes de ligar a classe) carregam a DIREÇÃO de verdade
+   (sinal de linha/coluna entre atacante e alvo), um único keyframe serve pras 8 direções. Essas duas
+   continuam ativas (disparam na hora, antes de qualquer dado rolar). .board-hit-fx-text também
+   continua ativa, mas SÓ pro número de dano final (RODADA NOVA: o "ERROU" que subia aqui saiu --
+   ver .board-erro-explosion-text mais abaixo, que agora é quem avisa o erro, bem mais chamativo,
+   explodindo do próprio dado de Acerto -- ver comentário grande de spawnBoardHitFx() no <script>);
+   .board-hit-fx-miss ficou sem uso (preservada, inofensiva, só pro caso de algum código antigo ainda
+   referenciar). */
 @keyframes boardTokenLean{
   0%,100%{ transform:translate(0,0) rotate(0deg); }
   40%{ transform:translate(var(--lean-x,0),var(--lean-y,0)) rotate(var(--lean-rot,0deg)); }
@@ -1617,6 +1620,35 @@ body{
 @media (prefers-reduced-motion: reduce){
   .board-token.board-token-lean{ animation:none !important; }
   .board-hit-fx-emoji, .board-hit-fx-text{ animation:none !important;opacity:0; }
+}
+/* RODADA NOVA (pedido explícito: "se o rolamento de acerto resulta em uma falha, explode o dado com
+   fumaça e umas caveirinhas e exibe ERRO escrito grande na explosão") -- texto grande que nasce no
+   centro da explosão de fumaça/caveirinhas do dado de Acerto quando ERROU (ver
+   spawnMissExplosionAtElement() no <script>, mesma técnica position:fixed ancorada via JS de
+   .dice-particle-fixed). Escala/rotaciona um pouco pra parecer parte da própria explosão, não um
+   texto flutuando educadamente -- diferente do boardHitFxFloat (sobe e desaparece) usado pelo
+   número de dano final. */
+.board-erro-explosion-text{
+  position:fixed;
+  transform:translate(-50%,-50%);
+  z-index:10000;
+  font-family:'Cinzel Decorative',serif;
+  font-size:30px;
+  font-weight:700;
+  letter-spacing:.08em;
+  color:#8a1f1f;
+  text-shadow:0 0 10px rgba(0,0,0,.6), 0 0 22px rgba(140,10,10,.75);
+  pointer-events:none;
+  animation:boardErroExplosionPop .7s cubic-bezier(.3,1.4,.4,1);
+}
+@keyframes boardErroExplosionPop{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-6deg);}
+  35%{opacity:1;transform:translate(-50%,-50%) scale(1.35) rotate(3deg);}
+  65%{opacity:1;transform:translate(-50%,-50%) scale(1.05) rotate(-2deg);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.15) rotate(0deg);}
+}
+@media (prefers-reduced-motion: reduce){
+  .board-erro-explosion-text{ animation:none; opacity:0; }
 }
 /* menu suspenso ao passar o mouse num token do tabuleiro — mostra o nome do personagem (fichas) ou
    o tipo + número de ordem de colocação (aliados/inimigos/monstros/boss), pra o mestre identificar
@@ -5963,9 +5995,9 @@ body{
         <div class="board-size-control">
           <div class="board-size-fields">
             <label for="boardRowsInput">TAMANHO DO TABULEIRO</label>
-            <input type="number" id="boardRowsInput" min="2" max="40" value="24" title="Número de linhas">
+            <input type="number" id="boardRowsInput" min="2" max="40" value="8" title="Número de linhas">
             <span>x</span>
-            <input type="number" id="boardColsInput" min="2" max="40" value="24" title="Número de colunas">
+            <input type="number" id="boardColsInput" min="2" max="40" value="8" title="Número de colunas">
             <button id="boardResizeBtn" class="mini-btn" type="button">APLICAR</button>
           </div>
           <div class="board-grid-color-fields">
@@ -8098,22 +8130,42 @@ body{
     }
   }
 
-  // ---------- Animação de ataque no tabuleiro (pedido explícito: "quando houver um ataque este
-  // precisa ser animado... balance o atacante na direção do atacado, o atacado recebe um efeito de
-  // tremida e uma animação de corte, então sobe na tela um numero representando o dano causado...
-  // caso nenhum dano seja causado sobe um texto escrito ERROU", "a animação deve ocorrer para todos
-  // vendo o tabuleiro") ----------
-  // spawnBoardHitFx()/.board-token-lean/.board-hit-fx-text (ver <style>) finalmente dão uso de
-  // verdade a .board-token-shake/.board-hit-fx-emoji, que ficavam órfãs desde que o Menu de Ataque
-  // antigo saiu (Segmento 4) -- esta função só DESENHA o resultado (danoFinal) que quem chama já
-  // calculou, nunca decide regra nenhuma. Primeira versão ("por hora"): balança o atacante na
-  // direção do alvo (--lean-x/--lean-y/--lean-rot, setadas aqui com o SINAL certo pras 8 direções,
-  // um único keyframe serve pras 8), soma tremida (.board-token-shake, reaproveitada) + um emoji de
-  // impacto (⚔️, reaproveitando .board-hit-fx-emoji) no alvo, e por fim sobe o número do dano (ou
-  // "ERROU" quando danoFinal é 0) -- mesmo keyframe boardHitFxFloat, só que com texto
-  // (.board-hit-fx-text). Devolve uma Promise que só resolve quando a sequência inteira termina,
-  // pro chamador (ver tryResolveBoardAttack()) atrasar a mensagem no chat/Discord até lá -- mesmo
-  // espírito de scheduleSyncedRoll().then() já usado pelas 3 rolagens de dado/moeda.
+  // ---------- Animação de ataque no tabuleiro (pedido explícito original: "quando houver um
+  // ataque este precisa ser animado... balance o atacante na direção do atacado, o atacado recebe
+  // um efeito de tremida e uma animação de corte...", "a animação deve ocorrer para todos vendo o
+  // tabuleiro") ----------
+  // RODADA NOVA (pedido explícito, vídeos a1/a2 + vídeo de referência "2" de outro arquivo: "a
+  // animação dos dados não esta rodando como deveria... no vídeo 2 eu mostro como funciona a
+  // animação do rolamento de dados no outro index, que é como deveria estar funcionando aqui" +
+  // clarificações seguintes: "a animação deve seguir a ordem, após decidida a ação aparece o
+  // rolamento do dado para todo mundo, se acerto é exibido o rolamento do dado de dano" / "as
+  // defesas apenas reduzem o valor do dano, o calculo de acerto é feito em cima das regras de
+  // rolamento do atributo" / "se o rolamento de acerto resulta em uma falha, explode o dado com
+  // fumaça e umas caveirinhas e exibe ERRO escrito grande na explosão, se for um acerto explode o
+  // dado da mesma forma mas dessa vez em mais dados que rolaram o dano, se for 1 dado ele explode em
+  // um segundo dado, se forem mais de 1 ele explode no numero de dados necessários, lembrando que ele
+  // só joga a informação para o chat depois de exibir a animação"):
+  // a antiga "primeira versão (por hora)" (balançada + emoji de corte + um número/"ERROU" flutuando
+  // no alvo) SUBSTITUIU o floating-text de resultado por uma rolagem de dado GRANDE de verdade,
+  // igual a qualquer rolagem manual de Atributo/Dano (mesmo palco #boardDiceFooter/
+  // boardDiceZoneAtributo/boardDiceZoneDano, ver comentário grande em "let diceResult" mais abaixo
+  // no <script>) -- bem mais chamativa, igual ao vídeo de referência. Fluxo de dentro de
+  // spawnBoardHitFx(): balança o atacante + tremida/corte no alvo (igual antes, instantâneo) ->
+  // nasce e ricocheteia 1 dado de ACERTO (1d20, mesmas regras de "rolagem do atributo" já usadas em
+  // finishRoll()/verdict -- 20 natural = acerto garantido, 1 natural = erro garantido, senão
+  // rolado>=limiar; o limiar usa o Atributo de ARMA da Habilidade do atacante, NUNCA a Defesa do
+  // alvo, que continua só reduzindo o DANO -- ver tryResolveBoardAttack()) -> dado de acerto pousa,
+  // ganha o mesmo brilho/sombra de sempre (hit-glow/miss-shadow/crit-hit/crit-miss) -> EXPLODE:
+  // se ERROU, em fumaça (💨) + caveirinhas (💀) com "ERRO" escrito grande no meio da explosão (ver
+  // spawnMissExplosionAtElement() logo abaixo) e PARA aí, nenhum dado de Dano aparece; se ACERTOU,
+  // explode em partículas de dado (🎲, reaproveitando spawnDiceExplosionAtElement() já existente)
+  // "virando" os N dados de Dano de verdade -- reaproveita playRemoteDanoRoll() tal como já existia
+  // pra rolagem manual de Dano, sem duplicar ricochete/cor/som (1 dado de Dano, caso mais comum
+  // hoje, aparece como "um segundo dado" brotando da explosão; mais de 1, aparece a quantidade
+  // certa). Devolve uma Promise que só resolve quando a sequência INTEIRA termina (acerto -> se
+  // acerto, dano), pro chamador (ver tryResolveBoardAttack()) atrasar a mensagem no chat/Discord até
+  // lá -- mesmo espírito de scheduleSyncedRoll().then() já usado pelas 3 rolagens manuais de
+  // dado/moeda.
   function boardHitFxCenterXY(r, c){
     const cell = (r != null && c != null) ? getCellEl(r, c) : null;
     if(!cell) return null;
@@ -8139,7 +8191,51 @@ body{
     el.addEventListener('animationend', cleanup, { once: true });
     setTimeout(cleanup, durationMs + 300);
   }
-  function spawnBoardHitFx(attackerAnchor, targetAnchor, danoFinal){
+  // "ERRO" (pedido explícito: "se o rolamento de acerto resulta em uma falha, explode o dado com
+  // fumaça e umas caveirinhas e exibe ERRO escrito grande na explosão") -- mesma técnica de
+  // spawnDiceExplosionAtElement() (position:fixed ancorado no próprio elemento via
+  // getBoundingClientRect(), 360° completo, auto-remove via setTimeout) só que com fumaça (💨) +
+  // caveirinhas (💀) no lugar dos 🎲, e um texto GRANDE "ERRO" nascendo bem no meio da explosão
+  // (keyframe próprio, ver .board-erro-explosion-text no <style>).
+  function spawnMissExplosionAtElement(el){
+    if(!el) return;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top + rect.height/2;
+    const count = 14;
+    for(let i=0;i<count;i++){
+      const span = document.createElement('span');
+      span.className = 'dice-particle dice-particle-explosion dice-particle-fixed';
+      span.textContent = (i % 2 === 0) ? '💨' : '💀';
+      const angle = Math.random()*Math.PI*2;
+      const dist = 26 + Math.random()*48;
+      const dx = Math.cos(angle)*dist;
+      const dy = Math.sin(angle)*dist;
+      span.style.left = cx.toFixed(1)+'px';
+      span.style.top = cy.toFixed(1)+'px';
+      span.style.setProperty('--dx', dx.toFixed(1)+'px');
+      span.style.setProperty('--dy', dy.toFixed(1)+'px');
+      span.style.setProperty('--rot', (Math.random()*180-90).toFixed(1)+'deg');
+      span.style.animationDelay = Math.floor(Math.random()*80)+'ms';
+      document.body.appendChild(span);
+      setTimeout(()=> span.remove(), 1200);
+    }
+    const textEl = document.createElement('div');
+    textEl.className = 'board-erro-explosion-text';
+    textEl.textContent = 'ERRO';
+    textEl.style.left = cx.toFixed(1)+'px';
+    textEl.style.top = cy.toFixed(1)+'px';
+    document.body.appendChild(textEl);
+    const cleanup = ()=> textEl.remove();
+    textEl.addEventListener('animationend', cleanup, { once:true });
+    setTimeout(cleanup, 1000);
+  }
+  // val: { hitRoll, verdict, statVal, rolls, qtd, maxVal, danoFinal, deidade } -- ver comentário
+  // grande acima (e tryResolveBoardAttack()/broadcastHitFx() mais abaixo) pro significado de cada
+  // campo. Esta função só DESENHA o resultado que quem chama já calculou, nunca decide regra
+  // nenhuma.
+  function spawnBoardHitFx(attackerAnchor, targetAnchor, val){
+    val = val || {};
     const targetXY = targetAnchor && boardHitFxCenterXY(targetAnchor.r, targetAnchor.c);
     const attackerTokenEl = attackerAnchor && boardHitFxTokenEl(attackerAnchor.r, attackerAnchor.c);
     const targetTokenEl = targetAnchor && boardHitFxTokenEl(targetAnchor.r, targetAnchor.c);
@@ -8164,17 +8260,71 @@ body{
       cutEmojiEl.textContent = '⚔️';
       spawnBoardHitFxFloating(targetXY, cutEmojiEl, 850);
     }
-    return new Promise(resolve=>{
-      setTimeout(()=>{
-        if(targetXY){
-          const isMiss = !danoFinal || danoFinal <= 0;
-          const textEl = document.createElement('div');
-          textEl.className = 'board-hit-fx-text ' + (isMiss ? 'board-hit-fx-miss' : 'board-hit-fx-dano');
-          textEl.textContent = isMiss ? 'ERROU' : ('-' + danoFinal);
-          spawnBoardHitFxFloating(targetXY, textEl, 850);
-        }
-        setTimeout(resolve, 850);
-      }, 380);
+
+    // rolagem de ACERTO animada (1 dado, mesmo palco/visual que a rolagem manual de Atributo --
+    // ver playRemoteAtributoRoll() mais abaixo no <script>, reaproveita os mesmos helpers de
+    // cubo/ricochete/cor/som).
+    const rollerColor = DEITY_EYE_COLOR[val.deidade] || DEITY_EYE_COLOR['VAZIO'];
+    const rollerGlow = hexToRgba(rollerColor, .55);
+    const hitGroup = document.createElement('div');
+    const hitPair = document.createElement('div');
+    hitPair.className = 'dice-pair';
+    const hitDieEl = buildCubeDieEl();
+    hitDieEl.style.setProperty('--die-color', rollerColor);
+    hitDieEl.style.setProperty('--die-glow', rollerGlow);
+    hitDieEl.classList.add('ricochet');
+    cubeOf(hitDieEl).classList.add('rolling');
+    hitPair.appendChild(hitDieEl);
+    hitGroup.appendChild(hitPair);
+    appendBoardDiceGroup(boardDiceZoneAtributo, hitGroup);
+
+    const hitTick = setInterval(()=>{
+      randomizeCubeFaces(hitDieEl, 20);
+      playDiceTick();
+    }, 65);
+
+    return animateDiceRicochet(boardDiceArena, [hitDieEl], 1150).then(()=>{
+      clearInterval(hitTick);
+      hitDieEl.classList.remove('ricochet');
+      cubeOf(hitDieEl).classList.remove('rolling');
+      setCubeFront(hitDieEl, val.hitRoll);
+      cubeOf(hitDieEl).classList.remove('settle');
+      void hitDieEl.offsetWidth;
+      cubeOf(hitDieEl).classList.add('settle');
+      hitDieEl.classList.toggle('hit-glow', val.verdict === 'acerto');
+      hitDieEl.classList.toggle('miss-shadow', val.verdict === 'erro');
+      hitDieEl.classList.toggle('crit-hit', val.hitRoll === 20);
+      hitDieEl.classList.toggle('crit-miss', val.hitRoll === 1);
+      if(val.hitRoll === 20) spawnDiceParticles(diceParticleLayer, '✨', 10);
+      else if(val.hitRoll === 1) spawnDiceParticles(diceParticleLayer, '💀', 8);
+      if(val.hitRoll === 20) playYaaySound();
+      else if(val.hitRoll === 1) playEvilLaughSound();
+      else if(val.verdict === 'acerto') playBlingSound();
+      else playOohSound();
+
+      // depois do dado de acerto pousar, uma pequena pausa (mesmo "respiro" de 380ms que já existia
+      // antes do efeito subir) e então a EXPLOSÃO -- ERRO (fumaça+caveirinhas+texto) e PARA, ou
+      // ACERTO (explode nos dados de Dano de verdade, reaproveitando playRemoteDanoRoll()).
+      return new Promise(resolve=>{
+        setTimeout(()=>{
+          if(val.verdict !== 'acerto'){
+            spawnMissExplosionAtElement(hitDieEl);
+            if(val.hitRoll !== 1) playEvilLaughSound(); // nat1 já tocou o riso no settle acima, não dobra
+            setTimeout(resolve, 900);
+          } else {
+            spawnDiceExplosionAtElement(hitDieEl, 'normal');
+            playRemoteDanoRoll({ qtd: val.qtd, maxVal: val.maxVal, rolls: val.rolls, deidade: val.deidade }).then(()=>{
+              if(targetXY){
+                const textEl = document.createElement('div');
+                textEl.className = 'board-hit-fx-text board-hit-fx-dano';
+                textEl.textContent = '-' + (val.danoFinal || 0);
+                spawnBoardHitFxFloating(targetXY, textEl, 850);
+              }
+              setTimeout(resolve, 850);
+            });
+          }
+        }, 380);
+      });
     });
   }
   // Réplica em tempo real pros outros navegadores (ver broadcastHitFx()/o listener de
@@ -8197,27 +8347,33 @@ body{
     if(!val) return Promise.resolve();
     const attackerAnchor = resolveLiveHitAnchorById(val.attackerId, val.attackerR, val.attackerC);
     const targetAnchor = resolveLiveHitAnchorById(val.targetId, val.targetR, val.targetC);
-    return spawnBoardHitFx(attackerAnchor, targetAnchor, val.danoFinal || 0);
+    return spawnBoardHitFx(attackerAnchor, targetAnchor, val);
   }
   // publica o ataque pro Firebase (ver listener em connectLiveBoard()) -- "playAt" vem de QUEM
   // CHAMOU (ver tryResolveBoardAttack()), calculado uma única vez e reusado tanto aqui quanto na
   // chamada local de spawnBoardHitFx(), pra a peça de quem atacou tocar a animação no MESMO
   // instante combinado que todo mundo (mesmo padrão de scheduleSyncedRoll()/playAt nas 3 rolagens
-  // de dado/moeda -- ver comentário grande delas).
-  function broadcastHitFx(attackerToken, targetToken, danoFinal, playAt){
+  // de dado/moeda -- ver comentário grande delas). "extra" (rodada nova) carrega tudo que a
+  // animação de dados precisa reconstruir IDÊNTICA em quem só está olhando (ver comentário grande
+  // de spawnBoardHitFx() mais acima): hitRoll/verdict/statVal (rolagem de Acerto), rolls/qtd/maxVal
+  // (rolagem de Dano, só preenchida quando foi Acerto), danoFinal (já com Defesa descontada) e
+  // deidade (cor do dado) -- nunca sorteado de novo aqui, sempre o MESMO valor que
+  // tryResolveBoardAttack() já calculou pra própria tela.
+  function broadcastHitFx(attackerToken, targetToken, extra, playAt){
     if(!fbReady || !fbDb || isSilenceActive()) return;
-    fbDb.ref('mesa40k/liveBoard/lastHit').set({
+    const payload = Object.assign({
       attackerId: (attackerToken && attackerToken.id) || null,
       targetId: (targetToken && targetToken.id) || null,
       attackerR: attackerToken ? attackerToken.anchorR : null,
       attackerC: attackerToken ? attackerToken.anchorC : null,
       targetR: targetToken ? targetToken.anchorR : null,
       targetC: targetToken ? targetToken.anchorC : null,
-      danoFinal: danoFinal || 0,
+    }, extra || {}, {
       playAt,
       by: currentUserKey || null,
       ts: firebase.database.ServerValue.TIMESTAMP,
-    }).catch(()=>{});
+    });
+    fbDb.ref('mesa40k/liveBoard/lastHit').set(payload).catch(()=>{});
   }
 
   // ---------- Menu de clique-direito do tabuleiro: Ações Ofensivas/Defensivas/Campo (rodada nova,
@@ -8478,19 +8634,31 @@ body{
   // propósito os parâmetros attackerCombat/targetCombat/ability recebidos de openBoardActionMenu
   // (podem estar desatualizados) e os RE-CALCULA aqui do zero -- r/c/pool/role (a CASA clicada)
   // são a única coisa que não muda com o tempo, então esses sim são reaproveitados.
-  //   1) rola o dado (rolarDadosSimples()) + soma o bônus do Atributo certo (floor(total/2), MESMA
-  //      fórmula de sempre, ver recalc()/comentário grande de HABILIDADE_INICIAL_CLASSE)
-  //   2) reduz pela defesa do alvo (Físico -> ar/Defesa Física, Elemental -> ap/Resistência
-  //      Elemental, nunca abaixo de 0 -- pedido explícito original: "os danos físicos serão
-  //      reduzidos pela defesa física... e os danos mágicos reduzidos pela resistência magica")
-  //   3) aplica no alvo (applyCombatVitalDelta(), negativo) e desconta PA do atacante
+  //   1) RODADA NOVA (pedido explícito: "o calculo de acerto é feito em cima das regras de
+  //      rolamento do atributo" -- NUNCA comparando contra a Defesa do alvo, que continua só
+  //      reduzindo o DANO, ver passo 2): rola 1d20 ("rolagem de Acerto") e aplica a MESMA fórmula
+  //      de verdict já usada em qualquer rolagem solta de Atributo (ver finishRoll()/threshold):
+  //      20 natural = acerto garantido, 1 natural = erro garantido, senão rolado >= limiar (limiar
+  //      = 20 - o Atributo de ARMA da Habilidade do atacante, ability.atributo). Se ERROU, a ação
+  //      termina aqui -- nenhum dado de Dano é rolado, nenhum dano é causado (só o custo de PA/Mana
+  //      é gasto mesmo assim, like qualquer ação usada na própria vez).
+  //   2) só se ACERTOU: rola o(s) dado(s) de Dano (ability.dado.qtd/faces, um por um -- precisa de
+  //      cada resultado individual, não só da soma, pra animação de dados de verdade mais abaixo)
+  //      + soma o bônus do Atributo certo (floor(total/2), MESMA fórmula de sempre, ver recalc()/
+  //      comentário grande de HABILIDADE_INICIAL_CLASSE), depois reduz pela defesa do alvo (Físico
+  //      -> ar/Defesa Física, Elemental -> ap/Resistência Elemental, nunca abaixo de 0 -- pedido
+  //      explícito original: "os danos físicos serão reduzidos pela defesa física... e os danos
+  //      mágicos reduzidos pela resistência magica").
+  //   3) aplica no alvo (applyCombatVitalDelta(), negativo, 0 se errou) e desconta PA do atacante
   //      (turnState.apRemaining, MESMO padrão de markTurnMoved() -- avança o turno automaticamente
   //      se chegar a 0) e Mana (applyCombatVitalDelta(), também negativo, só quando custoMana>0) --
   //      DE PROPÓSITO nunca passa por turnState.rolled (decisão documentada no changelog: Ações
   //      Ofensivas usam só a própria economia de PA/Mana/alcance, não o trinco antigo do "rolar"
   //      manual da ficha).
   //   4) re-renderiza a casa/peça na hora (sem esperar o round-trip do Firebase) e posta o
-  //      resultado no chat/Discord (postToDiscord() já cuida dos dois, mesmo caminho de sempre).
+  //      resultado no chat/Discord (postToDiscord() já cuida dos dois, mesmo caminho de sempre) --
+  //      SÓ depois que a animação completa (Acerto -> se acerto, Dano, ver spawnBoardHitFx())
+  //      termina de tocar, pedido explícito.
   function tryResolveBoardAttack(attackerTokenIgnored, attackerCombatIgnored, targetTokenIgnored, targetCombatIgnored, abilityIgnored, pool, role, r, c){
     const attackerToken = resolveAttackerToken();
     if(!attackerToken || !turnState.active || !isBoardRevealedForFicha() || !canActAsBoardAttacker(attackerToken)) return;
@@ -8507,11 +8675,30 @@ body{
     if((turnState.apRemaining || 0) < ability.custoPA) return;
     if(ability.custoMana > 0 && (attackerCombat.mana || 0) < ability.custoMana) return;
 
-    const rolado = rolarDadosSimples(ability.dado.qtd, ability.dado.faces);
+    // Passo 1 -- rolagem de Acerto (ver comentário grande acima): 1d20 contra o Atributo de ARMA
+    // da própria Habilidade, MESMA fórmula de qualquer rolagem solta de Atributo.
+    const hitRoll = Math.floor(Math.random() * 20) + 1;
+    const statVal = (attackerCombat.totals && attackerCombat.totals[ability.atributo]) || 0;
+    let hitVerdict;
+    if(hitRoll === 20) hitVerdict = 'acerto';
+    else if(hitRoll === 1) hitVerdict = 'erro';
+    else {
+      const hitThreshold = 20 - statVal;
+      hitVerdict = hitRoll >= hitThreshold ? 'acerto' : 'erro';
+    }
+    const isHit = hitVerdict === 'acerto';
+
+    // Passo 2 -- só se ACERTOU: rolagem de Dano, dado por dado (precisa de cada face individual
+    // pra animação, não só da soma -- ver rolls mais abaixo em broadcastHitFx()/spawnBoardHitFx()).
+    const rolls = [];
+    if(isHit){
+      for(let i=0;i<ability.dado.qtd;i++) rolls.push(1 + Math.floor(Math.random()*ability.dado.faces));
+    }
+    const rolado = rolls.reduce((a,b)=>a+b, 0);
     const bonusAtributo = Math.floor(((attackerCombat.totals && attackerCombat.totals[ability.atributo]) || 0) / 2);
     const brutoAntesDefesa = rolado + bonusAtributo;
     const defesaAlvo = ability.danoTipo === 'Elemental' ? (targetCombat.ap || 0) : (targetCombat.ar || 0);
-    const danoFinal = Math.max(0, brutoAntesDefesa - defesaAlvo);
+    const danoFinal = isHit ? Math.max(0, brutoAntesDefesa - defesaAlvo) : 0;
     const vidaAntes = targetCombat.vida || 0;
     const vidaDepois = Math.max(0, vidaAntes - danoFinal);
     // playAt: mesmo instante combinado (relógio do servidor + margem fixa) usado pelas 3 rolagens de
@@ -8552,15 +8739,26 @@ body{
     // scheduleSyncedRoll(playAt, ...).then(finishRoll/finishDanoRoll/finishSorteRoll) já usado pelas
     // 3 rolagens de dado/moeda ("a mensagem deve aparecer no chat apenas depois da animação
     // terminar", pedido explícito estendido aqui pro ataque: "lembrando que a animação deve ocorrer
-    // para todos vendo o tabuleiro").
-    broadcastHitFx(attackerToken, targetToken, danoFinal, playAt);
+    // para todos vendo o tabuleiro... ele só joga a informação para o chat depois de exibir a
+    // animação").
+    const rollFx = {
+      hitRoll, verdict: hitVerdict, statVal, rolls,
+      qtd: ability.dado.qtd, maxVal: ability.dado.faces,
+      danoFinal, deidade: attackerCombat.deidade,
+    };
+    broadcastHitFx(attackerToken, targetToken, rollFx, playAt);
     const attackerAnchor = attackerToken ? { r: attackerToken.anchorR, c: attackerToken.anchorC } : null;
     const targetAnchor = targetToken ? { r: targetToken.anchorR, c: targetToken.anchorC } : null;
-    scheduleSyncedRoll(playAt, ()=> spawnBoardHitFx(attackerAnchor, targetAnchor, danoFinal)).then(()=>{
+    scheduleSyncedRoll(playAt, ()=> spawnBoardHitFx(attackerAnchor, targetAnchor, rollFx)).then(()=>{
       const atacanteNome = tokenTooltipText(attackerToken);
       const alvoNome = tokenTooltipText(targetToken);
       const custoTxt = ability.custoMana > 0 ? `${ability.custoPA} PA + ${ability.custoMana} Mana` : `${ability.custoPA} PA`;
-      postToDiscord(`⚔️ ${atacanteNome} usa ${ability.nome} em ${alvoNome}: ${rolado}+${bonusAtributo} (${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) −${defesaAlvo} de defesa = ${danoFinal} de dano (custo ${custoTxt}). Vida: ${vidaAntes} → ${vidaDepois}.`.toUpperCase(), null);
+      const acertoTxt = hitRoll === 20 ? '20 natural' : hitRoll === 1 ? '1 natural' : `${hitRoll} (necessário ${Math.max(2, 20 - statVal)}+)`;
+      if(isHit){
+        postToDiscord(`⚔️ ${atacanteNome} usa ${ability.nome} em ${alvoNome}: rolagem de acerto ${acertoTxt} — ACERTOU! ${rolado}+${bonusAtributo} (${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) −${defesaAlvo} de defesa = ${danoFinal} de dano (custo ${custoTxt}). Vida: ${vidaAntes} → ${vidaDepois}.`.toUpperCase(), null);
+      } else {
+        postToDiscord(`⚔️ ${atacanteNome} usa ${ability.nome} em ${alvoNome}: rolagem de acerto ${acertoTxt} — ERROU! Nenhum dano causado (custo ${custoTxt}).`.toUpperCase(), null);
+      }
     });
   }
 
@@ -14176,8 +14374,13 @@ body{
   });
 
   // ---------- mesa: tabuleiro de batalha ----------
-  let BOARD_ROWS = 24;
-  let BOARD_COLS = 24;
+  // PEDIDO EXPLÍCITO ("fixa o tamanho inicial do tabuleiro em 8 x 8"): o tamanho de partida de um
+  // tabuleiro NOVO (antes de qualquer "Redimensionar"/carregar um tabuleiro salvo) era 24x24 --
+  // agora é 8x8. applyBoardData() (ver mais abaixo, "salvar/carregar tabuleiros") continua com seu
+  // próprio fallback (24) só pra tabuleiros salvos ANTES deste campo existir -- não tem relação com
+  // o tamanho inicial de um tabuleiro novo, então não mudou.
+  let BOARD_ROWS = 8;
+  let BOARD_COLS = 8;
   // Fase 1b do projeto "tabuleiro único" (pedido explícito: "dentro de MESA nao precisa existir um
   // tabuleiro, a gente vai usar o tabuleiro na tela principal e apenas ele"): o tabuleiro que o
   // MESTRE edita deixou de ter sua própria grade/DOM separada dentro de #mesaContent -- ele
@@ -18359,7 +18562,7 @@ body{
   // apply() já na hora de montar (currentLiveBoardDims() lê liveBoardState.rows/cols quando ainda
   // não há ninguém logado) -- "let" não sobe (TDZ), então a declaração precisa vir mesmo antes no
   // arquivo, não só antes de ser CHAMADA (subiu de mais abaixo pra cá nesta rodada).
-  let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlusColor: null };
+  let liveBoardState = { rows: 8, cols: 8, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlusColor: null };
   // ---------- zoom-câmera do Tabuleiro ao Vivo (Fase 2 do projeto "tabuleiro único") ----------
   // Pedido explícito do usuário: o zoom deixa de "esticar" o tabuleiro (transform:scale, do jeito
   // que o 🗺️ Mapa continua fazendo — ver setupBoardZoom() lá em cima perto de BOARD_ZOOM_LEVELS,
@@ -18381,7 +18584,7 @@ body{
   function currentLiveBoardDims(){
     return currentRole === 'mestre'
       ? { rows: BOARD_ROWS, cols: BOARD_COLS }
-      : { rows: liveBoardState.rows || 24, cols: liveBoardState.cols || 24 };
+      : { rows: liveBoardState.rows || 8, cols: liveBoardState.cols || 8 };
   }
   // "8" = a borda de 4px dos 2 lados do .board-outer (border:4px solid, ver <style>) -- soma no
   // tamanho de verdade renderizado, por cima da soma dos trilhos do grid (BOARD_HEADER_PX + casas).
@@ -18542,7 +18745,7 @@ body{
   // NÃO entra no resultado); não filtra por casa ocupada por OUTRA peça (isso cada chamador decide,
   // conforme o caso — ver os 3 usos logo abaixo).
   function computeLiveBoardReachable(anchorR, anchorC, limit){
-    const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
+    const rows = liveBoardState.rows || 8, cols = liveBoardState.cols || 8;
     const visited = new Map();
     const startKey = liveBoardKey(anchorR, anchorC);
     visited.set(startKey, 0);
@@ -18579,7 +18782,7 @@ body{
   }
 
   function buildLiveBoardHeaders(){
-    const cols = liveBoardState.cols || 24, rows = liveBoardState.rows || 24;
+    const cols = liveBoardState.cols || 8, rows = liveBoardState.rows || 8;
     // Fase 2: pixels de verdade (liveBoardCellPx), não "1fr" -- mesmo motivo de buildBoardHeaders()
     // lá em cima (mestre) -- precisa casar com renderLiveBoardMini() (jogador) logo abaixo.
     liveBoardColHeaderEl.innerHTML = '';
@@ -18843,7 +19046,7 @@ body{
       liveBoardGridEl.classList.remove('reveal-hidden');
       return;
     }
-    const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
+    const rows = liveBoardState.rows || 8, cols = liveBoardState.cols || 8;
     buildLiveBoardHeaders();
     // Fase 2: pixels de verdade (liveBoardCellPx) -- ver comentário grande em buildLiveBoardHeaders()
     // logo acima.
@@ -19234,7 +19437,7 @@ body{
 
   function highlightLiveBoardReachable(tok){
     if(!liveBoardGridEl || !tok) return;
-    const cols = liveBoardState.cols || 24;
+    const cols = liveBoardState.cols || 8;
     // Modificador de Movimento (#m_mov/bonusMov — ver pushLiveVitals()) soma/subtrai por CIMA do
     // bônus de DES só aqui, no alcance de MOVIMENTO — nunca no de visão (computeFogReachableKeys(),
     // mais acima, continua usando só bonusDes puro, sem bonusMov). computeEffectiveMoveLimit()
@@ -19293,7 +19496,7 @@ body{
     // conta antiga de DES+Movimento (fora de combate/fora da própria vez). CORREÇÃO: não depende
     // mais de isBoardRevealedForFicha(), mesma sincronia do bloco de trava acima.
     const apGatedNow = turnState.active && isCurrentTurnToken(tok);
-    const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
+    const rows = liveBoardState.rows || 8, cols = liveBoardState.cols || 8;
     if(r < 0 || c < 0 || r >= rows || c >= cols) return;
     const newKey = liveBoardKey(r, c);
     const occupant = liveBoardState.tokens[newKey];
@@ -19575,7 +19778,7 @@ body{
     // mesmo raciocínio acima, agora pro listener de RETRATO ao vivo (ver connectLiveBoard()).
     if(livePortraitRef){ livePortraitRef.off('value', livePortraitCb); livePortraitRef = null; livePortraitCb = null; }
     livePortraits = {};
-    liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlusColor: null };
+    liveBoardState = { rows: 8, cols: 8, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlusColor: null };
     spottedTokenIds = new Set();
     pendingFacingTokenIds = new Set();
     liveBoardTokensHydrated = false;
@@ -19587,8 +19790,8 @@ body{
     liveBoardMetaRef = fbDb.ref('mesa40k/liveBoard/meta');
     liveBoardMetaCb = liveBoardMetaRef.on('value', (snap)=>{
       const val = snap.val() || {};
-      liveBoardState.rows = val.rows || 24;
-      liveBoardState.cols = val.cols || 24;
+      liveBoardState.rows = val.rows || 8;
+      liveBoardState.cols = val.cols || 8;
       liveBoardState.gridColor = val.gridColor || '#ffffff';
       liveBoardState.background = val.background || null;
       // Fog (ver boardFogMode/setBoardViewMode() na aba Mesa do mestre): quando ativo, o filtro em
