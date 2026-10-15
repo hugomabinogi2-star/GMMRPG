@@ -19859,6 +19859,47 @@ body{
     renderTurnActionPanel();
   }
 
+  // BUG relatado pelo usuário: "as poções não estão funcionando, ele tenta encher a vida ou a mana
+  // e volta ao valor que estava antes". MESMO motivo/mesmo remédio de mergeRemoteHeroTokensIntoLocalBoard()
+  // (logo acima, ver o comentário grande dela sobre facing/bonusDes/efeitos) -- só que agora pras
+  // peças 'aliado_ficha'/'inimigo_ficha', que nunca passavam por NENHUM merge aqui. Usar uma Poção
+  // numa dessas peças a partir do mini-tabuleiro do JOGADOR (ver applyCombatVitalDelta(), ramo
+  // 'aliado_ficha'/'inimigo_ficha') grava vidaAtual/manaAtual DIRETO em mesa40k/liveBoard/tokens
+  // (.update(), só o campo que mudou de verdade) -- mas o boardTokens LOCAL do MESTRE (a fonte de
+  // onde scheduleBoardTokensPush()/collectBoardTokensOut() fazem o PRÓXIMO overwrite CHEIO do nó
+  // inteiro, via .set(), ver makeDebouncedBoardPush()) nunca aprendia essa cura. Resultado: a
+  // primeira vez que o mestre mexesse em QUALQUER outra coisa do tabuleiro depois (o que acontece
+  // o tempo todo numa sessão ao vivo), o push dele -- ainda com a Vida/Mana ANTIGA guardada aqui --
+  // sobrescrevia o nó inteiro e apagava a cura de volta, escondido: exatamente o "volta ao valor
+  // que estava antes" relatado. Mesmo remédio de sempre: aprende o valor novo no boardTokens local
+  // assim que chega, pela MESMA chave de posição ("r_c" -- boardKey() e liveBoardKey() usam o
+  // formato idêntico, conferido nos dois lados) em vez de precisar casar por id feito os heróis
+  // (uma peça de Inimigo/Aliado não tem um "dono" fixo pra procurar, mas sua própria CASA já
+  // identifica ela sozinha). escudoAtual incluso de propósito, mesmo grupo de campos "ao vivo" de
+  // sempre (ver comentário grande de vidaMax/vidaAtual dentro de collectBoardTokensOut()).
+  function mergeRemoteVitalsIntoLocalBoard(remoteTokensObj){
+    if(currentRole !== 'mestre') return;
+    const affected = new Set();
+    Object.keys(remoteTokensObj || {}).forEach(key=>{
+      const rt = remoteTokensObj[key];
+      if(!rt || (rt.kind !== 'aliado_ficha' && rt.kind !== 'inimigo_ficha')) return;
+      const localTok = boardTokens[key];
+      if(!localTok || localTok.id !== rt.id) return;
+      let changed = false;
+      ['vidaAtual', 'manaAtual', 'escudoAtual'].forEach(campo=>{
+        if(typeof rt[campo] === 'number' && localTok[campo] !== rt[campo]){
+          localTok[campo] = rt[campo];
+          changed = true;
+        }
+      });
+      if(changed) affected.add(key);
+    });
+    if(affected.size){
+      affected.forEach(key=>{ const [r,c] = key.split('_').map(Number); renderBoardCell(r,c); });
+      if(typeof renderFichaSummaryBubbles === 'function') renderFichaSummaryBubbles();
+    }
+  }
+
   // Explosão de fumaça (pedido explícito: "maior e explodindo pra todas as direções") num ponto
   // (x,y) de tela -- usa a MESMA técnica de --dx/--dy por partícula que spawnDiceExplosion() já
   // usa pros dados voando (ver diceExplosionAngle() mais abaixo), só com puffs de fumaça
@@ -20085,6 +20126,7 @@ body{
       checkForUnknownHeroTokens(val);
       scheduleRenderLiveBoardMini();
       mergeRemoteHeroTokensIntoLocalBoard(val);
+      mergeRemoteVitalsIntoLocalBoard(val);
     });
     // um único listener pro nó inteiro de mesa/live — é o que faz Vida/Mana/Escudo/XP ao vivo (e a
     // bandeja de fichas nunca salvas) valerem na hora (ver onLiveVitalsChanged() mais acima).
