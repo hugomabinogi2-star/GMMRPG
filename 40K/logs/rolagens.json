@@ -1,17 +1,6 @@
 [
   {
     "nome": "Arqueira",
-    "tipo": "atributo",
-    "statKey": "des",
-    "statValor": 8,
-    "resultado": 12,
-    "resultLabel": "Acerto",
-    "habilidade": "Chuva de Flechas",
-    "alvo": "Dummy 1",
-    "ts": 1790893130098
-  },
-  {
-    "nome": "Arqueira",
     "tipo": "movimento",
     "de": "J6",
     "para": "K5",
@@ -282,5 +271,12 @@
     "de": "C4",
     "para": "D8",
     "ts": 1791843895140
+  },
+  {
+    "nome": "Arqueira2",
+    "tipo": "movimento",
+    "de": "F3",
+    "para": "E3",
+    "ts": 1792060046863
   }
 ]
