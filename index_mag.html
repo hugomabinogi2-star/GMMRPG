@@ -8920,15 +8920,18 @@ body{
     applyCombatVitalDelta(targetToken, 'vida', -danoFinal);
     if(ability.custoMana > 0) applyCombatVitalDelta(attackerToken, 'mana', -ability.custoMana);
 
+    // RODADA NOVA (pedido explícito: "as animações, efeitos e mensagens precisam respeitar uma
+    // ordem e uma só deve ocorrer após o término da última") -- o DESCONTO de PA em si continua
+    // síncrono aqui (precisa valer já, mesmo motivo de usePotion()/GLUP_SOUND_DURATION_MS: é o que
+    // decide se outra ação ainda cabe nesta vez), mas o que é VISÍVEL por causa dele (barra de PA,
+    // aviso de "gastou todos os PA"/avanço de turno) sai de baixo e vai pra dentro do
+    // scheduleSyncedRoll(...).then() mais abaixo, DEPOIS da própria mensagem do ataque -- antes
+    // disso, "GASTOU TODOS OS PA"/"agora é a vez de Fulano" apareciam no chat ANTES da mensagem do
+    // ataque que causou isso (o aviso saía daqui, na hora, enquanto a animação/mensagem do ataque
+    // só saía ~1-2s depois, dentro do .then()) -- ordem errada, corrigida mantendo os dois avisos,
+    // só que agora sempre DEPOIS do resultado do próprio ataque.
     turnState.apRemaining = Math.max(0, (turnState.apRemaining || 0) - ability.custoPA);
-    if(turnState.apRemaining <= 0){
-      const nomeAtacante = tokenTooltipText(attackerToken);
-      if(!isBlankName(nomeAtacante)) postToDiscord(`⏭️ ${nomeAtacante} GASTOU TODOS OS PONTOS DE AÇÃO — O TURNO FOI ENCERRADO AUTOMATICAMENTE`.toUpperCase(), null);
-      advanceTurn();
-    } else {
-      pushTurnState();
-      renderTurnBars();
-    }
+    const turnoAcabouPorPA = turnState.apRemaining <= 0;
 
     // re-renderiza a casa/peça do alvo (e a do atacante, se for uma inimigo_ficha/aliado_ficha --
     // o PRÓPRIO atacante também pode ter perdido Mana) na hora, sem esperar o round-trip do
@@ -8967,6 +8970,16 @@ body{
         postToDiscord(`⚔️ ${atacanteNome} usa ${ability.nome} em ${alvoNome}: rolagem de acerto ${acertoTxt} — ACERTOU! ${rolado}+${bonusAtributo} (${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) −${defesaAlvo} de defesa = ${danoFinal} de dano (custo ${custoTxt}). Vida: ${vidaAntes} → ${vidaDepois}.`.toUpperCase(), null);
       } else {
         postToDiscord(`⚔️ ${atacanteNome} usa ${ability.nome} em ${alvoNome}: rolagem de acerto ${acertoTxt} — ERROU! Nenhum dano causado (custo ${custoTxt}).`.toUpperCase(), null);
+      }
+      // só AGORA (depois da mensagem do próprio ataque, ver comentário grande lá em cima) é que o
+      // aviso de PA/turno sai -- mesma ordem que o pedido explícito descreve: ação -> dados ->
+      // animação -> mensagem -> (só então) qualquer consequência extra, como o turno encerrar.
+      if(turnoAcabouPorPA){
+        if(!isBlankName(atacanteNome)) postToDiscord(`⏭️ ${atacanteNome} GASTOU TODOS OS PONTOS DE AÇÃO — O TURNO FOI ENCERRADO AUTOMATICAMENTE`.toUpperCase(), null);
+        advanceTurn();
+      } else {
+        pushTurnState();
+        renderTurnBars();
       }
     });
   }
@@ -10872,6 +10885,14 @@ body{
       playTone(190 + i*15, 0.14, { type:'sine', gain:0.18, freqEnd: 410 + i*20, delay });
     });
   }
+  // RODADA NOVA (pedido explícito: "as animações, efeitos e mensagens precisam respeitar uma
+  // ordem... a ação é escolhida, o sistema roda os dados, e só então ocorre a animação e a
+  // mensagem vai para o chat") -- duração de verdade do "glup" acima (2ª engolida começa em 0.16s
+  // e dura 0.14s, ver playGlupSound() -- termina em 0.30s; usePotion() usa esta constante pra só
+  // soltar a mensagem no chat/Discord DEPOIS que o som termina de tocar, nunca no mesmo instante
+  // do clique). Não precisa de nenhuma sincronia entre abas tipo scheduleSyncedRoll()/playAt (o
+  // som é 100% local, ninguém mais ouve) -- um setTimeout simples já resolve.
+  const GLUP_SOUND_DURATION_MS = 300;
   // som "épico" (acorde grave crescendo, tipo um "oooooh" de coro) — só nos botões ‹/› de troca
   // de divindade, pra se diferenciar do plim genérico dos outros botões.
   function playDeityOohSound(){
@@ -11911,21 +11932,33 @@ body{
     refreshPotionButtons();
     const nomeAlvo = tokenTooltipText(targetToken);
     const custoTxt = entry ? ` (custo ${POTION_CUSTO_PA} PA)` : '';
-    postToDiscord(`${kind === 'vida' ? '❤️' : '✦'} ${nomeAlvo} USA ${nome}: ${campo.toUpperCase()} ${atual} → ${max}${custoTxt}.`.toUpperCase(), null);
     // RODADA NOVA: descontava PA nenhum e encerrava o turno INCONDICIONALMENTE (advanceTurn()
     // direto) -- agora desconta POTION_CUSTO_PA de verdade (mesmo padrão de
     // tryResolveBoardAttack()/ability.custoPA) e só encerra o turno quando o PA de fato zera; uma
     // ficha com bônus de DES alto (apMax > POTION_CUSTO_PA) passa a sobrar PA e pode continuar
-    // agindo no mesmo turno.
+    // agindo no mesmo turno. O DESCONTO em si fica aqui, síncrono (o "trinco" que impede usar outra
+    // Poção rápido demais em seguida precisa valer já, ver o gate de POTION_CUSTO_PA lá em cima) --
+    // só o que é VISÍVEL (barra de PA, aviso de turno encerrado, próxima vez) é que espera o som.
+    let turnoAcabouPorPA = false;
     if(entry){
       turnState.apRemaining = Math.max(0, (turnState.apRemaining || 0) - POTION_CUSTO_PA);
-      if(turnState.apRemaining <= 0){
-        advanceTurn();
-      } else {
-        pushTurnState();
-        renderTurnBars();
-      }
+      turnoAcabouPorPA = turnState.apRemaining <= 0;
     }
+    // RODADA NOVA (pedido explícito: "as animações, efeitos e mensagens precisam respeitar uma
+    // ordem... a mensagem vai para o chat" só depois do efeito terminar) -- a mensagem no chat/
+    // Discord (e tudo que ela dispara: aviso de turno encerrado/avanço de turno, OU só a barra de
+    // PA) sai somente DEPOIS que o som de "glup" acima termina de tocar de verdade
+    // (GLUP_SOUND_DURATION_MS, ver comentário grande dela perto de playGlupSound()) -- mesmo
+    // espírito do scheduleSyncedRoll(...).then(...) já usado pelas rolagens de dado/ataque, só que
+    // aqui não precisa de nenhuma sincronia entre abas (o som é 100% local), então um setTimeout
+    // simples já resolve.
+    setTimeout(()=>{
+      postToDiscord(`${kind === 'vida' ? '❤️' : '✦'} ${nomeAlvo} USA ${nome}: ${campo.toUpperCase()} ${atual} → ${max}${custoTxt}.`.toUpperCase(), null);
+      if(entry){
+        if(turnoAcabouPorPA) advanceTurn();
+        else { pushTurnState(); renderTurnBars(); }
+      }
+    }, GLUP_SOUND_DURATION_MS);
     return true;
   }
 
