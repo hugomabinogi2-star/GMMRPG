@@ -4520,16 +4520,30 @@ body{
 /* Rodada nova, pedido explícito ("remove as cartas do tabuleiro, não ficou bom" ->
    "Remover tudo, voltar ao menu antigo"): as Fases 4, 5 e 5b da "dinâmica de turnos" (banner
    "FASE DE AÇÃO", baralho de cartas, arrastar carta pro tabuleiro, mira em área) saíram inteiras
-   -- removido todo o CSS de .turn-action-deck/.action-card*/.action-card-confirm-bar* que só
+   -- removido todo o CSS de .turn-action-deck/.action-card (e variantes)/.action-card-confirm-bar (e variantes) que só
    existia pra elas. Ataque automático volta a ser 100% pelo Menu de Ataque por clique (Fase 2,
    ver #attackMenuModal no HTML e tryOpenAttackMenu()/performAutoAttack() no <script>), igual já
    era antes da Fase 4. .turn-phase-banner (compartilhada com o banner "FASE DE MOVIMENTO" da
    Fase 3, acima) continua intacta, nunca fez parte do que saiu. */
-.board-dice-footer{
-  display:flex;align-items:center;justify-content:center;
-  gap:56px;
-  padding:6px 0 2px;
+/* RODADA NOVA (pedido explícito, screenshot anotado em vermelho/azul): linha com as 2 caixas lado
+   a lado embaixo do tabuleiro -- .board-dice-footer (vermelha, dados) e .board-ability-info-card
+   (azul, resumo de habilidade/poção no hover) -- ambas com a mesma largura (flex:1) e a mesma
+   moldura (borda dourada fraca + fundo escuro), pra ficarem visualmente pareadas. */
+.board-lower-panels{
+  display:flex;align-items:stretch;
+  gap:10px;
+  padding:4px 10px 2px;
   position:relative;z-index:1;
+}
+.board-dice-footer{
+  flex:1 1 0;min-width:0;
+  display:flex;align-items:center;justify-content:center;
+  gap:40px;
+  padding:6px 4px;
+  position:relative;
+  border:1px solid rgba(224,182,86,.35);border-radius:8px;
+  background:rgba(0,0,0,.2);
+  min-height:150px;
 }
 .board-dice-zone{
   position:relative;width:130px;height:130px;flex:none;
@@ -4546,6 +4560,30 @@ body{
    transform -- animateDiceRicochet() só mexe no transform dos dados individuais (não do grupo),
    então esse deslocamento de "pilha" nunca é apagado quando a animação termina. */
 .board-dice-group{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
+/* RODADA NOVA (pedido explícito, caixa "azul" do screenshot anotado): resumo de Ação
+   Ofensiva/Poção no hover de uma bolinha do menu circular (ver attachBoardAbilityInfoHover()/
+   setBoardAbilityInfoCard() no <script>) -- mesma moldura/fundo de .board-dice-footer (acima),
+   pra ficarem pareadas lado a lado. Vazia (sem nenhum filho, ver clearBoardAbilityInfoCard())
+   mostra um placeholder discreto via :empty, sem precisar de nenhum elemento fixo escondido. */
+.board-ability-info-card{
+  flex:1 1 0;min-width:0;
+  min-height:150px;
+  border:1px solid rgba(224,182,86,.35);border-radius:8px;
+  background:rgba(0,0,0,.2);
+  padding:10px 14px;
+  display:flex;flex-direction:column;justify-content:center;gap:4px;
+  font-size:11.5px;line-height:1.45;color:var(--ink-faint);
+}
+.board-ability-info-card:empty::before{
+  content:'Passe o mouse sobre um botão de ação pra ver o resumo aqui.';
+  opacity:.55;font-style:italic;text-align:center;
+}
+.board-ability-info-card-title{
+  font-family:'Cinzel Decorative',serif;font-size:13px;letter-spacing:.02em;color:var(--gold-bright);
+}
+.board-ability-info-card-list{margin:2px 0 0;padding:0 0 0 16px;list-style:disc;}
+.board-ability-info-card-list li{margin:2px 0;color:var(--ink);}
+.board-ability-info-card-reason{margin-top:2px;color:#e0665a;font-weight:600;}
 /* Fase 3 (rodada nova): a moeda de Sorte pousa BEM NO CENTRO do próprio tabuleiro (pedido
    explícito), diferente dos dados (que ficam nas zonas direita/esquerda, ver .board-dice-zone
    acima) -- por isso ganha uma zona própria, centralizada, em vez de reaproveitar uma das duas
@@ -5816,22 +5854,35 @@ body{
                #boardDiceZoneDano, só mudaram de endereço no HTML) -- todo o <script> que já
                lia/escrevia neles (appendBoardDiceGroup()/clearBoardDice()/animateDiceRicochet(),
                ver comentário grande em "let diceResult" no <script>) continua igual, sem precisar
-               de nenhuma mudança: a arena do ricochete já era o painel inteiro
-               (#liveBoardPanelBody, medido ao vivo a cada rolagem), que agora só cresceu pra
-               incluir esta faixa nova -- os dados passam a ricochetear por uma área um pouco maior
-               (tabuleiro + esta faixa), pousando aqui embaixo no final, em vez de nas laterais.
-               Ordem Dano-esquerda/Atributo-direita preservada (mesma de sempre), só que agora por
-               ordem normal do HTML (flex row) em vez de "right/left" flutuando por cima do
-               tabuleiro -- ver .board-dice-footer no <style>. -->
-          <div class="board-dice-footer" id="boardDiceFooter">
-            <!-- pouso da rolagem de Dano: agora ESQUERDA da faixa de baixo (era centro-esquerda,
-                 sobrepondo o tabuleiro) -->
-            <div class="board-dice-zone board-dice-zone-dano" id="boardDiceZoneDano"></div>
-            <!-- pouso da rolagem de Atributo: agora DIREITA da faixa de baixo (era
-                 centro-direita, sobrepondo o tabuleiro) -->
-            <div class="board-dice-zone board-dice-zone-atributo" id="boardDiceZoneAtributo">
-              <div class="dice-particle-layer" id="diceParticleLayer"></div>
+               de nenhuma mudança.
+               RODADA NOVA (pedido explícito, com screenshot anotado em vermelho/azul: "limite as
+               animações dos dados dentro dessa aria" [vermelha] + "separe [a área azul] pra
+               destacar um resumo da habilidade quando estiver passando o mouse"): a faixa virou
+               #boardLowerPanels, com 2 caixas de borda visível lado a lado -- a da ESQUERDA
+               continua sendo este mesmo #boardDiceFooter de sempre (só ganhou borda própria, ver
+               .board-dice-footer no <style>), e também virou a NOVA arena do ricochete
+               (boardDiceArena no <script> trocou de $('liveBoardPanelBody') -- o painel INTEIRO,
+               inclusive por cima do tabuleiro -- pra $('boardDiceFooter'), confinando a física dos
+               dados só dentro desta caixa). A da DIREITA é o elemento NOVO #boardAbilityInfoCard,
+               ver logo abaixo. -->
+          <div class="board-lower-panels" id="boardLowerPanels">
+            <div class="board-dice-footer" id="boardDiceFooter">
+              <!-- pouso da rolagem de Dano: ESQUERDA da caixa -->
+              <div class="board-dice-zone board-dice-zone-dano" id="boardDiceZoneDano"></div>
+              <!-- pouso da rolagem de Atributo: DIREITA da caixa -->
+              <div class="board-dice-zone board-dice-zone-atributo" id="boardDiceZoneAtributo">
+                <div class="dice-particle-layer" id="diceParticleLayer"></div>
+              </div>
             </div>
+            <!-- RODADA NOVA (pedido explícito): caixa nova, vazia por padrão -- ganha o resumo
+                 (nome + dano/efeito + alcance + custo de PA/Mana) da Ação Ofensiva ou Poção que o
+                 mouse está sobre AGORA numa bolinha do menu circular (ver
+                 attachBoardAbilityInfoHover()/setBoardAbilityInfoCard()/
+                 clearBoardAbilityInfoCard() no <script>, chamadas de dentro de
+                 buildOfensivaAbilityCircle()/buildPotionAbilityCircle()) -- volta a ficar vazia
+                 (placeholder via CSS :empty, ver .board-ability-info-card no <style>) assim que o
+                 mouse sai da bolinha ou o menu circular fecha. -->
+            <div class="board-ability-info-card" id="boardAbilityInfoCard"></div>
           </div>
           <div class="live-board-hint" id="liveBoardHint"></div>
 
@@ -8470,6 +8521,10 @@ body{
     if(boardActionMenuEl){ boardActionMenuEl.remove(); boardActionMenuEl = null; }
     document.removeEventListener('mousedown', boardActionMenuOutsideClick, true);
     document.removeEventListener('keydown', boardActionMenuEscape, true);
+    // removendo a bolinha do DOM (linha acima) nem sempre dispara 'mouseleave' nela -- limpa aqui
+    // também, de propósito, pra nunca sobrar o resumo de #boardAbilityInfoCard preso na tela
+    // depois que o menu já fechou (ver attachBoardAbilityInfoHover()/clearBoardAbilityInfoCard()).
+    clearBoardAbilityInfoCard();
   }
   function boardActionMenuOutsideClick(e){
     if(boardActionMenuEl && !boardActionMenuEl.contains(e.target)) closeBoardActionMenu();
@@ -8523,6 +8578,43 @@ body{
     circle.addEventListener('click', ()=>{ postToDiscord(`⛔ ${msg}`.toUpperCase(), null); });
   }
 
+  // RODADA NOVA (pedido explícito, com screenshot anotado em vermelho/azul: "a aria destacada em
+  // azul, separe pra destacar um resumo da habilidade quando estiver passando o mouse por cima dos
+  // botões... mostra ali um cardo com a descrição... e caso eu passe o mouse por cima de uma poção
+  // ele resume ali o efeito... além dos custos"): até aqui, o resumo de cada bolinha (nome +
+  // dano/efeito + alcance + custo de PA/Mana, já montado em buildOfensivaAbilityCircle()/
+  // buildPotionAbilityCircle() abaixo) só ia pro `title` nativo -- mesma limitação do tooltip já
+  // notada em blockAbilityCircle() (precisa passar o mouse e ESPERAR, inexistente em toque/
+  // celular). Em vez de reaproveitar só o `title`, estas 3 funções escrevem o MESMO conteúdo
+  // (nome/linhas/motivo, já estruturados em vez de uma string única) dentro da caixa nova
+  // #boardAbilityInfoCard (ver .board-ability-info-card no <style> e o HTML ao lado de
+  // #boardDiceFooter) -- aparece ao focar/passar o mouse numa bolinha (ofensiva OU poção,
+  // habilitada OU bloqueada -- o pedido não distinguiu) e some ao sair/perder foco. `focus`/`blur`
+  // inclusos de graça (as bolinhas já são <button>) pra funcionar também navegando por Tab, não só
+  // com o mouse.
+  function attachBoardAbilityInfoHover(circle, nome, linhas, motivo){
+    const show = ()=> setBoardAbilityInfoCard(nome, linhas, motivo);
+    circle.addEventListener('mouseenter', show);
+    circle.addEventListener('focus', show);
+    circle.addEventListener('mouseleave', clearBoardAbilityInfoCard);
+    circle.addEventListener('blur', clearBoardAbilityInfoCard);
+  }
+  function setBoardAbilityInfoCard(nome, linhas, motivo){
+    const el = $('boardAbilityInfoCard');
+    if(!el) return;
+    const linhasHtml = (linhas || []).map(l=> `<li>${escapeHtml(l)}</li>`).join('');
+    el.innerHTML = `<div class="board-ability-info-card-title">${escapeHtml(nome || '')}</div>`
+      + (linhasHtml ? `<ul class="board-ability-info-card-list">${linhasHtml}</ul>` : '')
+      + (motivo ? `<div class="board-ability-info-card-reason">⛔ ${escapeHtml(motivo)}</div>` : '');
+  }
+  // volta a caixa pro estado vazio (placeholder via CSS :empty, ver .board-ability-info-card no
+  // <style>) -- chamada no mouseleave/blur de cada bolinha (acima) E de closeBoardActionMenu()
+  // (mais abaixo), pra nunca sobrar um resumo "preso" na tela depois que o menu já fechou.
+  function clearBoardAbilityInfoCard(){
+    const el = $('boardAbilityInfoCard');
+    if(el) el.innerHTML = '';
+  }
+
   // Monta o círculo de uma Ação Ofensiva -- cada Classe só tem UMA (o ataque normal com a arma, ver
   // HABILIDADE_INICIAL_CLASSE), nascida de graça com a ficha, nunca "aprendida". Ícone de espada
   // (pedido explícito: "entre as primeiras habilidades o ataque padrão vai ter o ícone de uma
@@ -8537,12 +8629,16 @@ body{
     circle.className = 'board-ability-circle board-ability-circle-ofensiva';
     circle.innerHTML = '<span class="board-ability-circle-icon">⚔️</span>';
     if(!attackerToken || !attackerCombat){
-      blockAbilityCircle(circle, 'Nenhuma ficha na vez agora.');
+      const msg = 'Nenhuma ficha na vez agora.';
+      blockAbilityCircle(circle, msg);
+      attachBoardAbilityInfoHover(circle, 'Ação Ofensiva', [], msg);
       return circle;
     }
     const ability = HABILIDADE_INICIAL_CLASSE[attackerCombat.deidade];
     if(!ability){
-      blockAbilityCircle(circle, `${attackerCombat.deidade || 'Esta ficha'} não tem nenhuma Ação Ofensiva ainda.`);
+      const msg = `${attackerCombat.deidade || 'Esta ficha'} não tem nenhuma Ação Ofensiva ainda.`;
+      blockAbilityCircle(circle, msg);
+      attachBoardAbilityInfoHover(circle, 'Ação Ofensiva', [], msg);
       return circle;
     }
     let reason = '';
@@ -8557,7 +8653,13 @@ body{
       else if(ability.custoMana > 0 && (attackerCombat.mana || 0) < ability.custoMana) reason = 'Mana insuficiente.';
     }
     const custoTxt = 'Custo: ' + ability.custoPA + ' PA' + (ability.custoMana > 0 ? ' + ' + ability.custoMana + ' Mana' : '');
-    const detailTxt = `${ability.nome} — Dano ${ability.dano} (${ability.dado.qtd}d${ability.dado.faces} + bônus de ${ability.atributo.toUpperCase()}, ${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]}) · Alcance ${ability.alcance} casa${ability.alcance===1?'':'s'} · ${custoTxt}`;
+    const detailLines = [
+      `Dano ${ability.dano} (${ability.dado.qtd}d${ability.dado.faces} + bônus de ${ability.atributo.toUpperCase()}, ${COMBAT_DANO_TIPO_LABEL[ability.danoTipo]})`,
+      `Alcance ${ability.alcance} casa${ability.alcance===1?'':'s'}`,
+      custoTxt
+    ];
+    const detailTxt = `${ability.nome} — ${detailLines.join(' · ')}`;
+    attachBoardAbilityInfoHover(circle, ability.nome, detailLines, reason);
     if(reason){
       blockAbilityCircle(circle, `${detailTxt}\n${reason}`, reason);
     } else {
@@ -8617,8 +8719,14 @@ body{
       const max = kind === 'vida' ? (targetCombat.vidaMax || 0) : (targetCombat.manaMax || 0);
       if(atual >= max) reason = kind === 'vida' ? 'O alvo já está com Vida cheia.' : 'O alvo já está com Mana cheia.';
     }
-    const custoTxt = entry ? ` · Custo: ${POTION_CUSTO_PA} PA` : '';
-    const detailTxt = `${label} — Restaura ${kind === 'vida' ? 'Vida' : 'Mana'} até o máximo${custoTxt} · Consome 1 ${nome} do Inventário · Sobrando: ${qty}`;
+    const detailLines = [
+      `Restaura ${kind === 'vida' ? 'Vida' : 'Mana'} até o máximo`,
+      entry ? `Custo: ${POTION_CUSTO_PA} PA` : null,
+      `Consome 1 ${nome} do Inventário`,
+      `Sobrando: ${qty}`
+    ].filter(Boolean);
+    const detailTxt = `${label} — ${detailLines.join(' · ')}`;
+    attachBoardAbilityInfoHover(circle, label, detailLines, reason);
     if(reason){
       blockAbilityCircle(circle, `${detailTxt}\n${reason}`, reason);
     } else {
@@ -11200,11 +11308,17 @@ body{
   const diceParticleLayer = $('diceParticleLayer');
   const rollBtn = $('rollDiceBtn');
   // Rodada nova: #atributoDiceArea/#diceBody (o painel "Rolamentos" da ficha, usado como arena do
-  // ricochete) não existem mais -- a arena agora é o Tabuleiro ao Vivo inteiro
-  // (#liveBoardPanelBody), e os dados pousam numa de duas zonas dentro dele (ver
+  // ricochete) não existem mais, e os dados pousam numa de duas zonas dentro dela (ver
   // boardDiceZoneAtributo/boardDiceZoneDano logo abaixo e o comentário grande em "let diceResult"
   // mais acima).
-  const boardDiceArena = $('liveBoardPanelBody');
+  // RODADA NOVA (pedido explícito, screenshot anotado em vermelho: "limite as animações dos dados
+  // dentro dessa aria"): a arena ERA o Tabuleiro ao Vivo INTEIRO (#liveBoardPanelBody, inclusive
+  // por cima do próprio tabuleiro/grid) -- animateDiceRicochet() usa arenaEl.getBoundingClientRect()
+  // pra calcular os 4 cantos do ricochete, então trocar o elemento sozinho já confina a física
+  // inteira pra dentro dele, sem mexer em mais nada -- agora é só a caixa #boardDiceFooter (que
+  // ganhou borda/fundo próprios nesta mesma rodada, ver .board-dice-footer no <style>), do tamanho
+  // da caixa "vermelha" do anexo.
+  const boardDiceArena = $('boardDiceFooter');
   const boardDiceZoneAtributo = $('boardDiceZoneAtributo');
   const boardDiceZoneDano = $('boardDiceZoneDano');
   boardDiceZoneAtributo.addEventListener('click', clearBoardDice);
