@@ -1703,6 +1703,31 @@ body{
   z-index:10050;
   pointer-events:none;
 }
+/* RODADA NOVA (pedido explícito do usuário: "consegue adicionar um efeito ao menu circular quando
+   ele abre, dele surgir girando a partir do centro do token que foi clicado em um efeito
+   espiral?") -- cada bolinha nasce bem no CENTRO do token (o mesmo ponto 0,0 da âncora
+   .board-ability-wheel, ver comentário grande dela acima), giradinha e minúscula, e "desenrola"
+   até a posição final calculada por positionBoardAbilityWheel() no <script> enquanto gira de volta
+   pro normal e cresce -- essa trajetória girando + se afastando do centro é o "espiral" pedido.
+   --circle-dx/--circle-dy são setadas por JS ali (mesmo esquema de --lean-x/--lean-y em
+   .board-token-lean, um pouco mais acima) com o MESMO valor que positionBoardAbilityWheel() também
+   grava direto em circle.style.transform -- a animação é só um efeito visual por CIMA desse valor
+   final (animation-fill-mode:both segura o resultado do último quadro depois que ela termina, sem
+   nenhum "pulo" quando acaba), nunca o substitui: sem suporte a animação (ou com "reduzir
+   movimento" ativado, ver media query mais abaixo), a bolinha aparece direto na posição certa, só
+   sem o giro. SÓ anima `transform` (nunca `opacity`) de propósito -- uma bolinha BLOQUEADA
+   (.board-ability-circle-blocked/[disabled], ver comentário grande deles mais abaixo) já conta com
+   a própria opacidade reduzida (opacity:.4) pra parecer apagada, e um `opacity` animado aqui com
+   fill-mode:both ficaria PRESO no valor final do quadro (1) pra sempre, brigando com aquela regra
+   e tirando o visual de "apagada" justamente das bolinhas bloqueadas. */
+@keyframes boardAbilityCircleSpiralIn{
+  0%{
+    transform:translate(-50%, -50%) rotate(-640deg) scale(.1);
+  }
+  100%{
+    transform:translate(calc(-50% + var(--circle-dx, 0px)), calc(-50% + var(--circle-dy, 0px))) rotate(0deg) scale(1);
+  }
+}
 .board-ability-circle{
   position:absolute;left:0;top:0;
   width:40px;height:40px;
@@ -1715,9 +1740,13 @@ body{
   padding:0;
   pointer-events:auto;
   transition:transform .12s ease, box-shadow .12s ease;
+  animation:boardAbilityCircleSpiralIn .46s cubic-bezier(.22,.88,.25,1) both;
 }
 .board-ability-circle:hover:not([disabled]):not(.board-ability-circle-blocked){
   box-shadow:0 2px 8px rgba(0,0,0,.7), 0 0 10px 1px rgba(224,182,86,.65), 0 0 0 1px rgba(0,0,0,.4);
+}
+@media (prefers-reduced-motion: reduce){
+  .board-ability-circle{ animation:none !important; }
 }
 /* RODADA NOVA (pedido explícito do usuário -- "o tabuleiro não está permitindo que eu execute as
    ações ofensivas ou defensivas"): investigando, a REGRA em si (alcance/PA/Mana/Inventário/vez)
@@ -8313,6 +8342,15 @@ body{
     const targetXY = targetAnchor && boardHitFxCenterXY(targetAnchor.r, targetAnchor.c);
     const attackerTokenEl = attackerAnchor && boardHitFxTokenEl(attackerAnchor.r, attackerAnchor.c);
     const targetTokenEl = targetAnchor && boardHitFxTokenEl(targetAnchor.r, targetAnchor.c);
+    // RODADA NOVA (pedido explícito do usuário: "ao se utilizar uma habilidade ofenciva adicione
+    // um som de corte ou impacto") -- toca pra QUALQUER Ação Ofensiva, acerto ou erro, já no
+    // instante em que a própria animação de ataque começa (lean do atacante + tremida do alvo logo
+    // abaixo), sem depender do resultado -- mesmo espírito de playCutSound() (função já existente,
+    // reaproveitada direto daqui) nunca depender do resultado da rolagem quando usada no clique de
+    // Rolar Dano. O som de ERRO (playVushSound(), só quando a rolagem de Acerto erra) vem mais
+    // abaixo, junto da explosão de ERRO -- os dois juntos no caso de erro: primeiro o corte (o
+    // golpe sendo desferido), depois o vush (o golpe vazio, acompanhando a animação do erro).
+    playCutSound();
     if(attackerTokenEl && attackerAnchor && targetAnchor){
       const dr = Math.sign((targetAnchor.r || 0) - (attackerAnchor.r || 0));
       const dc = Math.sign((targetAnchor.c || 0) - (attackerAnchor.c || 0));
@@ -8383,6 +8421,7 @@ body{
         setTimeout(()=>{
           if(val.verdict !== 'acerto'){
             spawnMissExplosionAtElement(hitDieEl);
+            playVushSound(); // pedido explícito do usuário: som "vush" acompanhando a animação do erro
             if(val.hitRoll !== 1) playEvilLaughSound(); // nat1 já tocou o riso no settle acima, não dobra
             setTimeout(resolve, 900);
           } else {
@@ -8556,7 +8595,14 @@ body{
     const radius = Math.max(46, rect.width * 0.95);
     circles.forEach((circle, i)=>{
       const { dx, dy } = boardAbilityWheelOffset(i, circles.length, radius);
-      circle.style.transform = `translate(calc(-50% + ${dx.toFixed(1)}px), calc(-50% + ${dy.toFixed(1)}px))`;
+      const dxPx = dx.toFixed(1) + 'px', dyPx = dy.toFixed(1) + 'px';
+      // --circle-dx/--circle-dy: MESMO dx/dy do transform logo abaixo, só que também expostas como
+      // custom properties -- é delas que o keyframe @boardAbilityCircleSpiralIn (ver <style>) lê o
+      // ponto final de cada bolinha, pro giro em espiral terminar exatamente aqui, sem nenhum
+      // "pulo" quando a animação acaba.
+      circle.style.setProperty('--circle-dx', dxPx);
+      circle.style.setProperty('--circle-dy', dyPx);
+      circle.style.transform = `translate(calc(-50% + ${dxPx}), calc(-50% + ${dyPx}))`;
     });
   }
 
@@ -8753,6 +8799,22 @@ body{
     if(category !== 'ofensiva' && category !== 'defensiva') return;
     const attackerCombat = resolveCombatData(attackerToken);
     const targetCombat = resolveCombatData(targetToken);
+    // RODADA NOVA (pedido explícito do usuário: "para um token usar uma poção de vida ou de mana
+    // em um aliado ele precisa estar a uma casa de distancia, caso esteja a mais de uma casa de
+    // distancia... a opção não deve aparecer") -- só vale pra um ALIADO (alvo diferente de quem
+    // está agindo agora, ver resolveAttackerToken(); curar a SI MESMO nunca cai aqui, distância
+    // sempre 0). Sem ninguém na vez agora (fora de combate, attackerToken null -- mesmo caso já
+    // documentado em buildPotionAbilityCircle(): "a Poção... SEM depender de quem está na vez"),
+    // não há posição de ninguém pra medir contra, então a Poção continua livre, sem este gate --
+    // mesmo espírito do custo de PA, que também só se aplica dentro de uma fila ativa. Diferente
+    // da bolinha ofensiva (ver buildOfensivaAbilityCircle(), que mostra a bolinha BLOQUEADA com o
+    // motivo "Fora de alcance"), aqui o pedido foi explícito pra a opção nem aparecer -- por isso
+    // o corte acontece ANTES de montar qualquer círculo, retornando sem abrir o menu nenhum
+    // (mesmo efeito prático da categoria 'campo' logo no início desta função).
+    if(category === 'defensiva' && attackerToken && targetToken && attackerToken !== targetToken && attackerCombat && targetCombat){
+      const potionDist = chebyshevDist(attackerCombat.anchorR, attackerCombat.anchorC, targetCombat.anchorR, targetCombat.anchorC);
+      if(potionDist > 1) return;
+    }
     const onAttack = (ability)=>{ tryResolveBoardAttack(attackerToken, attackerCombat, targetToken, targetCombat, ability, pool, role, r, c); };
     const onUsePotion = (kind)=>{ tryResolveBoardPotion(pool, role, r, c, kind); };
     const circles = (category === 'ofensiva')
@@ -10769,6 +10831,47 @@ body{
     // "thonk" de impacto, logo depois do assobio da lâmina
     playTone(110, 0.12, { type:'sine', gain:0.14, delay:0.1, freqEnd:70 });
   }
+  // som "vush" (a MESMA lâmina cortando o ar, só que SEM encontrar nada) — pedido explícito do
+  // usuário: "ao se utilizar uma habilidade ofenciva adicione um som de corte ou impacto [ver
+  // playCutSound(), reaproveitado direto em spawnBoardHitFx() mais abaixo pra isso], caso seja um
+  // erro adicione um som de vush acompanhando a animação do erro". Mesmo "corpo" de swoosh de
+  // playCutSound() (ruído filtrado, frequência do filtro DESCENDO), só mais comprido e de propósito
+  // SEM nenhum "thonk" de impacto no final (o golpe nunca chegou a tocar em nada) -- tocado junto
+  // da explosão de ERRO (spawnMissExplosionAtElement()), nunca no acerto.
+  function playVushSound(){
+    const ctx = getAudioCtx();
+    if(!ctx) return;
+    const t0 = ctx.currentTime;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.22);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++) data[i] = (Math.random()*2 - 1) * (1 - i/bufferSize);
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.Q.value = 0.9;
+    filter.frequency.setValueAtTime(2600, t0);
+    filter.frequency.exponentialRampToValueAtTime(350, t0 + 0.2);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.2, t0);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.22);
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start(t0);
+    noise.stop(t0 + 0.23);
+  }
+  // som "glup" (golinho de poção) — tocado ao usar uma Poção de Vida/Mana de verdade (ver
+  // usePotion() mais abaixo), pedido explícito do usuário. Mesma técnica simples de
+  // playChiimSound()/playCoinsSound() (só playTone(), sem ruído filtrado nenhum) -- duas
+  // "engolidas" rápidas em sequência, cada uma subindo rápido de frequência (a "bolha" subindo na
+  // garganta), num tom redondo (sine) grave, bem diferente dos sons metálicos/secos de combate.
+  function playGlupSound(){
+    [0, 0.16].forEach((delay, i)=>{
+      playTone(190 + i*15, 0.14, { type:'sine', gain:0.18, freqEnd: 410 + i*20, delay });
+    });
+  }
   // som "épico" (acorde grave crescendo, tipo um "oooooh" de coro) — só nos botões ‹/› de troca
   // de divindade, pra se diferenciar do plim genérico dos outros botões.
   function playDeityOohSound(){
@@ -11803,6 +11906,7 @@ body{
     // PA; sem fila ativa (entry null) continua de graça, igual a sempre.
     if(entry && (turnState.apRemaining || 0) < POTION_CUSTO_PA) return false;
     if(qtyInput) qtyInput.value = qty - 1;
+    playGlupSound(); // pedido explícito do usuário: som de "glup" ao usar a Poção (ver playGlupSound())
     applyCombatVitalDelta(targetToken, campo, delta);
     refreshPotionButtons();
     const nomeAlvo = tokenTooltipText(targetToken);
