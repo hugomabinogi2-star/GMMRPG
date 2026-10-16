@@ -12437,6 +12437,67 @@ body{
     for(const key in pool){ const t = pool[key]; if(t && t.id === entry.id) return t; }
     return null;
   }
+
+  // RODADA NOVA (pedido explícito: "qualquer ficha zerada no tabuleiro sai da fila de iniciativa
+  // e a ficha não pode mais realizar qualquer ação no tabuleiro, ficando travada ali até
+  // recuperar vida, caso ela recupere vida ela volta para a fila de iniciativa onde estava
+  // antes"): "esta ENTRADA da fila está com a Vida zerada agora?" -- resolve o token de verdade
+  // (findTurnEntryToken(), acima) e reusa a MESMA caveira já usada em todo lugar (ver
+  // isTokenKnockedOut()/isHeroDead()/isInstanceDead(), perto de renderBoardCell() mais abaixo).
+  // Token não encontrado (peça removida do tabuleiro por completo, não só sem Vida) devolve false
+  // de propósito -- esse é um caso diferente, de fora do alcance desta correção, e não deve travar
+  // a fila escondido.
+  function isTurnEntryKnockedOut(entry){
+    if(!entry) return false;
+    const tok = findTurnEntryToken(entry);
+    return !!tok && isTokenKnockedOut(tok);
+  }
+  // Pula, silenciosamente, qualquer entrada que esteja na vez agora mas com a Vida zerada --
+  // chamada de dentro de renderTurnBars() (ponto central já existente, chamado depois de QUALQUER
+  // mutação de turnState OU de Vida/Mana — ver os 3 lugares que mudam Vida sem passar por uma ação
+  // de tabuleiro própria: onLiveVitalsChanged()/mergeRemoteVitalsIntoLocalBoard()/
+  // adjustBoardInstanceStat(), cada um com seu próprio comentário apontando pra aqui).
+  //
+  // DECISÃO DE DESIGN: em vez de REMOVER a entrada de turnState.order/baseOrder (o que exigiria
+  // lembrar a posição original só pra "devolver" depois, brigando com toda a lógica que já existe
+  // de virar rodada/"segurar ação"/"voltar" por cima desses dois arrays), a entrada NUNCA sai do
+  // array de verdade -- ela só é PULADA, sempre que calhar de ser a vez dela enquanto estiver sem
+  // Vida. A posição original fica preservada de graça (nunca saiu do array), então "volta pra fila
+  // onde estava antes" já é automático assim que a Vida for restaurada: na próxima vez que a
+  // rodada "girar" até aquela posição, ela já conta de novo normalmente, sem nenhum código extra de
+  // "readicionar". A fila GIRA (baseOrder) exatamente como já girava antes desta correção -- só o
+  // CRITÉRIO de "quem está pronto pra agir agora" ganhou mais uma condição.
+  //
+  // Sem aviso/animação nenhuma de "encerrar turno" aqui de propósito (a ficha nem chegou a ter vez
+  // de verdade pra "encerrar" nada) e sem duplicar o snapshot de "voltar" (⬅️, turnUndoHistory) --
+  // "voltar" continua só sobre decisões de verdade de quem jogou, nunca sobre este pulo automático.
+  // Trava de segurança: nunca gira mais voltas que o tamanho da própria fila, pra nunca entrar num
+  // loop infinito no caso extremo de TODO MUNDO estar sem Vida (ex.: fim de combate/TPK) -- aí a
+  // vez simplesmente fica parada onde já estava, sem mais nenhuma mutação.
+  function reconcileTurnQueueDeaths(){
+    if(!turnState.active || !turnState.order || !turnState.order.length) return false;
+    let changed = false;
+    for(let guard = 0; guard < turnState.order.length; guard++){
+      const entry = currentTurnEntry();
+      if(!entry || !isTurnEntryKnockedOut(entry)) break;
+      turnState.turnIndex = (turnState.turnIndex || 0) + 1;
+      if(turnState.turnIndex >= turnState.order.length){
+        turnState.turnIndex = 0;
+        turnState.round = (turnState.round || 1) + 1;
+        if(turnState.baseOrder && turnState.baseOrder.length) turnState.order = turnState.baseOrder.slice();
+      }
+      turnState.moved = false; turnState.rolled = false;
+      changed = true;
+    }
+    if(changed){
+      const entry = currentTurnEntry();
+      const ap = entry ? apMaxForToken(entry) : 0;
+      turnState.apMax = ap;
+      turnState.apRemaining = ap;
+      pushTurnState();
+    }
+    return changed;
+  }
   function canEndCurrentTurn(){
     const entry = currentTurnEntry();
     if(!entry) return false;
@@ -12566,6 +12627,12 @@ body{
     return `Rodada ${turnState.round} — vez de ${entry.nome} (${bits.join(' · ')})`;
   }
   function renderTurnBars(){
+    // RODADA NOVA (ver comentário grande de reconcileTurnQueueDeaths(), perto de
+    // findTurnEntryToken() lá em cima): primeira coisa de toda renderização do turno -- se a
+    // entrada que calhou de estar na vez agora está com a Vida zerada, pula ela (silenciosamente)
+    // antes de desenhar qualquer coisa, pra toda a UI abaixo (texto da vez, bolinhas de PA, painel
+    // da fila, bolhas do Resumo) já nascer refletindo quem de fato está pronto pra agir.
+    reconcileTurnQueueDeaths();
     [['boardTurnStatus','boardEndTurnBtn'], ['liveTurnStatus','liveEndTurnBtn']].forEach(([textId, btnId])=>{
       const textEl = $(textId), btnEl = $(btnId);
       if(textEl) textEl.textContent = turnStatusText();
@@ -12624,7 +12691,14 @@ body{
       return;
     }
     roundEl.textContent = `RODADA ${turnState.round}`;
-    const upcoming = turnState.order.slice(turnState.turnIndex);
+    // RODADA NOVA (pedido explícito: "qualquer ficha zerada no tabuleiro sai da fila de iniciativa"):
+    // reconcileTurnQueueDeaths() já pulou turnIndex pra frente de qualquer entrada zerada antes de
+    // chegar aqui (chamado no topo de renderTurnBars()), então turnState.order[turnIndex] já NÃO é
+    // uma entrada morta -- mas entradas mortas MAIS PRA FRENTE na fila (ainda não chegou a vez delas)
+    // continuam no array (não removidas, de propósito -- ver comentário grande de
+    // reconcileTurnQueueDeaths()), e precisam ser escondidas aqui pra lista exibida bater com "sai da
+    // fila de iniciativa".
+    const upcoming = turnState.order.slice(turnState.turnIndex).filter(it => !isTurnEntryKnockedOut(it));
     listEl.innerHTML = upcoming.map((it, i)=>
       `<li class="turn-queue-item${i===0 ? ' turn-queue-current' : ''}">${escapeHtml(it.nome)}</li>`
     ).join('');
@@ -15644,6 +15718,18 @@ body{
     const vida = parseFloat(token.vidaAtual);
     return isFinite(vida) && vida <= 0;
   }
+  // RODADA NOVA (pedido explícito: "qualquer ficha zerada no tabuleiro sai da fila de iniciativa e
+  // a ficha não pode mais realizar qualquer ação no tabuleiro, ficando travada ali até recuperar
+  // vida") -- atalho único pra "esta peça está com Vida zero" (hero OU inimigo_ficha/aliado_ficha,
+  // mesma caveira já mostrada em todo lugar, ver isHeroDead()/isInstanceDead() acima), usado tanto
+  // pela fila de turnos (ver reconcileTurnQueueDeaths()/isTurnEntryKnockedOut(), perto de
+  // turnState lá em cima) quanto pelo bloqueio direto de movimento (handleBoardDrop()/
+  // handleLiveBoardDrop(), mais abaixo) -- nunca substitui as duas funções originais (continuam
+  // chamadas separadamente nos 3 lugares de antes desta rodada), só evita repetir
+  // "isHeroDead(x) || isInstanceDead(x)" nos pontos novos.
+  function isTokenKnockedOut(token){
+    return isHeroDead(token) || isInstanceDead(token);
+  }
 
   // le o vida/vidaMax mais recente publicado em mesa/live/{uid} (liveVitalsAll, mesmo dado que
   // alimenta Vida/Mana/Escudo "ao vivo" nas listas de fichas — ver pushLiveVitals()) e aplica na
@@ -16462,6 +16548,17 @@ body{
       const [sizeR, sizeC] = tokenFootprintSize(tok);
       if(tok.anchorR === r && tok.anchorC === c) return; // soltou em cima de si mesmo
       if(!canPlace(r, c, sizeR, sizeC, tok.id)) return;
+      // RODADA NOVA (pedido explícito: "qualquer ficha zerada no tabuleiro sai da fila de iniciativa
+      // e a ficha não pode mais realizar qualquer ação no tabuleiro, ficando travada ali até
+      // recuperar vida") -- trava INCONDICIONAL, diferente da trava de turno logo abaixo: vale
+      // mesmo com turnState.active falso (antes de rolar Iniciativa, ou depois da fila encerrar),
+      // porque "travada ali até recuperar vida" não é um conceito de turno, é da própria peça.
+      // isTokenKnockedOut() reusa a MESMA caveira de isHeroDead()/isInstanceDead() já mostrada em
+      // todo lugar (ver renderBoardCell() etc.).
+      if(isTokenKnockedOut(tok)){
+        alert('Esta ficha está com a Vida zerada e não pode ser movida até recuperar Vida.');
+        return;
+      }
       // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() logo acima): só quem está NA VEZ
       // agora pode ser movido — vale pra QUALQUER peça que faça parte da fila (inclusive as que o
       // Mestre normalmente move livre, como ficha de jogador) e vale pro próprio Mestre também,
@@ -16616,6 +16713,14 @@ body{
     // dano acerta E move a peça), então também merece agrupar em vez de redesenhar a grade inteira
     // sozinho toda vez.
     scheduleRenderLiveBoardMini();
+    // RODADA NOVA (pedido explícito: "qualquer ficha zerada no tabuleiro sai da fila de iniciativa"):
+    // Vida de HERÓI mudou aqui (mesa40k/live) -- se essa vida chegou a zero (ou voltou de zero), a
+    // fila de turnos (turnState, compartilhada por todo mundo) pode precisar pular/devolver a vez
+    // dele -- reconcileTurnQueueDeaths(), chamada no topo de renderTurnBars(), cuida disso. Chamado
+    // pra TODO MUNDO (não só mestre, ver findTurnEntryToken() -- resolve pelo tabuleiro certo de
+    // cada papel) igual ao resto desta função, já que o próprio jogador também precisa ver a fila/
+    // PA/bolhas do SEU lado (liveTurnStatus/liveEndTurnBtn) refletirem a Vida zerada na hora.
+    renderTurnBars();
     if(currentRole !== 'mestre') return; // só o mestre tem um tabuleiro de verdade (boardTokens)
     refreshBoardHpBars(); // barrinha de Vida + caveira embaixo dos ícones — ver renderBoardCell()
     syncBoardTokenBonusFromLiveVitals(); // bônus de DES/Movimento de peça JÁ colocada — ver função abaixo
@@ -16915,6 +17020,12 @@ body{
     tok[curKey] = Math.max(0, Math.min(max, cur + delta));
     renderBoardInstancesPanel();
     scheduleBoardTokensPush();
+    // RODADA NOVA (pedido explícito: "qualquer ficha zerada no tabuleiro sai da fila de iniciativa"):
+    // o Mestre pode zerar (ou curar) a Vida de uma instância direto por aqui, fora do fluxo normal
+    // de ataque/cura em combate (que já chama renderTurnBars() em tryResolveBoardAttack()) -- sem
+    // isto a fila/painel de PA/bolhas do Resumo ficariam desatualizados até a próxima mutação de
+    // turnState por outro caminho qualquer.
+    renderTurnBars();
   }
 
 
@@ -19867,6 +19978,14 @@ body{
     const tok = liveBoardState.tokens[oldKey];
     if(!tok || tok.id !== payload.id || !isMyLiveToken(tok)) return;
     if(r === payload.r && c === payload.c) return;
+    // RODADA NOVA (pedido explícito: "qualquer ficha zerada no tabuleiro sai da fila de iniciativa e
+    // a ficha não pode mais realizar qualquer ação no tabuleiro, ficando travada ali até recuperar
+    // vida") -- mesma trava INCONDICIONAL de handleBoardDrop() (vale mesmo com turnState.active
+    // falso), aqui do lado do jogador.
+    if(isTokenKnockedOut(tok)){
+      liveBoardHintEl.textContent = 'Sua ficha está com a Vida zerada e não pode ser movida até recuperar Vida.';
+      return;
+    }
     // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() na aba Mesa): só quem está NA VEZ
     // agora pode se mover — mesma trava usada em handleBoardDrop(), aqui do lado do jogador.
     // CORREÇÃO (pedido explícito, bug report: "o mestre so move as fichas de inimigos no turno das
@@ -20100,6 +20219,12 @@ body{
     if(affected.size){
       affected.forEach(key=>{ const [r,c] = key.split('_').map(Number); renderBoardCell(r,c); });
       if(typeof renderFichaSummaryBubbles === 'function') renderFichaSummaryBubbles();
+      // RODADA NOVA (pedido explícito: "qualquer ficha zerada no tabuleiro sai da fila de
+      // iniciativa"): esta função aprende Vida/Mana/Escudo que um JOGADOR causou/curou numa
+      // instância (aliado_ficha/inimigo_ficha) no MINI-tabuleiro dele -- precisa do mesmo
+      // reconcileTurnQueueDeaths() (ver renderTurnBars()) pra pular/devolver a vez dela na fila do
+      // Mestre, senão a fila só se atualizaria na próxima mutação de turnState por outro caminho.
+      renderTurnBars();
     }
   }
 
