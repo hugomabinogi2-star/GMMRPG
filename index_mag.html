@@ -7556,6 +7556,28 @@ body{
   // uma lista), caso em que o dono é definido por quem estiver logado no momento do primeiro salvamento.
   let loadedFichaPath = null;
 
+  // RODADA NOVA (pedido explícito: "cria uma id oculta para cada ficha criada, dai usa essa ID
+  // para separar as fichas, dai um jogador pode ter inúmeras fichas") -- identificador único,
+  // oculto (nunca aparece em tela nenhuma) e PERSISTENTE da ficha atualmente aberta, gravado
+  // dentro do próprio JSON salvo (campo "fichaId", ver collectState()/applyState()/saveFicha()
+  // mais abaixo). Ao contrário de loadedFichaPath (muda se o arquivo for renomeado/movido no
+  // GitHub) ou do nome do personagem (dois jogadores podem escolher o mesmo nome), este id nunca
+  // muda depois de gerado uma vez -- é a chave de verdade usada para diferenciar várias fichas de
+  // UM MESMO jogador simultaneamente no tabuleiro (ver heroId/fichaId em makeRosterLoader()/
+  // liveOnlyRosterEntries()/handleBoardDrop()/applyCombatVitalDelta()/handleVidaManaChange()).
+  // null numa ficha nova ainda não salva nenhuma vez -- genFichaId() só é chamado dentro de
+  // saveFicha(), no primeiro salvamento (fichas sempre acabam ganhando um id assim que existem
+  // de verdade no GitHub).
+  let currentFichaId = null;
+  // gera um id novo, aleatório e praticamente único -- crypto.randomUUID() quando disponível
+  // (todo navegador moderno), com um fallback manual (timestamp + número aleatório em base 36)
+  // só pro caso raríssimo de um navegador/contexto sem crypto.randomUUID (ex: página aberta sem
+  // HTTPS). Nunca precisa ser criptograficamente forte -- só precisa não colidir entre fichas.
+  function genFichaId(){
+    try{ if(window.crypto && typeof crypto.randomUUID === 'function') return crypto.randomUUID(); }catch(err){}
+    return 'fid-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+  }
+
   // sha do arquivo no GitHub referente a loadedFichaPath — quando conhecido, SALVAR pula a busca
   // desse valor antes de gravar (deixa o salvamento bem mais rápido). null = ficha nova (ainda não
   // existe arquivo) ou sha desconhecido (ex: acabou de logar); nesses casos SALVAR busca o valor
@@ -8160,13 +8182,32 @@ body{
     }
     if(token.kind === 'hero'){
       if(!token.ownerUid) return null;
-      const live = liveVitalsAll[token.ownerUid];
-      if(!live) return null;
+      // RODADA NOVA (pedido explícito: "Preciso de 2 fichas do mesmo jogador ativas ao mesmo
+      // tempo" -- ver comentário grande de buildHeroVitalsSnapshot()): Vida/Mana/Totais/ar/ap
+      // agora moram na PRÓPRIA peça (snapshot tirado na colocação/reposicionamento, ver
+      // handleBoardDrop()), exatamente como inimigo_ficha/aliado_ficha acima -- precisava parar
+      // de vir de liveVitalsAll[ownerUid] (um nó por CONTA, não por ficha: com 2 fichas do mesmo
+      // jogador em campo ao mesmo tempo, as duas liam o MESMO slot, fazendo um ataque numa ficha
+      // consumir a Vida de OUTRA ficha da mesma conta). token.vidaMax == null é o caminho de
+      // COMPATIBILIDADE: peça colocada ANTES desta rodada, que nunca ganhou o snapshot -- volta a
+      // funcionar no modelo novo assim que for movida de novo (handleBoardDrop() tira o snapshot
+      // na hora); até lá, continua lendo do jeito antigo pra não ficar sem Vida nenhuma.
+      if(token.vidaMax == null){
+        const live = liveVitalsAll[token.ownerUid];
+        if(!live) return null;
+        return {
+          token, deidade: live.deidade || '', totals: live.totals || null,
+          vida: roundedAtualValor(live.vida), vidaMax: live.vidaMax || 0,
+          mana: roundedAtualValor(live.mana), manaMax: live.manaMax || 0,
+          ar: live.ar || 0, ap: live.ap || 0,
+          anchorR: token.anchorR, anchorC: token.anchorC,
+        };
+      }
       return {
-        token, deidade: live.deidade || '', totals: live.totals || null,
-        vida: roundedAtualValor(live.vida), vidaMax: live.vidaMax || 0,
-        mana: roundedAtualValor(live.mana), manaMax: live.manaMax || 0,
-        ar: live.ar || 0, ap: live.ap || 0,
+        token, deidade: token.deidade || '', totals: token.totals || null,
+        vida: roundedAtualValor(token.vidaAtual), vidaMax: token.vidaMax || 0,
+        mana: roundedAtualValor(token.manaAtual), manaMax: token.manaMax || 0,
+        ar: token.ar || 0, ap: token.ap || 0,
         anchorR: token.anchorR, anchorC: token.anchorC,
       };
     }
@@ -8202,18 +8243,51 @@ body{
     if(!token || !delta) return;
     if(token.kind === 'hero'){
       if(!token.ownerUid || !fbDb) return;
-      const live = liveVitalsAll[token.ownerUid] || {};
-      const vidaMax = live.vidaMax || 0, manaMax = live.manaMax || 0;
-      let novaVida = live.vida || 0, novaMana = live.mana || 0;
-      if(campo === 'mana') novaMana = Math.max(0, Math.min(manaMax, novaMana + delta));
-      else novaVida = Math.max(0, Math.min(vidaMax, novaVida + delta));
-      live.vida = novaVida; live.mana = novaMana; // reflete local na hora, sem esperar o round-trip
-      // path (ver comentário grande de payload.path dentro de pushLiveVitals()) -- identifica QUAL
-      // ficha desta conta está recebendo o dano/cura agora (a que está "ao vivo" pra este uid neste
-      // instante, ver live.path acima), pra handleVidaManaChange() do lado do jogador só aplicar
-      // essa correção na ficha certa, nunca numa ficha DIFERENTE da mesma conta criada depois.
-      fbDb.ref('mesa40k/vidaMana/' + token.ownerUid).set({ vida: novaVida, mana: novaMana, path: live.path || null, ts: firebase.database.ServerValue.TIMESTAMP })
-        .catch(err=> console.error('Não foi possível aplicar dano/cura/custo de Mana na ficha ao vivo:', err));
+      // RODADA NOVA (ver comentário grande de buildHeroVitalsSnapshot()/resolveCombatData() lá
+      // acima): token.vidaMax == null é o caminho de COMPATIBILIDADE -- peça colocada ANTES desta
+      // rodada, ainda sem o snapshot próprio -- continua gravando direto em liveVitalsAll[uid] +
+      // mesa40k/vidaMana/{uid} do jeito antigo até ser movida de novo.
+      if(token.vidaMax == null){
+        const live = liveVitalsAll[token.ownerUid] || {};
+        const vidaMax = live.vidaMax || 0, manaMax = live.manaMax || 0;
+        let novaVida = live.vida || 0, novaMana = live.mana || 0;
+        if(campo === 'mana') novaMana = Math.max(0, Math.min(manaMax, novaMana + delta));
+        else novaVida = Math.max(0, Math.min(vidaMax, novaVida + delta));
+        live.vida = novaVida; live.mana = novaMana; // reflete local na hora, sem esperar o round-trip
+        fbDb.ref('mesa40k/vidaMana/' + token.ownerUid).set({ vida: novaVida, mana: novaMana, path: live.path || null, fichaId: live.fichaId || null, ts: firebase.database.ServerValue.TIMESTAMP })
+          .catch(err=> console.error('Não foi possível aplicar dano/cura/custo de Mana na ficha ao vivo:', err));
+        return;
+      }
+      // MODELO NOVO: Vida/Mana moram na PRÓPRIA peça agora (ver resolveCombatData()/
+      // buildHeroVitalsSnapshot()) -- corrige local igual inimigo_ficha/aliado_ficha abaixo
+      // (fonte de verdade de verdade pra fila de turnos/caveira/combate, nunca mais ambígua entre
+      // fichas da mesma conta) e AINDA publica uma correção best-effort em
+      // mesa40k/vidaMana/{uid} marcada com o fichaId desta peça -- se o jogador tiver EXATAMENTE
+      // esta ficha aberta na própria tela agora (handleVidaManaChange() compara com
+      // currentFichaId), a Vida/Mana dele atualiza na hora, como sempre; se não (ficha fechada, ou
+      // outra ficha da mesma conta aberta), a correção é só ignorada do lado dele -- sem efeito
+      // nenhum sobre o tabuleiro, que já é a fonte de verdade de qualquer jeito.
+      const atualFieldHero = campo === 'mana' ? 'manaAtual' : 'vidaAtual';
+      const maxFieldHero = campo === 'mana' ? 'manaMax' : 'vidaMax';
+      const novoHero = Math.max(0, Math.min(token[maxFieldHero] || 0, (token[atualFieldHero] || 0) + delta));
+      token[atualFieldHero] = novoHero;
+      if(currentRole === 'mestre'){
+        scheduleBoardTokensPush();
+      } else {
+        const patch = {};
+        Object.keys(liveBoardState.tokens || {}).forEach(key=>{
+          const t = liveBoardState.tokens[key];
+          if(t && t.id === token.id) patch[key + '/' + atualFieldHero] = novoHero;
+        });
+        if(Object.keys(patch).length){
+          fbDb.ref('mesa40k/liveBoard/tokens').update(patch)
+            .catch(err=> console.error('Não foi possível aplicar dano/cura/custo de Mana na peça do tabuleiro ao vivo:', err));
+        }
+      }
+      const novaVidaHero = campo === 'mana' ? (token.vidaAtual != null ? token.vidaAtual : 0) : novoHero;
+      const novaManaHero = campo === 'mana' ? novoHero : (token.manaAtual != null ? token.manaAtual : 0);
+      fbDb.ref('mesa40k/vidaMana/' + token.ownerUid).set({ vida: novaVidaHero, mana: novaManaHero, path: null, fichaId: token.fichaId || null, ts: firebase.database.ServerValue.TIMESTAMP })
+        .catch(err=> console.error('Não foi possível publicar a correção de Vida/Mana ao vivo para a ficha do jogador:', err));
       return;
     }
     if(token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha'){
@@ -8259,12 +8333,25 @@ body{
     if(!token || isBoardRevealedForFicha()) return;
     if(token.kind === 'hero'){
       if(!token.ownerUid) return;
-      const live = liveVitalsAll[token.ownerUid];
-      if(!live || (live.vida || 0) > 0) return;
-      const deltaVida = (live.vidaMax || 0) - (live.vida || 0);
-      const deltaMana = (live.manaMax || 0) - (live.mana || 0);
-      if(deltaVida > 0) applyCombatVitalDelta(token, 'vida', deltaVida);
-      if(deltaMana > 0) applyCombatVitalDelta(token, 'mana', deltaMana);
+      // RODADA NOVA (ver buildHeroVitalsSnapshot()/resolveCombatData() lá acima): com o snapshot
+      // próprio da peça já tirado ANTES desta chamada (handleBoardDrop() sempre chama
+      // maybeAutoHealFichaOnPlacement() depois de placeToken()), lê igual inimigo_ficha/
+      // aliado_ficha abaixo -- token.vidaMax == null só sobra pro caminho de COMPATIBILIDADE
+      // (não deveria mais acontecer numa colocação nova, só listado aqui por segurança).
+      if(token.vidaMax == null){
+        const live = liveVitalsAll[token.ownerUid];
+        if(!live || (live.vida || 0) > 0) return;
+        const deltaVidaLegado = (live.vidaMax || 0) - (live.vida || 0);
+        const deltaManaLegado = (live.manaMax || 0) - (live.mana || 0);
+        if(deltaVidaLegado > 0) applyCombatVitalDelta(token, 'vida', deltaVidaLegado);
+        if(deltaManaLegado > 0) applyCombatVitalDelta(token, 'mana', deltaManaLegado);
+        return;
+      }
+      if((token.vidaAtual || 0) > 0) return;
+      const deltaVidaHero = (token.vidaMax || 0) - (token.vidaAtual || 0);
+      const deltaManaHero = (token.manaMax || 0) - (token.manaAtual || 0);
+      if(deltaVidaHero > 0) applyCombatVitalDelta(token, 'vida', deltaVidaHero);
+      if(deltaManaHero > 0) applyCombatVitalDelta(token, 'mana', deltaManaHero);
       return;
     }
     if(token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha'){
@@ -9801,6 +9888,12 @@ body{
       // qualquer ficha NOVA criada depois, com o mesmo uid (ver handleVidaManaChange() mais
       // abaixo).
       path: loadedFichaPath || null,
+      // RODADA NOVA (pedido explícito: "cria uma id oculta para cada ficha criada... usa essa ID
+      // para separar as fichas") -- identificador permanente desta ficha (ver "let
+      // currentFichaId" lá acima), null numa ficha nova nunca salva ainda -- usado por
+      // liveOnlyRosterEntries() (bandeja) e handleVidaManaChange() (correção de Vida/Mana)
+      // pra diferenciar fichas desta MESMA conta sem depender do nome nem do caminho do arquivo.
+      fichaId: currentFichaId || null,
       ts: firebase.database.ServerValue.TIMESTAMP
     };
     // Só publica bônus de DES/XP quando a ficha aberta tem nome (mesmo critério que o roster usa
@@ -9842,7 +9935,7 @@ body{
       // computeEffectiveMoveLimit()) e SANGRANDO/ENVENENADO/QUEIMANDO/TONTO funcionarem sem
       // precisar de nenhum recarregamento.
       payload.efeitos = Object.assign({}, effectsState);
-      syncOwnPlacedTokenBonus(ownerUid, payload.bonusDes, payload.bonusMov, payload.dirMovPenalty, payload.efeitos);
+      syncOwnPlacedTokenBonus(ownerUid, payload.bonusDes, payload.bonusMov, payload.dirMovPenalty, payload.efeitos, payload.fichaId);
       // divindade atual da ficha — mesmo motivo do bonusDes acima: sem isto, uma ficha nunca salva
       // (liveOnlyRosterEntries()) não teria como a seta de direção do tabuleiro ao vivo saber a cor.
       payload.deidade = els.deidade ? (els.deidade.value || '') : '';
@@ -9942,7 +10035,7 @@ body{
   // mesmo tratamento do bonusMov, corrigido direto na(s) peça(s) já colocada(s) -- sem isso, trocar
   // pra/de Lança Pesada e Escudo numa ficha já colocada no tabuleiro só valeria depois de removida/
   // recolocada, mesmo bug que o bonusDes/bonusMov tinham antes desta correção existir.
-  function syncOwnPlacedTokenBonus(ownerUid, freshDes, freshMov, freshDirPenalty, freshEfeitos){
+  function syncOwnPlacedTokenBonus(ownerUid, freshDes, freshMov, freshDirPenalty, freshEfeitos, fichaId){
     if(!ownerUid || !fbDb || !liveBoardState || !liveBoardState.tokens) return;
     const efeitosVal = (freshEfeitos && Object.keys(freshEfeitos).length) ? freshEfeitos : null;
     const efeitosKey = efeitosVal ? Object.keys(efeitosVal).sort().join(',') : '';
@@ -9951,6 +10044,12 @@ body{
     Object.keys(liveBoardState.tokens).forEach(key=>{
       const tok = liveBoardState.tokens[key];
       if(!tok || tok.kind !== 'hero' || tok.ownerUid !== ownerUid) return;
+      // RODADA NOVA (pedido explícito: "Preciso de 2 fichas do mesmo jogador ativas ao mesmo
+      // tempo") -- mesmo raciocínio de syncBoardTokenBonusFromLiveVitals(): com 2 fichas desta
+      // mesma conta em campo, só a peça da ficha que a pessoa tem aberta agora (fichaId igual)
+      // recebe esta correção -- a(s) outra(s) ficam de fora em vez de herdar por engano. Sem
+      // fichaId dos dois lados (peça/ficha legados), aplica incondicionalmente como antes.
+      if(tok.fichaId && fichaId && tok.fichaId !== fichaId) return;
       const curDes = tok.bonusDes || 0, curMov = tok.bonusMov || 0, curDirPenalty = tok.dirMovPenalty || 0;
       const curEfeitosKey = tok.efeitos ? Object.keys(tok.efeitos).sort().join(',') : '';
       if(curDes === (freshDes || 0) && curMov === (freshMov || 0) && curDirPenalty === (freshDirPenalty || 0) && curEfeitosKey === efeitosKey) return;
@@ -13288,6 +13387,11 @@ body{
       // salva é jogador), só que gravando a CHAVE da conta (currentUserKey) em vez do uid — é ela
       // que isFichaEditable() usa de verdade pra travar a ficha pra quem não é dono nem mestre.
       donoChave: loadedFichaOwnerChave || ((currentRole === 'jogador' && currentUserKey) ? currentUserKey : null),
+      // id oculto e permanente desta ficha (ver comentário grande em "let currentFichaId" lá
+      // acima) -- null numa ficha nova nunca salva; saveFicha() preenche na hora do 1º salvamento,
+      // e currentFichaId já fica setado a partir daí, então toda chamada seguinte de
+      // collectState() (inclusive autosaves futuros, se algum dia existirem) já grava o mesmo id.
+      fichaId: currentFichaId || null,
       nome: els.nome.value, deidade: els.deidade.value,
       // Público/Privado/Inimigos: só existe de verdade em fichas de NPC (o campo fica escondido
       // pra quem não é mestre editando uma delas, ver .mestre-ficha-only em #publicaField), mas
@@ -13441,6 +13545,10 @@ body{
     // em seguida, com o caminho exato do arquivo. "Nova ficha" (s={}) fica sem origem mesmo.
     loadedFichaPath = null;
     loadedFichaSha = null;
+    // id oculto da ficha (ver "let currentFichaId" lá acima): vem junto de "s" quando ela já foi
+    // salva com esse campo; "Nova ficha" (s={}) e fichas salvas ANTES deste recurso existir ficam
+    // null até o próximo salvamento (saveFicha() gera um novo nesse caso).
+    currentFichaId = s.fichaId || null;
     // o dono já vem certo direto de "s" nesse ponto: carregar uma ficha existente passa o objeto
     // completo (incluindo ownerUid, se ela já tiver um), e "Nova ficha" (s={}) não tem essa chave,
     // então volta a null (editável por qualquer um até ser salva pela primeira vez).
@@ -15235,6 +15343,18 @@ body{
         // espelho mesa40k/liveBoard/tokens, e o dano de uma Ação Ofensiva não teria como ser
         // reduzido quando o alvo é uma ficha de Inimigo/Aliado (em vez de um herói de verdade).
         ar: t.ar != null ? t.ar : null, ap: t.ap != null ? t.ap : null,
+        // fichaId (rodada nova, ver "let currentFichaId"/buildHeroVitalsSnapshot() no <script>):
+        // id oculto permanente da ficha dona desta peça 'hero' -- precisa sobreviver a este
+        // overwrite cheio pelo mesmo motivo de dirMovPenalty/facing acima, senão
+        // syncBoardTokenBonusFromLiveVitals()/syncOwnPlacedTokenBonus() perderiam a forma de saber
+        // qual peça pertence a qual ficha específica desta conta depois do mestre mexer em
+        // qualquer outra coisa do tabuleiro. null em qualquer outra kind (não se aplica).
+        fichaId: t.fichaId || null,
+        // totals "de fábrica" (rodada nova, ver buildFichaInstanceToken()/buildHeroVitalsSnapshot())
+        // -- mesmo motivo de vidaMax/ar acima: sem isto, o resumo de atributos na bolha (Fase 4)
+        // de uma peça 'hero'/inimigo_ficha/aliado_ficha já colocada perderia os totais FOR/CON/
+        // DES/INT/VON/CAR toda vez que o mestre mexesse em qualquer outra coisa do tabuleiro.
+        totals: t.totals || null,
       };
     });
     return tokensOut;
@@ -15651,7 +15771,12 @@ body{
         hpFill.className = 'board-token-hpbar-fill';
         hpBar.appendChild(hpFill);
         cell.appendChild(hpBar);
-        applyBoardHpBar(hpBar);
+        // RODADA NOVA (ver buildHeroVitalsSnapshot()/isHeroDead() lá acima/abaixo): passa o
+        // TOKEN também, não só o ownerUid -- com 2 fichas da mesma conta em campo, a barra desta
+        // peça específica precisa ler a Vida PRÓPRIA dela (token.vidaAtual/vidaMax), nunca a de
+        // liveVitalsAll[ownerUid] (que é só "a ficha que essa pessoa tem aberta agora", nem
+        // sempre esta).
+        applyBoardHpBar(hpBar, token);
       }
       // Card de Vida/Mana/Escudo ao passar o mouse (rodada nova, ver buildBoardVitalsCard()/
       // resolveTokenVitalsForCard() mais abaixo) -- pedido explícito: "quando passar o mouse em
@@ -15697,11 +15822,21 @@ body{
   // verdade ou só ninguém publicou nada ainda.
   function isHeroDead(token){
     if(!token || token.kind !== 'hero' || !token.ownerUid) return false;
-    const live = liveVitalsAll[token.ownerUid];
-    if(!live) return false;
-    const vidaMax = parseFloat(live.vidaMax);
+    // RODADA NOVA (ver buildHeroVitalsSnapshot()/resolveCombatData() lá acima): Vida/vidaMax
+    // agora moram na PRÓPRIA peça -- token.vidaMax == null é só o caminho de COMPATIBILIDADE
+    // (peça colocada antes desta rodada, ainda sem o snapshot próprio), que continua lendo de
+    // liveVitalsAll[ownerUid] do jeito antigo até ser movida de novo.
+    if(token.vidaMax == null){
+      const live = liveVitalsAll[token.ownerUid];
+      if(!live) return false;
+      const vidaMaxLegado = parseFloat(live.vidaMax);
+      if(!(vidaMaxLegado > 0)) return false;
+      const vidaLegado = parseFloat(live.vida);
+      return isFinite(vidaLegado) && vidaLegado <= 0;
+    }
+    const vidaMax = parseFloat(token.vidaMax);
     if(!(vidaMax > 0)) return false;
-    const vida = parseFloat(live.vida);
+    const vida = parseFloat(token.vidaAtual);
     return isFinite(vida) && vida <= 0;
   }
   // Mesmo raciocínio de isHeroDead() acima (mesma caveira, mesma guarda de vidaMax>0 pra nunca
@@ -15736,12 +15871,25 @@ body{
   // barrinha (largura em % + cor por faixa: verde >50%, amarelo 20-50%, vermelho <=20%). Sem dado
   // "ao vivo" ainda pra esse dono (ex: acabou de entrar, ainda não fez nenhuma alteração), ou sem
   // vidaMax válido, a barra fica escondida em vez de aparecer zerada/errada.
-  function applyBoardHpBar(hpBar){
-    const live = liveVitalsAll[hpBar.dataset.ownerUid];
-    const vidaMax = live ? parseFloat(live.vidaMax) : NaN;
-    if(!live || !(vidaMax > 0)){ hpBar.style.display = 'none'; return; }
+  function applyBoardHpBar(hpBar, token){
+    // RODADA NOVA (ver buildHeroVitalsSnapshot()/isHeroDead() lá acima): lê a Vida PRÓPRIA do
+    // token quando ele já tiver o snapshot (vidaMax != null) -- nunca mais liveVitalsAll[ownerUid]
+    // nesse caso, senão a barra de uma peça mostraria a Vida de QUALQUER OUTRA ficha desta mesma
+    // conta que a pessoa tiver aberta na própria tela agora. token == null (chamadores antigos
+    // que ainda não foram atualizados) ou token.vidaMax == null (peça colocada antes desta
+    // rodada) caem no caminho de COMPATIBILIDADE, igual antes.
+    let vida, vidaMax;
+    if(token && token.vidaMax != null){
+      vidaMax = parseFloat(token.vidaMax);
+      vida = Math.max(0, parseFloat(token.vidaAtual) || 0);
+    } else {
+      const live = liveVitalsAll[hpBar.dataset.ownerUid];
+      vidaMax = live ? parseFloat(live.vidaMax) : NaN;
+      if(!live || !(vidaMax > 0)){ hpBar.style.display = 'none'; return; }
+      vida = Math.max(0, parseFloat(live.vida) || 0);
+    }
+    if(!(vidaMax > 0)){ hpBar.style.display = 'none'; return; }
     hpBar.style.display = '';
-    const vida = Math.max(0, parseFloat(live.vida) || 0);
     const pct = Math.max(0, Math.min(100, (vida / vidaMax) * 100));
     const fill = hpBar.querySelector('.board-token-hpbar-fill');
     fill.style.width = pct + '%';
@@ -15816,23 +15964,42 @@ body{
       };
     }
     if(token.kind === 'hero' && token.ownerUid){
+      // RODADA NOVA (ver buildHeroVitalsSnapshot()/resolveCombatData() lá acima): Vida/Mana/
+      // Escudo NUNCA mais vêm de liveVitalsAll[ownerUid] quando a peça já tem snapshot próprio
+      // (token.vidaMax != null) -- esse nó é por CONTA, não por ficha, e mostraria a Vida de
+      // QUALQUER OUTRA ficha desta mesma conta que a pessoa tiver aberta na própria tela agora.
+      // totals/deidade/XP continuam preferindo o dado AO VIVO quando ele realmente bate com ESTA
+      // ficha (mesmo fichaId, ver liveMatchesThisFicha abaixo) -- mantém o resumo acompanhando em
+      // tempo real redistribuição de pontos/XP ganho enquanto a pessoa estiver com esta EXATA
+      // ficha aberta; cai pro valor congelado da própria peça (token.totals/token.xp, tirado na
+      // colocação) quando não bate (outra ficha da mesma conta aberta agora, ou fechada).
       const live = liveVitalsAll[token.ownerUid];
-      if(!live) return null;
+      if(token.vidaMax == null){
+        // compatibilidade: peça colocada antes desta rodada, sem snapshot próprio ainda.
+        if(!live) return null;
+        return {
+          vidaPct: pctFromValores(live.vida, live.vidaMax),
+          manaPct: pctFromValores(live.mana, live.manaMax),
+          escudoPct: pctFromValores(live.escudo, live.escudoMax),
+          vidaAtual: roundedAtualValor(live.vida),
+          manaAtual: roundedAtualValor(live.mana),
+          escudoAtual: roundedAtualValor(live.escudo),
+          deidade: live.deidade || '',
+          totals: live.totals || null,
+          levelInfo: levelInfoFromXp(live.xp || 0),
+        };
+      }
+      const liveMatchesThisFicha = !!(live && (!token.fichaId || !live.fichaId || live.fichaId === token.fichaId));
       return {
-        vidaPct: pctFromValores(live.vida, live.vidaMax),
-        manaPct: pctFromValores(live.mana, live.manaMax),
-        escudoPct: pctFromValores(live.escudo, live.escudoMax),
-        vidaAtual: roundedAtualValor(live.vida),
-        manaAtual: roundedAtualValor(live.mana),
-        escudoAtual: roundedAtualValor(live.escudo),
-        deidade: live.deidade || '',
-        // Rodada nova: FOR/CON/DES/INT/VON/CAR + Nível/XP AO VIVO de verdade (live.totals/live.xp já
-        // publicados por pushLiveVitals() a cada recalc(), mesmo dado que já alimenta mc-attrs/
-        // mc-live-xp em "Fichas de Jogador" dentro de MESA -- ver comentário grande deles) -- por
-        // isso, diferente da ficha-molde de Inimigo/Aliado acima, este resumo acompanha em tempo
-        // real qualquer redistribuição de pontos ou ganho de XP, sem precisar recolocar a peça.
-        totals: live.totals || null,
-        levelInfo: levelInfoFromXp(live.xp || 0),
+        vidaPct: pctFromValores(token.vidaAtual, token.vidaMax),
+        manaPct: pctFromValores(token.manaAtual, token.manaMax),
+        escudoPct: pctFromValores(token.escudoAtual, token.escudoMax),
+        vidaAtual: roundedAtualValor(token.vidaAtual),
+        manaAtual: roundedAtualValor(token.manaAtual),
+        escudoAtual: roundedAtualValor(token.escudoAtual),
+        deidade: (liveMatchesThisFicha && live.deidade) ? live.deidade : (token.deidade || ''),
+        totals: (liveMatchesThisFicha && live.totals) ? live.totals : (token.totals || null),
+        levelInfo: levelInfoFromXp(liveMatchesThisFicha ? (live.xp || 0) : (token.xp || 0)),
       };
     }
     return null;
@@ -16412,6 +16579,60 @@ body{
     return token;
   }
 
+  // RODADA NOVA (pedido explícito: "Preciso de 2 fichas do mesmo jogador ativas ao mesmo tempo",
+  // em resposta ao bug relatado "os ataques estao removendo toda a vida do alvo independente do
+  // valor do dano" + "quando duas fichas de um mesmo jogador estao no tabuleiro esta aparecendo
+  // apenas a primeira ficha na fila de iniciativa") -- raiz dos dois bugs: peça 'hero' nunca
+  // guardava a própria Vida/Mana/Totais/ar/ap, sempre lia de liveVitalsAll[ownerUid] (ver
+  // resolveCombatData() de antes desta rodada) -- um nó POR CONTA, não por ficha. Com 2 fichas do
+  // MESMO jogador em campo ao mesmo tempo, as duas liam/escreviam o MESMO slot (o da ficha que a
+  // pessoa tiver aberta na PRÓPRIA tela agora, seja qual for) -- um ataque na ficha A de fato
+  // aplicava dano no vidaMax da ficha B, e a caveira de "Vida zero" (ver isHeroDead()) podia
+  // acender/apagar pras duas juntas, nunca uma só. Esta função tira um snapshot PRÓPRIO (mesmo
+  // espírito de buildFichaInstanceToken(), usado por inimigo_ficha/aliado_ficha) no instante em
+  // que a peça é colocada/movida (ver handleBoardDrop()) -- a partir daí a peça nunca mais lê
+  // liveVitalsAll pra combate, só a PRÓPRIA Vida/Mana (ver resolveCombatData()/
+  // applyCombatVitalDelta()/isHeroDead() mais abaixo, todos atualizados nesta rodada).
+  // prevToken: quando é só um REPOSICIONAMENTO da mesma peça já colocada (mesmo hero.id -- heróis
+  // nunca "se repetem" no tabuleiro, só inimigo_ficha/aliado_ficha fazem isso), preserva a Vida/
+  // Mana/Escudo ATUAIS já acumulados nela (dano/cura já sofridos), só reatualiza os TETOS
+  // (vidaMax/manaMax) e os totais/ar/ap a partir da ficha-molde, pro caso de a pessoa ter mudado
+  // algo na própria ficha entre uma movida e outra. Sem prevToken (1ª colocação de verdade),
+  // nasce cheia a partir de hero.curVida/hero.curMana/hero.barreiraCur (igual
+  // buildFichaInstanceToken()).
+  function buildHeroVitalsSnapshot(hero, prevToken){
+    // hero.vidaMax AUSENTE (undefined, não só 0): a ficha-molde não tem Vida/Mana "de fábrica"
+    // calculada nenhuma -- makeRosterLoader()/liveOnlyRosterEntries() (fichas de JOGADOR de
+    // verdade, ver comentário grande delas) SEMPRE calculam um número aqui, mesmo que dê 0, então
+    // isto só acontece com um roster "de mentirinha" (ex.: teste automatizado manual que só povoa
+    // liveVitalsAll[ownerUid], do jeito que a arquitetura ANTIGA funcionava, sem passar pelas 2
+    // funções de carregamento de verdade). Devolve vidaMax null de propósito -- cai sozinho nos
+    // caminhos de COMPATIBILIDADE já escritos em resolveCombatData()/applyCombatVitalDelta()/
+    // isHeroDead()/maybeAutoHealFichaOnPlacement()/resolveTokenVitalsForCard()/applyBoardHpBar()
+    // (todos tratam token.vidaMax == null como "sem snapshot ainda, lê liveVitalsAll[ownerUid] do
+    // jeito antigo"), em vez de nascer com vidaMax 0 de verdade (o que faria a peça parecer "sem
+    // Vida nenhuma" pra sempre, mesmo tendo liveVitalsAll com dado de verdade disponível).
+    if(hero.vidaMax === undefined) return { vidaMax: null, fichaId: hero.fichaId || hero.id };
+    const vidaMax = hero.vidaMax || 0, manaMax = hero.manaMax || 0, escudoMax = hero.barreiraMax || 0;
+    return {
+      vidaMax, vidaAtual: (prevToken && prevToken.vidaAtual != null) ? Math.min(prevToken.vidaAtual, vidaMax) : (hero.curVida ?? vidaMax),
+      manaMax, manaAtual: (prevToken && prevToken.manaAtual != null) ? Math.min(prevToken.manaAtual, manaMax) : (hero.curMana ?? manaMax),
+      escudoMax, escudoAtual: (prevToken && prevToken.escudoAtual != null) ? Math.min(prevToken.escudoAtual, escudoMax) : (hero.barreiraCur || 0),
+      totals: hero.totals || {
+        for: attrTotalFromRaw(hero.raw, 'for'), con: attrTotalFromRaw(hero.raw, 'con'), des: attrTotalFromRaw(hero.raw, 'des'),
+        int: attrTotalFromRaw(hero.raw, 'int'), von: attrTotalFromRaw(hero.raw, 'von'), car: attrTotalFromRaw(hero.raw, 'car'),
+      },
+      ar: parseFloat(hero.raw && hero.raw.mods && hero.raw.mods.ar) || 0,
+      ap: parseFloat(hero.raw && hero.raw.mods && hero.raw.mods.ap) || 0,
+      xp: parseFloat(hero.raw && hero.raw.xp) || 0,
+      // id oculto permanente da ficha (ver "let currentFichaId"/makeRosterLoader() lá acima) --
+      // falls back pro próprio hero.id (fichas legadas, salvas antes deste recurso existir, ou
+      // nunca salvas ainda) -- usado por applyCombatVitalDelta() pra marcar a quem pertence a
+      // correção de Vida/Mana publicada em mesa40k/vidaMana/{uid} (ver handleVidaManaChange()).
+      fichaId: hero.fichaId || hero.id,
+    };
+  }
+
   // RODADA NOVA (pedido explícito, correção em cima da Fase 1 da dinâmica de turnos: "as fichas de
   // inimigos movidas pelo mestre também devem respeitar as limitações de movimento, além de exibir
   // os mesmos efeitos visuais na mesa/no tabuleiro"): espelham highlightLiveBoardReachable()/
@@ -16465,7 +16686,7 @@ body{
           // aqui é só a segunda trava, direto no drop.
           if(prevToken) return;
           if(!canPlace(r, c, heroSize, heroSize, null)) return;
-          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || '', pvp: true};
+          const token = Object.assign({id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || '', pvp: true}, buildHeroVitalsSnapshot(hero, null));
           placeToken(r, c, token);
           maybeAutoHealFichaOnPlacement(token);
           footprintCells(r, c, heroSize).forEach(([fr,fc]) => renderBoardCell(fr,fc));
@@ -16475,7 +16696,11 @@ body{
           if(!canPlace(r, c, heroSize, heroSize, prevToken ? prevToken.id : null)) return;
           let prevCells = [];
           if(prevToken){ const [pSizeR, pSizeC] = tokenFootprintSize(prevToken); prevCells = footprintCells(prevToken.anchorR, prevToken.anchorC, pSizeR, pSizeC); clearTokenFootprint(prevToken); }
-          const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || ''};
+          // RODADA NOVA (ver buildHeroVitalsSnapshot() lá acima): prevToken (quando existe) já é
+          // esta MESMA peça, só sendo reposicionada -- passa pra preservar a Vida/Mana/Escudo já
+          // sofridos em combate em vez de reencher a peça pro valor "de fábrica" da ficha a cada
+          // vez que ela é só movida de lugar.
+          const token = Object.assign({id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || ''}, buildHeroVitalsSnapshot(hero, prevToken));
           placeToken(r, c, token);
           maybeAutoHealFichaOnPlacement(token);
           prevCells.forEach(([pr,pc]) => renderBoardCell(pr,pc));
@@ -16675,14 +16900,35 @@ body{
   // salva depois enquanto já está no tabuleiro, o próximo recarregamento do roster reconhece o
   // mesmo id (mesma peça), em vez de duplicar.
   function liveOnlyRosterEntries(idPrefix, existingRoster){
-    const known = new Set(existingRoster.map(h=> h.ownerUid).filter(Boolean));
+    // RODADA NOVA (pedido explícito: "Preciso de 2 fichas do mesmo jogador ativas ao mesmo tempo" +
+    // id oculta por ficha) -- o dedup aqui era só por CONTA (ownerUid): uma 2ª ficha desta mesma
+    // conta, ainda não salva, nunca aparecia na bandeja enquanto a 1ª (já salva, já no roster)
+    // existisse, mesmo sendo um personagem totalmente diferente. Agora dedupa por fichaId quando o
+    // dado "ao vivo" já tiver um (ficha que já foi salva pelo menos uma vez nesta mesma sessão, ver
+    // pushLiveVitals()) -- só cai no dedup antigo por uid quando NENHUM dos dois lados (roster já
+    // carregado, dado ao vivo) tiver fichaId ainda (ficha(s) legada(s)/nunca salva(s)).
+    const knownFichaIds = new Set(existingRoster.map(h=> h.fichaId).filter(Boolean));
+    const knownUidsNoFichaId = new Set(existingRoster.filter(h=> !h.fichaId).map(h=> h.ownerUid).filter(Boolean));
     return Object.keys(liveVitalsAll)
-      .filter(uid=> !known.has(uid))
       .map(uid=> ({ uid, live: liveVitalsAll[uid] }))
       .filter(({live})=> live && live.nome)
+      .filter(({uid, live})=> live.fichaId ? !knownFichaIds.has(live.fichaId) : !knownUidsNoFichaId.has(uid))
       .map(({uid, live})=> ({
-        id: idPrefix + slugify(live.nome), name: live.nome, portrait: null,
+        id: idPrefix + (live.fichaId || slugify(live.nome)), fichaId: live.fichaId || null, name: live.nome, portrait: null,
         donoChave: null, ownerUid: uid, bonusDes: live.bonusDes || 0, bonusMov: live.bonusMov || 0, dirMovPenalty: live.dirMovPenalty || 0, deidade: live.deidade || '', liveOnly: true,
+        // Vida/Mana/Escudo "de fábrica" ainda não existem pra uma ficha nunca salva (sem arquivo
+        // no GitHub pra calcular isso, ver makeRosterLoader()) -- usa o próprio dado ao vivo (o
+        // que a ficha mostra agora na tela de quem a tem aberta) como melhor aproximação possível
+        // pro snapshot que handleBoardDrop() tira ao colocar (ver buildFichaInstanceToken()/hero
+        // branch) -- vidaMax/manaMax ficam 0 só se ainda não há dado ao vivo nenhum publicado.
+        vidaMax: live.vidaMax || 0, curVida: live.vida ?? (live.vidaMax || 0),
+        manaMax: live.manaMax || 0, curMana: live.mana ?? (live.manaMax || 0),
+        barreiraMax: live.escudoMax || 0, barreiraCur: live.escudo || 0,
+        // totals já vem pronto do payload ao vivo (ver payload.totals em pushLiveVitals()) -- usa
+        // direto em vez de attrTotalFromRaw(hero.raw, ...) (esse exige hero.raw.base, que uma
+        // ficha nunca salva não tem).
+        totals: live.totals || null,
+        raw: { mods: { ar: live.ar || 0, ap: live.ap || 0 }, xp: live.xp || 0 },
       }));
   }
 
@@ -16755,6 +17001,13 @@ body{
       // pushLiveVitals()) — sem isso, null/undefined aqui só quer dizer "essa conta ainda não
       // publicou nada de verdade", não "o bônus dela é zero".
       if(!live || live.bonusDes == null) return;
+      // RODADA NOVA (pedido explícito: "Preciso de 2 fichas do mesmo jogador ativas ao mesmo
+      // tempo") -- liveVitalsAll[uid] é por CONTA, não por ficha: com 2 fichas desta mesma conta
+      // em campo, só a que a pessoa tiver aberta na própria tela agora deve receber o bônus dela
+      // -- a(s) outra(s) fichas (fichaId diferente) ficam de fora desta sincronização em vez de
+      // herdar por engano o bônus de uma ficha que não é a delas. Sem fichaId dos dois lados
+      // (peça/dado legados, de antes deste recurso existir), aplica incondicionalmente como antes.
+      if(t.fichaId && live.fichaId && live.fichaId !== t.fichaId) return;
       const freshDes = live.bonusDes || 0;
       const freshMov = live.bonusMov || 0;
       const freshDirPenalty = live.dirMovPenalty || 0;
@@ -17019,6 +17272,17 @@ body{
     const cur = tok[curKey] || 0;
     tok[curKey] = Math.max(0, Math.min(max, cur + delta));
     renderBoardInstancesPanel();
+    // BUG relatado pelo usuário: "quando uma ficha de inimigo zera a vida ela nao esta virando uma
+    // caveirinha" -- esta função só redesenhava o PRÓPRIO painel (renderBoardInstancesPanel(), os
+    // números −10/−1/+1/+10 acima) e a fila de turnos (renderTurnBars() mais abaixo), mas nunca a
+    // CASA do tabuleiro de verdade (renderBoardCell(), nem a bolha do Resumo) -- diferente de
+    // tryResolveBoardAttack()/tryResolveBoardPotion(), que sempre re-renderizam as duas depois de
+    // mudar Vida/Mana. Resultado: zerar a Vida de uma instância por AQUI (em vez de em combate)
+    // atualizava o número no painel (e o Vida/VidaMax ficavam 0/0 ali), mas o ÍCONE da peça no
+    // tabuleiro (isInstanceDead() já devolvia true) só virava a caveira 💀 na PRÓXIMA vez que
+    // QUALQUER outro motivo redesenhasse aquela casa (ex.: mover a peça) -- nunca na hora.
+    if(tok.anchorR != null && tok.anchorC != null) renderBoardCell(tok.anchorR, tok.anchorC);
+    if(typeof renderFichaSummaryBubbles === 'function') renderFichaSummaryBubbles();
     scheduleBoardTokensPush();
     // RODADA NOVA (pedido explícito: "qualquer ficha zerada no tabuleiro sai da fila de iniciativa"):
     // o Mestre pode zerar (ou curar) a Vida de uma instância direto por aqui, fora do fluxo normal
@@ -17163,7 +17427,15 @@ body{
         const roster = fetchedData
           .filter(data => data && data.nome)
           .map(data => ({
-            id: idPrefix + slugify(data.nome), name: data.nome, portrait: data.portrait || null,
+            // RODADA NOVA (pedido explícito: "cria uma id oculta para cada ficha criada, dai usa
+            // essa ID para separar as fichas, dai um jogador pode ter inúmeras fichas") -- usa o
+            // id oculto permanente gravado na própria ficha (data.fichaId, ver "let
+            // currentFichaId"/collectState() lá no <script>) quando ela já tiver um, em vez de
+            // montar o id a partir do NOME (idPrefix + slugify(data.nome)) -- dois jogadores (ou
+            // duas fichas do mesmo jogador) com o mesmo nome deixam de colidir no mesmo id/peça do
+            // tabuleiro. Fichas salvas ANTES deste recurso existir (sem fichaId ainda) continuam
+            // caindo no esquema antigo (slugify do nome) até serem salvas de novo.
+            id: idPrefix + (data.fichaId || slugify(data.nome)), fichaId: data.fichaId || null, name: data.nome, portrait: data.portrait || null,
             // dono da ficha (mesmo par donoChave/ownerUid gravado por collectState() — ver isFichaEditable())
             // — carregado pro token junto do resto pra o mini-tabuleiro ao vivo saber de quem é cada
             // peça sem precisar buscar a ficha de novo (ver isMyLiveToken() no <script>).
@@ -17449,6 +17721,11 @@ body{
         // parava de funcionar (toda peça recarregada caía sempre no card cheio, por "não ter como"
         // achar as outras cópias do mesmo heroId).
         heroId: rt.heroId || null,
+        // fichaId (rodada nova, ver collectBoardTokensOut()/buildHeroVitalsSnapshot()) -- id
+        // oculto permanente da ficha dona desta peça 'hero', carregado de volta pra
+        // syncBoardTokenBonusFromLiveVitals()/syncOwnPlacedTokenBonus() continuarem sabendo
+        // separar fichas da MESMA conta depois de um save/load de tabuleiro.
+        fichaId: rt.fichaId || null,
       };
       if(rt.pvp) token.pvp = true;
       if(rt.seq) token.seq = rt.seq;
@@ -17462,6 +17739,9 @@ body{
       if(rt.vidaMax != null){ token.vidaMax = rt.vidaMax; token.vidaAtual = rt.vidaAtual || 0; }
       if(rt.manaMax != null){ token.manaMax = rt.manaMax; token.manaAtual = rt.manaAtual || 0; }
       if(rt.escudoMax != null){ token.escudoMax = rt.escudoMax; token.escudoAtual = rt.escudoAtual || 0; }
+      // totals "de fábrica" (rodada nova, ver collectBoardTokensOut()) -- mesmo tratamento de
+      // vidaMax/manaMax/escudoMax acima.
+      if(rt.totals) token.totals = rt.totals;
       placeToken(rt.anchorR, rt.anchorC, token);
     });
     applyBoardBackground(data.background || null);
@@ -17828,6 +18108,14 @@ body{
     if(!state.nome || !state.nome.trim()){
       alert('Escreva o nome do personagem antes de salvar na mesa — é ele que identifica sua ficha para o mestre.');
       return;
+    }
+    // 1º salvamento desta ficha (nova, ou legada salva antes deste recurso existir) -- gera o id
+    // oculto permanente agora, ANTES de gravar no GitHub (ver "let currentFichaId"/genFichaId()
+    // lá acima), e já fixa currentFichaId pra qualquer salvamento seguinte nesta mesma sessão
+    // reusar o MESMO id em vez de gerar um novo a cada vez.
+    if(!state.fichaId){
+      currentFichaId = genFichaId();
+      state.fichaId = currentFichaId;
     }
     if(!getToken()){
       alert('Configure seu token do GitHub primeiro para poder salvar.');
@@ -20163,6 +20451,21 @@ body{
         portrait: resolveTokenPortrait(rt), donoChave: rt.donoChave || null, ownerUid: rt.ownerUid || null, bonusDes: rt.bonusDes || 0, bonusMov: rt.bonusMov || 0, dirMovPenalty: rt.dirMovPenalty || 0,
         facing: rt.facing || null, deidade: rt.deidade || '',
       };
+      // RODADA NOVA (ver buildHeroVitalsSnapshot()/collectBoardTokensOut() lá acima): preserva a
+      // Vida/Mana/Escudo/Totais/ar/ap/fichaId da peça já conhecida LOCALMENTE (localTok, fonte de
+      // verdade do mestre) quando ela existir -- só cai pro que vier em `rt` (espelho remoto) na
+      // 1ª vez que o mestre vê esta peça. Sem isto, mover a peça pelo PRÓPRIO mini-tabuleiro do
+      // jogador (handleLiveBoardDrop(), que só republica aqui, nunca passa por handleBoardDrop()/
+      // buildHeroVitalsSnapshot()) reconstruía a peça do ZERO aqui, apagando a Vida/Mana já
+      // sofrida em combate e voltando ao caminho de compatibilidade (vidaMax null) a cada reposição.
+      const src = localTok || rt;
+      if(src.vidaMax != null){ token.vidaMax = src.vidaMax; token.vidaAtual = src.vidaAtual || 0; }
+      if(src.manaMax != null){ token.manaMax = src.manaMax; token.manaAtual = src.manaAtual || 0; }
+      if(src.escudoMax != null){ token.escudoMax = src.escudoMax; token.escudoAtual = src.escudoAtual || 0; }
+      if(src.totals) token.totals = src.totals;
+      if(src.ar != null) token.ar = src.ar;
+      if(src.ap != null) token.ap = src.ap;
+      if(src.fichaId) token.fichaId = src.fichaId;
       if(rt.efeitos && Object.keys(rt.efeitos).length) token.efeitos = rt.efeitos;
       if(rt.pvp) token.pvp = true;
       if(rt.seq) token.seq = rt.seq;
@@ -21808,7 +22111,17 @@ body{
     // mesma conta vazavam pra qualquer ficha NOVA criada depois com o mesmo uid. Dado sem `path`
     // nenhum (formato antigo, gravado antes desta correção) continua aplicando incondicionalmente,
     // pra não quebrar uma correção já pendente de antes desta rodada.
-    if(Object.prototype.hasOwnProperty.call(val, 'path') && val.path !== loadedFichaPath) return;
+    // RODADA NOVA (pedido explícito: "Preciso de 2 fichas do mesmo jogador ativas ao mesmo tempo" +
+    // "cria uma id oculta para cada ficha... usa essa ID para separar as fichas") -- `fichaId` (ver
+    // "let currentFichaId" lá acima/applyCombatVitalDelta()) passa a ser o identificador de
+    // verdade, mais forte que `path` (esse muda se o arquivo for renomeado/movido no GitHub; o
+    // fichaId nunca muda) -- correção marcada com fichaId só aplica se bater com a ficha aberta
+    // aqui agora (currentFichaId); só cai no `path` antigo quando a correção não tiver fichaId
+    // nenhum (caminho de compatibilidade de uma peça colocada antes desta rodada, ver
+    // applyCombatVitalDelta()).
+    if(Object.prototype.hasOwnProperty.call(val, 'fichaId') && val.fichaId){
+      if(val.fichaId !== currentFichaId) return;
+    } else if(Object.prototype.hasOwnProperty.call(val, 'path') && val.path !== loadedFichaPath) return;
     let changed = false;
     if(typeof val.vida === 'number' && num(els.curVida) !== val.vida){ els.curVida.value = val.vida; changed = true; }
     if(typeof val.mana === 'number' && num(els.curMana) !== val.mana){ els.curMana.value = val.mana; changed = true; }
