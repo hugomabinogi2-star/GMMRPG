@@ -8208,7 +8208,11 @@ body{
       if(campo === 'mana') novaMana = Math.max(0, Math.min(manaMax, novaMana + delta));
       else novaVida = Math.max(0, Math.min(vidaMax, novaVida + delta));
       live.vida = novaVida; live.mana = novaMana; // reflete local na hora, sem esperar o round-trip
-      fbDb.ref('mesa40k/vidaMana/' + token.ownerUid).set({ vida: novaVida, mana: novaMana, ts: firebase.database.ServerValue.TIMESTAMP })
+      // path (ver comentário grande de payload.path dentro de pushLiveVitals()) -- identifica QUAL
+      // ficha desta conta está recebendo o dano/cura agora (a que está "ao vivo" pra este uid neste
+      // instante, ver live.path acima), pra handleVidaManaChange() do lado do jogador só aplicar
+      // essa correção na ficha certa, nunca numa ficha DIFERENTE da mesma conta criada depois.
+      fbDb.ref('mesa40k/vidaMana/' + token.ownerUid).set({ vida: novaVida, mana: novaMana, path: live.path || null, ts: firebase.database.ServerValue.TIMESTAMP })
         .catch(err=> console.error('Não foi possível aplicar dano/cura/custo de Mana na ficha ao vivo:', err));
       return;
     }
@@ -8230,6 +8234,45 @@ body{
             .catch(err=> console.error('Não foi possível aplicar dano/cura/custo de Mana na peça do tabuleiro ao vivo:', err));
         }
       }
+    }
+  }
+
+  // RODADA NOVA (pedido explícito: "se uma ficha com vida zero for colocada no tabuleiro, apenas
+  // se o tabuleiro ainda não tiver sido revelado, ela enche a vida e a mana automaticamente, sem
+  // gastar nada"): chamada pelos 4 ramos de handleBoardDrop() que COLOCAM uma ficha vinda da
+  // bandeja ('hero', inclusive PVP, e 'inimigo_ficha'/'aliado_ficha') -- NUNCA ao mover uma peça já
+  // colocada (payload.source === 'board', nem chamada lá), e só enquanto o tabuleiro ainda não foi
+  // Revelado (ver isBoardRevealedForFicha()) -- combate em andamento (já Revelado) não dá cura de
+  // graça nenhuma, nem reposicionar/recolocar uma ficha ali. O gatilho é estritamente "vida ZERADA"
+  // (<= 0), não "vida incompleta" -- uma ficha com vida parcial (ex.: 5 de 10) colocada antes de
+  // Revelar continua exatamente como estava, só a que chega com vida zero é restaurada, e aí os
+  // DOIS (vida e mana) vão pro máximo juntos, igual pedido.
+  //  - 'hero' (ficha de JOGADOR/MESTRE de verdade): Vida/Mana vêm de liveVitalsAll[ownerUid] (ver
+  //    resolveCombatData()) -- reaproveita applyCombatVitalDelta() pra escrever a cura pelo MESMO
+  //    canal (mesa40k/vidaMana/{uid}, já com o `path` certo, ver comentário grande dela) que
+  //    correção manual do Mestre e dano/cura em combate já usam, em vez de duplicar a lógica de
+  //    clamp/push aqui.
+  //  - 'inimigo_ficha'/'aliado_ficha': Vida/Mana moram na própria peça (ver
+  //    buildFichaInstanceToken()) -- applyCombatVitalDelta() já sabe gravar ali e reagendar o push
+  //    certo.
+  function maybeAutoHealFichaOnPlacement(token){
+    if(!token || isBoardRevealedForFicha()) return;
+    if(token.kind === 'hero'){
+      if(!token.ownerUid) return;
+      const live = liveVitalsAll[token.ownerUid];
+      if(!live || (live.vida || 0) > 0) return;
+      const deltaVida = (live.vidaMax || 0) - (live.vida || 0);
+      const deltaMana = (live.manaMax || 0) - (live.mana || 0);
+      if(deltaVida > 0) applyCombatVitalDelta(token, 'vida', deltaVida);
+      if(deltaMana > 0) applyCombatVitalDelta(token, 'mana', deltaMana);
+      return;
+    }
+    if(token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha'){
+      if((token.vidaAtual || 0) > 0) return;
+      const deltaVida = (token.vidaMax || 0) - (token.vidaAtual || 0);
+      const deltaMana = (token.manaMax || 0) - (token.manaAtual || 0);
+      if(deltaVida > 0) applyCombatVitalDelta(token, 'vida', deltaVida);
+      if(deltaMana > 0) applyCombatVitalDelta(token, 'mana', deltaMana);
     }
   }
 
@@ -9748,6 +9791,16 @@ body{
       vida: num(els.curVida), vidaMax: parseFloat(els.maxVida.textContent) || 0,
       mana: num(els.curMana), manaMax: parseFloat(els.maxMana.textContent) || 0,
       escudo: num(els.barreiraCur), escudoMax: num(els.barreiraMax),
+      // CORREÇÃO (bug relatado: "criei uma segunda ficha com o mesmo usuario de uma ficha que
+      // estava sem vida e a nova ficha já apareceu com vida e mana zerada") -- mesmo path (ver
+      // setHeroDeidade()/handleDeidadeChange()) que já identifica QUAL ficha específica desta
+      // conta está "ao vivo" agora, pra applyCombatVitalDelta() (kind 'hero', mais abaixo no
+      // <script>) saber de qual ficha é a correção que está escrevendo em mesa40k/vidaMana/{uid}
+      // quando um ataque tira vida/mana de um herói de verdade -- sem isto, uma ficha ANTIGA desta
+      // mesma conta (ex.: uma ficha já zerada em combate antes) deixava a correção vazar pra
+      // qualquer ficha NOVA criada depois, com o mesmo uid (ver handleVidaManaChange() mais
+      // abaixo).
+      path: loadedFichaPath || null,
       ts: firebase.database.ServerValue.TIMESTAMP
     };
     // Só publica bônus de DES/XP quando a ficha aberta tem nome (mesmo critério que o roster usa
@@ -9940,6 +9993,11 @@ body{
     fbDb.ref('mesa40k/atributos/' + loadedFichaOwnerUid).set({
       for: num(els.bFor), con: num(els.bCon), des: num(els.bDes),
       int: num(els.bInt), von: num(els.bVon), car: num(els.bCar),
+      // path (mesmo esquema de setHeroDeidade()/pushVidaMana() mais abaixo) -- loadedFichaPath AQUI
+      // é exatamente o caminho da ficha que o Mestre tem aberta agora via "Ver ficha" (a que está
+      // recebendo a correção) -- sem isto, uma ficha DIFERENTE da mesma conta (ex.: uma ficha nova
+      // criada depois) herdaria por engano os atributos corrigidos pelo Mestre numa ficha antiga.
+      path: loadedFichaPath || null,
       ts: firebase.database.ServerValue.TIMESTAMP
     });
   }
@@ -9964,6 +10022,10 @@ body{
     if(!fbReady || !fbDb || currentRole !== 'mestre' || !loadedFichaOwnerUid) return;
     fbDb.ref('mesa40k/vidaMana/' + loadedFichaOwnerUid).set({
       vida: num(els.curVida), mana: num(els.curMana),
+      // path (ver comentário grande de payload.path dentro de pushLiveVitals()) -- mesmo raciocínio
+      // de pushAtributos() acima, pra esta correção só valer pra ESTA ficha específica que o Mestre
+      // tem aberta agora, nunca vazar pra outra ficha da mesma conta criada depois.
+      path: loadedFichaPath || null,
       ts: firebase.database.ServerValue.TIMESTAMP
     });
   }
@@ -16319,6 +16381,7 @@ body{
           if(!canPlace(r, c, heroSize, heroSize, null)) return;
           const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || '', pvp: true};
           placeToken(r, c, token);
+          maybeAutoHealFichaOnPlacement(token);
           footprintCells(r, c, heroSize).forEach(([fr,fc]) => renderBoardCell(fr,fc));
           renderHeroTray();
           renderMestreTray();
@@ -16328,6 +16391,7 @@ body{
           if(prevToken){ const [pSizeR, pSizeC] = tokenFootprintSize(prevToken); prevCells = footprintCells(prevToken.anchorR, prevToken.anchorC, pSizeR, pSizeC); clearTokenFootprint(prevToken); }
           const token = {id: hero.id, kind:'hero', name: hero.name, portrait: hero.portrait, size:heroSize, donoChave: hero.donoChave || null, ownerUid: hero.ownerUid || null, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || ''};
           placeToken(r, c, token);
+          maybeAutoHealFichaOnPlacement(token);
           prevCells.forEach(([pr,pc]) => renderBoardCell(pr,pc));
           footprintCells(r, c, heroSize).forEach(([fr,fc]) => renderBoardCell(fr,fc));
           renderHeroTray();
@@ -16348,6 +16412,7 @@ body{
         if(!canPlace(r, c, 1, 1, null)) return;
         const token = buildFichaInstanceToken('inimigo_ficha', hero);
         placeToken(r, c, token);
+        maybeAutoHealFichaOnPlacement(token);
         footprintCells(r, c, 1, 1).forEach(([fr,fc]) => renderBoardCell(fr,fc));
         renderBoardInstancesPanel();
       } else if(payload.kind === 'aliado_ficha'){
@@ -16359,6 +16424,7 @@ body{
         if(!canPlace(r, c, 1, 1, null)) return;
         const token = buildFichaInstanceToken('aliado_ficha', hero);
         placeToken(r, c, token);
+        maybeAutoHealFichaOnPlacement(token);
         footprintCells(r, c, 1, 1).forEach(([fr,fc]) => renderBoardCell(fr,fc));
         renderBoardInstancesPanel();
       } else {
@@ -21566,6 +21632,14 @@ body{
   function handleAtributosChange(snap){
     const val = snap.val();
     if(!val) return;
+    // CORREÇÃO (mesmo bug relatado/corrigido pra Vida/Mana, ver handleVidaManaChange() mais abaixo,
+    // e já corrigido antes pra Classe, ver handleDeidadeChange() -- "mesa40k/atributos/{meuUid} é
+    // ÚNICO por conta, não por ficha"): só aplica quando o `path` gravado (ver pushAtributos() lá
+    // em cima) bate com a ficha aberta aqui agora -- sem isto, os atributos corrigidos pelo Mestre
+    // numa ficha ANTIGA desta mesma conta vazariam pra qualquer ficha NOVA criada depois com o
+    // mesmo uid. Dado sem `path` nenhum (formato antigo, gravado antes desta correção) continua
+    // aplicando incondicionalmente, pra não quebrar uma correção já pendente de antes desta rodada.
+    if(Object.prototype.hasOwnProperty.call(val, 'path') && val.path !== loadedFichaPath) return;
     const map = { for: els.bFor, con: els.bCon, des: els.bDes, int: els.bInt, von: els.bVon, car: els.bCar };
     let changed = false;
     Object.keys(map).forEach(key=>{
@@ -21600,6 +21674,16 @@ body{
   function handleVidaManaChange(snap){
     const val = snap.val();
     if(!val) return;
+    // CORREÇÃO (bug relatado: "criei uma segunda ficha com o mesmo usuario de uma ficha que
+    // estava sem vida e a nova ficha já apareceu com vida e mana zerada" -- mesmo esquema já usado
+    // em handleDeidadeChange()/handleAtributosChange(): mesa40k/vidaMana/{meuUid} é ÚNICO por conta,
+    // não por ficha -- só aplica quando o `path` gravado (ver pushVidaMana() e applyCombatVitalDelta(),
+    // mais acima no <script>) bate com a ficha aberta aqui agora. Sem isto, vida/mana corrigidos (por
+    // dano/cura/custo de Mana em combate, ou por correção manual do Mestre) numa ficha ANTIGA desta
+    // mesma conta vazavam pra qualquer ficha NOVA criada depois com o mesmo uid. Dado sem `path`
+    // nenhum (formato antigo, gravado antes desta correção) continua aplicando incondicionalmente,
+    // pra não quebrar uma correção já pendente de antes desta rodada.
+    if(Object.prototype.hasOwnProperty.call(val, 'path') && val.path !== loadedFichaPath) return;
     let changed = false;
     if(typeof val.vida === 'number' && num(els.curVida) !== val.vida){ els.curVida.value = val.vida; changed = true; }
     if(typeof val.mana === 'number' && num(els.curMana) !== val.mana){ els.curMana.value = val.mana; changed = true; }
