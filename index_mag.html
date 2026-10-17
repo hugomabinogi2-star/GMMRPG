@@ -7519,6 +7519,11 @@ body{
   // -- começa null (nada publicado ainda), nunca igual a portraitData de verdade até a primeira
   // publicação, então a primeira chamada de pushLiveVitals() sempre publica pelo menos uma vez.
   let lastPublishedPortrait = undefined;
+  // RODADA NOVA (bug relatado: "as duas entram no tabuleiro com a imagem da ficha BET" -- ver
+  // resolveTokenPortrait()/currentFichaId mais abaixo): mesmo fichaId publicado junto do retrato
+  // em pushLiveVitals(), pra saber TAMBÉM quando precisa republicar (troca de ficha pode deixar o
+  // retrato igual por coincidência, mas o fichaId sempre muda).
+  let lastPublishedPortraitFichaId = undefined;
   // ---------- formas do personagem (verso: fada/pixie/animal/humana) ----------
   // animalFormData/humanaFormData seguem o mesmo padrão de portraitData acima (data URL JPEG ou
   // null) -- a de fada usa o retrato normal (portraitData) e a de pixie é gerada por JS (chama
@@ -9968,9 +9973,20 @@ body{
       // (lastPublishedPortrait): pushLiveVitals() já roda a cada recalc() (cada tecla/clique na
       // ficha inteira, debounced), reenviar a imagem inteira em base64 a cada uma dessas seria
       // pesado à toa -- só pesa de verdade no momento em que o retrato é trocado de fato.
-      if(portraitData !== lastPublishedPortrait){
+      // BUG corrigido nesta rodada (relatado com vídeo: "as duas entram no tabuleiro com a imagem
+      // da ficha BET"): este nó é por CONTA (mesa40k/livePortrait/{uid}), não por ficha -- com 2
+      // fichas do mesmo jogador em campo ao mesmo tempo (ver buildHeroVitalsSnapshot()/fichaId),
+      // resolveTokenPortrait() lia este valor pra QUALQUER peça 'hero' daquela conta, então as DUAS
+      // peças mostravam sempre o retrato da ficha que a pessoa tiver aberta na PRÓPRIA tela agora
+      // -- exatamente a mesma raiz do bug original de Vida/Mana compartilhada, só que pro retrato,
+      // nunca corrigida junto na rodada passada. Agora publica {img, fichaId} em vez de só a
+      // imagem crua, e resolveTokenPortrait() só usa este valor quando o fichaId bate com o da
+      // peça (mesmo padrão de handleVidaManaChange()) -- senão cai pro retrato PRÓPRIO da peça
+      // (token.portrait, tirado na colocação), nunca mais o de outra ficha da mesma conta.
+      if(portraitData !== lastPublishedPortrait || currentFichaId !== lastPublishedPortraitFichaId){
         lastPublishedPortrait = portraitData;
-        fbDb.ref('mesa40k/livePortrait/' + ownerUid).set(portraitData || null)
+        lastPublishedPortraitFichaId = currentFichaId;
+        fbDb.ref('mesa40k/livePortrait/' + ownerUid).set({ img: portraitData || null, fichaId: currentFichaId || null })
           .catch(err=> console.error('Não foi possível publicar o retrato ao vivo:', err));
       }
     }
@@ -19298,9 +19314,28 @@ body{
       // real") -- livePortraits (ver connectLiveBoard()) sempre vence o roster salvo no GitHub
       // (heroRoster/mestreRoster, que só atualiza depois de SALVAR): cobre tanto a própria ficha
       // quanto a de qualquer outro jogador, sem precisar de nenhum recarregamento.
-      if(tok.ownerUid && Object.prototype.hasOwnProperty.call(livePortraits, tok.ownerUid)){
-        return livePortraits[tok.ownerUid] || null;
+      // BUG corrigido nesta rodada (relatado com vídeo: "as duas entram no tabuleiro com a imagem
+      // da ficha BET") -- mesa40k/livePortrait/{uid} é por CONTA, não por ficha: com 2 fichas do
+      // mesmo jogador em campo (ver buildHeroVitalsSnapshot()/fichaId), usar este valor pra
+      // QUALQUER peça 'hero' daquela conta fazia as DUAS peças mostrarem sempre o retrato da ficha
+      // que a pessoa tiver aberta na PRÓPRIA tela agora, nunca o retrato de verdade de cada uma --
+      // mesma raiz do bug original de Vida/Mana compartilhada (ver resolveCombatData()), só que pro
+      // retrato. Só usa o valor ao vivo quando o fichaId publicado bate com o desta peça (mesmo
+      // padrão de handleVidaManaChange()); formato antigo (string crua, sem fichaId, gravado antes
+      // desta correção) continua valendo pra não ficar sem nenhum retrato ao vivo até a próxima
+      // publicação.
+      const live = tok.ownerUid ? livePortraits[tok.ownerUid] : null;
+      if(live !== undefined && live !== null){
+        if(typeof live === 'string'){
+          // formato antigo (pré-fichaId) -- só usa quando esta peça ainda não tem fichaId próprio
+          // (peça colocada antes desta rodada, caminho de compatibilidade); com fichaId já presente,
+          // ignora o formato antigo em vez de arriscar mostrar o retrato errado.
+          if(!tok.fichaId) return live || null;
+        } else if(!tok.fichaId || !live.fichaId || live.fichaId === tok.fichaId){
+          return live.img || null;
+        }
       }
+      if(tok.portrait) return tok.portrait;
       const hero = heroRoster.find(h => h.id === tok.id) || mestreRoster.find(h => h.id === tok.id);
       if(hero) return hero.portrait;
       // Roster ainda não chegou (fetch assíncrono no GitHub, ver comentário em makeRosterLoader())
