@@ -3906,6 +3906,154 @@ body{
   border-color:var(--deity-eye-color,var(--gold-bright));
   box-shadow:0 0 12px var(--deity-eye-glow-soft, rgba(224,182,86,.75));
 }
+/* ======================================================================================
+   PORTE "TABULEIRO IGUAL AO index_mag" (rodada nova, pedido explícito: "mantendo a identidade
+   visual de cada página copie para o index_BG a ideia do index_mag de como é exibido o tabuleiro,
+   suas guias de resumo e onde são animados os rolamentos de dado"). Mesma ESTRUTURA do index_mag
+   (faixa única com barra de ferramentas em cima, tabuleiro largo + chat estreito, câmera de altura
+   fixa, 2 caixas embaixo do tabuleiro), sempre com as cores/fontes do BG (papiro claro, borda
+   marrom-dourada, Marcellus) -- nada da paleta escura do Mag. Fica no FIM do <style> de propósito:
+   sobrescreve as regras antigas da faixa (mais acima) sem precisar apagá-las.
+   ====================================================================================== */
+
+/* faixa inteira: um bloco só, contínuo (barra de ferramentas -> botões do mestre -> corpo -> faixa
+   de baixo), igual ao Mag -- antes eram 3 caixas soltas com espaço entre elas. Teto bem mais largo
+   que a ficha (1800px). */
+.mesa-fixed-panel{max-width:1800px;}
+.mesa-fixed-toolbar{
+  display:flex;align-items:center;flex-wrap:wrap;gap:14px;
+  border:1px solid var(--ink-faint);border-radius:5px 5px 0 0;
+  background:var(--paper-l);
+  padding:6px 10px;
+}
+.mesa-fixed-toolbar-group{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.mesa-fixed-label{font-family:'Marcellus SC',serif;font-size:13px;color:var(--ink);text-transform:uppercase;letter-spacing:.04em;margin-right:4px;}
+.mesa-fixed-toolbar-tip{font-size:10.5px;color:var(--ink-faint);margin-left:8px;}
+.mesa-fixed-toolbar-hide{display:flex;align-items:center;gap:6px;margin-left:auto;}
+.mesa-fixed-toolbar .chat-min-btn:disabled{opacity:.4;cursor:default;}
+.mesa-fixed-top-actions{border-radius:0;border-top:none;margin-bottom:0;}
+.mesa-fixed-body{
+  flex-wrap:nowrap;
+  border-radius:0;border-top:none;
+}
+.mesa-fixed-body .live-board-panel{flex:1 1 0;min-width:0;}
+.mesa-fixed-body .chat-panel{flex:0 1 400px;max-width:400px;min-width:280px;max-height:940px;}
+/* chat ocupa a coluna inteira (sem o teto antigo de 440px das mensagens), igual ao Mag */
+.mesa-fixed-body .chat-messages{max-height:none;}
+.mesa-fixed-bottom{border-top:none;margin-top:0;}
+/* telas estreitas: chat desce pra baixo do tabuleiro em vez de espremer os dois lado a lado */
+@media (max-width: 900px){
+  .mesa-fixed-body{flex-wrap:wrap;}
+  .mesa-fixed-body .chat-panel{flex:1 1 100%;max-width:none;}
+  .mesa-fixed-toolbar-tip{display:none;}
+}
+/* sem o <h2> próprio (saiu, igual ao Mag): minimizar o chat esconde abas + gavetas também */
+.chat-panel.minimized .chat-tabs,
+.chat-panel.minimized .chat-tab-body{display:none;}
+
+/* botões de interação com o chat, agora DENTRO da gaveta "💬 Chat" (igual ao Mag) */
+.chat-panel-actions{display:flex;gap:8px;margin-bottom:6px;position:relative;z-index:1;}
+.chat-panel-actions .add-row-btn{width:auto;flex:1;margin:0;}
+.chat-panel-icon-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;position:relative;z-index:1;}
+.chat-panel-icon-actions .chat-min-btn{width:30px;height:30px;font-size:15px;}
+.chat-panel-icon-sep{width:1px;height:20px;background:var(--ink-faint);opacity:.5;margin:0 2px;}
+
+/* ---------- câmera do tabuleiro (ver setupBoardCameraZoom() no <script>) ----------
+   visor de altura FIXA, sem barra de rolagem; o .board-zoom-spacer (a "câmera") fica
+   position:absolute e é movido por transform:translate(); cada casa tem tamanho em px setado via
+   JS. botão direito + arrastar = mover a câmera (cursor de "mãozinha"). */
+.live-board-panel-body{max-height:none;}
+.live-board-wrap{
+  overflow:hidden;max-height:none;height:560px;
+  min-width:0;
+  margin:4px 0 0;padding:2px;
+  position:relative;z-index:1;
+}
+.live-board-wrap.panning{cursor:grabbing;}
+.live-board-wrap .board-zoom-spacer{position:absolute;top:0;left:0;margin:0;}
+.live-board-wrap .board-outer{width:auto;max-width:none;min-width:0;transform:none;}
+.board-dice-overlay{height:560px;}
+@media (max-width: 900px){
+  .live-board-wrap{height:420px;}
+  .board-dice-overlay{height:420px;}
+}
+
+/* ---------- 2 caixas embaixo do tabuleiro ----------
+   ESQUERDA: caixa dos dados (#boardDiceFooter) -- é a ARENA inteira do ricochete; dentro dela as 2
+   zonas de pouso (Dano | Atributo). DIREITA: "Última rolagem" (#boardRollSummaryCard). */
+.board-lower-panels{
+  display:flex;align-items:stretch;gap:10px;
+  padding:4px 10px 2px;
+  position:relative;z-index:1;
+}
+.board-dice-footer{
+  flex:1 1 0;min-width:0;
+  display:flex;align-items:center;justify-content:center;
+  gap:40px;
+  padding:6px 4px;
+  position:relative;
+  border:1px solid var(--border-brown);border-radius:8px;
+  background:rgba(120,85,40,.08);
+  box-shadow:inset 0 0 14px rgba(90,60,20,.12);
+  min-height:150px;
+}
+/* as 2 zonas de pouso dividem a caixa em 2 metades (Dano | Atributo) -- com 130px fixos (valor
+   antigo), uma rolagem de 3d6+ "vazava" por cima dos dados de Atributo do lado. */
+.board-dice-footer .board-dice-zone{display:block;flex:1 1 0;width:auto;min-width:0;height:130px;}
+/* cada rolagem é um grupo próprio, centralizado na zona e levemente deslocado dos anteriores
+   (margin, setada por appendBoardDiceGroup() no <script>) -- o transform fica livre pro ricochete */
+.board-dice-group{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);}
+.board-dice-group .dice-display{margin-top:0;flex-wrap:nowrap;gap:8px;}
+.board-dice-group .dice-pair{flex-wrap:nowrap;}
+/* dado de quem ROLOU: borda/brilho na cor da Divindade de quem rolou (setada inline pelo <script>),
+   não na cor de quem está só olhando -- sem as variáveis, cai no --deity-eye-color de sempre. */
+.cube-face{
+  border-color:var(--die-color, var(--deity-eye-color, var(--border-brown)));
+  box-shadow:inset 0 0 8px rgba(90,60,20,.25), 0 0 10px var(--die-glow, var(--deity-eye-glow-soft, transparent));
+}
+
+.board-roll-summary-card{
+  flex:1 1 0;min-width:0;
+  min-height:150px;max-height:220px;overflow-y:auto;
+  border:1px solid var(--border-brown);border-radius:8px;
+  background:rgba(120,85,40,.08);
+  box-shadow:inset 0 0 14px rgba(90,60,20,.12);
+  padding:10px 14px;
+  display:flex;flex-direction:column;justify-content:center;gap:4px;
+  font-size:11.5px;line-height:1.45;color:var(--ink-soft);
+}
+.board-roll-summary-card:empty::before{
+  content:'A última rolagem da mesa aparece aqui.';
+  opacity:.6;font-style:italic;text-align:center;
+}
+@keyframes brsPop{
+  0%{transform:scale(.97);opacity:.4;}
+  100%{transform:scale(1);opacity:1;}
+}
+.board-roll-summary-card.brs-pop{animation:brsPop .35s ease-out;}
+.brs-head{display:flex;align-items:center;gap:8px;min-width:0;}
+.brs-dot{width:11px;height:11px;border-radius:50%;flex:none;border:1px solid rgba(0,0,0,.35);}
+.brs-name{font-family:'Marcellus SC',serif;font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.brs-kind{font-size:11px;letter-spacing:.04em;color:var(--gold-text);text-transform:uppercase;}
+.brs-result-row{display:flex;align-items:baseline;gap:12px;}
+.brs-result{font-family:'Marcellus SC',serif;font-size:30px;line-height:1.05;color:var(--ink);font-variant-numeric:tabular-nums;}
+.brs-verdict{font-size:12px;font-weight:700;letter-spacing:.04em;}
+.brs-verdict.brs-acerto, .brs-result.brs-acerto{color:#2f7d3a;}
+.brs-verdict.brs-erro, .brs-result.brs-erro{color:var(--wax);}
+.brs-detail{font-size:11px;color:var(--ink-soft);}
+.brs-hab{margin-top:4px;padding-top:4px;border-top:1px dashed rgba(169,130,47,.5);}
+.brs-hab-name{font-family:'Marcellus SC',serif;font-size:12.5px;color:var(--ink);}
+.brs-hab-desc{font-size:11px;color:var(--ink-soft);margin-top:2px;white-space:pre-wrap;}
+@media (max-width: 700px){
+  .board-lower-panels{flex-direction:column;}
+}
+
+/* textos legados sempre escondidos (ver HTML): [hidden] precisa vencer o display:flex da classe */
+.dano-total-box[hidden], .dice-hint[hidden], .dice-verdict[hidden]{display:none;}
+
+/* Resumo do Tabuleiro: ficha com Vida zerada vira caveira na bolha (igual ao Mag) */
+.ficha-bubble-portrait-dead{background:#1c1a17;}
+.ficha-bubble-portrait .token-skull-icon{font-size:22px;filter:drop-shadow(0 1px 1px rgba(0,0,0,.7));}
 </style>
 </head>
 <body>
@@ -4045,6 +4193,27 @@ body{
      mudou, nao o conteudo/mecanica (fases seguintes tratam do resto: grade unica, botoes de
      icone etc). -->
 <div class="mesa-fixed-panel" id="mesaFixedPanel" hidden>
+  <!-- PORTE "TABULEIRO IGUAL AO index_mag" (rodada nova, pedido explicito: "copie para o index_BG a
+       ideia do index_mag de como e exibido o tabuleiro, suas guias de resumo e onde sao animados os
+       rolamentos de dado", mantendo a identidade visual do BG): barra de ferramentas UNICA no topo da
+       faixa, igual a #mesaFixedToolbar do index_mag -- o zoom (que morava no <h2> proprio do
+       Tabuleiro ao Vivo) e o botao de minimizar a faixa inteira (#mesaFixedMinimizeBtn, que morava
+       na faixa de baixo) vieram pra ca. Os <h2> proprios do tabuleiro e do chat (com os botoes de
+       minimizar individuais #liveBoardMinimizeBtn/#chatMinimizeBtn) sairam, igual ao index_mag --
+       setLiveBoardMinimized()/setChatMinimized() continuam existindo no <script>, so sem botao
+       proprio. Mesmos ids de sempre pro zoom, nenhum listener novo. -->
+  <div class="mesa-fixed-toolbar" id="mesaFixedToolbar">
+    <div class="mesa-fixed-toolbar-group">
+      <span class="mesa-fixed-label">🗺️ Tabuleiro</span>
+      <button id="liveBoardZoomOutBtn" class="chat-min-btn" title="Diminuir zoom" type="button">−</button>
+      <span class="board-zoom-readout" id="liveBoardZoomReadout">100%</span>
+      <button id="liveBoardZoomInBtn" class="chat-min-btn" title="Aumentar zoom" type="button">+</button>
+      <span class="mesa-fixed-toolbar-tip">Botão direito + arrastar move a câmera</span>
+    </div>
+    <div class="mesa-fixed-toolbar-hide">
+      <button id="mesaFixedMinimizeBtn" class="chat-min-btn" title="Minimizar tabuleiro+chat" type="button">▾</button>
+    </div>
+  </div>
   <!-- Rodada nova ("FASE 3" do porte "MESA/tabuleiro iguais ao index_mag"), igual ao index_mag.html:
        os 10 botoes abaixo (Iniciativa/Enviar para a mesa/Escolher imagem/Reset + os 6 modos de visao
        do tabuleiro) sairam de dentro de #mesaContent (a gaveta "📂 Gerenciar Tabuleiro", ver o antigo
@@ -4100,12 +4269,6 @@ body{
   </div>
   <div class="mesa-fixed-body" id="mesaFixedBody">
         <div class="panel live-board-panel" id="liveBoardPanel" hidden>
-          <h2>🗺️ Tabuleiro ao Vivo<span class="chat-panel-head-actions">
-            <button id="liveBoardZoomOutBtn" class="chat-min-btn" title="Diminuir zoom" type="button">−</button>
-            <span class="board-zoom-readout" id="liveBoardZoomReadout">100%</span>
-            <button id="liveBoardZoomInBtn" class="chat-min-btn" title="Aumentar zoom" type="button">+</button>
-            <button id="liveBoardMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
-          </span></h2>
           <!-- Rodada/Turno (ver turnState/renderTurnBars() no <script>) -- o jogador só consegue
                clicar em "Encerrar Turno" quando a ficha da vez é a própria dele. -->
           <div class="turn-status-bar">
@@ -4124,50 +4287,29 @@ body{
                 </div>
               </div>
             </div>
-            <!-- Rodada nova, pedido explícito ("adicione um campo para rolar atributo... a
-                 animação dos dados aparece na tela do tabuleiro para todos verem, da mesma forma
-                 que no index_mag") -- faixa própria embaixo do tabuleiro, EM FLUXO NORMAL (não
-                 overlay, diferente da moeda de Sorte) -- ver #boardDiceFooter/.board-dice-zone no
-                 <style>. diceResult/diceResult2/diceVerdict/diceHint/diceParticleLayer são os
-                 MESMOS elementos de sempre (só mudaram de endereço, da ficha pro tabuleiro) --
-                 diceVerdict/diceHint ficam [hidden] de propósito, igual sorteVerdict/sorteHint da
-                 Fase C (a cor/brilho dos dados + partículas + som já carregam o resultado sozinhos,
-                 sem precisar de texto por cima do tabuleiro). -->
-            <div class="board-dice-footer" id="boardDiceFooter">
-              <!-- Rodada nova, pedido explícito ("os dados então rolam na tela do tabuleiro para
-                   todos verem" -- Dano, item 9): mesma zona fixa de sempre (.board-dice-zone,
-                   130×130, igual a #boardDiceZoneAtributo da Fase D -- MESMO tamanho mesmo com
-                   vários dados de uma vez, ex. 5d6, exatamente como o index_mag.html já faz pro
-                   dele -- animateDiceRicochet()/a física de colisão não mudou em nada, só mudou de
-                   endereço). #danoDiceDisplay/#danoHint/#danoTotalBox são os MESMOS elementos de
-                   sempre (só mudaram de endereço, da ficha pro tabuleiro) -- danoHint/danoTotalBox
-                   ficam [hidden] de propósito, mesmo padrão já usado pro Atributo/Sorte (E também é
-                   assim que o PRÓPRIO index_mag.html faz pro Dano dele -- conferido antes de
-                   escrever este script) -- o resultado numérico chega pelo chat/Discord de sempre
-                   via pushRollLog(), sem precisar de texto nenhum por cima do tabuleiro. -->
-              <div class="board-dice-zone board-dice-zone-dano" id="boardDiceZoneDano">
-                <div class="dice-display" id="danoDiceDisplay"></div>
-                <div class="dice-hint" id="danoHint" hidden></div>
-                <div class="dano-total-box" id="danoTotalBox" hidden>
-                  <span class="dano-total-label">Resultado final</span>
-                  <span class="dano-total-value" id="danoTotalValue">—</span>
+            <!-- PORTE "TABULEIRO IGUAL AO index_mag" (ver comentario grande de #mesaFixedToolbar):
+                 embaixo do tabuleiro agora ficam 2 caixas de borda propria lado a lado
+                 (#boardLowerPanels), igual ao index_mag. ESQUERDA: #boardDiceFooter -- a arena
+                 UNICA do ricochete (boardDiceArena no <script>), com as 2 zonas de pouso (Dano a
+                 esquerda, Atributo a direita); cada rolagem cria um GRUPO novo de dados
+                 (appendBoardDiceGroup()), empilhado com um leve deslocamento sobre os anteriores,
+                 ate alguem clicar pra limpar -- antes eram elementos fixos (#diceResult/#diceResult2/
+                 #danoDiceDisplay), reaproveitados a cada rolagem. DIREITA (pedido explicito do
+                 usuario nesta rodada, no lugar do "resumo da habilidade" do Mag, que depende do menu
+                 automatico de acoes que o BG nao tem): #boardRollSummaryCard, o resumo da ULTIMA
+                 rolagem (quem rolou, atributo/dano, resultado, habilidade declarada) -- visivel pra
+                 todo mundo que esta olhando o tabuleiro, preenchido junto com a animacao
+                 sincronizada (ver setBoardRollSummary() no <script>). -->
+            <div class="board-lower-panels" id="boardLowerPanels">
+              <div class="board-dice-footer" id="boardDiceFooter">
+                <!-- pouso da rolagem de Dano: ESQUERDA da caixa -->
+                <div class="board-dice-zone board-dice-zone-dano" id="boardDiceZoneDano"></div>
+                <!-- pouso da rolagem de Atributo: DIREITA da caixa -->
+                <div class="board-dice-zone board-dice-zone-atributo" id="boardDiceZoneAtributo">
+                  <div class="dice-particle-layer" id="diceParticleLayer"></div>
                 </div>
               </div>
-              <div class="board-dice-zone board-dice-zone-atributo" id="boardDiceZoneAtributo">
-                <div class="dice-pair" id="dicePair">
-                  <div class="dice-result" id="diceResult" hidden><div class="cube-scene"><div class="cube">
-                    <div class="cube-face f">–</div><div class="cube-face b">–</div><div class="cube-face r">–</div>
-                    <div class="cube-face l">–</div><div class="cube-face t">–</div><div class="cube-face d">–</div>
-                  </div></div></div>
-                  <div class="dice-result" id="diceResult2" hidden><div class="cube-scene"><div class="cube">
-                    <div class="cube-face f">–</div><div class="cube-face b">–</div><div class="cube-face r">–</div>
-                    <div class="cube-face l">–</div><div class="cube-face t">–</div><div class="cube-face d">–</div>
-                  </div></div></div>
-                </div>
-                <div class="dice-verdict" id="diceVerdict" hidden></div>
-                <div class="dice-hint" id="diceHint" hidden></div>
-                <div class="dice-particle-layer" id="diceParticleLayer"></div>
-              </div>
+              <div class="board-roll-summary-card" id="boardRollSummaryCard"></div>
             </div>
             <!-- Rodada nova, pedido explícito ("remove a guia de rolar sorte, ao clicar em rolar
                  sorte a animacao da moeda girando e o resultado devem ocorrer na tela do
@@ -4179,6 +4321,15 @@ body{
                  crit-miss + partículas ✨/💀 + som) já carrega o resultado sozinha, sem precisar de
                  texto nenhum por cima do tabuleiro. -->
             <div class="board-dice-overlay" id="boardDiceOverlay">
+              <!-- textos legados sempre [hidden] (mesmo padrao do index_mag): o resultado agora
+                   aparece na propria animacao + #boardRollSummaryCard + chat/Discord. -->
+              <div class="dice-verdict" id="diceVerdict" hidden></div>
+              <div class="dice-hint" id="diceHint" hidden></div>
+              <div class="dice-hint" id="danoHint" hidden></div>
+              <div class="dano-total-box" id="danoTotalBox" hidden>
+                <span class="dano-total-label">Resultado final</span>
+                <span class="dano-total-value" id="danoTotalValue">—</span>
+              </div>
               <div class="dice-verdict" id="sorteVerdict" hidden></div>
               <div class="dice-hint" id="sorteHint" hidden></div>
               <div class="board-coin-zone" id="boardCoinZone">
@@ -4191,18 +4342,6 @@ body{
         </div>
 
         <div class="panel chat-panel" id="chatPanel" hidden>
-          <h2>💬 Chat da Mesa<span class="chat-panel-head-actions">
-            <button id="chatClearBtn" class="chat-min-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹</button>
-            <button id="chatImageBtn" class="chat-min-btn" title="Enviar imagem no chat" type="button">🖼️</button>
-            <button id="chatEscudoPrintBtn" class="chat-min-btn" title="Mandar um print do Escudo atual" type="button">🛡️</button>
-            <button id="chatVidaPrintBtn" class="chat-min-btn" title="Mandar um print da Vida atual" type="button">🔴</button>
-            <button id="chatManaPrintBtn" class="chat-min-btn" title="Mandar um print da Mana atual" type="button">🔵</button>
-            <button id="chatEmoteRageBtn" class="chat-min-btn" title="Enviar a imagem do emote 😡 (raiva) — definida no verso da ficha" type="button">😡</button>
-            <button id="chatEmoteKissBtn" class="chat-min-btn" title="Enviar a imagem do emote 😘 (beijo) — definida no verso da ficha" type="button">😘</button>
-            <button id="chatEmoteSobBtn" class="chat-min-btn" title="Enviar a imagem do emote 😭 (choro) — definida no verso da ficha" type="button">😭</button>
-            <button id="chatEmoteRoflBtn" class="chat-min-btn" title="Enviar a imagem do emote 🤣 (risada) — definida no verso da ficha" type="button">🤣</button>
-            <button id="chatMinimizeBtn" class="chat-min-btn" title="Minimizar" type="button">▾</button>
-          </span></h2>
           <input type="file" id="chatImageInput" accept="image/*" style="display:none;">
           <!-- Rodada nova, igual ao index_mag.html: MESA deixa de ter botao/painel proprios
                (#mesaBtn na barra de topo + virar o cartao inteiro) e passa a ser mais uma aba
@@ -4220,6 +4359,25 @@ body{
           </div>
           <div class="chat-panel-body" id="chatPanelBody">
             <div class="chat-bg-fx" id="chatBgFx" aria-hidden="true"></div>
+            <!-- PORTE "TABULEIRO IGUAL AO index_mag": os botoes de interacao com o chat (antes no
+                 <h2> "💬 Chat da Mesa", removido) vieram pra dentro da propria gaveta, acima das
+                 mensagens, igual ao index_mag (.chat-panel-actions). Os prints de Escudo/Vida/Mana
+                 e os 4 emotes sao proprios do BG e continuam aqui, numa 2a linha de icones. Mesmos
+                 ids/listeners de sempre. -->
+            <div class="chat-panel-actions">
+              <button id="chatImageBtn" class="add-row-btn" title="Enviar imagem no chat" type="button">🖼️ Enviar imagem</button>
+              <button id="chatClearBtn" class="add-row-btn danger-row-btn mestre-only" title="Limpar todas as mensagens do chat" type="button">🧹 Limpar chat</button>
+            </div>
+            <div class="chat-panel-icon-actions">
+              <button id="chatEscudoPrintBtn" class="chat-min-btn" title="Mandar um print do Escudo atual" type="button">🛡️</button>
+              <button id="chatVidaPrintBtn" class="chat-min-btn" title="Mandar um print da Vida atual" type="button">🔴</button>
+              <button id="chatManaPrintBtn" class="chat-min-btn" title="Mandar um print da Mana atual" type="button">🔵</button>
+              <span class="chat-panel-icon-sep" aria-hidden="true"></span>
+              <button id="chatEmoteRageBtn" class="chat-min-btn" title="Enviar a imagem do emote 😡 (raiva) — definida no verso da ficha" type="button">😡</button>
+              <button id="chatEmoteKissBtn" class="chat-min-btn" title="Enviar a imagem do emote 😘 (beijo) — definida no verso da ficha" type="button">😘</button>
+              <button id="chatEmoteSobBtn" class="chat-min-btn" title="Enviar a imagem do emote 😭 (choro) — definida no verso da ficha" type="button">😭</button>
+              <button id="chatEmoteRoflBtn" class="chat-min-btn" title="Enviar a imagem do emote 🤣 (risada) — definida no verso da ficha" type="button">🤣</button>
+            </div>
             <div class="chat-messages" id="chatMessages">
               <div class="chat-msg-empty" id="chatMessagesEmpty">Nenhuma mensagem ainda.</div>
             </div>
@@ -4469,17 +4627,10 @@ body{
        JOGADOR/MESA). getOuroQty() (custo de 1 moeda de OURO pra rolar) continua intacto, sem
        nenhuma mudança. refill_vida/refill_mana (poções de Vida/Mana) continuam do mesmo jeito. -->
   <div class="mesa-fixed-bottom" id="mesaFixedBottom">
-    <!-- Rodada nova, pedido explícito ("esta faltando o botão para minimizar a guia inteira do
-         tabuleiro"): botão único que minimiza/expande Tabuleiro ao Vivo + Chat JUNTOS de uma vez só
-         (ver mesaFixedBothMinimized()/setMesaFixedMinimized() no <script>, mesmo esquema do
-         mesaFixedMinimizeBtn do index_mag.html) -- reaproveita os mesmos setLiveBoardMinimized()/
-         setChatMinimized() de sempre, chamando os dois juntos; os botões individuais de cada painel
-         (#liveBoardMinimizeBtn/#chatMinimizeBtn, no cabeçalho de cada um) continuam existindo do
-         jeito que já estavam, sem nenhuma mudança -- este é só mais um atalho. Fica nesta faixa
-         (#mesaFixedBottom) porque ela já é compartilhada mestre+jogador (igual a JOGAR A SORTE/
-         RESTAURAR VIDA/MANA logo ao lado), diferente da faixa de cima (#mesaFixedTopActions), que é
-         mestre-only. -->
-    <button id="mesaFixedMinimizeBtn" type="button" class="mini-btn mesa-fixed-icon-btn ar-ap-tip" aria-label="Minimizar tabuleiro e chat">▾<div class="cs-tooltip">MINIMIZAR TABULEIRO+CHAT</div></button>
+    <!-- O botão de minimizar a faixa inteira (#mesaFixedMinimizeBtn), que morava aqui, subiu pra
+         barra de ferramentas do topo (#mesaFixedToolbar), igual ao index_mag. Esta faixa de baixo
+         continua com os controles PRÓPRIOS do BG (habilidades são declaradas, não automáticas):
+         Sorte, poções, rolagem de Atributo (normal/vantagem/desvantagem) e rolagem de Dano. -->
     <button id="rollSorteBtn" type="button" class="dice-roll-btn mesa-fixed-sorte-btn mesa-fixed-icon-btn ar-ap-tip" aria-label="Jogar a Sorte">🪙<div class="cs-tooltip">JOGAR A SORTE</div></button>
     <!-- Rodada nova, pedido explícito ("adiciona os itens fixos poção de vida e poção de mana ao
          inventario... deixa eles com um ícone de potinho vermelho para vida e azul para mana"):
@@ -7893,8 +8044,15 @@ body{
   // ---------- dice roller ----------
   const diceStat = $('diceStat');
   const diceMode = $('diceMode');
-  const diceResult = $('diceResult');
-  const diceResult2 = $('diceResult2');
+  // PORTE "TABULEIRO IGUAL AO index_mag": diceResult/diceResult2 (o par FIXO de dados reaproveitado
+  // a cada rolagem) sairam -- cada rolagem agora cria um GRUPO novo de dados dentro da zona de pouso
+  // (buildCubeDieEl()/appendBoardDiceGroup(), mais abaixo), empilhado sobre os anteriores ate alguem
+  // clicar pra limpar, igual ao index_mag. E a animacao passou a ser SINCRONIZADA pra todo mundo
+  // olhando o tabuleiro (inclusive quem rolou): o resultado e sorteado JA no clique (escondido), vai
+  // pro Firebase junto com um instante combinado no futuro (playAt, relogio do servidor, ver
+  // serverNow()/scheduleSyncedRoll() perto de "const fbReady") e TODOS -- quem rolou incluso --
+  // tocam a MESMA animacao (playRemoteAtributoRoll()/playRemoteDanoRoll()/playRemoteSorteRoll()) no
+  // mesmo instante. O chat/Discord (pushRollLog()) so recebe o resultado DEPOIS da animacao acabar.
 
   // helpers do cubo 3D (ver comentário grande em .cube-scene/.cube/.cube-face no <style>) --
   // usados tanto pela rolagem de Atributo (diceResult/diceResult2) quanto pela de Dano
@@ -7922,6 +8080,34 @@ body{
       f.textContent = f.classList.contains('f') ? front : (1 + Math.floor(Math.random()*maxVal));
     });
     return front;
+  }
+
+  // dado 3D construido do zero por JS (mesmo miolo .cube-scene/.cube/.cube-face de sempre) --
+  // usado tanto pelo Atributo (1-2 dados) quanto pelo Dano (N dados). Porte do index_mag.
+  function buildCubeDieEl(extraClass){
+    const die = document.createElement('div');
+    die.className = 'dice-result' + (extraClass ? ' ' + extraClass : '');
+    die.innerHTML = '<div class="cube-scene"><div class="cube">'
+      + '<div class="cube-face f">–</div><div class="cube-face b">–</div><div class="cube-face r">–</div>'
+      + '<div class="cube-face l">–</div><div class="cube-face t">–</div><div class="cube-face d">–</div>'
+      + '</div></div>';
+    return die;
+  }
+  // "empilhar" (igual ao index_mag): cada grupo novo (uma rolagem inteira) nasce com um pequeno
+  // deslocamento diferente do anterior dentro da mesma zona, pra rolagens antigas continuarem
+  // visiveis ao redor da mais nova em vez de ficarem exatamente uma em cima da outra.
+  const BOARD_DICE_STACK_OFFSETS = [[0,0],[16,-12],[-18,10],[12,18],[-14,-16],[20,6],[-10,-20],[6,22]];
+  function appendBoardDiceGroup(zoneEl, groupEl){
+    const count = zoneEl.__diceGroupCount || 0;
+    zoneEl.__diceGroupCount = count + 1;
+    const base = BOARD_DICE_STACK_OFFSETS[count % BOARD_DICE_STACK_OFFSETS.length];
+    const cycle = Math.floor(count / BOARD_DICE_STACK_OFFSETS.length);
+    groupEl.className = 'board-dice-group';
+    groupEl.style.marginLeft = (base[0] + cycle*3) + 'px';
+    groupEl.style.marginTop = (base[1] - cycle*3) + 'px';
+    groupEl.style.zIndex = String(10 + count);
+    zoneEl.appendChild(groupEl);
+    zoneEl.classList.add('has-dice');
   }
 
   // pedido explícito: "é possível fazer os dados ricochetearem pelos cantos do painel de rolagem?
@@ -8084,21 +8270,105 @@ body{
 
   const diceVerdict = $('diceVerdict');
   const diceHint = $('diceHint');
+  // diceParticleLayer continua um elemento UNICO (efeito passageiro de ✨/💀 no resultado), dentro da
+  // zona de pouso do Atributo.
   const diceParticleLayer = $('diceParticleLayer');
   const rollBtn = $('rollDiceBtn');
-  // Rodada nova, pedido explícito ("a animação dos dados aparece na tela do tabuleiro para todos
-  // verem, da mesma forma que no index_mag"): a arena do ricochete (ver animateDiceRicochet() mais
-  // acima) deixou de ser o painel da ficha ("Rolagem de Atributo", removido) e virou
-  // #boardDiceZoneAtributo, dentro de #boardDiceFooter, embaixo do Tabuleiro ao Vivo -- mesmo
-  // elemento também funciona como a "zona clicável" (.has-dice, ver clearBoardDice() mais abaixo),
-  // igual #boardCoinZone/.has-coin da moeda de Sorte (Fase C). O nome da variável (diceBody) ficou
-  // o mesmo de propósito -- só o endereço no HTML mudou, evitando reescrever todo o resto do
-  // <script> que já lê/escreve nela. O dado de Dano continua com sua PRÓPRIA arena separada (ver
-  // const danoBody, mais abaixo) -- ainda dentro da ficha nesta rodada, item 9 do pedido fica pra
-  // uma rodada seguinte.
-  const diceBody = $('boardDiceZoneAtributo');
+  // PORTE "TABULEIRO IGUAL AO index_mag": a ARENA do ricochete (os 4 cantos que os dados batem antes
+  // de pousar, ver animateDiceRicochet()) e a caixa INTEIRA dos dados (#boardDiceFooter, a caixa da
+  // esquerda embaixo do tabuleiro) -- antes cada tipo de rolagem tinha a propria zona de 130px como
+  // arena. As 2 zonas continuam sendo onde cada tipo POUSA (Dano a esquerda, Atributo a direita).
+  const boardDiceArena = $('boardDiceFooter');
+  const boardDiceZoneAtributo = $('boardDiceZoneAtributo');
+  const boardDiceZoneDano = $('boardDiceZoneDano');
   const statLabels = { for:'FOR', int:'INT', con:'CON', von:'VON', des:'DES', car:'CAR', passivas:'Passivas' };
+  // busy-flag da rolagem LOCAL de Atributo (clique -> espera sincronizada -> animacao -> resultado),
+  // ignora clique duplo nesse intervalo.
   let rollingInterval = null;
+
+  // clique em cima de qualquer dado acumulado (Atributo OU Dano) limpa os dois lados de uma vez --
+  // mesmo espirito de clearBoardCoin() ("o resultado fica na tela ate que cliquem nela"). As zonas
+  // so capturam clique (.has-dice) quando tem pelo menos 1 dado nelas.
+  function clearBoardDice(){
+    [boardDiceZoneAtributo, boardDiceZoneDano].forEach(zone=>{
+      zone.querySelectorAll('.board-dice-group').forEach(g=> g.remove());
+      zone.__diceGroupCount = 0;
+      zone.classList.remove('has-dice');
+    });
+  }
+  boardDiceZoneAtributo.addEventListener('click', clearBoardDice);
+  boardDiceZoneDano.addEventListener('click', clearBoardDice);
+
+  // ---------- caixa "ÚLTIMA ROLAGEM" (direita, embaixo do tabuleiro) ----------
+  // Pedido explicito desta rodada: no lugar do "resumo da habilidade" do index_mag (que depende do
+  // menu automatico de acoes que o BG nao tem), a caixa da direita mostra o resumo da ULTIMA rolagem
+  // feita por QUALQUER pessoa na mesa -- quem rolou, o que rolou, o resultado e a habilidade
+  // declarada. Preenchida no FIM da animacao sincronizada (dentro de playRemoteAtributoRoll()/
+  // playRemoteDanoRoll()/playRemoteSorteRoll()), entao aparece pra todo mundo ao mesmo tempo, junto
+  // com o dado pousando. Tudo via textContent (nomes/descricoes vem de fichas de outras pessoas).
+  const boardRollSummaryCard = $('boardRollSummaryCard');
+  function brsEl(tag, cls, text){
+    const el = document.createElement(tag);
+    if(cls) el.className = cls;
+    if(text != null) el.textContent = text;
+    return el;
+  }
+  function setBoardRollSummary(kind, val){
+    if(!boardRollSummaryCard || !val) return;
+    const card = boardRollSummaryCard;
+    card.innerHTML = '';
+    const color = DEITY_EYE_COLOR[val.deidade] || DEITY_EYE_COLOR['VAZIO'];
+    const head = brsEl('div', 'brs-head');
+    const dot = brsEl('span', 'brs-dot');
+    dot.style.background = color;
+    dot.style.boxShadow = '0 0 6px ' + hexToRgba(color, .7);
+    head.appendChild(dot);
+    head.appendChild(brsEl('span', 'brs-name', val.nome || '(sem nome)'));
+    card.appendChild(head);
+
+    let tipoTxt = '', resultTxt = '', verdict = null, detalhes = [];
+    if(kind === 'atributo'){
+      const statNome = (statFullNames[val.stat] || statLabels[val.stat] || val.stat || '').toUpperCase();
+      const modeTxt = val.mode === 'vantagem' ? ' — VANTAGEM' : val.mode === 'desvantagem' ? ' — DESVANTAGEM' : '';
+      tipoTxt = `ATRIBUTO: ${statNome}${val.statVal != null ? ' (' + val.statVal + ')' : ''}${modeTxt}`;
+      resultTxt = String(val.roll);
+      verdict = val.verdict;
+      if(val.roll === 20) detalhes.push('20 NATURAL — ACERTO GARANTIDO');
+      else if(val.roll === 1) detalhes.push('1 NATURAL — ERRO CRÍTICO');
+      else if(val.statVal != null) detalhes.push(`ACERTO DE ${Math.max(2, 20 - val.statVal)} A 20`);
+      if(val.mode && val.mode !== 'normal' && val.die2 != null) detalhes.push(`DADOS: ${val.die1} / ${val.die2}`);
+    } else if(kind === 'dano'){
+      tipoTxt = `DANO: ${val.qtd}d${val.maxVal}`;
+      resultTxt = String(val.total);
+      if(Array.isArray(val.rolls) && val.rolls.length > 1) detalhes.push(`[${val.rolls.join(' + ')}] = ${val.total}`);
+      detalhes.push(`ENTRE ${val.qtd} E ${val.qtd * val.maxVal}`);
+    } else if(kind === 'sorte'){
+      tipoTxt = 'JOGOU A MOEDA';
+      resultTxt = val.resultado === 'coroa' ? 'COROA' : 'CARA';
+      verdict = val.verdict;
+    }
+    card.appendChild(brsEl('div', 'brs-kind', tipoTxt));
+    const resRow = brsEl('div', 'brs-result-row');
+    resRow.appendChild(brsEl('span', 'brs-result' + (verdict ? ' brs-' + verdict : ''), resultTxt));
+    if(verdict){
+      const vTxt = kind === 'sorte'
+        ? (verdict === 'acerto' ? '✓ VENCEU' : '✗ PERDEU')
+        : (verdict === 'acerto' ? '✓ ACERTO' : '✗ ERRO');
+      resRow.appendChild(brsEl('span', 'brs-verdict brs-' + verdict, vTxt));
+    }
+    card.appendChild(resRow);
+    detalhes.forEach(t=> card.appendChild(brsEl('div', 'brs-detail', t)));
+    if(val.habilidade){
+      const hab = brsEl('div', 'brs-hab');
+      hab.appendChild(brsEl('span', 'brs-hab-name', '✦ ' + val.habilidade));
+      if(val.habilidadeDesc) hab.appendChild(brsEl('div', 'brs-hab-desc', val.habilidadeDesc));
+      card.appendChild(hab);
+    }
+    // reanima a caixa a cada rolagem nova (mesma tecnica de reflow do .settle dos dados)
+    card.classList.remove('brs-pop');
+    void card.offsetWidth;
+    card.classList.add('brs-pop');
+  }
 
   rollBtn.addEventListener('click', ()=>{
     if(rollingInterval) return; // já rolando, ignora clique duplo
@@ -8109,15 +8379,10 @@ body{
       diceHint.textContent = 'CONGELADO — não é possível rolar enquanto este efeito estiver ativo.';
       return;
     }
-    // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() mais abaixo no <script> -- os
-    // símbolos são "let"/function declarados depois no arquivo, mas por serem só REFERENCIADOS aqui
-    // dentro do corpo do handler, já estão prontos no momento em que o clique de verdade acontece):
-    // pedido explícito, a partir do momento que a iniciativa é rodada, NENHUMA rolagem de
-    // Atributo/Habilidade pode acontecer fora da própria vez -- a ficha aberta neste navegador
-    // (els.nome) precisa bater com o NOME BASE de uma entrada da fila (mesmo casamento de
-    // markActionRollFromOpenSheet() mais abaixo) que NÃO seja a vez atual pra ser barrada aqui; uma
-    // ficha de fora da fila (nunca esteve no tabuleiro quando a iniciativa foi rodada) continua livre
-    // pra rolar, mesmo com a fila ativa -- mesmo critério já usado pro movimento.
+    // Fila de iniciativa ativa (ver turnState/isTurnGatedToken() mais abaixo no <script>): a ficha
+    // aberta neste navegador só rola na própria vez (mesmo critério já usado pro movimento); uma
+    // ficha de fora da fila continua livre pra rolar. Só 1 rolagem de ação por turno (ver
+    // canRollThisTurnToken()).
     if(turnState.active && turnState.order){
       const sheetName = ((els.nome && els.nome.value) || '').trim();
       const turnEntry = sheetName ? turnState.order.find(it=> (it.kind === 'hero' || it.kind === 'inimigo_ficha' || it.kind === 'aliado_ficha') && it.baseNome === sheetName) : null;
@@ -8126,17 +8391,12 @@ body{
         announceOutOfTurn(turnEntry);
         return;
       }
-      // REDESENHO desta rodada (pedido explícito): só 1 rolagem de Habilidade/Atributo/Talento por
-      // turno — ver canRollThisTurnToken(). Ficha JÁ na própria vez, mas que já rolou o dado de
-      // ação desta vez, é recusada aqui, antes de qualquer animação.
       if(turnEntry && isCurrentTurnToken(turnEntry) && !canRollThisTurnToken()){
         diceHint.textContent = 'Você já rolou o dado de ação neste turno — encerre o turno pra continuar.';
         return;
       }
     }
-    // TONTO (painel EFEITOS): "força os rolamentos a serem feitos em desvantagem" -- sobrescreve o
-    // modo escolhido no seletor ANTES dele ser lido logo abaixo, então vale pra qualquer origem
-    // desta rolagem.
+    // TONTO (painel EFEITOS): "força os rolamentos a serem feitos em desvantagem".
     if(hasActiveEffect('tonto')) diceMode.value = 'desvantagem';
 
     const stat = diceStat.value;
@@ -8145,117 +8405,61 @@ body{
     const twoDice = mode !== 'normal';
 
     // custo de mana da habilidade marcada, SE ela usa o mesmo atributo que está prestes a ser
-    // rolado (mesma checagem que finishRoll() já faz mais abaixo pra anexar o nome dela na
-    // mensagem — ver getSelectedSkillForAttr()). Só o ATRIBUTO gasta mana; a rolagem de DANO
-    // (rollDanoBtn, mais abaixo) nunca mexe em mana. Mana insuficiente bloqueia a rolagem inteira
-    // (o dado nem chega a rolar) e avisa no chat/Discord.
-    const habilidadeAtributoParaMana = getSelectedSkillForAttr(statLabels[stat]);
-    if(habilidadeAtributoParaMana && habilidadeAtributoParaMana.custo){
-      if(num(els.curMana) - habilidadeAtributoParaMana.custo < 0){
+    // rolado (ver getSelectedSkillForAttr()). Só o ATRIBUTO gasta mana; a rolagem de DANO nunca
+    // mexe em mana. Mana insuficiente bloqueia a rolagem inteira e avisa no chat/Discord.
+    const habilidadeAtributo = getSelectedSkillForAttr(statLabels[stat]);
+    if(habilidadeAtributo && habilidadeAtributo.custo){
+      if(num(els.curMana) - habilidadeAtributo.custo < 0){
         const nomePersonagem = els.nome.value || '(sem nome)';
-        diceHint.textContent = `Mana insuficiente para usar "${habilidadeAtributoParaMana.nome}" (custo ${habilidadeAtributoParaMana.custo}).`;
-        if(!isBlankName(nomePersonagem)) postToDiscord(`**${nomePersonagem}** FALTA PODER PARA USAR (${habilidadeAtributoParaMana.nome.toUpperCase()})`);
+        diceHint.textContent = `Mana insuficiente para usar "${habilidadeAtributo.nome}" (custo ${habilidadeAtributo.custo}).`;
+        if(!isBlankName(nomePersonagem)) postToDiscord(`**${nomePersonagem}** FALTA PODER PARA USAR (${habilidadeAtributo.nome.toUpperCase()})`);
         return;
       }
-      manaStep(-habilidadeAtributoParaMana.custo);
+      manaStep(-habilidadeAtributo.custo);
     }
 
+    expandDicePanelIfCollapsed(); // tabuleiro minimizado reabre sozinho -- senão o dado rolaria escondido
+    rollingInterval = true;
     rollBtn.disabled = true;
-    // Rodada nova: os dados (agora em #boardDiceZoneAtributo, embaixo do tabuleiro) ficam
-    // visíveis/clicáveis assim que a rolagem começa -- mesmo esquema do boardCoinZone/.has-coin.
-    diceBody.classList.add('has-dice');
-    diceResult.hidden = false;
     diceVerdict.textContent = '';
     diceVerdict.className = 'dice-verdict';
     diceHint.textContent = 'Rolando...';
-    diceResult.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow','discarded');
-    diceResult2.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow','discarded');
-    diceResult.classList.add('ricochet');
-    diceResult2.classList.add('ricochet');
-    cubeOf(diceResult).classList.remove('settle');
-    cubeOf(diceResult).classList.add('rolling');
-    diceResult2.hidden = !twoDice;
-    cubeOf(diceResult2).classList.remove('settle');
-    cubeOf(diceResult2).classList.toggle('rolling', twoDice);
     if(diceParticleLayer) diceParticleLayer.innerHTML = '';
 
-    // o número de cada face continua trocando no mesmo relógio de sempre (65ms, com o mesmo som
-    // de tique a cada troca) -- só QUEM MANDA PARAR mudou: antes era uma contagem fixa de ticks,
-    // agora é o ricochete (animateDiceRicochet() acima) terminar de verdade, incluindo o esbarrão
-    // entre os dois dados quando for Vantagem/Desvantagem (ver pedido explícito no comentário
-    // grande de animateDiceRicochet()).
-    rollingInterval = setInterval(()=>{
-      randomizeCubeFaces(diceResult, 20);
-      if(twoDice) randomizeCubeFaces(diceResult2, 20);
-      playDiceTick();
-    }, 65);
-
-    const ricochetDice = twoDice ? [diceResult, diceResult2] : [diceResult];
-    animateDiceRicochet(diceBody, ricochetDice, 1150).then(()=>{
-      clearInterval(rollingInterval);
-      rollingInterval = null;
-      diceResult.classList.remove('ricochet');
-      diceResult2.classList.remove('ricochet');
-      finishRoll(stat, statVal, mode);
-    });
-  });
-
-  function finishRoll(stat, statVal, mode){
-    const twoDice = mode !== 'normal';
+    // resultado sorteado JÁ AGORA, escondido -- a animação (pra todo mundo, inclusive quem clicou)
+    // só começa no instante combinado playAt.
     const die1 = Math.floor(Math.random()*20) + 1;
     const die2 = twoDice ? (Math.floor(Math.random()*20) + 1) : null;
-
-    let roll, consideredIsFirst = true;
-    if(!twoDice){
-      roll = die1;
-    } else if(mode === 'vantagem'){
-      roll = Math.max(die1, die2);
-      consideredIsFirst = die1 >= die2;
-    } else { // desvantagem
-      roll = Math.min(die1, die2);
-      consideredIsFirst = die1 <= die2;
-    }
-
+    let roll;
+    if(!twoDice) roll = die1;
+    else if(mode === 'vantagem') roll = Math.max(die1, die2);
+    else roll = Math.min(die1, die2);
     let verdict;
     if(roll === 20) verdict = 'acerto';
     else if(roll === 1) verdict = 'erro';
-    else {
-      const threshold = 20 - statVal;
-      verdict = roll >= threshold ? 'acerto' : 'erro';
-    }
+    else verdict = roll >= (20 - statVal) ? 'acerto' : 'erro';
 
-    const consideredEl = consideredIsFirst ? diceResult : diceResult2;
-    const discardedEl = consideredIsFirst ? diceResult2 : diceResult;
+    const val = {
+      stat, statVal, mode, die1, die2, roll, verdict,
+      deidade: els.deidade.value || 'VAZIO',
+      nome: (els.nome.value || '').trim() || '(sem nome)',
+      habilidade: habilidadeAtributo ? habilidadeAtributo.nome : null,
+      habilidadeDesc: (habilidadeAtributo && habilidadeAtributo.desc) ? habilidadeAtributo.desc : null,
+    };
+    const playAt = serverNow() + DICE_SYNC_BUFFER_MS;
+    broadcastDiceRoll(Object.assign({ kind:'atributo', playAt }, val));
+    scheduleSyncedRoll(playAt, ()=> playRemoteAtributoRoll(val)).then(()=>{
+      rollingInterval = null;
+      finishRoll(stat, statVal, mode, val, habilidadeAtributo);
+    });
+  });
 
-    cubeOf(diceResult).classList.remove('rolling');
-    cubeOf(diceResult2).classList.remove('rolling');
-    setCubeFront(diceResult, die1);
-    if(twoDice) setCubeFront(diceResult2, die2);
-
-    // força reflow para poder repetir a animação em rolagens seguintes
-    cubeOf(diceResult).classList.remove('settle');
-    cubeOf(diceResult2).classList.remove('settle');
-    void diceResult.offsetWidth;
-    cubeOf(diceResult).classList.add('settle');
-    if(twoDice){
-      void diceResult2.offsetWidth;
-      cubeOf(diceResult2).classList.add('settle');
-    }
-
-    consideredEl.classList.toggle('hit-glow', verdict === 'acerto');
-    consideredEl.classList.toggle('miss-shadow', verdict === 'erro');
-    consideredEl.classList.toggle('crit-hit', roll === 20);
-    consideredEl.classList.toggle('crit-miss', roll === 1);
-    if(twoDice) discardedEl.classList.add('discarded');
-
-    if(roll === 20) spawnDiceParticles(diceParticleLayer, '✨', 10);
-    else if(roll === 1) spawnDiceParticles(diceParticleLayer, '💀', 8);
-
-    if(roll === 20) playYaaySound();
-    else if(roll === 1) playEvilLaughSound();
-    else if(verdict === 'acerto') playBlingSound();
-    else playOohSound();
-
+  function finishRoll(stat, statVal, mode, val, habilidadeAtributo){
+    const { die1, die2, roll, verdict } = val;
+    const twoDice = mode !== 'normal';
+    // a parte VISUAL (dados, brilho, partículas, som, caixa "Última rolagem") já rodou inteira dentro
+    // de playRemoteAtributoRoll() -- aqui só o que sobra DEPOIS dela: texto legado, XP, chat/Discord
+    // e as regras de turno.
     diceVerdict.textContent = verdict === 'acerto' ? '✓ Acerto' : '✗ Erro';
     diceVerdict.className = 'dice-verdict ' + verdict;
     void diceVerdict.offsetWidth;
@@ -8282,116 +8486,30 @@ body{
 
     const logEntry = { nome: els.nome.value || '(sem nome)', tipo:'atributo', statKey: stat, statValor: statVal, resultado: roll, resultLabel, ts: Date.now() };
     if(twoDice){ logEntry.mode = mode; logEntry.rolls = [die1, die2]; }
-    // se a habilidade marcada na ficha usa este mesmo atributo, o nome (e a descrição, se tiver
-    // uma escrita) dela entram na mensagem enviada pro Discord (mesma ideia já usada na rolagem
-    // de dano, mas aqui só quando bate o atributo).
-    const habilidadeAtributo = getSelectedSkillForAttr(statLabels[stat]);
+    // habilidade marcada na ficha que usa este mesmo atributo (lida no CLIQUE, ver handler acima):
+    // nome/descrição/imagem entram na mensagem do chat/Discord.
     if(habilidadeAtributo){
       logEntry.habilidade = habilidadeAtributo.nome;
       if(habilidadeAtributo.desc) logEntry.habilidadeDesc = habilidadeAtributo.desc;
       if(habilidadeAtributo.imagem) logEntry.habilidadeImagem = habilidadeAtributo.imagem;
     }
     pushRollLog(logEntry);
-    // fila de iniciativa: esta rolagem (Atributo, com ou sem Habilidade marcada) acabou de usar a
-    // AÇÃO DE ROLAGEM da vez, SE for a ficha da vez que está rolando agora (ver
-    // markActionRollFromOpenSheet()/markTurnRolled() mais abaixo) — verdict ('acerto'/'erro', já
-    // calculado mais acima nesta função) decide se o turno encerra sozinho ou não.
+    // fila de iniciativa: esta rolagem acabou de usar a AÇÃO DE ROLAGEM da vez (ver
+    // markActionRollFromOpenSheet()/markTurnRolled() mais abaixo) — verdict decide se o turno
+    // encerra sozinho ou não.
     markActionRollFromOpenSheet(verdict);
-    // réplica em tempo real pra quem mais estiver com o Tabuleiro ao Vivo aberto agora -- mesmo
-    // esquema de broadcastDiceRoll()/playRemoteSorteRoll() (Fase C) -- ver playRemoteAtributoRoll()
-    // logo abaixo e o listener dentro de connectLiveBoard().
-    broadcastDiceRoll({ kind:'atributo', stat, statVal, mode, die1, die2, roll, consideredIsFirst, verdict });
   }
 
-  // clique em cima dos dados (depois do resultado) limpa eles -- mesmo espírito/mesmo motivo de
-  // clearBoardCoin() (Fase C: "o resultado fica na tela até que cliquem nela"). Só os dados em si
-  // voltam pro estado [hidden] original -- diceVerdict/diceHint já eram [hidden] (ver HTML) e não
-  // precisam de nenhum tratamento extra aqui.
-  function clearBoardDice(){
-    [diceResult, diceResult2].forEach(el=>{
-      el.hidden = true;
-      el.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow','discarded','ricochet');
-    });
-    diceBody.classList.remove('has-dice');
-  }
-  diceBody.addEventListener('click', clearBoardDice);
-
-  // Rodada nova, pedido explícito ("adicione um campo para rolar atributo com um seletor de
-  // atributo... e 3 botões do lado, um dado que rola normalmente, um dado com um sinal de + verde
-  // para rolar em vantagem e um dado com um sinal de - em vermelho para rolar em desvantagem"): 3
-  // botões na faixa fixa, cada um seta #diceMode (continua [hidden], nunca mais trocado por um
-  // seletor visível próprio) ANTES de disparar o MESMO #rollDiceBtn/rollBtn de sempre (também
-  // [hidden] agora) -- toda a lógica de gate (CONGELADO/fila de turno/TONTO/mana) e a rolagem em
-  // si (ver rollBtn.addEventListener() acima) continuam 100% iguais, só a origem do clique mudou.
+  // 3 botões da faixa fixa (normal/vantagem/desvantagem): cada um seta #diceMode ([hidden]) ANTES de
+  // disparar o MESMO #rollDiceBtn/rollBtn de sempre ([hidden] também) -- toda a lógica de gate e a
+  // rolagem em si ficam 100% no handler acima.
   $('atributoRollNormalBtn').addEventListener('click', ()=>{ diceMode.value = 'normal'; rollBtn.click(); });
   $('atributoRollAdvBtn').addEventListener('click', ()=>{ diceMode.value = 'vantagem'; rollBtn.click(); });
   $('atributoRollDisBtn').addEventListener('click', ()=>{ diceMode.value = 'desvantagem'; rollBtn.click(); });
 
-  // Desenha, em QUALQUER navegador que receba um valor novo em mesa/liveBoard/lastRoll (ver o
-  // listener em connectLiveBoard()), a MESMA animação que quem rolou de verdade já viu --
-  // reconstruída a partir do RESULTADO já sorteado (nunca sorteando de novo aqui), mesmo esquema
-  // de playRemoteSorteRoll() (Fase C), só que replicando o ricochete completo (mesmo
-  // animateDiceRicochet() de sempre) em vez de só um giro de moeda.
-  function playRemoteAtributoRoll(val){
-    if(!val || rollingInterval) return; // mesmo guard de elemento único das rolagens locais
-    const twoDice = val.mode !== 'normal';
-    diceBody.classList.add('has-dice');
-    diceResult.hidden = false;
-    diceResult.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow','discarded','ricochet');
-    diceResult.classList.add('ricochet');
-    cubeOf(diceResult).classList.remove('settle');
-    cubeOf(diceResult).classList.add('rolling');
-    diceResult2.hidden = !twoDice;
-    diceResult2.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow','discarded','ricochet');
-    diceResult2.classList.add('ricochet');
-    cubeOf(diceResult2).classList.remove('settle');
-    cubeOf(diceResult2).classList.toggle('rolling', twoDice);
-    if(diceParticleLayer) diceParticleLayer.innerHTML = '';
-
-    rollingInterval = setInterval(()=>{
-      randomizeCubeFaces(diceResult, 20);
-      if(twoDice) randomizeCubeFaces(diceResult2, 20);
-      playDiceTick();
-    }, 65);
-
-    const ricochetDice = twoDice ? [diceResult, diceResult2] : [diceResult];
-    animateDiceRicochet(diceBody, ricochetDice, 1150).then(()=>{
-      clearInterval(rollingInterval);
-      rollingInterval = null;
-      diceResult.classList.remove('ricochet');
-      diceResult2.classList.remove('ricochet');
-
-      const consideredEl = val.consideredIsFirst ? diceResult : diceResult2;
-      const discardedEl = val.consideredIsFirst ? diceResult2 : diceResult;
-      cubeOf(diceResult).classList.remove('rolling');
-      cubeOf(diceResult2).classList.remove('rolling');
-      setCubeFront(diceResult, val.die1);
-      if(twoDice) setCubeFront(diceResult2, val.die2);
-      cubeOf(diceResult).classList.remove('settle');
-      cubeOf(diceResult2).classList.remove('settle');
-      void diceResult.offsetWidth;
-      cubeOf(diceResult).classList.add('settle');
-      if(twoDice){
-        void diceResult2.offsetWidth;
-        cubeOf(diceResult2).classList.add('settle');
-      }
-      consideredEl.classList.toggle('hit-glow', val.verdict === 'acerto');
-      consideredEl.classList.toggle('miss-shadow', val.verdict === 'erro');
-      consideredEl.classList.toggle('crit-hit', val.roll === 20);
-      consideredEl.classList.toggle('crit-miss', val.roll === 1);
-      if(twoDice) discardedEl.classList.add('discarded');
-      if(val.roll === 20) spawnDiceParticles(diceParticleLayer, '✨', 10);
-      else if(val.roll === 1) spawnDiceParticles(diceParticleLayer, '💀', 8);
-      if(val.roll === 20) playYaaySound();
-      else if(val.roll === 1) playEvilLaughSound();
-      else if(val.verdict === 'acerto') playBlingSound();
-      else playOohSound();
-    });
-  }
-
   // ---------- rolagem de dano ----------
   // quantidade e faces do dado não são digitáveis — os dois são contadores sequenciais simples
-  // (1,2,3,4,5,6...), cada um com seus próprios botões ‹ › logo abaixo da caixa.
+  // (1,2,3,4,5,6...), cada um com seus próprios botões − / + .
   const danoQtd = $('danoQtd');
   const danoMax = $('danoMax');
   function danoQtdStep(delta){
@@ -8410,43 +8528,25 @@ body{
   wireHoldRepeat($('danoQtdPlusBtn'), ()=> danoQtdStep(1));
   wireHoldRepeat($('danoFaceMinusBtn'), ()=> danoFaceStep(-1));
   wireHoldRepeat($('danoFacePlusBtn'), ()=> danoFaceStep(1));
-  const danoDiceDisplay = $('danoDiceDisplay');
   const danoHint = $('danoHint');
   const danoTotalValue = $('danoTotalValue');
   const rollDanoBtn = $('rollDanoBtn');
-  // pedido explícito: "os dados de rolamento precisam usar o efeito em sua própria guia, eles
-  // estão escapando para a guia de rolamento de atributo" -- bug real: ao contrário de
-  // index_mag.html (onde Atributo e Dano dividem o MESMO painel "Rolamentos", #diceBody), aqui em
-  // index_BG.html os dois são painéis SEPARADOS ("Rolagem de Atributo" = #diceBody, "Rolagem de
-  // Dano" = #danoDiceDisplay) -- mas o ricochete do dado de Dano (mais abaixo) estava usando
-  // "diceBody" (o painel de ATRIBUTO) como arena por engano, então os cantos calculados pra ele
-  // ficavam nos cantos do painel ERRADO, fazendo o dado de Dano "voar" pra cima do painel de
-  // Atributo em vez de ficar dentro do seu próprio painel -- correção já feita numa rodada
-  // anterior. Rodada nova, pedido explícito ("os dados então rolam na tela do tabuleiro para todos
-  // verem" -- Dano, item 9): a arena deixou de ser o painel da ficha ("Rolagem de Dano", removido)
-  // e virou #boardDiceZoneDano, dentro de #boardDiceFooter, embaixo do Tabuleiro ao Vivo -- mesmo
-  // elemento também funciona como a "zona clicável" (.has-dice, ver clearBoardDano() mais abaixo),
-  // igual #boardDiceZoneAtributo da Fase D. O nome da variável (danoBody) ficou o mesmo de
-  // propósito -- só o endereço no HTML mudou.
-  const danoBody = $('boardDiceZoneDano');
   let danoRollingInterval = null;
 
+  // cada rolagem de Dano cria um GRUPO novo (fileira de N dados) empilhado em #boardDiceZoneDano --
+  // rolagens antigas continuam visíveis, do mesmo jeito do Atributo (appendBoardDiceGroup()).
   function buildDiceDisplay(qtd){
-    danoDiceDisplay.innerHTML = '';
+    const group = document.createElement('div');
+    const row = document.createElement('div');
+    row.className = 'dice-display';
     const dieEls = [];
     for(let i=0;i<qtd;i++){
-      const die = document.createElement('div');
-      die.className = 'dice-result dano-result dano-die';
-      // mesmo cubo 3D do dado de Atributo (ver diceResult/diceResult2 no HTML e o comentário
-      // grande em .cube-scene/.cube/.cube-face no <style>) -- só que construído por JS aqui,
-      // porque a quantidade de dados de Dano muda a cada rolagem (1d6, 3d6 etc.).
-      die.innerHTML = '<div class="cube-scene"><div class="cube">'
-        + '<div class="cube-face f">–</div><div class="cube-face b">–</div><div class="cube-face r">–</div>'
-        + '<div class="cube-face l">–</div><div class="cube-face t">–</div><div class="cube-face d">–</div>'
-        + '</div></div>';
-      danoDiceDisplay.appendChild(die);
+      const die = buildCubeDieEl('dano-result dano-die');
+      row.appendChild(die);
       dieEls.push(die);
     }
+    group.appendChild(row);
+    appendBoardDiceGroup(boardDiceZoneDano, group);
     return dieEls;
   }
 
@@ -8460,124 +8560,149 @@ body{
     let maxVal = parseInt(danoMax.value, 10);
     if(isNaN(maxVal) || maxVal < 1) maxVal = 1;
     // modificador de Dano (guia Modificadores, #m_dano): soma ao TAMANHO do dado de qualquer
-    // rolagem de dano (1d6 com +1 vira 1d7) -- mesma regra de index_mag.html. Math.max(1, ...)
-    // trava num mínimo de 1 face, pro caso de um modificador bem negativo zerar ou passar do
-    // tamanho do dado.
+    // rolagem de dano (1d6 com +1 vira 1d7). Math.max(1, ...) trava num mínimo de 1 face.
     maxVal = Math.max(1, maxVal + num(els.mDano));
     let qtd = parseInt(danoQtd.value, 10);
     if(isNaN(qtd) || qtd < 1) qtd = 1;
 
+    expandDicePanelIfCollapsed();
+    danoRollingInterval = true;
     rollDanoBtn.disabled = true;
-    // Rodada nova: a zona (agora em #boardDiceZoneDano, embaixo do tabuleiro) fica clicável assim
-    // que a rolagem começa -- mesmo esquema do boardDiceZoneAtributo/boardCoinZone.
-    danoBody.classList.add('has-dice');
     danoHint.textContent = 'Rolando...';
     danoTotalValue.textContent = '—';
     danoTotalValue.classList.remove('settle');
 
-    const dieEls = buildDiceDisplay(qtd);
-    dieEls.forEach(d => {
-      d.classList.add('ricochet');
-      cubeOf(d).classList.add('rolling');
-    });
-
-    // mesmo esquema do rollBtn de Atributo (ver comentário grande lá) -- o número de cada face
-    // continua trocando no relógio de sempre até o ricochete (animateDiceRicochet(), com TODOS os
-    // dados de Dano de uma vez, se esbarrando no meio quando qtd > 1) terminar de verdade.
-    danoRollingInterval = setInterval(()=>{
-      let sum = 0;
-      dieEls.forEach(d=>{
-        sum += tickCubeFaces(d, maxVal);
-      });
-      danoTotalValue.textContent = sum;
-      playDiceTick();
-    }, 65);
-
-    animateDiceRicochet(danoBody, dieEls, 1150).then(()=>{
-      clearInterval(danoRollingInterval);
-      danoRollingInterval = null;
-      dieEls.forEach(d => d.classList.remove('ricochet'));
-      finishDanoRoll(qtd, maxVal, dieEls);
-    });
-  });
-
-  function finishDanoRoll(qtd, maxVal, dieEls){
+    // resultado sorteado JÁ AGORA, escondido (mesmo esquema do rollBtn acima).
     const rolls = [];
     for(let i=0;i<qtd;i++) rolls.push(1 + Math.floor(Math.random()*maxVal));
     const total = rolls.reduce((a,b)=>a+b, 0);
-
-    dieEls.forEach((d, i)=>{
-      cubeOf(d).classList.remove('rolling');
-      setCubeFront(d, rolls[i]);
-      cubeOf(d).classList.remove('settle');
-      void d.offsetWidth;
-      cubeOf(d).classList.add('settle');
+    const rollsSorted = [...rolls].sort((a,b)=> b-a);
+    const habilidadeNome = getSelectedSkillName();
+    const val = {
+      qtd, maxVal, rolls: rollsSorted, total,
+      deidade: els.deidade.value || 'VAZIO',
+      nome: (els.nome.value || '').trim() || '(sem nome)',
+      habilidade: habilidadeNome || null,
+    };
+    const playAt = serverNow() + DICE_SYNC_BUFFER_MS;
+    broadcastDiceRoll(Object.assign({ kind:'dano', playAt }, val));
+    scheduleSyncedRoll(playAt, ()=> playRemoteDanoRoll(val)).then(()=>{
+      danoRollingInterval = null;
+      finishDanoRoll(val);
     });
+  });
 
+  function finishDanoRoll(val){
+    const { qtd, maxVal, rolls, total } = val;
     danoTotalValue.textContent = total;
     void danoTotalValue.offsetWidth;
     danoTotalValue.classList.add('settle');
-
-    const rollsSorted = [...rolls].sort((a,b)=> b-a);
-
     const faixa = `entre ${qtd} e ${qtd*maxVal}`;
     if(qtd > 1){
-      danoHint.textContent = `${qtd}d${maxVal}: [${rollsSorted.join(' + ')}] = ${total} (${faixa}).`;
+      danoHint.textContent = `${qtd}d${maxVal}: [${rolls.join(' + ')}] = ${total} (${faixa}).`;
     } else {
       danoHint.textContent = `1d${maxVal}: resultado ${total} (${faixa}).`;
     }
     rollDanoBtn.disabled = false;
-
-    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, rolls: rollsSorted, resultado: total, habilidade: getSelectedSkillName(), ts: Date.now() });
-    // réplica em tempo real pra quem mais estiver com o Tabuleiro ao Vivo aberto agora -- mesmo
-    // esquema de broadcastDiceRoll()/playRemoteAtributoRoll() (Fase D) -- ver playRemoteDanoRoll()
-    // logo abaixo e o listener dentro de connectLiveBoard().
-    broadcastDiceRoll({ kind:'dano', qtd, maxVal, rolls: rollsSorted, total });
+    pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'dano', qtd, maxVal, rolls, resultado: total, habilidade: val.habilidade, ts: Date.now() });
   }
 
-  // clique em cima da zona (depois do resultado) limpa ela -- mesmo espírito/mesmo motivo de
-  // clearBoardDice() (Fase D). Só os dados em si voltam pro estado vazio original -- danoHint/
-  // danoTotalBox já eram [hidden] (ver HTML) e não precisam de nenhum tratamento extra aqui.
-  function clearBoardDano(){
-    danoDiceDisplay.innerHTML = '';
-    danoBody.classList.remove('has-dice');
-  }
-  danoBody.addEventListener('click', clearBoardDano);
+  // As 2 funções abaixo desenham a animação de Atributo/Dano em QUALQUER navegador -- inclusive no
+  // de quem rolou (ver scheduleSyncedRoll() nos handlers acima) -- a partir do RESULTADO já sorteado
+  // (nunca sorteando de novo aqui). Devolvem a Promise da animação, pra quem chamou continuar o
+  // pós-processamento (chat/XP/turno) só DEPOIS dela terminar. Nunca tocam nas variáveis de guarda da
+  // rolagem LOCAL (rollingInterval/danoRollingInterval/rollBtn.disabled): cada rolagem cria os
+  // PRÓPRIOS dados, então várias podem conviver na tela, empilhadas.
+  // Cor da borda dos dados = cor da Divindade de quem ROLOU (val.deidade), não a de quem está olhando.
+  function playRemoteAtributoRoll(val){
+    if(!val) return Promise.resolve();
+    const twoDice = val.mode === 'vantagem' || val.mode === 'desvantagem';
+    const rollerColor = DEITY_EYE_COLOR[val.deidade] || DEITY_EYE_COLOR['VAZIO'];
+    const rollerGlow = hexToRgba(rollerColor, .55);
+    const group = document.createElement('div');
+    const pair = document.createElement('div');
+    pair.className = 'dice-pair';
+    const die1El = buildCubeDieEl();
+    die1El.style.setProperty('--die-color', rollerColor);
+    die1El.style.setProperty('--die-glow', rollerGlow);
+    die1El.classList.add('ricochet');
+    cubeOf(die1El).classList.add('rolling');
+    pair.appendChild(die1El);
+    const die2El = buildCubeDieEl();
+    die2El.style.setProperty('--die-color', rollerColor);
+    die2El.style.setProperty('--die-glow', rollerGlow);
+    die2El.hidden = !twoDice;
+    if(twoDice){ die2El.classList.add('ricochet'); cubeOf(die2El).classList.add('rolling'); }
+    pair.appendChild(die2El);
+    group.appendChild(pair);
+    appendBoardDiceGroup(boardDiceZoneAtributo, group);
 
-  // Desenha, em QUALQUER navegador que receba um valor novo em mesa/liveBoard/lastRoll (ver o
-  // listener em connectLiveBoard()), a MESMA animação que quem rolou de verdade já viu --
-  // reconstruída a partir dos RESULTADOS já sorteados (nunca sorteando de novo aqui), mesmo
-  // esquema de playRemoteAtributoRoll() (Fase D), só que com uma quantidade VARIÁVEL de dados (1
-  // a qtd) em vez de sempre 1 ou 2.
-  function playRemoteDanoRoll(val){
-    if(!val || danoRollingInterval) return; // mesmo guard de elemento único das rolagens locais
-    danoBody.classList.add('has-dice');
-    const dieEls = buildDiceDisplay(val.qtd);
-    dieEls.forEach(d => {
-      d.classList.add('ricochet');
-      cubeOf(d).classList.add('rolling');
-    });
-    if(danoHint) danoHint.textContent = 'Rolando...';
-
-    danoRollingInterval = setInterval(()=>{
-      dieEls.forEach(d=> tickCubeFaces(d, val.maxVal));
+    const tickInterval = setInterval(()=>{
+      randomizeCubeFaces(die1El, 20);
+      if(twoDice) randomizeCubeFaces(die2El, 20);
       playDiceTick();
     }, 65);
 
-    animateDiceRicochet(danoBody, dieEls, 1150).then(()=>{
-      clearInterval(danoRollingInterval);
-      danoRollingInterval = null;
-      dieEls.forEach((d, i)=>{
+    const ricochetDice = twoDice ? [die1El, die2El] : [die1El];
+    return animateDiceRicochet(boardDiceArena, ricochetDice, 1150).then(()=>{
+      clearInterval(tickInterval);
+      [die1El, die2El].forEach((d, i)=>{
+        if(i === 1 && !twoDice) return;
         d.classList.remove('ricochet');
         cubeOf(d).classList.remove('rolling');
-        setCubeFront(d, val.rolls[i]);
+        setCubeFront(d, i === 0 ? val.die1 : val.die2);
         cubeOf(d).classList.remove('settle');
         void d.offsetWidth;
         cubeOf(d).classList.add('settle');
       });
-      danoTotalValue.textContent = val.total;
-      void danoTotalValue.offsetWidth;
-      danoTotalValue.classList.add('settle');
+      const tie = twoDice && val.die1 === val.die2;
+      const winnerEl = (!twoDice || val.die1 === val.roll) ? die1El : die2El;
+      const loserEl = winnerEl === die1El ? die2El : die1El;
+      winnerEl.classList.toggle('hit-glow', val.verdict === 'acerto');
+      winnerEl.classList.toggle('miss-shadow', val.verdict === 'erro');
+      winnerEl.classList.toggle('crit-hit', val.roll === 20);
+      winnerEl.classList.toggle('crit-miss', val.roll === 1);
+      if(twoDice && !tie) loserEl.classList.add('discarded');
+      if(val.roll === 20) spawnDiceParticles(diceParticleLayer, '✨', 10);
+      else if(val.roll === 1) spawnDiceParticles(diceParticleLayer, '💀', 8);
+      if(val.roll === 20) playYaaySound();
+      else if(val.roll === 1) playEvilLaughSound();
+      else if(val.verdict === 'acerto') playBlingSound();
+      else playOohSound();
+      setBoardRollSummary('atributo', val);
+    });
+  }
+  function playRemoteDanoRoll(val){
+    if(!val) return Promise.resolve();
+    const rolls = Array.isArray(val.rolls) ? val.rolls : [];
+    const maxVal = val.maxVal || 6;
+    const qtd = val.qtd || rolls.length || 1;
+    const dieEls = buildDiceDisplay(qtd);
+    const rollerColor = DEITY_EYE_COLOR[val.deidade] || DEITY_EYE_COLOR['VAZIO'];
+    const rollerGlow = hexToRgba(rollerColor, .55);
+    dieEls.forEach(d=>{
+      d.style.setProperty('--die-color', rollerColor);
+      d.style.setProperty('--die-glow', rollerGlow);
+      d.classList.add('ricochet');
+      cubeOf(d).classList.add('rolling');
+    });
+
+    const tickInterval = setInterval(()=>{
+      dieEls.forEach(d=> tickCubeFaces(d, maxVal));
+      playDiceTick();
+    }, 65);
+
+    return animateDiceRicochet(boardDiceArena, dieEls, 1150).then(()=>{
+      clearInterval(tickInterval);
+      dieEls.forEach((d, i)=>{
+        d.classList.remove('ricochet');
+        cubeOf(d).classList.remove('rolling');
+        setCubeFront(d, rolls[i] != null ? rolls[i] : 1);
+        cubeOf(d).classList.remove('settle');
+        void d.offsetWidth;
+        cubeOf(d).classList.add('settle');
+      });
+      setBoardRollSummary('dano', Object.assign({ qtd, maxVal, rolls }, val));
     });
   }
 
@@ -8632,17 +8757,17 @@ body{
     if(liveBoardPanelEl && liveBoardPanelEl.classList.contains('minimized')) setLiveBoardMinimized(false);
   }
 
+  // busy-flag SÓ do clique (clique -> espera sincronizada -> giro -> pouso); sorteRollingInterval
+  // continua sendo o guard interno do giro em si (moeda é elemento único, ver playRemoteSorteRoll()).
+  let sorteRollBusy = false;
   rollSorteBtn.addEventListener('click', ()=>{
-    if(sorteRollingInterval) return; // já rolando, ignora clique duplo
+    if(sorteRollBusy) return; // já rolando, ignora clique duplo
     // CONGELADO (painel EFEITOS) -- mesma regra/mesmo motivo do rollBtn/rollDanoBtn acima.
     if(hasActiveEffect('congelado')){
       sorteHint.textContent = 'CONGELADO — não é possível rolar enquanto este efeito estiver ativo.';
       return;
     }
-
-    // rolar Sorte "custa" pelo menos 1 moeda de OURO — sem isso nem gira a moeda, só avisa no chat
-    // (e no Discord, se tiver webhook) que não dá, com o nome do personagem sempre em negrito,
-    // igual às outras mensagens automáticas (ex: aviso de morte em announceDeath()).
+    // rolar Sorte "custa" pelo menos 1 moeda de OURO — sem isso nem gira a moeda, só avisa no chat.
     if(getOuroQty() < 1){
       const nome = els.nome.value.trim() || '(sem nome)';
       if(!isBlankName(nome)) postToDiscord(`**${nome}** NÃO TEM MOEDAS PARA ROLAR SORTE`, null);
@@ -8650,70 +8775,39 @@ body{
     }
 
     playCoinsSound(); // mesmo som dos botões do OURO — ver CUSTOM_SOUND_BTN_SELECTOR acima
-    expandDicePanelIfCollapsed(); // mesmo comportamento dos dados -- reaparece/desminimiza o tabuleiro sozinho
+    expandDicePanelIfCollapsed(); // reaparece/desminimiza o tabuleiro sozinho
 
+    sorteRollBusy = true;
     rollSorteBtn.disabled = true;
     sorteVerdict.textContent = '';
     sorteVerdict.className = 'dice-verdict';
     sorteHint.textContent = 'Jogando a moeda...';
-    coinResult.hidden = false;
-    boardCoinZone.classList.add('has-coin');
-    coinResult.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow');
-    coinResult.classList.add('rolling');
     if(sorteParticleLayer) sorteParticleLayer.innerHTML = '';
 
-    let ticks = 0;
-    const totalTicks = 10 + Math.floor(Math.random()*4);
-    sorteRollingInterval = setInterval(()=>{
-      coinResult.src = Math.random() < 0.5 ? COIN_FACES.cara : COIN_FACES.coroa;
-      playCoinTossTickSound();
-      ticks++;
-      if(ticks >= totalTicks){
-        clearInterval(sorteRollingInterval);
-        sorteRollingInterval = null;
-        finishSorteRoll();
-      }
-    }, 65);
-  });
-
-  // Rodada nova, pedido explícito ("a pessoa que clicou na moera sempre será CARA e COROA sempre
-  // será considerado erro") -- 50/50 direto, sem escolha prévia nenhuma.
-  function finishSorteRoll(){
+    // "a pessoa que clicou na moeda sempre será CARA e COROA sempre será considerado erro" -- 50/50,
+    // sorteado JÁ AGORA (escondido) e animado pra todo mundo junto no instante combinado (playAt).
     const resultado = Math.random() < 0.5 ? 'cara' : 'coroa';
     const verdict = resultado === 'cara' ? 'acerto' : 'erro';
+    const val = { resultado, verdict, deidade: els.deidade.value || 'VAZIO', nome: (els.nome.value || '').trim() || '(sem nome)' };
+    const playAt = serverNow() + DICE_SYNC_BUFFER_MS;
+    broadcastDiceRoll(Object.assign({ kind:'sorte', playAt }, val));
+    scheduleSyncedRoll(playAt, ()=> playRemoteSorteRoll(val)).then(()=>{
+      sorteRollBusy = false;
+      finishSorteRoll(val);
+    });
+  });
 
-    coinResult.classList.remove('rolling');
-    coinResult.src = COIN_FACES[resultado];
-    // força reflow para poder repetir a animação em rolagens seguintes
-    coinResult.classList.remove('settle');
-    void coinResult.offsetWidth;
-    coinResult.classList.add('settle');
-    coinResult.classList.toggle('hit-glow', verdict === 'acerto');
-    coinResult.classList.toggle('miss-shadow', verdict === 'erro');
-    // toda rolagem de sorte é "tudo ou nada" — usa sempre os mesmos efeitos do 20/1 natural do dado
-    coinResult.classList.toggle('crit-hit', verdict === 'acerto');
-    coinResult.classList.toggle('crit-miss', verdict === 'erro');
-
-    if(verdict === 'acerto') spawnDiceParticles(sorteParticleLayer, '✨', 10);
-    else spawnDiceParticles(sorteParticleLayer, '💀', 8);
-
-    if(verdict === 'acerto') playYaaySound();
-    else playEvilLaughSound();
-
+  // o giro visual da moeda (com partículas/som) já aconteceu inteiro dentro de playRemoteSorteRoll()
+  // -- aqui só o que sobra DEPOIS: texto legado e chat/Discord.
+  function finishSorteRoll(val){
+    const { resultado, verdict } = val;
     sorteVerdict.textContent = verdict === 'acerto' ? '✓ Acerto' : '✗ Erro';
     sorteVerdict.className = 'dice-verdict ' + verdict;
     void sorteVerdict.offsetWidth;
     sorteVerdict.classList.add('show');
-
     sorteHint.textContent = `A moeda caiu em ${coinLabels[resultado]} — você ${verdict === 'acerto' ? 'venceu' : 'perdeu'}.`;
-
     rollSorteBtn.disabled = false;
-
     pushRollLog({ nome: els.nome.value || '(sem nome)', tipo:'sorte', resultado, verdict, ts: Date.now() });
-    // réplica em tempo real pra quem mais estiver com o Tabuleiro ao Vivo aberto agora -- ver
-    // playRemoteSorteRoll()/connectLiveBoard() mais abaixo. isSilenceActive() (dentro de
-    // broadcastDiceRoll()) já barra sozinho quando "🔇 Silenciado" está ativo, igual ao pushRollLog().
-    broadcastDiceRoll({ kind:'sorte', resultado, verdict });
   }
 
   // clique em cima da moeda limpa o resultado -- mesmo espírito/mesmo motivo de clearBoardDice()
@@ -8733,35 +8827,42 @@ body{
   // tem que ficar IDÊNTICO ao que o autor da rolagem já viu e já mandou pro chat/Discord via
   // pushRollLog()). Mesmo padrão exato do playRemoteSorteRoll() do index_mag.html.
   function playRemoteSorteRoll(val){
-    if(!val || sorteRollingInterval) return; // moeda é elemento único -- não atropela um giro já em andamento nesta aba (local OU de outra réplica remota)
+    if(!val) return Promise.resolve();
+    // moeda é elemento ÚNICO -- não atropela um giro já em andamento nesta aba
+    if(sorteRollingInterval) return Promise.resolve();
     coinResult.hidden = false;
     boardCoinZone.classList.add('has-coin');
     coinResult.classList.remove('settle','crit-hit','crit-miss','hit-glow','miss-shadow');
     coinResult.classList.add('rolling');
+    if(sorteParticleLayer) sorteParticleLayer.innerHTML = '';
     let ticks = 0;
     const totalTicks = 10 + Math.floor(Math.random()*4);
-    sorteRollingInterval = setInterval(()=>{
-      coinResult.src = Math.random() < 0.5 ? COIN_FACES.cara : COIN_FACES.coroa;
-      playCoinTossTickSound();
-      ticks++;
-      if(ticks >= totalTicks){
-        clearInterval(sorteRollingInterval);
-        sorteRollingInterval = null;
-        coinResult.classList.remove('rolling');
-        coinResult.src = COIN_FACES[val.resultado];
-        coinResult.classList.remove('settle');
-        void coinResult.offsetWidth;
-        coinResult.classList.add('settle');
-        coinResult.classList.toggle('hit-glow', val.verdict === 'acerto');
-        coinResult.classList.toggle('miss-shadow', val.verdict === 'erro');
-        coinResult.classList.toggle('crit-hit', val.verdict === 'acerto');
-        coinResult.classList.toggle('crit-miss', val.verdict === 'erro');
-        if(val.verdict === 'acerto') spawnDiceParticles(sorteParticleLayer, '✨', 10);
-        else spawnDiceParticles(sorteParticleLayer, '💀', 8);
-        if(val.verdict === 'acerto') playYaaySound();
-        else playEvilLaughSound();
-      }
-    }, 65);
+    return new Promise(resolve=>{
+      sorteRollingInterval = setInterval(()=>{
+        coinResult.src = Math.random() < 0.5 ? COIN_FACES.cara : COIN_FACES.coroa;
+        playCoinTossTickSound();
+        ticks++;
+        if(ticks >= totalTicks){
+          clearInterval(sorteRollingInterval);
+          sorteRollingInterval = null;
+          coinResult.classList.remove('rolling');
+          coinResult.src = COIN_FACES[val.resultado === 'coroa' ? 'coroa' : 'cara'];
+          coinResult.classList.remove('settle');
+          void coinResult.offsetWidth;
+          coinResult.classList.add('settle');
+          coinResult.classList.toggle('hit-glow', val.verdict === 'acerto');
+          coinResult.classList.toggle('miss-shadow', val.verdict === 'erro');
+          coinResult.classList.toggle('crit-hit', val.verdict === 'acerto');
+          coinResult.classList.toggle('crit-miss', val.verdict === 'erro');
+          if(val.verdict === 'acerto') spawnDiceParticles(sorteParticleLayer, '✨', 10);
+          else spawnDiceParticles(sorteParticleLayer, '💀', 8);
+          if(val.verdict === 'acerto') playYaaySound();
+          else playEvilLaughSound();
+          setBoardRollSummary('sorte', val);
+          resolve();
+        }
+      }, 65);
+    });
   }
 
   // ---------- ⚔️ Rodadas / Turnos / Fila de Iniciativa ----------
@@ -10899,6 +11000,31 @@ body{
   // via offsetWidth/offsetHeight, que o transform não altera) só pra avisar o container com scroll
   // do tamanho real ocupado pelo desenho ampliado.
   const BOARD_ZOOM_LEVELS = [0.5, 0.6, 0.7, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8];
+  // PORTE "TABULEIRO IGUAL AO index_mag" (pedido explicito: tabuleiro em modo CAMERA, igual ao Mag):
+  // o Tabuleiro ao Vivo (unico tabuleiro da tela -- o do Mestre desenha no MESMO #liveBoardGrid, ver
+  // "const boardGrid") deixou de usar setupBoardZoom() (transform:scale + barras de rolagem) e passou
+  // a usar setupBoardCameraZoom() (mais abaixo, perto de connectLiveBoard()): cada CASA tem um
+  // tamanho real em pixels (liveBoardCellPx), calculado pra o tabuleiro inteiro caber na largura do
+  // visor em 100% de zoom; o visor (.live-board-wrap) tem altura fixa e nenhuma barra de rolagem --
+  // botao DIREITO + arrastar move a "camera" (transform:translate no .board-zoom-spacer).
+  // setupBoardZoom() continua existindo do jeito de sempre, so pro Mapa da campanha.
+  // Clique DIREITO rapido (sem arrastar) numa casa continua removendo a peca dela, como sempre foi
+  // no BG -- so que agora decidido no mouseup (ver setupBoardCameraZoom()), nao mais no
+  // 'contextmenu' (que em Mac/Linux dispara ja no mousedown, e apagaria a peca no inicio de todo
+  // arrasto de camera). Clique do MEIO tambem remove (igual ao index_mag).
+  let liveBoardCellPx = 24;
+  const BOARD_HEADER_PX = 22;
+  let boardCameraApply = null;      // setado por setupBoardCameraZoom() (mais abaixo no <script>)
+  let boardCameraLastDims = '';     // "linhas x colunas" do ultimo calculo de tamanho de casa
+  // chamado ao (re)construir a grade -- se o tamanho do tabuleiro mudou (Aplicar tamanho, carregar
+  // tabuleiro salvo, meta nova do Mestre chegando pro jogador), recalcula o tamanho de cada casa pra
+  // continuar cabendo no visor, em vez de manter o tamanho de casa antigo.
+  function refreshBoardCameraIfDimsChanged(rows, cols){
+    const dims = rows + 'x' + cols;
+    if(dims === boardCameraLastDims) return;
+    boardCameraLastDims = dims;
+    if(boardCameraApply) boardCameraApply();
+  }
   function setupBoardZoom(spacerEl, outerEl, readoutEl, outBtn, inBtn, storageKey){
     if(!spacerEl || !outerEl || !outBtn || !inBtn) return function(){};
     let idx = BOARD_ZOOM_LEVELS.indexOf(1);
@@ -11328,7 +11454,8 @@ body{
 
   function buildBoardGrid(){
     boardGrid.innerHTML = '';
-    boardGrid.style.gridTemplateColumns = `repeat(${BOARD_COLS}, 1fr)`;
+    boardGrid.style.gridTemplateColumns = `repeat(${BOARD_COLS}, ${liveBoardCellPx}px)`;
+    boardGrid.style.gridTemplateRows = `repeat(${BOARD_ROWS}, ${liveBoardCellPx}px)`;
     for(let r = 0; r < BOARD_ROWS; r++){
       for(let c = 0; c < BOARD_COLS; c++){
         const cell = document.createElement('div');
@@ -11362,7 +11489,12 @@ body{
           if(!boardPainting) return;
           setMark(r, c, boardPaintValue);
         });
-        cell.addEventListener('contextmenu', (e)=>{
+        // clique DIREITO: so impede o menu nativo -- a remocao da peca agora acontece no mouseup de
+        // um clique direito RAPIDO (sem arrastar a camera), ver setupBoardCameraZoom().
+        cell.addEventListener('contextmenu', (e)=>{ e.preventDefault(); });
+        cell.addEventListener('mousedown', (e)=>{ if(e.button === 1) e.preventDefault(); });
+        cell.addEventListener('auxclick', (e)=>{
+          if(e.button !== 1) return;
           e.preventDefault();
           removeTokenAt(r, c);
         });
@@ -11377,6 +11509,7 @@ body{
       }
     }
     buildBoardHeaders();
+    refreshBoardCameraIfDimsChanged(BOARD_ROWS, BOARD_COLS);
   }
 
   function columnLabel(c){
@@ -11392,7 +11525,7 @@ body{
 
   function buildBoardHeaders(){
     boardColHeader.innerHTML = '';
-    boardColHeader.style.gridTemplateColumns = `repeat(${BOARD_COLS}, 1fr)`;
+    boardColHeader.style.gridTemplateColumns = `repeat(${BOARD_COLS}, ${liveBoardCellPx}px)`;
     for(let c = 0; c < BOARD_COLS; c++){
       const cell = document.createElement('div');
       cell.className = 'board-header-cell';
@@ -11400,7 +11533,7 @@ body{
       boardColHeader.appendChild(cell);
     }
     boardRowHeader.innerHTML = '';
-    boardRowHeader.style.gridTemplateRows = `repeat(${BOARD_ROWS}, 1fr)`;
+    boardRowHeader.style.gridTemplateRows = `repeat(${BOARD_ROWS}, ${liveBoardCellPx}px)`;
     for(let r = 0; r < BOARD_ROWS; r++){
       const cell = document.createElement('div');
       cell.className = 'board-header-cell';
@@ -11461,7 +11594,7 @@ body{
       // fichas do MESTRE (id prefixado "mestre:") recebem uma classe extra que soma um contorno
       // preto por fora do dourado — ajuda a diferenciar de relance de personagens de jogador.
       const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
-      const dead = isHeroDead(token);
+      const dead = isHeroDead(token) || isInstanceDead(token);
       const isBlock = isBlockKind(token.kind);
       t.className = 'board-token token-' + token.kind + (isBlock ? '' : tokenSizeClass(token.size)) + (isBlock ? ' token-block' : '') + (isMestreHero ? ' token-hero-mestre' : '') + (token.pvp ? ' token-hero-pvp' : '') + (dead ? ' token-dead' : '');
       t.draggable = true;
@@ -11755,6 +11888,17 @@ body{
   // já tiver vidaMax/manaMax/escudoMax gravados (ver o comentário grande no topo desta seção) --
   // sem isso resolveTokenVitalsForCard() já devolve null e a bolha nem aparece, então os botões
   // nem chegam a existir pra essa peça.
+  // PORTE "TABULEIRO IGUAL AO index_mag": peça de ficha de Inimigo/Aliado (Vida mora na própria peça,
+  // ver adjustBoardTokenVital() logo abaixo) com a Vida zerada também vira caveira 💀 -- no
+  // tabuleiro (renderBoardCell()/renderLiveBoardMini()) e na bolha do Resumo do Tabuleiro --,
+  // igual já acontecia só com ficha de jogador (isHeroDead()). Sem vidaMax válido, nunca é "morta".
+  function isInstanceDead(token){
+    if(!token || (token.kind !== 'inimigo_ficha' && token.kind !== 'aliado_ficha')) return false;
+    const vidaMax = parseFloat(token.vidaMax);
+    if(!(vidaMax > 0)) return false;
+    const vida = parseFloat(token.vidaAtual);
+    return isFinite(vida) && vida <= 0;
+  }
   function adjustBoardTokenVital(tok, campo, delta){
     if(!tok || !delta) return;
     const curKey = campo + 'Atual', maxKey = campo + 'Max';
@@ -11953,6 +12097,10 @@ body{
     if(tok.kind === 'inimigo_ficha' || tok.kind === 'aliado_ficha'){
       adjustBoardTokenVital(tok, campo, delta);
       scheduleBoardTokensPush();
+      // redesenha a peça e as bolhas NA HORA (senão a caveira só apareceria no próximo redesenho
+      // por outro motivo, ex.: mover a peça -- mesmo bug já corrigido no index_mag).
+      if(tok.anchorR != null && tok.anchorC != null) renderBoardCell(tok.anchorR, tok.anchorC);
+      renderFichaSummaryBubbles();
     } else if(tok.kind === 'hero' && tok.ownerUid){
       grantVitalToPlayer(tok.ownerUid, campo, delta, tok.name || '');
     }
@@ -11991,13 +12139,20 @@ body{
     bubble.className = 'ficha-bubble';
     const portraitWrap = document.createElement('div');
     portraitWrap.className = 'ficha-bubble-portrait';
-    const portrait = resolveTokenPortrait(entry.token);
-    if(portrait){
-      const img = document.createElement('img');
-      img.src = portrait; img.alt = '';
-      portraitWrap.appendChild(img);
+    // ficha zerada vira caveira também aqui (igual ao index_mag e ao próprio tabuleiro)
+    const dead = isHeroDead(entry.token) || isInstanceDead(entry.token);
+    if(dead){
+      portraitWrap.classList.add('ficha-bubble-portrait-dead');
+      portraitWrap.innerHTML = '<span class="token-skull-icon">💀</span>';
     } else {
-      portraitWrap.classList.add('ficha-bubble-portrait-empty');
+      const portrait = resolveTokenPortrait(entry.token);
+      if(portrait){
+        const img = document.createElement('img');
+        img.src = portrait; img.alt = '';
+        portraitWrap.appendChild(img);
+      } else {
+        portraitWrap.classList.add('ficha-bubble-portrait-empty');
+      }
     }
     bubble.appendChild(portraitWrap);
     const info = document.createElement('div');
@@ -13983,6 +14138,30 @@ body{
   }
   const fbReady = !!(fbAuth && fbDb);
 
+  // Sincronização de rolagem de dados entre todos os navegadores conectados (porte do index_mag):
+  // quem rola sorteia o resultado na hora, escondido, e grava junto um instante ABSOLUTO no futuro
+  // ("playAt", no relógio do SERVIDOR do Firebase -- ".info/serverTimeOffset" -- não no relógio local
+  // de cada navegador, que pode estar adiantado/atrasado). Todo mundo -- inclusive quem rolou --
+  // agenda a MESMA animação pra esse instante, então o dado começa a girar junto em todas as telas.
+  let fbServerTimeOffsetMs = 0;
+  if(fbReady){
+    fbDb.ref('.info/serverTimeOffset').on('value', (snap)=>{
+      const off = snap.val();
+      if(typeof off === 'number') fbServerTimeOffsetMs = off;
+    });
+  }
+  function serverNow(){ return Date.now() + fbServerTimeOffsetMs; }
+  // margem fixa somada a serverNow() -- dá tempo da escrita no Firebase chegar em todo mundo antes do
+  // instante combinado (~0,5s de espera antes do dado de quem rolou começar a girar).
+  const DICE_SYNC_BUFFER_MS = 550;
+  // agenda playFn() pro instante combinado e devolve a Promise da própria animação.
+  function scheduleSyncedRoll(playAt, playFn){
+    const delay = Math.max(0, (playAt || 0) - serverNow());
+    return new Promise(resolve=>{
+      setTimeout(()=>{ Promise.resolve(playFn()).then(resolve, resolve); }, delay);
+    });
+  }
+
   let currentRole = null;
   let currentUser = null;
   // chave própria da conta logada (uma por cadastro, gerada uma única vez — ver
@@ -14323,9 +14502,117 @@ body{
   const liveBoardHintEl   = $('liveBoardHint');
   // zoom do mini-tabuleiro (ver setupBoardZoom(), lá em cima perto do zoom da aba Mesa) — chave de
   // localStorage separada da do tabuleiro do mestre, cada um lembra o próprio nível.
-  const applyLiveBoardZoom = setupBoardZoom(liveBoardZoomSpacerEl, liveBoardOuterEl, $('liveBoardZoomReadout'), $('liveBoardZoomOutBtn'), $('liveBoardZoomInBtn'), 'rpg_ficha_liveboard_zoom');
+  const liveBoardWrapEl = $('liveBoardWrap');
+  // ---------- camera do Tabuleiro ao Vivo (porte do setupBoardCameraZoom() do index_mag) ----------
+  // ver comentario grande perto de BOARD_ZOOM_LEVELS/liveBoardCellPx, la em cima.
+  let liveBoardPanX = 0, liveBoardPanY = 0;
+  function currentLiveBoardDims(){
+    return currentRole === 'mestre'
+      ? { rows: BOARD_ROWS, cols: BOARD_COLS }
+      : { rows: liveBoardState.rows || 24, cols: liveBoardState.cols || 24 };
+  }
+  // "8" = a borda de 4px dos 2 lados do .board-outer -- soma no tamanho renderizado de verdade.
+  // Tabuleiro menor que o visor fica centralizado; maior, so pode ser arrastado ate encostar a borda.
+  function clampLiveBoardPan(px, py, dims, cellPx){
+    const frameW = liveBoardWrapEl.clientWidth, frameH = liveBoardWrapEl.clientHeight;
+    const contentW = BOARD_HEADER_PX + 8 + cellPx * dims.cols;
+    const contentH = BOARD_HEADER_PX + 8 + cellPx * dims.rows;
+    let x, y;
+    if(contentW <= frameW){ x = Math.round((frameW - contentW) / 2); }
+    else{ x = Math.max(frameW - contentW, Math.min(0, px)); }
+    if(contentH <= frameH){ y = Math.round((frameH - contentH) / 2); }
+    else{ y = Math.max(frameH - contentH, Math.min(0, py)); }
+    return { x, y };
+  }
+  function setupBoardCameraZoom(readoutEl, outBtn, inBtn, storageKey){
+    if(!liveBoardWrapEl || !liveBoardOuterEl || !outBtn || !inBtn) return function(){};
+    let idx = BOARD_ZOOM_LEVELS.indexOf(1);
+    try{
+      const saved = parseFloat(localStorage.getItem(storageKey));
+      const savedIdx = BOARD_ZOOM_LEVELS.indexOf(saved);
+      if(savedIdx >= 0) idx = savedIdx;
+    }catch(err){}
+    function apply(){
+      const dims = currentLiveBoardDims();
+      boardCameraLastDims = dims.rows + 'x' + dims.cols;
+      const level = BOARD_ZOOM_LEVELS[idx];
+      // 100% = o tabuleiro INTEIRO cabe no visor (largura E altura -- diferença proposital do Mag,
+      // que encaixa só pela largura: o tabuleiro padrão do BG é 24x24, que encaixado só pela largura
+      // ficaria com metade das linhas fora do visor já em 100%); mais zoom = casas maiores (arrasta
+      // com o botão direito pra ver o resto), menos zoom = tabuleiro menor, centralizado. Visor ainda
+      // sem tamanho (painel minimizado/escondido) mantém o último tamanho de casa conhecido.
+      const frameW = liveBoardWrapEl.clientWidth, frameH = liveBoardWrapEl.clientHeight;
+      if(frameW > 0 && frameH > 0){
+        const availW = Math.max(40, frameW - BOARD_HEADER_PX - 8);
+        const availH = Math.max(40, frameH - BOARD_HEADER_PX - 8);
+        liveBoardCellPx = Math.min(availW / dims.cols, availH / dims.rows) * level;
+      }
+      const cellPx = liveBoardCellPx;
+      liveBoardOuterEl.style.gridTemplateColumns = `${BOARD_HEADER_PX}px ${cellPx * dims.cols}px`;
+      liveBoardOuterEl.style.gridTemplateRows = `${BOARD_HEADER_PX}px ${cellPx * dims.rows}px`;
+      liveBoardColHeaderEl.style.gridTemplateColumns = `repeat(${dims.cols}, ${cellPx}px)`;
+      liveBoardRowHeaderEl.style.gridTemplateRows = `repeat(${dims.rows}, ${cellPx}px)`;
+      liveBoardGridEl.style.gridTemplateColumns = `repeat(${dims.cols}, ${cellPx}px)`;
+      liveBoardGridEl.style.gridTemplateRows = `repeat(${dims.rows}, ${cellPx}px)`;
+      const clamped = clampLiveBoardPan(liveBoardPanX, liveBoardPanY, dims, cellPx);
+      liveBoardPanX = clamped.x; liveBoardPanY = clamped.y;
+      liveBoardZoomSpacerEl.style.transform = `translate(${liveBoardPanX}px, ${liveBoardPanY}px)`;
+      if(readoutEl) readoutEl.textContent = Math.round(level * 100) + '%';
+      outBtn.disabled = idx === 0;
+      inBtn.disabled = idx === BOARD_ZOOM_LEVELS.length - 1;
+      try{ localStorage.setItem(storageKey, String(level)); }catch(err){}
+    }
+    outBtn.addEventListener('click', ()=>{ if(idx > 0){ idx--; apply(); } });
+    inBtn.addEventListener('click', ()=>{ if(idx < BOARD_ZOOM_LEVELS.length - 1){ idx++; apply(); } });
+    let resizeTimer = null;
+    window.addEventListener('resize', ()=>{
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(apply, 150);
+    });
+    let dragging = false, dragMoved = false, dragStartX = 0, dragStartY = 0, panStartX = 0, panStartY = 0;
+    let dragDownCell = null;
+    const DRAG_THRESHOLD = 4; // px -- abaixo disso conta como clique direito rapido (remove peca)
+    liveBoardWrapEl.addEventListener('mousedown', (e)=>{
+      if(e.button !== 2) return; // so botao direito -- esquerdo (pintar/arrastar peca) intocado
+      dragging = true; dragMoved = false;
+      dragDownCell = e.target.closest ? e.target.closest('.board-cell') : null;
+      dragStartX = e.clientX; dragStartY = e.clientY;
+      panStartX = liveBoardPanX; panStartY = liveBoardPanY;
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', (e)=>{
+      if(!dragging) return;
+      const dx = e.clientX - dragStartX, dy = e.clientY - dragStartY;
+      if(!dragMoved && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+      dragMoved = true;
+      liveBoardWrapEl.classList.add('panning');
+      const dims = currentLiveBoardDims();
+      const clamped = clampLiveBoardPan(panStartX + dx, panStartY + dy, dims, liveBoardCellPx);
+      liveBoardPanX = clamped.x; liveBoardPanY = clamped.y;
+      liveBoardZoomSpacerEl.style.transform = `translate(${liveBoardPanX}px, ${liveBoardPanY}px)`;
+    });
+    document.addEventListener('mouseup', (e)=>{
+      if(!dragging || e.button !== 2) return;
+      dragging = false;
+      liveBoardWrapEl.classList.remove('panning');
+      // clique direito RAPIDO (sem arrastar) numa casa do tabuleiro do Mestre: remove a peca dela,
+      // exatamente o comportamento antigo do BG (antes no 'contextmenu' de cada casa).
+      if(!dragMoved && dragDownCell && currentRole === 'mestre' && boardGrid.contains(dragDownCell)){
+        const r = parseInt(dragDownCell.dataset.r, 10), c = parseInt(dragDownCell.dataset.c, 10);
+        if(!isNaN(r) && !isNaN(c)) removeTokenAt(r, c);
+      }
+      dragDownCell = null;
+    });
+    liveBoardWrapEl.addEventListener('contextmenu', (e)=> e.preventDefault());
+    apply();
+    return apply;
+  }
 
   let liveBoardState = { rows: 24, cols: 24, gridColor: '#ffffff', background: null, marks: {}, tokens: {}, fog: true, revealed: false, fogPlusColor: null };
+  // camera do Tabuleiro ao Vivo (ver setupBoardCameraZoom() logo acima) -- criada SÓ DEPOIS de
+  // liveBoardState existir, porque o primeiro apply() já lê o tamanho do tabuleiro dele.
+  const applyLiveBoardZoom = setupBoardCameraZoom($('liveBoardZoomReadout'), $('liveBoardZoomOutBtn'), $('liveBoardZoomInBtn'), 'rpg_ficha_liveboard_zoom');
+  boardCameraApply = applyLiveBoardZoom;
   let liveBoardMetaRef = null, liveBoardMarksRef = null, liveBoardTokensRef = null, liveVitalsRef = null, liveBoardTurnRef = null;
   let liveBoardMetaCb = null, liveBoardMarksCb = null, liveBoardTokensCb = null, liveVitalsCb = null, liveBoardTurnCb = null;
   // Réplica em tempo real da animação de rolagem de moeda (ver broadcastDiceRoll()/
@@ -14415,7 +14702,7 @@ body{
   function buildLiveBoardHeaders(){
     const cols = liveBoardState.cols || 24, rows = liveBoardState.rows || 24;
     liveBoardColHeaderEl.innerHTML = '';
-    liveBoardColHeaderEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    liveBoardColHeaderEl.style.gridTemplateColumns = `repeat(${cols}, ${liveBoardCellPx}px)`;
     for(let c = 0; c < cols; c++){
       const cell = document.createElement('div');
       cell.className = 'board-header-cell';
@@ -14423,7 +14710,7 @@ body{
       liveBoardColHeaderEl.appendChild(cell);
     }
     liveBoardRowHeaderEl.innerHTML = '';
-    liveBoardRowHeaderEl.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+    liveBoardRowHeaderEl.style.gridTemplateRows = `repeat(${rows}, ${liveBoardCellPx}px)`;
     for(let r = 0; r < rows; r++){
       const cell = document.createElement('div');
       cell.className = 'board-header-cell';
@@ -14618,7 +14905,9 @@ body{
     }
     const rows = liveBoardState.rows || 24, cols = liveBoardState.cols || 24;
     buildLiveBoardHeaders();
-    liveBoardGridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    liveBoardGridEl.style.gridTemplateColumns = `repeat(${cols}, ${liveBoardCellPx}px)`;
+    liveBoardGridEl.style.gridTemplateRows = `repeat(${rows}, ${liveBoardCellPx}px)`;
+    refreshBoardCameraIfDimsChanged(rows, cols);
     liveBoardGridEl.innerHTML = '';
     liveBoardGridEl.classList.toggle('has-custom-bg', !!liveBoardState.background);
     liveBoardGridEl.style.backgroundImage = liveBoardState.background ? `url(${liveBoardState.background})` : '';
@@ -14681,7 +14970,7 @@ body{
           }
           const t = document.createElement('div');
           const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
-          const dead = isHeroDead(token);
+          const dead = isHeroDead(token) || isInstanceDead(token);
           const isBlock = isBlockKind(token.kind);
           t.className = 'board-token token-' + token.kind + (isBlock ? '' : tokenSizeClass(token.size))
             + (isBlock ? ' token-block' : '')
@@ -15309,9 +15598,9 @@ body{
       lastRollSeenTs = val.ts;
       if(isFirstDelivery) return;
       if(val.by && val.by === currentUserKey) return;
-      if(val.kind === 'atributo') playRemoteAtributoRoll(val);
-      else if(val.kind === 'dano') playRemoteDanoRoll(val);
-      else if(val.kind === 'sorte') playRemoteSorteRoll(val);
+      if(val.kind === 'atributo') scheduleSyncedRoll(val.playAt, ()=> playRemoteAtributoRoll(val));
+      else if(val.kind === 'dano') scheduleSyncedRoll(val.playAt, ()=> playRemoteDanoRoll(val));
+      else if(val.kind === 'sorte') scheduleSyncedRoll(val.playAt, ()=> playRemoteSorteRoll(val));
     });
 
     loadHeroRoster();
@@ -16367,15 +16656,16 @@ body{
   // a única exceção que ainda lembra o estado por navegador.
   function setLiveBoardMinimized(min){
     liveBoardPanelEl.classList.toggle('minimized', min);
-    $('liveBoardMinimizeBtn').textContent = min ? '▸' : '▾';
-    $('liveBoardMinimizeBtn').title = min ? 'Expandir' : 'Minimizar';
+    // mantém o ▾/▸ do botão único da barra de cima sempre certo, mesmo quando o painel abre/fecha
+    // sozinho (ex.: um dado rolando com o tabuleiro minimizado). try/catch: na 1ª chamada, durante o
+    // carregamento, o chat ainda não existe no <script> (refreshMesaFixedMinimizeBtn() lê ele).
+    try{ refreshMesaFixedMinimizeBtn(); }catch(err){}
     if(min) stopLiveBoardBgFx(); else startLiveBoardBgFx();
     // o mini-tabuleiro ao vivo só existe de verdade (offsetWidth > 0) desminimizado — reaplica o
     // zoom agora que dá pra medir o tamanho natural certinho (mesma ideia de openMesaModal() lá
     // em cima, ver o comentário grande dentro de setupBoardZoom() no <script>).
     if(!min) applyLiveBoardZoom();
   }
-  $('liveBoardMinimizeBtn').addEventListener('click', ()=> setLiveBoardMinimized(!liveBoardPanelEl.classList.contains('minimized')));
   setLiveBoardMinimized(true);
 
   // ---------- chat da mesa (global — todo mundo logado, mestre e jogadores, no mesmo chat) ----------
@@ -16915,14 +17205,12 @@ body{
 
   function setChatMinimized(min){
     chatPanelEl.classList.toggle('minimized', min);
-    $('chatMinimizeBtn').textContent = min ? '▸' : '▾';
-    $('chatMinimizeBtn').title = min ? 'Expandir' : 'Minimizar';
+    try{ refreshMesaFixedMinimizeBtn(); }catch(err){}
     localStorage.setItem(CHAT_MIN_KEY, min ? '1' : '0');
     // painel minimizado esconde .chat-panel-body (display:none) — pausa o efeito de fundo junto,
     // sem sentido gastar timer/DOM com estrelinhas que ninguém está vendo.
     if(min) stopChatBgFx(); else startChatBgFx();
   }
-  $('chatMinimizeBtn').addEventListener('click', ()=> setChatMinimized(!chatPanelEl.classList.contains('minimized')));
   // chat agora começa MINIMIZADO por padrão (só fica aberto de cara se a pessoa já tinha
   // escolhido deixar aberto nesse navegador antes — daí o valor salvo é exatamente '0').
   setChatMinimized(localStorage.getItem(CHAT_MIN_KEY) !== '0');
