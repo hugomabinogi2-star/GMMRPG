@@ -5569,6 +5569,24 @@ body{
   border-color:var(--deity-eye-color,var(--gold-bright));
   box-shadow:0 0 12px var(--deity-eye-glow-soft, rgba(224,182,86,.75));
 }
+/* ---------- rolagem de Atributo embaixo do tabuleiro (rodada nova, pedido explícito: "no
+   index_mag adiciona os botões de seleção e rolagem de atributos em baixo do tabuleiro") ----------
+   os ícones 🎲/🎲+/🎲−/⚔️ que saíram do painel de Atributos numa rodada anterior ("serão
+   realocados posteriormente para a guia do tabuleiro") voltam aqui, na faixa de baixo
+   (#mesaFixedBottom), ao lado da moeda de Sorte -- mesmo estilo quadrado dela
+   (.dice-roll-btn.mesa-fixed-icon-btn), com um seletor de Atributo em lista do lado. */
+.mesa-fixed-bottom .mesa-attr-roll-btn{width:44px;margin-top:0;padding:0;}
+.mesa-fixed-attr-sep{width:1px;height:28px;background:var(--border-brown);opacity:.45;margin:0 4px;}
+.mesa-fixed-select{
+  flex:0 0 auto;height:44px;
+  font-family:'Cinzel Decorative',serif;font-size:12.5px;letter-spacing:.04em;
+  padding:0 8px;border-radius:4px;border:1px solid var(--border-brown);
+  background:linear-gradient(180deg,#2a2016,#1c150e);color:#f3d9c9;cursor:pointer;
+}
+.mesa-fixed-select:hover, .mesa-fixed-select:focus{border-color:var(--gold-bright);outline:none;}
+.mesa-fixed-icon-sign{font-family:'Cinzel Decorative',serif;font-size:13px;font-weight:900;line-height:1;margin-left:1px;}
+.mesa-fixed-icon-sign.plus{color:#2ecc40;}
+.mesa-fixed-icon-sign.minus{color:#ff4136;}
 </style>
 </head>
 <body>
@@ -6324,6 +6342,26 @@ body{
          pra não arriscar quebrar nada só pra limpar CSS morto; dá pra remover numa faxina futura. -->
     <div class="mesa-fixed-bottom" id="mesaFixedBottom">
       <button id="rollSorteBtn" type="button" class="dice-roll-btn mesa-fixed-sorte-btn mesa-fixed-icon-btn ar-ap-tip" aria-label="Jogar a Sorte">🪙<div class="cs-tooltip">RODA SORTE</div></button>
+      <!-- rodada nova, pedido explícito ("adiciona os botões de seleção e rolagem de atributos em
+           baixo do tabuleiro"): seletor de Atributo (em lista) + 🎲 normal / 🎲+ vantagem /
+           🎲− desvantagem / ⚔️ dano do Atributo (1d3 + bônus) -- os mesmos ícones que moravam no
+           painel de Atributos da ficha. O seletor anda junto com o clique no campo do Atributo na
+           ficha (selectAttrForRoll(), nos dois sentidos) e os botões só chamam as MESMAS funções
+           de sempre (rollAtributoIconSelected()/rollAtributoDanoIconSelected()) -- toda a regra
+           de turno/efeitos/sincronia continua lá, sem nada duplicado. -->
+      <span class="mesa-fixed-attr-sep" aria-hidden="true"></span>
+      <select id="attrRollSelect" class="mesa-fixed-select" aria-label="Atributo a rolar" title="Atributo a rolar">
+        <option value="for">FOR</option>
+        <option value="con">CON</option>
+        <option value="des">DES</option>
+        <option value="int">INT</option>
+        <option value="von">VON</option>
+        <option value="car">CAR</option>
+      </select>
+      <button type="button" class="dice-roll-btn mesa-fixed-icon-btn mesa-attr-roll-btn ar-ap-tip" id="attrRollNormalBtn" aria-label="Rolamento de atributo">🎲<div class="cs-tooltip">ROLAMENTO DE ATRIBUTO</div></button>
+      <button type="button" class="dice-roll-btn mesa-fixed-icon-btn mesa-attr-roll-btn ar-ap-tip" id="attrRollAdvBtn" aria-label="Rolamento de atributo em vantagem">🎲<span class="mesa-fixed-icon-sign plus">+</span><div class="cs-tooltip">ROLAMENTO DE ATRIBUTO EM VANTAGEM</div></button>
+      <button type="button" class="dice-roll-btn mesa-fixed-icon-btn mesa-attr-roll-btn ar-ap-tip" id="attrRollDisBtn" aria-label="Rolamento de atributo em desvantagem">🎲<span class="mesa-fixed-icon-sign minus">−</span><div class="cs-tooltip">ROLAMENTO DE ATRIBUTO EM DESVANTAGEM</div></button>
+      <button type="button" class="dice-roll-btn mesa-fixed-icon-btn mesa-attr-roll-btn ar-ap-tip" id="attrRollDanoBtn" aria-label="Dano do atributo">⚔️<div class="cs-tooltip">DANO DO ATRIBUTO (1D3 + BÔNUS)</div></button>
     </div>
   </div>
 
@@ -10524,6 +10562,9 @@ body{
   // selecionado por padrão (mesmo valor default do <select id="diceStat">).
   function selectAttrForRoll(key){
     diceStat.value = key;
+    // mantém o seletor da faixa de baixo do tabuleiro (#attrRollSelect) no mesmo Atributo
+    const attrRollSelectEl = $('attrRollSelect');
+    if(attrRollSelectEl && attrRollSelectEl.value !== key) attrRollSelectEl.value = key;
     ATTR_KEYS.forEach(k=>{
       const el = ATTR_INPUT_BY_KEY[k];
       if(el) el.classList.toggle('attr-input-selected', k === key);
@@ -13357,6 +13398,20 @@ body{
     danoQtd.value = 1;
     danoMax.value = 3;
     rollDanoBtn.click();
+  }
+
+  // faixa de baixo do tabuleiro (ver #attrRollSelect/#attrRoll*Btn no HTML): o seletor escolhe o
+  // Atributo (mesmo efeito de clicar no campo dele na ficha, selectAttrForRoll()); cada botão
+  // reafirma esse Atributo ANTES de rolar -- uma rolagem de Habilidade no meio do caminho pode ter
+  // trocado o diceStat escondido pra outro Atributo -- e só então chama a função de sempre.
+  const attrRollSelect = $('attrRollSelect');
+  if(attrRollSelect){
+    attrRollSelect.addEventListener('change', ()=> selectAttrForRoll(attrRollSelect.value));
+    const rollFromBar = (fn)=>{ selectAttrForRoll(attrRollSelect.value); fn(); };
+    $('attrRollNormalBtn').addEventListener('click', ()=> rollFromBar(()=> rollAtributoIconSelected('normal')));
+    $('attrRollAdvBtn').addEventListener('click', ()=> rollFromBar(()=> rollAtributoIconSelected('vantagem')));
+    $('attrRollDisBtn').addEventListener('click', ()=> rollFromBar(()=> rollAtributoIconSelected('desvantagem')));
+    $('attrRollDanoBtn').addEventListener('click', ()=> rollFromBar(rollAtributoDanoIconSelected));
   }
 
   // "O tabuleiro já foi revelado agora?" -- pedido explícito ("Rolamentos são livres enquanto um
