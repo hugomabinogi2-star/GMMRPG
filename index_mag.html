@@ -760,6 +760,7 @@ body{
 }
 .live-board-wrap.panning{cursor:grabbing;}
 .live-board-hint{font-size:11px;color:var(--ink-faint);min-height:14px;text-align:center;position:relative;z-index:1;}
+.live-board-hint.live-sync-error{color:#ffb4a8;font-weight:700;font-size:12px;cursor:pointer;}
 .board-token.live-board-token-mine{cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.65), inset 0 0 0 2px var(--gold-bright);}
 
 /* ---------- faixa fixa de Tabuleiro+Chat, FORA do cartão que vira (rodada nova) ---------- */
@@ -8659,7 +8660,7 @@ body{
       by: currentUserKey || null,
       ts: firebase.database.ServerValue.TIMESTAMP,
     });
-    fbDb.ref('mesa40k/liveBoard/lastHit').set(payload).catch(()=>{});
+    fbDb.ref('mesa40k/liveBoard/lastHit').set(payload).catch(err=> reportLiveSyncError('mesa40k/liveBoard/lastHit', 'a animação do ataque', err));
   }
 
   // ---------- Menu circular de habilidades (clique ESQUERDO no token): Ações Ofensivas/Defensivas
@@ -15368,7 +15369,18 @@ body{
   }
 
   function boardKey(r,c){ return r + '_' + c; }
-  function getCellEl(r,c){ return boardGrid.children[r * BOARD_COLS + c]; }
+  // CORREÇÃO (bug relatado: "quando um jogador está fazendo a sua ação as animações... não estão
+  // sendo geradas"): boardGrid é o MESMO #liveBoardGrid pros dois papéis, mas BOARD_COLS é o tamanho
+  // do tabuleiro do MESTRE -- no navegador do JOGADOR ele fica sempre no padrão (8), enquanto a grade
+  // desenhada usa liveBoardState.cols (o tamanho de verdade publicado pelo mestre). Num tabuleiro de
+  // 12 colunas, getCellEl(5,9) devolvia a casa (4,1): a animação de ataque (⚔️, "-dano", o tremor do
+  // alvo e o "bote" de quem atacou) caía na casa ERRADA -- ou em nenhuma -- em toda tela de jogador,
+  // tanto de quem atacou quanto de quem só estava olhando. currentRole !== 'jogador' (e não ===
+  // 'mestre') de propósito: antes do login currentRole é null e liveBoardState ainda nem existe.
+  function getCellEl(r,c){
+    const cols = (currentRole !== 'jogador') ? BOARD_COLS : ((liveBoardState && liveBoardState.cols) || 8);
+    return boardGrid.children[r * cols + c];
+  }
 
   // monta o mesmo formato "tokensOut" usado tanto pra salvar um tabuleiro no GitHub (SALVAR) quanto
   // pra publicar ao vivo no Firebase (scheduleBoardTokensPush(), mais abaixo) — sem a imagem
@@ -18804,7 +18816,37 @@ body{
     fbDb.ref('mesa40k/liveBoard/lastRoll').set(Object.assign({}, payload, {
       by: currentUserKey || null,
       ts: firebase.database.ServerValue.TIMESTAMP,
-    })).catch(()=>{});
+    })).catch(err=> reportLiveSyncError('mesa40k/liveBoard/lastRoll', 'a animação dos dados', err));
+  }
+  // Rodada nova (bug relatado: "quando um jogador está fazendo a sua ação as animações e logs não
+  // estão sendo gerados... precisam ser geradas para todos olhando o tabuleiro"): as gravações que
+  // levam a animação/mensagem de uma ação pros OUTROS navegadores (lastHit/lastRoll/chat) falhavam
+  // em SILÊNCIO (".catch(()=>{})") -- se o Firebase recusar (ex.: regras que só deixam o MESTRE
+  // gravar em mesa40k/liveBoard/lastHit), quem agiu continuava vendo tudo na própria tela e ninguém
+  // mais via nada, sem nenhum aviso em lugar nenhum. Agora a falha aparece no console E num aviso
+  // visível embaixo do tabuleiro (uma vez por caminho por sessão, pra não inundar a tela).
+  const liveSyncErrorsShown = new Set();
+  function reportLiveSyncError(caminho, oQue, err){
+    console.error(`Não foi possível publicar ${oQue} pra mesa (${caminho}):`, err);
+    if(liveSyncErrorsShown.has(caminho)) return;
+    liveSyncErrorsShown.add(caminho);
+    const negado = err && /permission|denied/i.test(String(err.code || err.message || err));
+    const msg = negado
+      ? `⚠️ O Firebase recusou enviar ${oQue} pros outros jogadores (sem permissão em ${caminho}). Só você está vendo — avise o mestre pra revisar as regras do Firebase.`
+      : `⚠️ Não foi possível enviar ${oQue} pros outros jogadores agora (${caminho}). Verifique a conexão.`;
+    // elemento próprio (logo abaixo de #liveBoardHint) -- o #liveBoardHint é reescrito por várias
+    // ações de movimento, e o aviso sumiria na hora.
+    let warn = $('liveSyncWarning');
+    const hint = $('liveBoardHint');
+    if(!warn && hint && hint.parentNode){
+      warn = document.createElement('div');
+      warn.id = 'liveSyncWarning';
+      warn.className = 'live-board-hint live-sync-error';
+      warn.title = 'Clique pra esconder';
+      warn.addEventListener('click', ()=>{ warn.textContent = ''; });
+      hint.parentNode.insertBefore(warn, hint.nextSibling);
+    }
+    if(warn) warn.textContent = msg;
   }
   // As 3 funções abaixo desenham, em QUALQUER navegador que receba um valor novo em
   // mesa40k/liveBoard/lastRoll (ver o listener em connectLiveBoard()), a MESMA animação que quem
@@ -22394,7 +22436,7 @@ body{
       kind: 'evento', nome, role: currentRole, uid: currentUser.uid, texto: content,
       imagem: imageDataUrl || null, imagem2: imageDataUrl2 || null,
       ts: firebase.database.ServerValue.TIMESTAMP
-    });
+    }).catch(err=> reportLiveSyncError('mesa40k/chat', 'a mensagem da ação (log)', err));
   }
 
   function sendChatMessage(){
@@ -22775,6 +22817,10 @@ body{
         const val = snap.val();
         firebaseSyncedWebhook = (val === null || val === undefined) ? null : val;
         refreshWebhookStatus();
+      }, (err)=>{
+        // sem permissão de leitura aqui, as mensagens deste navegador pro Discord iriam pro webhook
+        // padrão/antigo em vez do configurado pelo mestre -- o "log" sumiria do canal certo.
+        reportLiveSyncError('mesa40k/config/webhook', 'o webhook do Discord (os logs desta tela podem não chegar no canal certo)', err);
       });
       $('chatPanel').hidden = false;
       connectChat();
