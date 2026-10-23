@@ -2,13 +2,6 @@
   {
     "nome": "Bulleta",
     "tipo": "movimento",
-    "de": "I10",
-    "para": "H10",
-    "ts": 1787832129995
-  },
-  {
-    "nome": "Bulleta",
-    "tipo": "movimento",
     "de": "H10",
     "para": "F10",
     "ts": 1787832141191
@@ -261,5 +254,14 @@
     "resultado": 17,
     "resultLabel": "Erro",
     "ts": 1790893936410
+  },
+  {
+    "nome": "DUMMY",
+    "tipo": "atributo",
+    "statKey": "con",
+    "statValor": 14,
+    "resultado": 17,
+    "resultLabel": "Acerto",
+    "ts": 1792787316916
   }
 ]
