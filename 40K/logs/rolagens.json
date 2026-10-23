@@ -1,13 +1,6 @@
 [
   {
     "nome": "Arqueira",
-    "tipo": "movimento",
-    "de": "J6",
-    "para": "K5",
-    "ts": 1790897897366
-  },
-  {
-    "nome": "Arqueira",
     "tipo": "atributo",
     "statKey": "des",
     "statValor": 6,
@@ -278,5 +271,22 @@
     "de": "F3",
     "para": "E3",
     "ts": 1792060046863
+  },
+  {
+    "nome": "Arqueira2",
+    "tipo": "dano",
+    "qtd": 1,
+    "maxVal": 3,
+    "bonus": 2,
+    "rolls": [
+      3
+    ],
+    "resultado": 5,
+    "habilidade": null,
+    "atributo": "FOR",
+    "grito": null,
+    "danoTipo": null,
+    "setEscudo": null,
+    "ts": 1792795112903
   }
 ]
