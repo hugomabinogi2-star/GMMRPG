@@ -10564,6 +10564,8 @@ body{
 
   // Busca metadados de um arquivo (usado para obter o sha antes de sobrescrever). Retorna null se não existir.
   async function githubGetFileMeta(path){
+    const fbLoc = fbStoreLocate(path);
+    if(fbLoc) return fbStoreGet(fbLoc).then(r=> r ? { sha: r.sha } : null);
     const res = await fetch(apiUrl(path), { headers: githubHeaders(false) });
     if(res.status === 404) return null;
     if(!res.ok) throw new Error(friendlyGithubError(res));
@@ -10572,6 +10574,8 @@ body{
 
   // Busca o conteúdo decodificado de um arquivo (além do sha). Retorna null se não existir.
   async function githubGetFileContent(path){
+    const fbLoc = fbStoreLocate(path);
+    if(fbLoc) return fbStoreGet(fbLoc);
     const res = await fetch(apiUrl(path), { headers: githubHeaders(false) });
     if(res.status === 404) return null;
     if(!res.ok) throw new Error(friendlyGithubError(res));
@@ -10586,6 +10590,8 @@ body{
   // comum. Se o sha usado estiver desatualizado (outra pessoa salvou por cima nesse meio tempo), o
   // GitHub recusa com 409/422 e aí sim busca o sha real e tenta de novo uma única vez.
   async function githubPutFile(path, jsonObj, message, knownSha){
+    const fbLoc = fbStoreLocate(path);
+    if(fbLoc) return fbStorePut(fbLoc, jsonObj);
     let sha = knownSha;
     if(sha === undefined){
       const existing = await githubGetFileMeta(path).catch(()=>null);
@@ -10611,6 +10617,8 @@ body{
 
   // Apaga um arquivo do repositório.
   async function githubDeleteFile(path, sha, message){
+    const fbLoc = fbStoreLocate(path);
+    if(fbLoc) return fbStoreDelete(fbLoc);
     const res = await fetch(apiUrl(path), {
       method:'DELETE',
       headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
@@ -10625,12 +10633,106 @@ body{
 
   // Lista os arquivos dentro da pasta de fichas. Retorna [] se a pasta ainda não existir.
   async function githubListFolder(path){
+    const fbLoc = fbStoreLocate(path);
+    if(fbLoc && fbLoc.kind === 'folder') return fbStoreList(fbLoc);
     const res = await fetch(apiUrl(path), { headers: githubHeaders(false) });
     if(res.status === 404) return [];
     if(!res.ok) throw new Error(friendlyGithubError(res));
     const data = await res.json();
     return Array.isArray(data) ? data : [];
   }
+
+  // ======================================================================================
+  // DADOS NO FIREBASE (rodada nova, pedido explícito: "demora um pouco para o sistema salvar as
+  // fichas, ou mesmo pra reconhecer que elas foram salvas... talvez trocar o github por algo mais
+  // rápido?"). Fichas de jogador, fichas do mestre, tabuleiros salvos e o Enredo deixaram de morar
+  // no GitHub (cada "Salvar" virava um commit de 1-3s, a leitura vinha de um cache de vários
+  // minutos -- "salvei e não aparece" -- e cada jogador precisava de um token do GitHub com
+  // permissão de escrever no repositório inteiro) e passaram a morar no MESMO Firebase que o login/
+  // chat/tabuleiro já usam, em mesa/arquivos/<pasta>/<arquivo>. Salvar leva uma fração de
+  // segundo, a leitura é sempre a versão mais nova, e quem pode gravar o quê é decidido pelas
+  // regras do Firebase (dono da ficha ou mestre), sem token nenhum.
+  // Implementado como um "desvio" DENTRO das próprias githubListFolder()/githubGetFileContent()/
+  // githubGetFileMeta()/githubPutFile()/githubDeleteFile(): quando o caminho é de uma dessas
+  // pastas/arquivos (ver fbStoreLocate()), a função responde do Firebase NO MESMO FORMATO que a
+  // API do GitHub respondia (inclusive o download_url de cada arquivo, agora um data: URL com o
+  // JSON) -- todo o resto do <script> que lista/abre/salva/apaga fichas e tabuleiros continua
+  // exatamente igual, sem saber da troca. Outros arquivos do GitHub (vídeo de abertura, imagens)
+  // continuam vindo do GitHub normalmente. Cada registro guarda o JSON como TEXTO (campo "json"),
+  // idêntico ao arquivo antigo -- o Firebase não aceita chaves com "." nem listas vazias, e assim
+  // nada da ficha muda ao ir e voltar -- mais ownerUid/donoChave/nome soltos, que as regras usam
+  // pra saber quem é o dono. Sem importação dos arquivos antigos do GitHub de propósito: o projeto
+  // ainda está em criação e as fichas/tabuleiros de teste podem ser refeitos (pedido explícito) --
+  // os arquivos antigos continuam no GitHub, só não são mais lidos.
+  const FB_STORE_ROOT = 'mesa/arquivos';
+  // calculado na hora (não numa constante no topo) porque BOARDS_PATH/ENREDO_PATH são declaradas
+  // mais abaixo no <script> que estas funções.
+  function fbStoreLocate(p){
+    if(!p) return null;
+    const folders = [[FICHAS_PATH, 'fichas'], [FICHAS_MESTRE_PATH, 'fichas_mestre'], [BOARDS_PATH, 'tabuleiros']];
+    for(const [folder, key] of folders){
+      if(p === folder) return { kind:'folder', folder, node: FB_STORE_ROOT + '/' + key };
+      if(p.startsWith(folder + '/')){
+        const name = p.slice(folder.length + 1);
+        if(!name || name.includes('/')) return null;
+        return { kind:'file', folder, name, node: FB_STORE_ROOT + '/' + key + '/' + fbStoreEncodeKey(name) };
+      }
+    }
+    if(p === ENREDO_PATH) return { kind:'file', folder:null, name:'enredo.json', node: FB_STORE_ROOT + '/enredo' };
+    return null;
+  }
+  // chaves do Firebase não aceitam . # $ [ ] / -- "ficha_x.json" vira "ficha_x,json"
+  function fbStoreEncodeKey(name){ return String(name).replace(/\./g, ',').replace(/[#$\[\]\/]/g, '_'); }
+  function fbStoreDecodeKey(key){ return String(key).replace(/,/g, '.'); }
+  function fbStoreNewSha(){ return 'fb' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+  function fbStoreReady(){
+    if(!fbReady || !fbDb) throw new Error('Firebase indisponível — não dá pra acessar as fichas agora.');
+  }
+  function fbStoreDataUrl(json){ return 'data:application/json;charset=utf-8,' + encodeURIComponent(json || 'null'); }
+  async function fbStoreList(loc){
+    fbStoreReady();
+    const val = (await fbDb.ref(loc.node).once('value')).val() || {};
+    return Object.keys(val).filter(k=> val[k] && typeof val[k].json === 'string').map(k=>{
+      const name = fbStoreDecodeKey(k);
+      return { type:'file', name, path: loc.folder + '/' + name, sha: val[k].sha || null, size: val[k].json.length, download_url: fbStoreDataUrl(val[k].json) };
+    });
+  }
+  async function fbStoreGet(loc){
+    fbStoreReady();
+    const rec = (await fbDb.ref(loc.node).once('value')).val();
+    if(!rec || typeof rec.json !== 'string') return null;
+    return { sha: rec.sha || null, content: rec.json };
+  }
+  async function fbStorePut(loc, jsonObj){
+    fbStoreReady();
+    if(!currentUser) throw new Error('Faça login pra salvar.');
+    const sha = fbStoreNewSha();
+    const rec = {
+      json: JSON.stringify(jsonObj, null, 2), sha,
+      nome: (jsonObj && typeof jsonObj.nome === 'string') ? jsonObj.nome : null,
+      ownerUid: (jsonObj && jsonObj.ownerUid) || null,
+      donoChave: (jsonObj && jsonObj.donoChave) || null,
+      porUid: currentUser.uid,
+      ts: firebase.database.ServerValue.TIMESTAMP,
+    };
+    try{
+      await fbDb.ref(loc.node).set(rec);
+    }catch(err){
+      const negado = /permission|denied/i.test(String((err && (err.code || err.message)) || err));
+      throw new Error(negado ? 'SEM PERMISSÃO (403): as regras do Firebase não deixam esta conta salvar aqui.' : ('Erro ao salvar no Firebase: ' + ((err && err.message) || err)));
+    }
+    return { content: { sha, path: loc.folder ? (loc.folder + '/' + loc.name) : loc.name } };
+  }
+  async function fbStoreDelete(loc){
+    fbStoreReady();
+    await fbDb.ref(loc.node).remove();
+    return {};
+  }
+  // gravar nesses caminhos não precisa mais de token do GitHub -- só estar logado
+  function canWriteStore(p){
+    return fbStoreLocate(p) ? !!(fbReady && fbDb && currentUser) : !!getToken();
+  }
+
 
   // Roda fn(item) pra cada item da lista, no máximo `limit` de cada vez, em vez de todos ao mesmo
   // tempo. Buscar tudo de uma vez (ex: várias fichas, cada uma podendo ter um retrato de foto de
@@ -10732,29 +10834,11 @@ body{
     const imagemHabilidade = entry.habilidadeImagem || null;
     postToDiscord(formatRollMessage(entry), imagemParaDiscord, imagemHabilidade); // independe do token do GitHub
 
-    if(!getToken()) return;
-    try{
-      const existing = await githubGetFileContent(ROLL_LOG_PATH).catch(()=>null);
-      let arr = [];
-      if(existing){
-        try{ arr = JSON.parse(existing.content); if(!Array.isArray(arr)) arr = []; }catch(e){ arr = []; }
-      }
-      arr.push(entry);
-      if(arr.length > ROLL_LOG_MAX) arr = arr.slice(arr.length - ROLL_LOG_MAX);
-      const body = {
-        message: `Registra rolagem de ${entry.nome || 'alguém'}`,
-        content: b64EncodeUnicode(JSON.stringify(arr, null, 2))
-      };
-      if(existing && existing.sha) body.sha = existing.sha;
-      await fetch(apiUrl(ROLL_LOG_PATH), {
-        method:'PUT',
-        headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
-        body: JSON.stringify(body)
-      });
-      pushRollLogFeed(entry);
-    }catch(err){
-      console.warn('Não foi possível registrar a rolagem no histórico compartilhado:', err);
-    }
+    // DADOS NO FIREBASE (ver comentário grande perto de fbStoreLocate()): o histórico era um arquivo
+    // no GitHub reescrito INTEIRO a cada dado rolado (1 commit por rolagem, só pra quem tinha token)
+    // e não é lido por nenhuma tela desde que a guia de histórico saiu -- agora é só o feed do
+    // Firebase que já existia, pra todo mundo, na hora.
+    pushRollLogFeed(entry);
   }
 
   // Movimentação no tabuleiro ao vivo (ver handleLiveBoardDrop() mais abaixo) registra a casa de
@@ -10767,29 +10851,11 @@ body{
     // mesma regra de pushRollLog(): ficha (token) sem nome não entra no Histórico de Rolagens.
     if(isBlankName(entry && entry.nome)) return;
     if(isSilenceActive()) return;
-    if(!getToken()) return;
-    try{
-      const existing = await githubGetFileContent(ROLL_LOG_PATH).catch(()=>null);
-      let arr = [];
-      if(existing){
-        try{ arr = JSON.parse(existing.content); if(!Array.isArray(arr)) arr = []; }catch(e){ arr = []; }
-      }
-      arr.push(entry);
-      if(arr.length > ROLL_LOG_MAX) arr = arr.slice(arr.length - ROLL_LOG_MAX);
-      const body = {
-        message: `Registra movimentação de ${entry.nome || 'alguém'}`,
-        content: b64EncodeUnicode(JSON.stringify(arr, null, 2))
-      };
-      if(existing && existing.sha) body.sha = existing.sha;
-      await fetch(apiUrl(ROLL_LOG_PATH), {
-        method:'PUT',
-        headers: { ...githubHeaders(true), 'Content-Type':'application/json' },
-        body: JSON.stringify(body)
-      });
-      pushRollLogFeed(entry);
-    }catch(err){
-      console.warn('Não foi possível registrar a movimentação no histórico compartilhado:', err);
-    }
+    // DADOS NO FIREBASE (ver comentário grande perto de fbStoreLocate()): o histórico era um arquivo
+    // no GitHub reescrito INTEIRO a cada dado rolado (1 commit por rolagem, só pra quem tinha token)
+    // e não é lido por nenhuma tela desde que a guia de histórico saiu -- agora é só o feed do
+    // Firebase que já existia, pra todo mundo, na hora.
+    pushRollLogFeed(entry);
   }
 
   // Rodada nova ("FASE 4b"), igual ao index_mag.html ("remove a guia de histórico de rolagens"): a
@@ -13268,7 +13334,7 @@ body{
   boardSaveBtn.addEventListener('click', async ()=>{
     const name = boardNameInput.value.trim();
     if(!name){ boardSaveHint.textContent = 'Digite um nome para o tabuleiro antes de salvar.'; return; }
-    if(!getToken()){
+    if(!canWriteStore(BOARDS_PATH)){
       alert('Configure seu token do GitHub primeiro (botão "🔑 Meu token do GitHub") para poder salvar tabuleiros.');
       tokenModal.hidden = false;
       return;
@@ -13348,7 +13414,7 @@ body{
           boardLoadList.hidden = true;
         });
         card.querySelector('.mc-delete').addEventListener('click', async ()=>{
-          if(!getToken()){
+          if(!canWriteStore(BOARDS_PATH)){
             alert('Configure seu token do GitHub para poder apagar tabuleiros.');
             tokenModal.hidden = false;
             return;
@@ -13618,7 +13684,7 @@ body{
       alert('Escreva o nome do personagem antes de salvar na mesa — é ele que identifica sua ficha para o mestre.');
       return;
     }
-    if(!getToken()){
+    if(!canWriteStore(loadedFichaPath || FICHAS_PATH)){
       alert('Configure seu token do GitHub primeiro para poder salvar.');
       tokenModal.hidden = false;
       return;
@@ -13972,7 +14038,7 @@ body{
                 alert('Só o mestre pode apagar fichas.');
                 return;
               }
-              if(!getToken()){
+              if(!canWriteStore(path)){
                 alert('Configure seu token do GitHub para poder apagar fichas.');
                 tokenModal.hidden = false;
                 return;
@@ -16620,7 +16686,7 @@ body{
   // único lugar que fala com o GitHub de verdade -- grava enredoData inteiro de uma vez (chamado
   // só pelo clique em "💾 Salvar", nunca automaticamente ao adicionar/remover um bloco).
   enredoSaveBtn.addEventListener('click', async ()=>{
-    if(!getToken()){
+    if(!canWriteStore(ENREDO_PATH)){
       alert('Configure seu token do GitHub primeiro para poder salvar o Enredo.');
       tokenModal.hidden = false;
       return;
