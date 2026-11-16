@@ -6036,6 +6036,34 @@ body.rt-on .rt-dice-group.rt-dice-old{ opacity:.5; transform:scale(.72); transfo
 body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-height:1.25; }
 .rt-dano-pair .dice-result{ --die-color:#c4161c; }
 .rt-dano-cap{ color:#ffb0a0; }
+/* Wiki no verso do cartão */
+.rt-wiki-face .rt-wiki{ padding:6px 4px 10px; }
+.rt-wiki-face[hidden]{ display:none; }
+.card.ficha-locked .face-inner > #wikiFace{ pointer-events:auto; }
+.card.ficha-locked #wikiFace button::after{ display:none !important; }
+.toolbar.ficha-locked #wikiBtn{ pointer-events:auto !important; opacity:1 !important; }
+.toolbar.ficha-locked #wikiBtn::after{ display:none !important; }
+#wikiBtn.on{ filter:brightness(1.15); }
+/* barras de Ímpeto e Degradação do Véu (embaixo do tabuleiro) */
+.rt-meters{ display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:6px 12px 2px; position:relative; z-index:1; }
+.rt-meters[hidden]{ display:none; }
+.rt-meter{ font-family:'Cinzel Decorative', serif; color:#e9dcbc; cursor:help; }
+.rt-meter-head{ display:flex; justify-content:space-between; align-items:baseline; font-size:11px; letter-spacing:.06em; margin-bottom:3px; }
+.rt-meter-head b{ font-size:12px; color:#ffd36b; }
+.rt-meter-track{ position:relative; height:10px; border-radius:6px; background:rgba(0,0,0,.55); border:1px solid rgba(212,172,90,.55); overflow:hidden; box-shadow:inset 0 1px 3px rgba(0,0,0,.8); }
+.rt-meter-fill{ position:absolute; left:0; top:0; bottom:0; width:0; transition:width .5s ease, background .5s; }
+.rt-meter-impeto .rt-meter-fill{ background:linear-gradient(90deg, #7d1116, #c4161c 15%, #b8862e 40%, #d4ac5a 75%, #ffe08a); }
+.rt-meter-veu .rt-meter-fill{ background:linear-gradient(90deg, #3a2a6a, #7b4fd0 60%, #c77dff); }
+.rt-meter-tick{ position:absolute; top:-1px; bottom:-1px; width:2px; background:rgba(233,220,188,.85); transform:translateX(-1px); }
+.rt-meter-zones{ display:flex; justify-content:space-between; font-size:8.5px; color:#cdb98d; margin-top:2px; letter-spacing:.04em; }
+.rt-meter-impeto.heroico .rt-meter-track{ box-shadow:0 0 8px 2px rgba(255,211,107,.7); }
+.rt-meter-impeto.heroico .rt-meter-head b{ color:#fff3c0; text-shadow:0 0 6px #ffd36b; }
+.rt-meter-impeto.desespero .rt-meter-track{ box-shadow:0 0 8px 2px rgba(196,22,28,.75); }
+.rt-meter-impeto.desespero .rt-meter-head b{ color:#ff8a7a; }
+.rt-meter-veu.perigo .rt-meter-track{ box-shadow:0 0 8px 2px rgba(199,125,255,.75); animation:rtVeuPulsa 1.4s ease-in-out infinite; }
+.rt-meter-veu.perigo .rt-meter-head b{ color:#e3b8ff; }
+@keyframes rtVeuPulsa{ 50%{ box-shadow:0 0 14px 4px rgba(199,125,255,.9); } }
+@media (max-width:640px){ .rt-meters{ grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -6164,6 +6192,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
        reservada embaixo do tabuleiro+chat (#mesaFixedBottom, ver .stage no HTML), já que MESA
        deixou de virar o cartão e passou a abrir logo abaixo dessa faixa. -->
   <button class="flip-btn" id="flipBtn">↺ VER VERSO</button>
+  <button class="flip-btn rt-wiki-btn" id="wikiBtn" title="Wiki: regras do tabuleiro, habilidades, talentos, armas e o resto, com busca">📖 WIKI</button>
   <button class="cloud-btn" id="cloudSaveBtn">SALVAR</button>
   <button id="silenceBtn" class="mestre-only silence-btn" aria-pressed="false" title="Quando marcado, nada do que acontecer na ficha é enviado ao Discord nem entra no histórico compartilhado">🔊 SILENCIAR</button>
   <button id="masterBtn">📜 FICHAS DE JOGADOR</button>
@@ -6338,6 +6367,18 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
                .ap-dots-bar no <style> e renderApDots() no <script>. Compartilhada pelos dois
                papéis, mesmo motivo de #turnPhaseBanner acima. -->
           <div class="ap-dots-bar" id="apDotsBar" hidden></div>
+          <div class="rt-meters" id="rtMeters" hidden>
+            <div class="rt-meter rt-meter-impeto" id="rtMeterImpeto" title="Ímpeto do grupo (0–200). Ato Heroico com 175 ou mais (gasta 75); Medida Desesperada com 25 ou menos.">
+              <div class="rt-meter-head"><span>⚜ Ímpeto</span><b id="rtMeterImpetoVal">100/200</b></div>
+              <div class="rt-meter-track"><div class="rt-meter-fill" id="rtMeterImpetoFill"></div><i class="rt-meter-tick" style="left:12.5%"></i><i class="rt-meter-tick" style="left:87.5%"></i></div>
+              <div class="rt-meter-zones"><span>Medida Desesperada ≤ 25</span><span>Ato Heroico ≥ 175</span></div>
+            </div>
+            <div class="rt-meter rt-meter-veu" id="rtMeterVeu" title="Degradação do Véu (0–20). Poder menor +1, maior +3; baixa 1 por rodada sem poderes. Com 15 ou mais, poderes maiores podem causar Perigos da Disformidade.">
+              <div class="rt-meter-head"><span>🌀 Degradação do Véu</span><b id="rtMeterVeuVal">0/20</b></div>
+              <div class="rt-meter-track"><div class="rt-meter-fill" id="rtMeterVeuFill"></div><i class="rt-meter-tick" style="left:75%"></i></div>
+              <div class="rt-meter-zones"><span>Estável</span><span>Perigos ≥ 15</span></div>
+            </div>
+          </div>
 
           <!-- Rodada nova, pedido explícito: o banner "FASE DE AÇÃO" + baralho de cartas (Fase 4)
                e a barra de confirmação de alvo arrastado (Fase 5) saíram inteiros -- ver
@@ -6995,7 +7036,6 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
             <button type="button" class="rt-tab" data-rt-tab="progressao">⚔ Progressão <span class="rt-badge" id="rtPendBadge" hidden>0</span></button>
             <button type="button" class="rt-tab" data-rt-tab="habilidades">✦ Habilidades e Talentos</button>
             <button type="button" class="rt-tab" data-rt-tab="equip">⚙ Equipamento</button>
-            <button type="button" class="rt-tab" data-rt-tab="wiki">📖 Wiki</button>
           </div>
 
           <div class="rt-pane" data-rt-pane="ficha">
@@ -7101,10 +7141,6 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
               <label class="rt-lbl" for="rtPoderes">Anotações psíquicas</label>
               <textarea id="rtPoderes" class="rt-textarea" rows="2" placeholder="Anotações livres (poderes de outras disciplinas combinados com o mestre, etc.)"></textarea>
             </div>
-          </div>
-
-          <div class="rt-pane" data-rt-pane="wiki" hidden>
-            <div class="rt-wiki" id="rtWiki"></div>
           </div>
 
           <div class="rt-pane" data-rt-pane="equip" hidden>
@@ -7585,6 +7621,14 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
           <div class="history-wrap">
             <textarea id="f_historia" placeholder="Conte a origem, os laços e os segredos do seu personagem..."></textarea>
           </div>
+        </div>
+
+        <div class="verso-content rt-wiki-face" id="wikiFace" hidden>
+          <div class="ribbon">
+            <h1>Wiki</h1>
+            <div class="sub">Regras do tabuleiro, habilidades e catálogos</div>
+          </div>
+          <div class="rt-wiki" id="rtWiki"></div>
         </div>
 
         <!-- Rodada nova: #mesaContent saiu daqui (era o verso do cartão, virava junto com a
@@ -24788,7 +24832,6 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     if(tab === 'habilidades') rtRenderAbilities(comp);
     if(tab === 'equip') rtRenderEquip(comp);
     rtWeaponsSoftRender = false;
-    if(tab === 'wiki') rtRenderWiki();
     const pend = rtPendingChoices(rtState, comp.L);
     const badge = rtEl('rtPendBadge');
     badge.hidden = pend <= 0; badge.textContent = pend;
@@ -25017,6 +25060,37 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     return '<details class="rt-wiki-item" data-wiki-item="' + c.id + '/' + it.id + '"' + (aberto ? ' open' : '') + '><summary><span class="rt-wiki-tit">' + rtWikiMarca(it.titulo, termos) + '</span>'
       + (it.sub ? '<span class="rt-wiki-subt">' + rtWikiMarca(it.sub, termos) + '</span>' : '') + '</summary><div class="rt-wiki-body">' + it.html + '</div></details>';
   }
+  // a Wiki abre no verso do cartão, como o "Ver verso" (botão 📖 WIKI na barra do topo)
+  function rtWikiSetup(){
+    const btn = document.getElementById('wikiBtn'), face = document.getElementById('wikiFace');
+    const flip = document.getElementById('flipBtn'), verso = document.getElementById('versoContent');
+    if(!btn || !face || typeof card === 'undefined') return;
+    const textos = ()=>{
+      const virado = card.classList.contains('flipped');
+      const naWiki = virado && !face.hidden;
+      btn.textContent = naWiki ? '↺ VER FRENTE' : '📖 WIKI';
+      btn.classList.toggle('on', naWiki);
+      if(flip) flip.textContent = virado ? '↺ Ver frente' : '↺ Ver verso';
+    };
+    btn.addEventListener('click', ()=>{
+      const virado = card.classList.contains('flipped');
+      if(virado && !face.hidden){
+        card.classList.remove('flipped');
+      } else {
+        if(verso) verso.hidden = true;
+        face.hidden = false;
+        rtRenderWiki();
+        if(!virado) card.classList.add('flipped');
+      }
+      try{ playFlipSound(); }catch(e){}
+      textos();
+      try{ syncCardHeight(); }catch(e){}
+      if(card.classList.contains('flipped')) try{ card.scrollIntoView({ block:'start', behavior:'smooth' }); }catch(e){}
+    });
+    // "Ver verso" volta a mostrar a História (e não a Wiki)
+    if(flip) flip.addEventListener('click', ()=>{ if(card.classList.contains('flipped')) face.hidden = true; textos(); try{ syncCardHeight(); }catch(e){} });
+    if(flip) flip.addEventListener('click', ()=>{ if(!card.classList.contains('flipped')) face.hidden = true; }, true);
+  }
   function rtRenderWiki(){
     const box = rtEl('rtWiki'); if(!box) return;
     if(!rtWiki){ try{ rtWiki = rtWikiBuild(); }catch(e){ console.error(e); box.innerHTML = '<div class="rt-hint">Não foi possível montar a wiki.</div>'; return; } }
@@ -25024,6 +25098,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       box.dataset.ok = '1';
       box.innerHTML = '<div class="rt-wiki-top"><input type="search" id="rtWikiGeral" class="rt-wiki-busca" placeholder="🔎 Buscar em toda a wiki (ex.: rajada, cobertura, Véu, Investida)..."></div>'
         + '<div class="rt-wiki-cols"><nav class="rt-wiki-nav" id="rtWikiNav"></nav><section class="rt-wiki-main" id="rtWikiMain"></section></div>';
+      box.addEventListener('toggle', ()=> rtWikiAltura(), true);
       box.addEventListener('input', (e)=>{
         if(e.target.id === 'rtWikiGeral') rtWikiDesenha();
         if(e.target.id === 'rtWikiCatBusca') rtWikiDesenhaLista();
@@ -25051,6 +25126,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
         h += '<h4 class="rt-wiki-grupo">' + c.icon + ' ' + rtEsc(c.pt) + ' <small>(' + r.lista.length + ')</small></h4>' + r.lista.slice(0, 40).map(it=> rtWikiItemHtml(c, it, r.termos, false)).join('') + (r.lista.length > 40 ? '<div class="rt-hint">… mais ' + (r.lista.length - 40) + ' resultados nesta categoria — refine a busca.</div>' : '');
       });
       main.innerHTML = '<div class="rt-wiki-res">' + total + ' resultado(s) para "' + rtEsc(q) + '"</div>' + (h || '<div class="rt-hint">Nada encontrado.</div>');
+      rtWikiAltura();
       return;
     }
     const c = rtWiki.find(x=> x.id === rtWikiCat) || rtWiki[0];
@@ -25058,6 +25134,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       + '<input type="search" id="rtWikiCatBusca" class="rt-wiki-busca" placeholder="🔎 Buscar em ' + rtEsc(c.pt) + '..."></div><div id="rtWikiLista"></div>';
     rtWikiDesenhaLista();
   }
+  function rtWikiAltura(){ try{ if(typeof syncCardHeight === 'function') requestAnimationFrame(()=> syncCardHeight()); }catch(e){} }
   function rtWikiDesenhaLista(){
     const c = rtWiki.find(x=> x.id === rtWikiCat) || rtWiki[0];
     const q = (rtEl('rtWikiCatBusca') || {}).value || '';
@@ -25066,6 +25143,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     rtEl('rtWikiLista').innerHTML = (q.trim() ? '<div class="rt-wiki-res">' + r.lista.length + ' resultado(s)</div>' : '')
       + (r.lista.length ? r.lista.slice(0, lim).map(it=> rtWikiItemHtml(c, it, r.termos, rtWikiAberto === it.id || (q.trim() && r.lista.length <= 3))).join('') : '<div class="rt-hint">Nada encontrado.</div>')
       + (r.lista.length > lim ? '<div class="rt-hint">Mostrando ' + lim + ' de ' + r.lista.length + ' — use a busca para achar o resto.</div>' : '');
+    rtWikiAltura();
   }
 
   function rtSetTab(tab){
@@ -25735,6 +25813,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     rtSetTab('ficha');
     try{ rtWatchBadges(); }catch(e){}
     try{ rtSetupEndCombatBtn(); }catch(e){}
+    try{ rtWikiSetup(); }catch(e){ console.error(e); }
     setInterval(()=>{ try{ if(rtLastComputed) rtLesTick(rtLastComputed.wounds); }catch(e){} }, 1000);
   }
 
@@ -28124,6 +28203,29 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     }
     return wrap;
   }
+
+  // ---------- barras de Ímpeto e Véu embaixo do tabuleiro ----------
+  function rtUpdateMeters(){
+    const box = document.getElementById('rtMeters'); if(!box) return;
+    const ativo = !!(turnState && turnState.active && turnState.rt);
+    box.hidden = !ativo;
+    if(!ativo) return;
+    const r = turnState.rt;
+    const imp = Math.max(0, Math.min(200, r.momentum == null ? 100 : r.momentum));
+    const veu = Math.max(0, Math.min(20, r.veil || 0));
+    const sig = imp + '|' + veu;
+    if(box.dataset.sig === sig) return;
+    box.dataset.sig = sig;
+    document.getElementById('rtMeterImpetoVal').textContent = imp + '/200';
+    const fi = document.getElementById('rtMeterImpetoFill');
+    fi.style.width = (imp / 2) + '%';
+    const mi = document.getElementById('rtMeterImpeto');
+    mi.classList.toggle('heroico', imp >= 175); mi.classList.toggle('desespero', imp <= 25);
+    document.getElementById('rtMeterVeuVal').textContent = veu + '/20';
+    document.getElementById('rtMeterVeuFill').style.width = (veu * 5) + '%';
+    document.getElementById('rtMeterVeu').classList.toggle('perigo', veu >= 15);
+  }
+  setInterval(()=>{ try{ rtUpdateMeters(); }catch(e){} }, 400);
 
   // ---------- painel de turno ----------
   function rtTurnStatusBits(){
