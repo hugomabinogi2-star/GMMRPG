@@ -5975,6 +5975,67 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
 .rt-summary-tab input{ width:70px; }
 .rt-summary-acoes{ display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
 .rt-end-combat[hidden]{ display:none !important; }
+/* wiki */
+.rt-wiki-top{ margin-bottom:10px; }
+.rt-wiki-busca{ width:100%; box-sizing:border-box; padding:8px 10px; font-size:14px; background:#0e0b0c; color:#e9dcbc; border:1px solid #d4ac5a; border-radius:4px; text-transform:none; }
+.rt-wiki-cols{ display:grid; grid-template-columns:220px 1fr; gap:12px; align-items:start; }
+.rt-wiki-nav{ display:flex; flex-direction:column; gap:4px; position:sticky; top:8px; }
+.rt-wiki-navbtn{ display:grid; grid-template-columns:22px 1fr auto; gap:6px; align-items:center; text-align:left; padding:7px 8px; background:rgba(20,14,16,.85); color:#e9dcbc; border:1px solid rgba(212,172,90,.35); border-radius:4px; cursor:pointer; font-size:12px; }
+.rt-wiki-navbtn small{ color:#cdb98d; font-size:10px; }
+.rt-wiki-navbtn.on, .rt-wiki-navbtn:hover{ border-color:#d4ac5a; background:rgba(125,17,22,.55); }
+.rt-wiki-cathead h3{ margin:0 0 4px; color:#d4ac5a; }
+.rt-wiki-cathead p{ margin:0 0 8px; font-size:12px; color:#cdb98d; }
+.rt-wiki-item{ border:1px solid rgba(212,172,90,.25); border-radius:4px; margin:5px 0; background:rgba(233,220,188,.05); }
+.rt-wiki-item summary{ cursor:pointer; padding:7px 10px; display:flex; flex-wrap:wrap; gap:4px 10px; align-items:baseline; list-style:none; }
+.rt-wiki-item summary::-webkit-details-marker{ display:none; }
+.rt-wiki-item summary::before{ content:'▸'; color:#d4ac5a; }
+.rt-wiki-item[open] summary::before{ content:'▾'; }
+.rt-wiki-tit{ font-weight:700; color:#e9dcbc; }
+.rt-wiki-subt{ font-size:11px; color:#cdb98d; }
+.rt-wiki-body{ padding:2px 12px 10px; font-size:13px; line-height:1.45; color:#e9dcbc; }
+.rt-wiki-body p{ margin:5px 0; } .rt-wiki-body ul, .rt-wiki-body ol{ margin:5px 0; padding-left:20px; } .rt-wiki-body li{ margin:3px 0; }
+.rt-wiki-body h5{ margin:10px 0 4px; color:#d4ac5a; font-size:12px; }
+.rt-wiki-tab{ border-collapse:collapse; width:100%; margin:6px 0; font-size:12px; }
+.rt-wiki-tab th{ text-align:left; color:#cdb98d; border-bottom:1px solid rgba(212,172,90,.4); padding:3px 6px; }
+.rt-wiki-tab td{ padding:3px 6px; border-bottom:1px solid rgba(212,172,90,.12); vertical-align:top; }
+.rt-wiki-sub{ border-left:2px solid rgba(212,172,90,.4); padding:3px 0 3px 8px; margin:8px 0; }
+.rt-wiki-ult{ border-left-color:#7d1116; }
+.rt-wiki-meta{ font-size:11px; color:#cdb98d; }
+.rt-wiki-auto{ font-size:10px; color:#7fd98a; font-weight:700; }
+.rt-wiki-decl{ font-size:10px; color:#cdb98d; }
+.rt-wiki-link{ color:#ffd36b; }
+.rt-wiki-grupo{ margin:12px 0 4px; color:#d4ac5a; }
+.rt-wiki-res{ font-size:12px; color:#cdb98d; margin:4px 0 8px; }
+.rt-wiki mark{ background:#d4ac5a; color:#1a1416; border-radius:2px; padding:0 1px; }
+@media (max-width:760px){ .rt-wiki-cols{ grid-template-columns:1fr; } .rt-wiki-nav{ position:static; flex-direction:row; flex-wrap:wrap; } }
+select.rt-has-tip{ text-decoration:none; }
+.rt-tip{ max-height:85vh; overflow:hidden; }
+/* resumo do tabuleiro (bolhas) em Rogue Trader */
+body.rt-on .bvc-col:last-child{ display:none; } /* sem mana em Rogue Trader */
+.rt-bubble{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+.rt-bub-grid{ display:grid; grid-template-columns:repeat(9, auto); gap:1px 4px; }
+.rt-bub-cell{ display:flex; flex-direction:column; align-items:center; font-size:9px; line-height:1.1; }
+.rt-bub-cell span{ color:#cdb98d; letter-spacing:.04em; }
+.rt-bub-cell b{ color:#e9dcbc; font-size:11px; }
+.rt-bub-cell.up b{ color:#7fd98a; } .rt-bub-cell.down b{ color:#e0736a; }
+.rt-bub-def{ display:flex; flex-wrap:wrap; gap:1px 7px; font-size:9.5px; color:#cdb98d; }
+.rt-bub-def b{ color:#e9dcbc; font-size:10.5px; }
+.rt-bub-armas{ display:flex; flex-direction:column; gap:2px; }
+.rt-bub-arma{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:0 6px; font-size:10px; color:#e9dcbc; }
+.rt-bub-arma span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rt-bub-arma b{ font-size:10.5px; }
+.rt-bub-mun{ grid-column:1 / -1; display:block; height:3px; background:rgba(255,255,255,.12); border-radius:2px; overflow:hidden; }
+.rt-bub-mun i{ display:block; height:100%; }
+.rt-bub-fx .rt-fx-badges{ justify-content:flex-start; }
+/* dados embaixo do tabuleiro: as últimas rolagens ficam lado a lado (a mais nova na frente) */
+body.rt-on .board-dice-footer{ gap:10px; align-items:stretch; }
+body.rt-on .board-dice-zone{ width:auto; height:auto; min-height:130px; flex:1 1 0; min-width:0; display:flex; flex-direction:row; align-items:center; justify-content:flex-start; gap:4px; overflow:visible; }
+body.rt-on .board-dice-zone .dice-particle-layer{ position:absolute; inset:0; pointer-events:none; }
+body.rt-on .rt-dice-group{ position:relative; left:auto; top:auto; transform:none; margin:0 !important; display:flex; flex-direction:column; align-items:center; flex:none; transition:opacity .3s, transform .3s; }
+body.rt-on .rt-dice-group.rt-dice-old{ opacity:.5; transform:scale(.72); transform-origin:left center; margin-right:-30px !important; }
+body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-height:1.25; }
+.rt-dano-pair .dice-result{ --die-color:#c4161c; }
+.rt-dano-cap{ color:#ffb0a0; }
 </style>
 </head>
 <body>
@@ -6934,6 +6995,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
             <button type="button" class="rt-tab" data-rt-tab="progressao">⚔ Progressão <span class="rt-badge" id="rtPendBadge" hidden>0</span></button>
             <button type="button" class="rt-tab" data-rt-tab="habilidades">✦ Habilidades e Talentos</button>
             <button type="button" class="rt-tab" data-rt-tab="equip">⚙ Equipamento</button>
+            <button type="button" class="rt-tab" data-rt-tab="wiki">📖 Wiki</button>
           </div>
 
           <div class="rt-pane" data-rt-pane="ficha">
@@ -7039,6 +7101,10 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
               <label class="rt-lbl" for="rtPoderes">Anotações psíquicas</label>
               <textarea id="rtPoderes" class="rt-textarea" rows="2" placeholder="Anotações livres (poderes de outras disciplinas combinados com o mestre, etc.)"></textarea>
             </div>
+          </div>
+
+          <div class="rt-pane" data-rt-pane="wiki" hidden>
+            <div class="rt-wiki" id="rtWiki"></div>
           </div>
 
           <div class="rt-pane" data-rt-pane="equip" hidden>
@@ -8864,7 +8930,8 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
       // nenhum sobre o tabuleiro, que já é a fonte de verdade de qualquer jeito.
       const atualFieldHero = campo === 'mana' ? 'manaAtual' : 'vidaAtual';
       const maxFieldHero = campo === 'mana' ? 'manaMax' : 'vidaMax';
-      const novoHero = Math.max(0, Math.min(token[maxFieldHero] || 0, (token[atualFieldHero] || 0) + delta));
+      const __maxH = parseFloat(token[maxFieldHero]) || 0; let __curH = parseFloat(token[atualFieldHero]); if(!isFinite(__curH)) __curH = __maxH;
+      const novoHero = Math.max(0, Math.min(__maxH, __curH + delta));
       token[atualFieldHero] = novoHero;
       if(currentRole === 'mestre'){
         scheduleBoardTokensPush();
@@ -8888,7 +8955,8 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     if(token.kind === 'inimigo_ficha' || token.kind === 'aliado_ficha'){
       const atualField = campo === 'mana' ? 'manaAtual' : 'vidaAtual';
       const maxField = campo === 'mana' ? 'manaMax' : 'vidaMax';
-      const novo = Math.max(0, Math.min(token[maxField] || 0, (token[atualField] || 0) + delta));
+      const __max = parseFloat(token[maxField]) || 0; let __cur = parseFloat(token[atualField]); if(!isFinite(__cur)) __cur = __max;
+      const novo = Math.max(0, Math.min(__max, __cur + delta));
       token[atualField] = novo;
       if(currentRole === 'mestre'){
         scheduleBoardTokensPush();
@@ -12016,6 +12084,15 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
   // extra a cada volta completa no ciclo, pra nunca repetir exatamente igual).
   const BOARD_DICE_STACK_OFFSETS = [[0,0],[16,-12],[-18,10],[12,18],[-14,-16],[20,6],[-10,-20],[6,22]];
   function appendBoardDiceGroup(zoneEl, groupEl){
+    if(typeof rtReady !== 'undefined' && rtReady){
+      zoneEl.__diceGroupCount = (zoneEl.__diceGroupCount || 0) + 1;
+      groupEl.className = 'board-dice-group rt-dice-group';
+      const antigos = [...zoneEl.querySelectorAll(':scope > .board-dice-group')];
+      antigos.forEach((g, i)=>{ g.classList.add('rt-dice-old'); if(i >= 1) g.remove(); });
+      zoneEl.insertBefore(groupEl, antigos[0] || null);
+      zoneEl.classList.add('has-dice');
+      return;
+    }
     const count = zoneEl.__diceGroupCount || 0;
     zoneEl.__diceGroupCount = count + 1;
     const base = BOARD_DICE_STACK_OFFSETS[count % BOARD_DICE_STACK_OFFSETS.length];
@@ -13218,6 +13295,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
       const entry = currentTurnEntry();
       const ap = entry ? apMaxForToken(entry) : 0;
       turnState.apMax = ap;
+      if(rtReady && entry) rtTurnStart(entry);
       turnState.apRemaining = ap;
       pushTurnState();
     }
@@ -16062,6 +16140,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
         // de uma peça 'hero'/inimigo_ficha/aliado_ficha já colocada perderia os totais FOR/CON/
         // DES/INT/VON/CAR toda vez que o mestre mexesse em qualquer outra coisa do tabuleiro.
         totals: t.totals || null,
+        rtc: t.rtc || null, rtFx: t.rtFx || null,
       };
     });
     return tokensOut;
@@ -16969,7 +17048,8 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     const statsRow = document.createElement('div');
     statsRow.className = 'ficha-bubble-stats-row';
     statsRow.appendChild(buildBoardVitalsCard(entry.vitals));
-    const attrsSummary = buildFichaBubbleAttrsSummary(entry.vitals);
+    let attrsSummary = null;
+    try{ attrsSummary = rtReady ? rtBubbleSummary(entry) : buildFichaBubbleAttrsSummary(entry.vitals); }catch(err){ console.error(err); attrsSummary = buildFichaBubbleAttrsSummary(entry.vitals); }
     if(attrsSummary) statsRow.appendChild(attrsSummary);
     info.appendChild(statsRow);
     bubble.appendChild(info);
@@ -17262,8 +17342,8 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
       id: kind + ':' + hero.id + '-' + (spawnCounter++), kind,
       name: hero.name, portrait: hero.portrait, size: 1,
       heroId: hero.id, bonusDes: hero.bonusDes || 0, bonusMov: hero.bonusMov || 0, dirMovPenalty: hero.dirMovPenalty || 0, deidade: hero.deidade || '',
-      vidaMax: hero.vidaMax || 0, vidaAtual: hero.curVida ?? hero.vidaMax ?? 0,
-      manaMax: hero.manaMax || 0, manaAtual: hero.curMana ?? hero.manaMax ?? 0,
+      vidaMax: parseFloat(hero.vidaMax) || 0, vidaAtual: (isFinite(parseFloat(hero.curVida)) ? parseFloat(hero.curVida) : (parseFloat(hero.vidaMax) || 0)),
+      manaMax: parseFloat(hero.manaMax) || 0, manaAtual: (isFinite(parseFloat(hero.curMana)) ? parseFloat(hero.curMana) : (parseFloat(hero.manaMax) || 0)),
       escudoMax: hero.barreiraMax || 0, escudoAtual: hero.barreiraCur || 0,
       // Rodada nova ("resumo dos atributos + barra de xp" na bolha do Resumo) -- "de fábrica" da
       // ficha-molde, capturados agora no instante da colocação (ver resolveTokenVitalsForCard()).
@@ -17325,7 +17405,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     if(hero.vidaMax === undefined) return { vidaMax: null, fichaId: hero.fichaId || hero.id };
     const vidaMax = hero.vidaMax || 0, manaMax = hero.manaMax || 0, escudoMax = hero.barreiraMax || 0;
     return {
-      vidaMax, vidaAtual: (prevToken && prevToken.vidaAtual != null) ? Math.min(prevToken.vidaAtual, vidaMax) : (hero.curVida ?? vidaMax),
+      vidaMax, vidaAtual: (prevToken && isFinite(parseFloat(prevToken.vidaAtual))) ? Math.min(parseFloat(prevToken.vidaAtual), vidaMax) : (isFinite(parseFloat(hero.curVida)) ? parseFloat(hero.curVida) : vidaMax),
       manaMax, manaAtual: (prevToken && prevToken.manaAtual != null) ? Math.min(prevToken.manaAtual, manaMax) : (hero.curMana ?? manaMax),
       escudoMax, escudoAtual: (prevToken && prevToken.escudoAtual != null) ? Math.min(prevToken.escudoAtual, escudoMax) : (hero.barreiraCur || 0),
       totals: hero.totals || {
@@ -18190,8 +18270,8 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
             manaMax: ((parseFloat(data.base && data.base.int) || 0) + (parseFloat(data.mods && data.mods.int) || 0))
               + ((parseFloat(data.base && data.base.von) || 0) + (parseFloat(data.mods && data.mods.von) || 0))
               + (parseFloat(data.mods && data.mods.mana) || 0),
-            curVida: data.curVida ?? 10,
-            curMana: data.curMana ?? 10,
+            curVida: isFinite(parseFloat(data.curVida)) ? parseFloat(data.curVida) : 10,
+            curMana: isFinite(parseFloat(data.curMana)) ? parseFloat(data.curMana) : 10,
             barreiraMax: parseFloat(data.barreiraMax) || 0,
             barreiraCur: parseFloat(data.barreiraCur) || 0,
             // JSON completo da ficha salva (Fase 2 da automação de ataques) -- já tínhamos buscado
@@ -24252,11 +24332,91 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     return Object.keys(m || {}).map(k=> (RT_CH_BY[k] ? RT_CH_BY[k].pt : k) + ' ' + (m[k] > 0 ? '+' : '') + m[k]).join(', ');
   }
 
+  // descrições (ambientação) de mundos natais, origens, especializações e disciplinas — mostradas no texto suspenso
+  const RT_LORE = {
+    hw: {
+      death_world:'Planetas onde tudo tenta matar quem vive neles: selvas venenosas, feras gigantes, climas impossíveis. Quem cresce num Mundo da Morte aprende a sobreviver por instinto, confia no próprio corpo e desconfia de livros e conversa — por isso é forte, resistente e ágil, mas tem pouca instrução e pouco traquejo social.',
+      voidborn:'Nascidos e criados a bordo de naves e estações, longe de qualquer planeta. Os Nascidos no Vazio parecem pálidos e estranhos aos "terranos", são cheios de superstições espaciais e têm uma sorte que beira o sobrenatural; entendem a vida no vácuo melhor que ninguém.',
+      hive_world:'Cidades-colmeia gigantescas que furam as nuvens, com bilhões de pessoas espremidas em camadas — da nobreza no topo às gangues do subsolo. Quem vem de uma colmeia é esperto, vive no meio de multidões e se vira em qualquer aglomeração; rende mais quando está cercado de gente.',
+      forge_world:'Mundos-fábrica do Adeptus Mechanicus, cobertos de forjas e fumaça, onde a carne é vista como fraca e a máquina como sagrada. Quem nasce num Mundo Forja cresce entre servidores e sacerdotes-tecnólogos, recebe implantes desde cedo e pensa de forma lógica e fria — inteligente e resistente, mas pouco simpático.',
+      imperial_world:'Os mundos "comuns" do Imperium: planetas agrícolas, cidades devotas e sociedades organizadas sob a fé no Imperador. Quem vem de um Mundo Imperial é o cidadão modelo da humanidade — sem grandes extremos, mas versátil, e pode escolher uma característica para se destacar.',
+      fortress_world:'Planetas-fortaleza na linha de frente das guerras do Imperium, onde toda a população é treinada para lutar e cada criança aprende a segurar uma arma. Quem nasce num Mundo Fortaleza é disciplinado, atira bem e mantém o sangue frio debaixo de fogo; quanto mais atira, mais perigoso fica.',
+    },
+    og: {
+      astra_militarum_commander:'Um oficial da Guarda Imperial, acostumado a comandar regimentos inteiros em guerras de anos. Conhece táticas, logística e a dura realidade das trincheiras; inspira os aliados a lutar juntos e a concentrar fogo no inimigo.',
+      commissar:'Um oficial político do Officio Prefectus, encarregado de manter a moral e a lealdade das tropas — à força, se preciso. Temido por amigos e inimigos, o Comissário executa covardes no ato e transforma o medo em coragem; sua pistola é tão simbólica quanto letal.',
+      crime_lord:'Um chefe do submundo que construiu um império de contrabando, chantagem e favores. Sabe ler pessoas, tem sempre um plano (e um plano B) e prefere que os outros façam o trabalho sujo; no combate, arma armadilhas e vantagens para o grupo.',
+      ministorum_priest:'Um sacerdote da Eclesiarquia, pregador da fé no Deus-Imperador. Suas palavras inflamam os fiéis e queimam os hereges; no campo de batalha, entoa hinos que enchem os aliados de fervor e enfrenta o inimigo com uma fé que não se curva.',
+      navy_officer:'Um oficial da Marinha Imperial, criado nas pontes de comando de naves de guerra. Entende de navegação, artilharia e hierarquia; mantém a calma no caos e coordena a tripulação — no combate, prepara todos para o impacto e organiza a defesa.',
+      noble:'Membro de uma família nobre, criado entre privilégios, intrigas de corte e criados obedientes. Está acostumado a dar ordens e ser obedecido; usa influência, dinheiro e a própria presença para fazer os outros agirem por ele.',
+      sanctioned_psyker:'Um psíquico que sobreviveu ao terrível treinamento dos Navios Negros e foi aprovado pelo Adeptus Astra Telepathica. Canaliza o poder da Disformidade através da própria mente — com controle e permissão oficial, mas sempre sob o risco de abrir uma porta para os horrores do Imaterial.',
+      arbitrator:'Um agente do Adeptus Arbites, a lei inflexível do Imperium. Persegue criminosos e traidores entre os mundos, aplica a Lex Imperialis sem piedade e trabalha ao lado de um mastim ciberético; escolhe uma especialização que define seu jeito de impor a ordem.',
+    },
+    sub: {
+      vigilant:'Vigilante: o caçador de fugitivos do Arbites. Marca alvos e os derruba com tiros de escopeta, cobrindo a área para que ninguém escape.',
+      castigator:'Castigador: o executor das sentenças. Usa ordens, intimidação e punições para enfraquecer os inimigos e quebrar a vontade deles.',
+      subductor:'Subjugador: a tropa de choque do Arbites. Avança com escudo e cassetete, segura a linha de frente no corpo a corpo e controla multidões e rebeldes.',
+    },
+    psy: {
+      biomancy:'Biomancia: controle do corpo pela mente — fortalecer, curar, acelerar ou definhar a carne de aliados e inimigos.',
+      divination:'Adivinhação: ver os fios do futuro — prever golpes, guiar aliados e mexer na ordem dos acontecimentos.',
+      pyromancy:'Piromancia: invocar o fogo da Disformidade, que queima corpo e alma e se espalha entre os inimigos.',
+      sanctic:'Sancticismo: poderes sagrados ligados à fé no Imperador — abençoar, proteger e curar aliados e purgar os impuros.',
+      telepathy:'Telepatia: atacar e dominar mentes — gritos psíquicos, atordoamento, cegueira e manipulação.',
+    },
+  };
+  function rtTipOrigem(kind, id){
+    const st = rtState;
+    if(kind === 'hw'){
+      const h = RT_HW_BY[id]; if(!h) return '';
+      let x = '<b>' + rtEsc(h.pt) + '</b><p>' + rtEsc(RT_LORE.hw[id] || '') + '</p>';
+      x += '<p><i>Características:</i> ' + rtEsc(rtModsTxt(h.mods) || 'sem modificadores') + (id === 'imperial_world' ? ' (+10 numa característica à escolha)' : '') + '.</p>';
+      if(h.feat) x += '<p><i>' + rtEsc(h.feat.pt) + ':</i> ' + rtEsc(h.feat.d) + (h.feat.opts ? ' ' + h.feat.opts.map(o=> o.pt + ' (' + o.d + ')').map(rtEsc).join('; ') + '.' : '') + '</p>';
+      if((h.tal || []).length) x += '<p><i>Talentos liberados:</i> ' + h.tal.map(t=> rtEsc((RT.tal[t] || {}).pt || t)).join(', ') + '.</p>';
+      return x;
+    }
+    if(kind === 'og'){
+      const o = RT_OG_BY[id]; if(!o) return '';
+      let x = '<b>' + rtEsc(o.pt) + '</b><p>' + rtEsc(RT_LORE.og[id] || '') + '</p>';
+      const m = rtModsTxt(o.mods);
+      if(m) x += '<p><i>Características:</i> ' + rtEsc(m) + '.</p>';
+      const skm = Object.keys(o.sk || {}).map(k=> ((RT_SK_BY[k] || {}).pt || k) + ' +' + o.sk[k]).join(', ');
+      if(skm) x += '<p><i>Perícias:</i> ' + rtEsc(skm) + '.</p>';
+      (o.feats || []).forEach(f=>{ x += '<p><i>' + rtEsc(f.pt) + ':</i> ' + rtEsc(f.d) + '</p>'; });
+      if(o.sub) x += '<p><i>' + rtEsc(o.sub.lbl) + ':</i> ' + o.sub.opts.map(s=> rtEsc(s.pt + ' (' + s.foco + ')')).join(', ') + '.</p>';
+      if(o.psy) x += '<p><i>Disciplinas:</i> ' + o.psy.map(p=> rtEsc(p.pt)).join(', ') + '.</p>';
+      return x;
+    }
+    if(kind === 'sub'){
+      const o = st.og ? RT_OG_BY[st.og] : null; const sb = o && o.sub && o.sub.opts.find(s=> s.id === id); if(!sb) return '';
+      let x = '<b>' + rtEsc(sb.pt) + '</b><p>' + rtEsc(RT_LORE.sub[id] || sb.foco) + '</p>';
+      const m = rtModsTxt(sb.mods); if(m) x += '<p><i>Características:</i> ' + rtEsc(m) + '.</p>';
+      (sb.feats || []).forEach(f=>{ x += '<p><i>' + rtEsc(f.pt) + ':</i> ' + rtEsc(f.d) + '</p>'; });
+      return x;
+    }
+    if(kind === 'psy'){
+      const o = st.og ? RT_OG_BY[st.og] : null; const ps = o && o.psy && o.psy.find(p=> p.id === id); if(!ps) return '';
+      const pw = (typeof RT_PSY !== 'undefined' && RT_PSY_INICIAL[id]) ? RT_PSY[RT_PSY_INICIAL[id]] : null;
+      return '<b>' + rtEsc(ps.pt) + '</b><p>' + rtEsc(RT_LORE.psy[id] || '') + '</p><p><i>Poder inicial — ' + rtEsc(ps.pow.pt) + ':</i> ' + rtEsc(pw ? pw.d : '') + '</p>';
+    }
+    if(kind === 'imp'){
+      const h = RT_HW_BY.forge_world; const op = h && h.feat && (h.feat.opts || []).find(o=> o.id === id); if(!op) return '';
+      return '<b>' + rtEsc(op.pt) + '</b><p>Implante do Mundo Forja escolhido na criação.</p><p>' + rtEsc(op.d) + '</p>';
+    }
+    return '';
+  }
+  function rtSetTipKey(el, key){
+    if(!el) return;
+    if(key){ el.dataset.rtTip = key; el.classList.add('rt-has-tip'); }
+    else { delete el.dataset.rtTip; el.classList.remove('rt-has-tip'); }
+  }
+
   function rtRenderCreation(comp){
     const st = rtState;
     rtFillSelect(rtEl('rtHw'), RT.hw.map(h=> ({ v:h.id, t:h.pt })), st.hw, '— mundo natal —');
     rtFillSelect(rtEl('rtOg'), RT.og.map(o=> ({ v:o.id, t:o.pt + rtDlcTxt(o) })), st.og, '— origem —');
     rtFillSelect(rtEl('rtA1'), Object.values(RT.arch).filter(a=> a.tier === 1).map(a=> ({ v:a.id, t:a.pt + rtDlcTxt(a) })), st.a1, '— arquétipo —');
+    rtSetArchTip(rtEl('rtA1'), st.a1);
     const hw = st.hw ? RT_HW_BY[st.hw] : null;
     let h = '';
     if(hw){
@@ -24295,6 +24455,11 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
       }
     }
     rtSetHtml(rtEl('rtOgInfo'), h);
+    rtSetTipKey(rtEl('rtHw'), st.hw ? 'hw:' + st.hw : '');
+    rtSetTipKey(rtEl('rtOg'), st.og ? 'og:' + st.og : '');
+    rtSetTipKey(rtEl('rtSub'), st.sub ? 'sub:' + st.sub : '');
+    rtSetTipKey(rtEl('rtPsy'), st.psy ? 'psy:' + st.psy : '');
+    rtSetTipKey(rtEl('rtHwOpt'), st.hwOpt ? 'imp:' + st.hwOpt : '');
     const skItems = ids => (ids || []).filter(id=> RT_SK_BY[id]).map(id=> ({ v:id, t:RT_SK_BY[id].pt }));
     rtFillSelect(rtEl('rtTri'), skItems(og && og.tri), st.tri, og ? '— triunfo —' : 'escolha a origem primeiro');
     rtFillSelect(rtEl('rtDark'), skItems(og && og.dark), st.dark, og ? '— hora mais sombria —' : 'escolha a origem primeiro');
@@ -24310,6 +24475,11 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
         + '<button type="button" class="rt-btn" data-rt-dist="' + c + '" data-d="1"' + (d >= 2 || used >= 6 ? ' disabled' : '') + '>+</button>'
         + '<span class="rt-dist-val">' + comp.ch[c] + '</span></div>';
     }).join(''));
+  }
+  function rtSetArchTip(el, id){
+    if(!el) return;
+    if(id){ el.dataset.rtTip = 'arch:' + id; el.classList.add('rt-has-tip'); }
+    else { delete el.dataset.rtTip; el.classList.remove('rt-has-tip'); }
   }
   function rtArchInfoHtml(a){
     let h = '<p class="rt-role">' + rtEsc(a.role) + '</p>';
@@ -24386,6 +24556,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     rtFillSelect(rtEl('rtA2'), advOpts, st.a2, L >= 16 ? '— arquétipo avançado —' : '— liberado no nível 16 —');
     rtEl('rtA2').disabled = L < 16 || !rtCanEdit();
     rtSetHtml(rtEl('rtA2Info'), st.a2 ? rtArchInfoHtml(RT.arch[st.a2]) : '');
+    rtSetArchTip(rtEl('rtA2'), st.a2);
     const wrap = rtEl('rtProg');
     const chosen = rtAllChosenValues(st, -1, -1);
     let h = '';
@@ -24408,13 +24579,14 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
           const val = (st.lv[l] || [])[i] || '';
           if(sl.startsWith('auto:')){
             const ab = a.ab.find(x=> x.id === sl.slice(5));
-            h += '<span class="rt-prog-auto">★ ' + (ab ? rtNameHtml(ab) : rtEsc(sl.slice(5))) + '</span>';
+            h += '<span class="rt-prog-auto rt-has-tip" data-rt-tip="ab:' + a.id + '/' + sl.slice(5) + '">★ ' + (ab ? rtNameHtml(ab) : rtEsc(sl.slice(5))) + '</span>';
           } else if(sl === 'ult'){
-            h += '<span class="rt-prog-auto">✹ ' + (a.ult ? rtNameHtml(a.ult) : 'Habilidade suprema') + '</span>';
+            h += '<span class="rt-prog-auto rt-has-tip" data-rt-tip="ult:' + a.id + '">✹ ' + (a.ult ? rtNameHtml(a.ult) : 'Habilidade suprema') + '</span>';
           } else if(sl === 'ap'){
-            h += '<span class="rt-prog-auto">+1 Ponto de Ação</span>';
+            h += '<span class="rt-prog-auto rt-has-tip" data-rt-tip="ap:1">+1 Ponto de Ação</span>';
           } else if(future){
-            h += '<span class="rt-prog-fut">' + rtEsc(RT_SLOT_LABEL[sl] || sl) + (val ? ': ' + rtEsc(rtValueLabel(sl, val)) : '') + '</span>';
+            const tk = val ? rtSlotTipKey(sl, val) : '';
+            h += '<span class="rt-prog-fut' + (tk ? ' rt-has-tip' : '') + '"' + (tk ? ' data-rt-tip="' + rtEsc(tk) + '"' : '') + '>' + rtEsc(RT_SLOT_LABEL[sl] || sl) + (val ? ': ' + rtEsc(rtValueLabel(sl, val)) : '') + '</span>';
           } else {
             h += '<label class="rt-prog-slot' + (val ? '' : ' empty') + '"><span>' + rtEsc(RT_SLOT_LABEL[sl] || sl) + '</span>' + rtSlotSelectHtml(st, l, i, sl, val, comp, chosen) + '</label>';
           }
@@ -24424,6 +24596,16 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     }
     rtSetHtml(wrap, h);
     wrap.querySelectorAll('select').forEach(s=>{ s.disabled = !rtCanEdit(); });
+  }
+  function rtSlotTipKey(sl, val){
+    if(!val) return '';
+    if(sl === 'char') return 'ch:' + val;
+    if(sl === 'skill') return 'sk:' + val;
+    if(sl === 'fam') return 'fam:' + val;
+    if(/Tal$/.test(sl)) return 'tal:' + val;
+    if(sl === 'upg') return 'upg:' + val;
+    if(/Abil$/.test(sl) || sl === 'abil') return 'ab:' + val;
+    return '';
   }
   function rtValueLabel(sl, val){
     if(sl === 'char') return RT_CH_BY[val] ? RT_CH_BY[val].pt : val;
@@ -24486,7 +24668,8 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
       const it = a && (sl === 'upg' ? a.upg : a.ab).find(x=> x.id === id);
       if(it) desc = it.d;
     }
-    return '<select class="rt-select rt-slot-sel" data-rt-lv="' + L + '" data-rt-i="' + i + '">' + optHtml + '</select>' + (desc ? '<small class="rt-slot-desc">' + rtEsc(desc) + '</small>' : '');
+    const tk = rtSlotTipKey(sl, val);
+    return '<select class="rt-select rt-slot-sel' + (tk ? ' rt-has-tip' : '') + '" data-rt-lv="' + L + '" data-rt-i="' + i + '"' + (tk ? ' data-rt-tip="' + rtEsc(tk) + '"' : '') + '>' + optHtml + '</select>' + (desc ? '<small class="rt-slot-desc">' + rtEsc(desc) + '</small>' : '');
   }
 
   function rtAbilityCardHtml(ab, arch, tag){
@@ -24605,6 +24788,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     if(tab === 'habilidades') rtRenderAbilities(comp);
     if(tab === 'equip') rtRenderEquip(comp);
     rtWeaponsSoftRender = false;
+    if(tab === 'wiki') rtRenderWiki();
     const pend = rtPendingChoices(rtState, comp.L);
     const badge = rtEl('rtPendBadge');
     badge.hidden = pend <= 0; badge.textContent = pend;
@@ -24613,6 +24797,277 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     rtApplySaveLocks();
   }
   var rtActiveTab = 'ficha';
+
+  // =====================================================================================
+  // WIKI — guia de regras do tabuleiro, habilidades e catálogos, com busca geral e busca por
+  // assunto. As listas (armas, talentos, poderes...) saem dos MESMOS dados que a página usa, então
+  // ficam sempre de acordo com o que o tabuleiro calcula.
+  // =====================================================================================
+  var rtWiki = null, rtWikiCat = 'regras', rtWikiAberto = null;
+  function rtWikiNorm(s){ return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/<[^>]+>/g, ' '); }
+  function rtWikiTab(cab, linhas){ return '<table class="rt-wiki-tab"><tr>' + cab.map(c=> '<th>' + c + '</th>').join('') + '</tr>' + linhas.map(l=> '<tr>' + l.map(c=> '<td>' + c + '</td>').join('') + '</tr>').join('') + '</table>'; }
+  function rtWikiLink(cat, id, txt){ return '<a href="#" class="rt-wiki-link" data-wiki-go="' + cat + '/' + id + '">' + txt + '</a>'; }
+  function rtWikiBuild(){
+    const E = s=> rtEsc(s);
+    const cats = [];
+    const cat = (id, pt, icon, desc)=>{ const c = { id, pt, icon, desc, itens:[] }; cats.push(c); return c; };
+    const add = (c, id, titulo, sub, html, tags)=> c.itens.push({ id, titulo, sub: sub || '', html, busca: rtWikiNorm(titulo + ' ' + (sub || '') + ' ' + (tags || '') + ' ' + html) });
+
+    // ---------------- REGRAS ----------------
+    const R = cat('regras', 'Regras do tabuleiro', '📜', 'Como o combate funciona na mesa: turnos, ataques, cobertura, Ímpeto, lesões e o resto.');
+    add(R, 'turnos', 'Turnos e iniciativa', 'Ordem de ação e rodadas', `
+      <p>O mestre rola a iniciativa pelo tabuleiro. Cada peça rola <b>1d10 + Iniciativa</b> (Iniciativa = Agilidade + metade da Percepção) e a fila sai do maior para o menor.</p>
+      <ul><li>Uma <b>rodada</b> termina quando todos da fila agiram; a próxima recomeça do topo.</li>
+      <li>Na sua vez você move, ataca e usa habilidades. Encerra com a ampulheta ⏳ (ou o turno acaba sozinho quando PA e PM chegam a zero).</li>
+      <li>Ao rolar a iniciativa, todas as peças começam o combate <b>sem efeitos</b> do combate anterior e com os <b>pentes cheios</b>.</li>
+      <li>Efeitos "até o próximo turno de X" somem no começo da próxima vez de X.</li>
+      <li>Turnos extras (Derrubem-no!, Hora Gloriosa) entram logo depois de quem os concedeu.</li></ul>`, 'iniciativa rodada ordem fila ampulheta encerrar');
+    add(R, 'pa-pm', 'Pontos de Ação (PA) e de Movimento (PM)', 'O que dá pra fazer em cada turno', `
+      <ul><li><b>PA</b>: base 3, +1 nos níveis 20, 45 e 55. Pagam ataques, habilidades, poderes, granadas, kit e recarga.</li>
+      <li><b>PM</b>: base 6. Cada casa andada gasta 1 PM.</li>
+      <li><b>Atacar zera os PM</b> que sobraram (exceto com Correr e Atirar, Brecha Ousada e Avanço Imprudente).</li>
+      <li><b>Limite de 1 ataque com arma por turno.</b> Não contam no limite: Investida, o ataque depois de Correr e Atirar, ataques na Hora Gloriosa, corpo a corpo na Brecha Ousada e granadas.</li>
+      <li>Talentos como Motivação, Mão Amiga, Integridade e Ávido por Batalha somam PM/PA no começo do turno (avisam no chat).</li></ul>`, 'pa pm movimento acao limite ataque');
+    add(R, 'cac', 'Ataque corpo a corpo', 'Aparar, esquiva e crítico', `
+      <p>Só contra alvo <b>ao lado</b>. A resolução segue esta ordem:</p>
+      <ol><li><b>Aparar</b> (só se o alvo tiver arma corpo a corpo): chance = Aparar do alvo (HA + 20 + bônus da arma, ex.: espadas +10%) − HA do atacante, entre 0 e 95%.</li>
+      <li><b>Esquiva</b>: Esquiva do alvo − metade da Agilidade do atacante.</li>
+      <li><b>Crítico</b>: diferença de HA (se a sua for maior) + o que passar de 10% na sua chance de crítico + crítico da arma.</li></ol>
+      <p>O dano corpo a corpo ganha <b>+5% por bônus de Força</b> com arma de uma mão e <b>+10%</b> com duas mãos. Ver também ${rtWikiLink('regras', 'dano', 'Dano, crítico e armadura')}.</p>`, 'aparar esquiva melee faca espada machado');
+    add(R, 'dist', 'Ataque à distância', 'Acerto, alcance e esquiva', `
+      <ol><li><b>Acerto</b> = 30 + Habilidade Balística (mínimo 5%, máximo 95%) + bônus da arma. Rajada: −10% por tiro.</li>
+      <li><b>Alcance</b>: dentro do alcance, acerto normal; até o <b>dobro</b> do alcance, acerto pela metade; além disso não dá para atirar.</li>
+      <li><b>Cobertura</b> (se houver): rola a chance de o tiro parar na barreira — ver ${rtWikiLink('regras', 'cobertura', 'Cobertura')}.</li>
+      <li><b>Esquiva</b> = Esquiva do alvo − metade da Percepção do atacante − redução de esquiva da arma (lasers: 30%).</li>
+      <li><b>Crítico</b> = sua chance de crítico + o que passou de 95% no acerto + crítico da arma.</li></ol>
+      <p>Fumaça no alvo: −50% de acerto. Cego: perde acerto conforme o efeito.</p>`, 'tiro acerto alcance balistica hb esquiva rajada');
+    add(R, 'dano', 'Dano, crítico e armadura', 'A conta completa do dano', `
+      <ol><li>Rola o dano da arma (mínimo–máximo) e soma bônus fixos.</li>
+      <li>Multiplica pelos bônus em % (Força no corpo a corpo, talentos, Vulnerabilidades...).</li>
+      <li>Crítico: × (1,5 + bônus de dano crítico).</li>
+      <li>Subtrai a <b>Deflexão</b> do alvo.</li>
+      <li>Reduz pela <b>Armadura</b>: × (1 − (Armadura − Penetração)%). Armadura efetiva fica entre 0 e 95%.</li>
+      <li><b>Ferimentos temporários</b> absorvem o dano antes dos ferimentos normais.</li></ol>
+      <p><b>Esquiva base</b> = 30 + Agilidade; armadura média e energizada multiplicam por 0,75, pesada por 0,5.</p>`, 'deflexao armadura penetracao critico temporario');
+    add(R, 'modos', 'Modos de ataque das armas', 'Tiro único, rajada, chamas...', rtWikiTab(['Modo', 'PA', 'O que faz'], [
+      ['Golpe', '1', 'Ataque corpo a corpo normal.'], ['Varredura', '2', 'Atinge todos os inimigos ao seu lado (machados e armas de duas mãos).'],
+      ['Tiro único', '1', 'Um disparo.'], ['Rajada', '2', 'Dispara a cadência da arma; cada tiro rola acerto (−10%), cobertura e esquiva separados.'],
+      ['Tiro certeiro', '2', '+25% de acerto e +50% de dano crítico.'], ['Sobrecarga', '2', '+50% de dano; a arma esfria por 1 rodada.'],
+      ['Jato de chamas', '1', 'Sem teste de acerto; atinge o alvo e quem estiver ao lado dele; esquiva pela metade; ignora cobertura parcial.'],
+      ['Descarga em arco', '1', 'Acerta o alvo e salta para até 2 inimigos a 2 casas, com metade do dano.']]) + '<p>Armas pesadas custam +1 ou +2 PA. Com Força abaixo do mínimo da arma: −20% de acerto.</p>', 'golpe varredura rajada certeiro sobrecarga chamas arco');
+    add(R, 'cobertura', 'Cobertura e barreiras', 'Barreira 50% e 100%', `
+      <ul><li><b>Barreira 100%</b> (e porta, rocha, pedra de gelo): bloqueia visão, passagem e tiro. Com ela entre você e o alvo, não dá para atirar nem arremessar.</li>
+      <li><b>Barreira 50%</b>: bloqueia a passagem, mas dá para ver e atirar por cima. Se estiver <b>colada no alvo</b>, na linha do tiro, cada tiro que acerta tem 50% de chance de parar nela.</li>
+      <li>Corpo a corpo e jato de chamas ignoram a cobertura parcial. <b>Mirar!</b> ignora; <b>Ataque Preciso</b> reduz a chance.</li>
+      <li>As barreiras ficam invisíveis para os jogadores (servem para paredes e muretas desenhadas no mapa); a roda de ações avisa quando o alvo está coberto.</li></ul>`, 'barreira cobertura parede linha de visao');
+    add(R, 'municao', 'Munição e recarga', 'Pentes e o botão Recarregar', `
+      <ul><li>Cada arma à distância tem um pente (ex.: Fuzil Laser 40 tiros). Tiro único gasta 1; rajada gasta 1 por disparo.</li>
+      <li>Sem munição o ataque fica bloqueado. Clique na sua peça e use <b>🔄 Recarregar</b> (custa PA, não conta como ataque).</li>
+      <li>A munição atual aparece no círculo de cada ataque (ex.: 37/40).</li>
+      <li>Recarga Rápida e Pente Reserva deixam a 1ª recarga do combate grátis; Banco de Plasma barateia o plasma.</li></ul>`, 'municao pente recarregar recarga');
+    add(R, 'oportunidade', 'Ataques de oportunidade', 'Sair de perto de um inimigo', `
+      <p>Quem começa o movimento <b>ao lado</b> de um inimigo com arma corpo a corpo e termina <b>longe</b> dele leva um golpe grátis desse inimigo (aparar e esquiva normais).</p>
+      <ul><li>Cada inimigo faz no máximo 1 por rodada. Atordoados ou só com arma à distância não fazem.</li>
+      <li>Habilidades que movem a peça (Investida etc.) não provocam.</li>
+      <li>Novo Começo dá +50% de esquiva no 1º da rodada; Recuo Cauteloso reduz o dano.</li></ul>`, 'oportunidade afastar mover');
+    add(R, 'impeto', 'Ímpeto, Ato Heroico e Medida Desesperada', 'A barra do grupo (0–200)', `
+      <ul><li>Começa em <b>100</b>. No começo do turno de cada membro do grupo: + Determinação dele.</li>
+      <li>Abater um inimigo: + 2 × Determinação. Um membro do grupo cair: − 10 × Determinação.</li>
+      <li><b>Ato Heroico</b>: com Ímpeto ≥ 175, gasta 75 e libera a habilidade suprema do arquétipo.</li>
+      <li><b>Medida Desesperada</b>: com Ímpeto ≤ 25; a Determinação de quem usou fica 0 até o fim do combate (e há penalidades específicas).</li>
+      <li>Cada personagem usa só 1 habilidade suprema por combate.</li></ul>`, 'impeto momentum heroico desesperada suprema ultimate');
+    add(R, 'determinacao', 'Determinação', 'O que alimenta o Ímpeto', `<p>Determinação = bônus de Carisma (ou de Inteligência com Seja Esperto) + talentos e efeitos (Ar de Autoridade, Abençoado...). Alimenta o Ímpeto. Qualquer lesão dá −1.</p>`, 'resolve determinacao carisma');
+    add(R, 'roda', 'A roda de ações', 'Como usar ataques e habilidades', `
+      <ul><li>Na sua vez, clique numa peça: <b>inimigo</b> abre ataques, granadas e poderes ofensivos; <b>aliado</b> abre apoio e Kit; <b>a sua peça</b> abre habilidades pessoais, estimulante e recarga.</li>
+      <li>Passe o mouse num círculo para ver chances, dano e custo. Círculo apagado mostra o motivo (sem PA, fora de alcance, em recarga...).</li>
+      <li>Habilidades marcadas como automáticas resolvem tudo sozinhas. As outras ficam em <b>📜 Outras habilidades</b>: são declaradas no chat e o mestre aplica o efeito.</li></ul>`, 'roda menu circulo habilidade');
+    add(R, 'psiquico', 'Poderes psíquicos e o Véu', 'Fenômenos e Perigos da Disformidade', `
+      <ul><li>Nas fórmulas, o Nível Psíquico (NP) vale no mínimo 1. Cada poder pode ser usado 1 vez por rodada.</li>
+      <li><b>Véu</b> (0–20, aparece no painel do turno): poder menor +1, maior +3. Baixa 1 a cada rodada sem uso de poderes.</li>
+      <li><b>Fenômeno Psíquico</b> (psíquico sancionado): menor 5 + 2×NP%; maior 10 + 2×NP%. Com Véu ≥ 15: menor 10 + 2×NP%; maior 10 + NP + Véu% e vira <b>Perigos da Disformidade</b>.</li></ul>
+      <h5>Fenômenos (1d6)</h5>` + rtWikiTab(['Resultado', 'Efeito'], RT_FENOMENOS.map(f=> [E(f[0]), E(f[1])])) + `<h5>Perigos da Disformidade (1d6)</h5>` + rtWikiTab(['Resultado', 'Efeito'], RT_PERIGOS.map(f=> [E(f[0]), E(f[1])])), 'veu fenomeno perigos disformidade psiquico');
+    add(R, 'granadas', 'Granadas e consumíveis', 'Arremesso e área', `
+      <ul><li>Ficam no painel <b>Granadas e consumíveis</b> da aba Equipamento; só a ficha aberta usa os próprios itens, e a quantidade cai sozinha.</li>
+      <li>Arremesso até 8 casas, sem teste de acerto; a área de 3×3 atinge <b>todos</b>, inclusive aliados; quem está na área esquiva com metade da chance.</li>
+      <li>Barreira 100% no caminho bloqueia o arremesso. Granadas não contam no limite de ataques.</li>
+      <li>Granadeiro: a 1ª granada do combate custa 0 PA. Custo-Benefício: granadas e kit −1 PA.</li></ul>`, 'granada consumivel estimulante');
+    add(R, 'kit', 'Kit de primeiros socorros', 'Cura no combate e lesões', `<p>1 PA, em você ou num aliado ao lado: cura <b>1d10 + Medicina/10</b>. Fora de combate trata 1 lesão antiga (painel Lesões e traumas).</p>`, 'kit cura medicina');
+    add(R, 'lesoes', 'Lesões e traumas', 'Feridas que ficam depois do combate', `
+      <ul><li>Perder 60% dos ferimentos máximos numa rodada: <b>1 lesão</b>. Cair a 0: <b>1 trauma</b>.</li>
+      <li>Com qualquer lesão: −1 de Determinação. Qualquer cura durante o combate trata uma lesão fresca.</li>
+      <li>No fim do combate as frescas viram antigas; <b>4 antigas viram 1 trauma</b>. Fora de combate, 1 Kit trata 1 lesão antiga.</li>
+      <li>Traumas só saram na nave: o mestre cura pelo painel da ficha.</li></ul>` + rtWikiTab(['Trauma', 'Penalidade'], Object.values(RT_TRAUMAS).map(t=> [E(t.pt), E(t.d)])), 'lesao trauma ferido costelas braco perna cabeca');
+    add(R, 'fim', 'Fim do combate e XP', 'O botão 🏁 do mestre', `
+      <p>O mestre encerra o combate com 🏁 (ao lado da ampulheta). Abre um resumo com dano causado e recebido, abates, críticos, curas, ataques e quem caiu, e os destaques do grupo.</p>
+      <p><b>XP sugerido</b>: 15 × o nível de cada inimigo abatido, para cada jogador. O mestre ajusta e clica em ⭐ Conceder XP.</p>`, 'fim combate resumo xp experiencia');
+    add(R, 'efeitos-visuais', 'Efeitos visuais e sons', 'O que aparece no tabuleiro', `<p>Cada arma e poder tem efeito e som próprios (tiro, laser, plasma, chamas, cortes, explosões, luzes no chão). Quem ativou "reduzir movimento" no sistema só ouve os sons.</p>`, 'efeito som animacao');
+    add(R, 'ficha', 'Ficha: criação, trava e equipamento', 'Regras da ficha', `
+      <ul><li>Criação: Mundo Natal → Origem → Triunfo e Hora mais Sombria → Arquétipo → 6 avanços de +5 (no máximo +10 em cada característica).</li>
+      <li>Depois de salva, as escolhas ficam travadas para o jogador; só o mestre altera. Novos níveis continuam liberados.</li>
+      <li>Armas e armaduras vêm de listas fixas; bônus de peça especial só o mestre mexe depois de salvar.</li>
+      <li>Talentos marcados ⚙ são aplicados sozinhos na ficha e no tabuleiro.</li></ul>`, 'ficha criacao trava salvar');
+
+    // ---------------- EFEITOS DE ESTADO ----------------
+    const F = cat('efeitos', 'Efeitos de estado', '✨', 'Os ícones que aparecem em cima das peças.');
+    Object.keys(RT_FX_INFO).forEach(k=>{
+      const inf = RT_FX_INFO[k];
+      let txt = '';
+      try{ txt = inf[2]({ v:'X', a:'Y', apa:'Z' }); }catch(e){}
+      add(F, k, inf[0] + ' ' + inf[1], '', '<p>' + E(txt) + '</p>');
+    });
+    add(F, 'vuln', '🎯 Vulnerabilidades', '', '<p>Marcadas pelo Agente. Quem tem Analisar Inimigos (ou está sob Análise Conjunta) causa +5×bônus de PER% +10% por Vulnerabilidade, e elas somem ao acertar.</p>');
+
+    // ---------------- CARACTERÍSTICAS E PERÍCIAS ----------------
+    const C = cat('caracteristicas', 'Características e perícias', '📊', 'O que cada valor da ficha faz.');
+    RT.chars.forEach(c=> add(C, 'ch-' + c.id, c.pt + ' (' + (c.sig || c.id) + ')', 'Característica', '<p>' + E(RT_TIP_CH[c.id] || c.uso || '') + '</p>' + (c.uso && RT_TIP_CH[c.id] ? '<p>' + E(c.uso) + '</p>' : '')));
+    RT.skills.forEach(s=> add(C, 'sk-' + s.id, s.pt, 'Perícia · ' + ((RT_CH_BY[s.c] || {}).pt || s.c), '<p>' + E(RT_TIP_SK[s.id] || s.uso || '') + '</p>'));
+
+    // ---------------- ARQUÉTIPOS ----------------
+    const A = cat('arquetipos', 'Arquétipos e habilidades', '⚔', 'Todas as habilidades, supremas e aprimoramentos. ⚙ = automática no tabuleiro.');
+    Object.values(RT.arch).forEach(a=>{
+      const habs = (a.ab || []).map(ab=>{
+        const key = a.id + '/' + ab.id;
+        const auto = !!RT_AUTO[key];
+        return '<div class="rt-wiki-sub"><b>' + E(ab.pt) + '</b>' + (auto ? ' <span class="rt-wiki-auto">⚙ automática</span>' : ' <span class="rt-wiki-decl">📜 declarada</span>')
+          + '<div class="rt-wiki-meta">' + [ab.k === 'keystone' ? 'Habilidade-chave' : 'Habilidade', ab.ap != null ? ab.ap + ' PA' : '', ab.cd ? 'Recarga: ' + E(ab.cd) : '', ab.alc ? 'Alcance: ' + E(ab.alc) : ''].filter(Boolean).join(' · ') + '</div>'
+          + '<p>' + E(ab.d || '') + '</p></div>';
+      }).join('');
+      const u = a.ult;
+      const ult = u ? '<div class="rt-wiki-sub rt-wiki-ult"><b>✹ ' + E(u.pt) + '</b> <span class="rt-wiki-auto">⚙ automática</span><p><b>Ato Heroico:</b> ' + E(u.ha) + '</p><p><b>Medida Desesperada:</b> ' + E(u.dm) + '</p></div>' : '';
+      const upg = (a.upg || []).length ? '<h5>Aprimoramentos</h5>' + a.upg.map(x=> '<p>◆ <b>' + E(x.pt) + ':</b> ' + E(x.d) + '</p>').join('') : '';
+      add(A, a.id, a.pt, 'Grau ' + (a.tier === 2 ? 'II' : a.tier === 3 ? 'III' : 'I') + (a.role ? ' · ' + a.role.split(':')[0] : ''), '<p>' + E(a.role || '') + '</p>' + habs + ult + upg, (a.ab || []).map(x=> x.pt).join(' '));
+    });
+    (RT.fam || []).forEach(f=> add(A, 'fam-' + f.id, 'Familiar: ' + f.pt, 'Supervisor', '<p>' + E(f.d || '') + '</p>' + rtWikiTab(RT_CH.map(c=> E((RT_CH_BY[c] || {}).sig || c)), [RT_CH.map(c=> (f.ch || {})[c] || '—')]) + '<p>PM: ' + (f.pm || '—') + '</p>'));
+
+    // ---------------- TALENTOS ----------------
+    const T = cat('talentos', 'Talentos', '✦', 'Todos os talentos. ⚙ = aplicado sozinho na ficha/tabuleiro.');
+    Object.keys(RT.tal).forEach(id=>{
+      const t = RT.tal[id];
+      const c0 = (t.cats || [])[0] || '';
+      const catTxt = c0 === 'comum' ? 'Comum' : c0 === 'exemplar' ? 'Exemplar' : c0.startsWith('mundo:') ? 'Mundo natal' : c0.startsWith('origem:') ? 'Origem' : c0.startsWith('arq:') ? ((RT.arch[c0.slice(4)] || {}).pt || 'Arquétipo') : '';
+      add(T, id, t.pt, catTxt + (RT_TAL_AUTO.has(id) ? ' · ⚙ automático' : ''), '<p>' + E(t.d || RT_SEM_DESC) + '</p>' + (t.req && t.req.txt ? '<p class="rt-wiki-meta">Requisito: ' + E(t.req.txt) + (t.req.nivel ? ' (nível ' + t.req.nivel + ')' : '') + '</p>' : ''));
+    });
+
+    // ---------------- ARMAS ----------------
+    const W = cat('armas', 'Armas', '🔫', 'A lista fixa de armas da ficha, com os valores usados no tabuleiro.');
+    RT_WEAPONS.forEach(w=>{
+      const m = RT_MUN[w.id];
+      const linhas = [['Tipo', (w.tipo === 'cac' ? 'Corpo a corpo' : 'À distância') + ' · ' + (w.maos === 2 ? 'duas mãos' : 'uma mão') + ' · ' + (RT_WFAM[w.fam] || '')], ['Dano', w.min + '–' + w.max], ['Penetração', w.pen + '%']];
+      if(w.tipo !== 'cac'){ linhas.push(['Alcance', w.alc + ' casas (máx. ' + w.alc * 2 + ')']); if(w.cad > 1) linhas.push(['Cadência', w.cad]); if(w.redEsq) linhas.push(['Redução de esquiva', w.redEsq + '%']); if(m) linhas.push(['Munição', m[0] + ' tiros · recarga ' + m[1] + ' PA']); }
+      if(w.aparar) linhas.push(['Aparar', '+' + w.aparar + '%']);
+      if(w.forMin) linhas.push(['Força mínima', w.forMin]);
+      linhas.push(['Ataques', w.modos.map(x=> (RT_WMODE[x] || {}).pt + ' (' + (((RT_WMODE[x] || {}).pa || 1) + (w.paExtra || 0)) + ' PA)').join(' · ')]);
+      add(W, w.id, w.pt, w.grp, rtWikiTab(['', ''], linhas.map(l=> [E(l[0]), E(String(l[1]))])), w.grp);
+    });
+
+    // ---------------- ARMADURAS ----------------
+    const AR = cat('armaduras', 'Armaduras', '🛡️', 'Classes de armadura e valores.');
+    RT_ARMORS.forEach(a=> add(AR, a.id, a.pt, RT_ARM_CLS[a.cls].pt, rtWikiTab(['Classe', 'Armadura', 'Deflexão', 'Esquiva'], [[RT_ARM_CLS[a.cls].pt, a.pct + '%', a.defl, '× ' + String(RT_ARM_CLS[a.cls].mult).replace('.', ',')]])));
+
+    // ---------------- PODERES ----------------
+    const P = cat('poderes', 'Poderes psíquicos', '🔮', 'Poderes de cada disciplina. NP = Nível Psíquico.');
+    const discNome = { biomancy:'Biomancia', divination:'Adivinhação', pyromancy:'Piromancia', sanctic:'Sancticismo', telepathy:'Telepatia' };
+    Object.keys(RT_PSY).forEach(id=>{
+      const p = RT_PSY[id];
+      add(P, id, p.icon + ' ' + p.pt, discNome[p.disc] + (RT_PSY_INICIAL[p.disc] === id ? ' · inicial' : '') + ' · ' + (p.maior ? 'maior' : 'menor'),
+        '<div class="rt-wiki-meta">' + p.pa + ' PA · ' + (p.alvo === 'si' ? 'em volta de você' : 'alcance ' + p.alc + ' casas · alvo: ' + p.alvo) + ' · Véu +' + (p.maior ? 3 : 1) + '</div><p>' + E(p.d) + '</p>', discNome[p.disc]);
+    });
+    add(P, 'veu', 'Véu, Fenômenos e Perigos', 'Regras', '<p>Ver ' + rtWikiLink('regras', 'psiquico', 'Poderes psíquicos e o Véu') + '.</p>');
+
+    // ---------------- CONSUMÍVEIS ----------------
+    const K = cat('consumiveis', 'Granadas e consumíveis', '💣', 'Itens usados pela roda de ações.');
+    RT_CONS.forEach(c=> add(K, c.id, c.icon + ' ' + c.pt, c.tipo === 'granada' ? 'Granada' : 'Consumível', '<div class="rt-wiki-meta">' + c.pa + ' PA' + (c.alc ? ' · alcance ' + c.alc + ' casas' : '') + (c.raio != null && c.tipo === 'granada' ? ' · área ' + (c.raio ? (2 * c.raio + 1) + '×' + (2 * c.raio + 1) : '1 casa') : '') + '</div><p>' + E(c.d) + '</p>'));
+    add(K, 'kit', '🩹 Kit de primeiros socorros', 'Consumível (inventário)', '<p>1 PA, alvo ao seu lado: cura 1d10 + Medicina/10. Fora de combate trata 1 lesão antiga.</p>');
+
+    // ---------------- ORIGENS ----------------
+    const O = cat('origens', 'Mundos natais e origens', '🌍', 'Opções da criação de personagem.');
+    const mods = m=> Object.keys(m || {}).map(k=> ((RT_CH_BY[k] || {}).sig || k) + ' ' + (m[k] > 0 ? '+' : '') + m[k]).join(', ');
+    RT.hw.forEach(h=> add(O, 'hw-' + h.id, h.pt, 'Mundo natal', '<p>' + E((typeof RT_LORE !== 'undefined' && RT_LORE.hw[h.id]) || '') + '</p><p><b>Características:</b> ' + E(mods(h.mods)) + '</p>' + (h.feat ? '<p><b>' + E(h.feat.pt) + ':</b> ' + E(h.feat.d) + '</p>' : '') + ((h.tal || []).length ? '<p class="rt-wiki-meta">Talentos: ' + h.tal.map(t=> E((RT.tal[t] || {}).pt || t)).join(', ') + '</p>' : '')));
+    RT.og.forEach(o=> add(O, 'og-' + o.id, o.pt, 'Origem', '<p>' + E((typeof RT_LORE !== 'undefined' && RT_LORE.og[o.id]) || '') + '</p>'
+      + ((o.sub && typeof RT_LORE !== 'undefined') ? o.sub.opts.map(sb=> '<p class="rt-wiki-meta">' + E(RT_LORE.sub[sb.id] || sb.pt) + '</p>').join('') : '')
+      + ((o.psy && typeof RT_LORE !== 'undefined') ? o.psy.map(ps=> '<p class="rt-wiki-meta">' + E(RT_LORE.psy[ps.id] || ps.pt) + '</p>').join('') : '')
+      + '<p><b>Características:</b> ' + E(mods(o.mods)) + '</p>'
+      + (Object.keys(o.sk || {}).length ? '<p><b>Perícias:</b> ' + Object.keys(o.sk).map(k=> E(((RT.skills.find(s=> s.id === k) || {}).pt || k)) + ' +' + o.sk[k]).join(', ') + '</p>' : '')
+      + (o.feats || []).map(f=> '<p><b>' + E(f.pt) + ':</b> ' + E(f.d) + '</p>').join('')
+      + ((o.tal || []).length ? '<p class="rt-wiki-meta">Talentos: ' + o.tal.map(t=> E((RT.tal[t] || {}).pt || t)).join(', ') + '</p>' : '')));
+    return cats;
+  }
+  function rtWikiMarca(txt, termos){
+    const raw = String(txt || '');
+    const norm = raw.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    if(norm.length !== raw.length || !termos.length) return rtEsc(raw);
+    const marks = new Array(raw.length).fill(false);
+    termos.forEach(t=>{ if(t.length < 2) return; let i = 0, idx; while((idx = norm.indexOf(t, i)) !== -1){ for(let k = idx; k < idx + t.length; k++) marks[k] = true; i = idx + t.length; } });
+    let out = '', on = false;
+    for(let k = 0; k < raw.length; k++){
+      if(marks[k] && !on){ out += '<mark>'; on = true; }
+      if(!marks[k] && on){ out += '</mark>'; on = false; }
+      out += rtEsc(raw[k]);
+    }
+    return out + (on ? '</mark>' : '');
+  }
+  function rtWikiFiltra(itens, q){
+    const termos = rtWikiNorm(q).split(/\s+/).filter(Boolean);
+    if(!termos.length) return { lista: itens, termos };
+    const lista = itens.filter(it=> termos.every(t=> it.busca.includes(t)))
+      .sort((a, b)=> (termos.every(t=> rtWikiNorm(b.titulo).includes(t)) ? 1 : 0) - (termos.every(t=> rtWikiNorm(a.titulo).includes(t)) ? 1 : 0));
+    return { lista, termos };
+  }
+  function rtWikiItemHtml(c, it, termos, aberto){
+    return '<details class="rt-wiki-item" data-wiki-item="' + c.id + '/' + it.id + '"' + (aberto ? ' open' : '') + '><summary><span class="rt-wiki-tit">' + rtWikiMarca(it.titulo, termos) + '</span>'
+      + (it.sub ? '<span class="rt-wiki-subt">' + rtWikiMarca(it.sub, termos) + '</span>' : '') + '</summary><div class="rt-wiki-body">' + it.html + '</div></details>';
+  }
+  function rtRenderWiki(){
+    const box = rtEl('rtWiki'); if(!box) return;
+    if(!rtWiki){ try{ rtWiki = rtWikiBuild(); }catch(e){ console.error(e); box.innerHTML = '<div class="rt-hint">Não foi possível montar a wiki.</div>'; return; } }
+    if(!box.dataset.ok){
+      box.dataset.ok = '1';
+      box.innerHTML = '<div class="rt-wiki-top"><input type="search" id="rtWikiGeral" class="rt-wiki-busca" placeholder="🔎 Buscar em toda a wiki (ex.: rajada, cobertura, Véu, Investida)..."></div>'
+        + '<div class="rt-wiki-cols"><nav class="rt-wiki-nav" id="rtWikiNav"></nav><section class="rt-wiki-main" id="rtWikiMain"></section></div>';
+      box.addEventListener('input', (e)=>{
+        if(e.target.id === 'rtWikiGeral') rtWikiDesenha();
+        if(e.target.id === 'rtWikiCatBusca') rtWikiDesenhaLista();
+      });
+      box.addEventListener('click', (e)=>{
+        const n = e.target.closest('[data-wiki-cat]');
+        if(n){ rtWikiCat = n.dataset.wikiCat; rtWikiAberto = null; rtEl('rtWikiGeral').value = ''; rtWikiDesenha(); return; }
+        const go = e.target.closest('[data-wiki-go]');
+        if(go){ e.preventDefault(); const [c, id] = go.dataset.wikiGo.split('/'); rtWikiCat = c; rtWikiAberto = id; rtEl('rtWikiGeral').value = ''; rtWikiDesenha();
+          const el = box.querySelector('[data-wiki-item="' + c + '/' + id + '"]'); if(el){ el.open = true; el.scrollIntoView({ block:'nearest' }); } return; }
+      });
+    }
+    rtWikiDesenha();
+  }
+  function rtWikiDesenha(){
+    const q = (rtEl('rtWikiGeral') || {}).value || '';
+    rtEl('rtWikiNav').innerHTML = rtWiki.map(c=> '<button type="button" class="rt-wiki-navbtn' + (c.id === rtWikiCat && !q ? ' on' : '') + '" data-wiki-cat="' + c.id + '"><span>' + c.icon + '</span>' + rtEsc(c.pt) + '<small>' + c.itens.length + '</small></button>').join('');
+    const main = rtEl('rtWikiMain');
+    if(q.trim()){
+      let h = '', total = 0;
+      rtWiki.forEach(c=>{
+        const r = rtWikiFiltra(c.itens, q);
+        if(!r.lista.length) return;
+        total += r.lista.length;
+        h += '<h4 class="rt-wiki-grupo">' + c.icon + ' ' + rtEsc(c.pt) + ' <small>(' + r.lista.length + ')</small></h4>' + r.lista.slice(0, 40).map(it=> rtWikiItemHtml(c, it, r.termos, false)).join('') + (r.lista.length > 40 ? '<div class="rt-hint">… mais ' + (r.lista.length - 40) + ' resultados nesta categoria — refine a busca.</div>' : '');
+      });
+      main.innerHTML = '<div class="rt-wiki-res">' + total + ' resultado(s) para "' + rtEsc(q) + '"</div>' + (h || '<div class="rt-hint">Nada encontrado.</div>');
+      return;
+    }
+    const c = rtWiki.find(x=> x.id === rtWikiCat) || rtWiki[0];
+    main.innerHTML = '<div class="rt-wiki-cathead"><h3>' + c.icon + ' ' + rtEsc(c.pt) + '</h3><p>' + rtEsc(c.desc) + '</p>'
+      + '<input type="search" id="rtWikiCatBusca" class="rt-wiki-busca" placeholder="🔎 Buscar em ' + rtEsc(c.pt) + '..."></div><div id="rtWikiLista"></div>';
+    rtWikiDesenhaLista();
+  }
+  function rtWikiDesenhaLista(){
+    const c = rtWiki.find(x=> x.id === rtWikiCat) || rtWiki[0];
+    const q = (rtEl('rtWikiCatBusca') || {}).value || '';
+    const r = rtWikiFiltra(c.itens, q);
+    const lim = q.trim() ? 300 : c.itens.length;
+    rtEl('rtWikiLista').innerHTML = (q.trim() ? '<div class="rt-wiki-res">' + r.lista.length + ' resultado(s)</div>' : '')
+      + (r.lista.length ? r.lista.slice(0, lim).map(it=> rtWikiItemHtml(c, it, r.termos, rtWikiAberto === it.id || (q.trim() && r.lista.length <= 3))).join('') : '<div class="rt-hint">Nada encontrado.</div>')
+      + (r.lista.length > lim ? '<div class="rt-hint">Mostrando ' + lim + ' de ' + r.lista.length + ' — use a busca para achar o resto.</div>' : '');
+  }
+
   function rtSetTab(tab){
     rtActiveTab = tab;
     document.querySelectorAll('#rtSheet .rt-tab').forEach(b=> b.classList.toggle('active', b.dataset.rtTab === tab));
@@ -24729,7 +25184,10 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     els.maxVida.textContent = wMax;
     els.maxMana.textContent = 0;
     els.curMana.value = 0;
-    if((!fichaSaved && wMax !== rtLastWMax) || leveledUp || rtPendingFullHeal){ els.curVida.value = wMax; rtPendingFullHeal = false; }
+    // ficha em criação acompanha o máximo — mas nunca em combate nem com a vida zerada
+    // (senão um trauma que muda o máximo "ressuscitava" o personagem caído)
+    const __emCombate = (typeof turnState !== 'undefined' && turnState.active);
+    if((!fichaSaved && wMax !== rtLastWMax && !__emCombate) || leveledUp || rtPendingFullHeal){ els.curVida.value = wMax; rtPendingFullHeal = false; }
     if(num(els.curVida) > wMax) els.curVida.value = wMax;
     rtLastWMax = wMax;
     try{ rtLesTick(wMax); }catch(err){}
@@ -25177,10 +25635,45 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     persuasion:'Convencer pela conversa, pelo charme e pela boa impressão.',
     tech_use:'Usar, consertar e entender máquinas e artefatos; abrir trancas e hackear cogitadores.',
   };
+  function rtTipArch(a){
+    if(!a) return '';
+    const tier = a.tier === 2 ? 'Grau II · avançado' : a.tier === 3 ? 'Grau III' : 'Grau I · básico';
+    const req = a.tier === 2 ? (a.reqTxt || (a.req || []).map(r=> (RT.arch[r] || {}).pt).filter(Boolean).join(' ou ')) : '';
+    const chave = (a.ab || []).filter(x=> x.k === 'keystone');
+    let h = '<b>' + rtEsc(a.pt) + '</b><p><i>' + tier + (req ? ' — requer ' + rtEsc(req) : '') + '</i></p><p>' + rtEsc(a.role || '') + '</p>';
+    if((a.cp || []).length) h += '<p><i>Características:</i> ' + a.cp.map(c=> rtEsc(RT_CH_BY[c].pt)).join(', ') + '.</p>';
+    if((a.sp || []).length) h += '<p><i>Perícias:</i> ' + a.sp.map(x=> rtEsc((RT_SK_BY[x] || {}).pt || x)).join(', ') + '.</p>';
+    if(chave.length) h += '<p><i>Habilidades-chave:</i> ' + chave.map(x=> rtEsc(x.pt) + (x.ap != null ? ' (' + x.ap + ' PA)' : '') + ' — ' + rtEsc(x.d || '')).join(' ') + '</p>';
+    const outras = (a.ab || []).filter(x=> x.k !== 'keystone');
+    if(outras.length) h += '<p><i>Outras habilidades:</i> ' + outras.map(x=> rtEsc(x.pt)).join(', ') + '.</p>';
+    if(a.ult) h += '<p><i>Suprema — ' + rtEsc(a.ult.pt) + ':</i> Ato Heroico: ' + rtEsc(a.ult.ha) + '</p><p>Medida Desesperada: ' + rtEsc(a.ult.dm) + '</p>';
+    return h;
+  }
   function rtTipHtml(key){
     const comp = rtLastComputed || rtCompute(rtState, rtCurrentLevel);
-    const [kind, id] = key.split(':');
+    const kind = key.slice(0, key.indexOf(':')), id = key.slice(key.indexOf(':') + 1);
     let h = '';
+    if(kind === 'arch') return rtTipArch(RT.arch[id]);
+    if(['hw', 'og', 'sub', 'psy', 'imp'].includes(kind)) return rtTipOrigem(kind, id);
+    if(kind === 'ab' || kind === 'upg'){
+      const [archId, abId] = id.split('/'); const a = RT.arch[archId]; const it = a && (kind === 'upg' ? a.upg : a.ab).find(x=> x.id === abId);
+      if(!it) return '';
+      const auto = kind === 'ab' && typeof RT_AUTO !== 'undefined' && RT_AUTO[id];
+      return '<b>' + rtEsc(it.pt) + '</b><p><i>' + (kind === 'upg' ? 'Aprimoramento' : (it.k === 'keystone' ? 'Habilidade-chave' : 'Habilidade')) + ' · ' + rtEsc(a.pt) + '</i></p>'
+        + ((it.ap != null || it.cd || it.alc) ? '<p>' + [it.ap != null ? it.ap + ' PA' : '', it.cd ? 'Recarga: ' + rtEsc(it.cd) : '', it.alc ? 'Alcance: ' + rtEsc(it.alc) : ''].filter(Boolean).join(' · ') + '</p>' : '')
+        + '<p>' + rtEsc(it.d || RT_SEM_DESC) + '</p>' + (kind === 'ab' ? '<p><i>' + (auto ? '⚙ Automática no tabuleiro.' : '📜 Declarada no tabuleiro (o mestre aplica o efeito).') + '</i></p>' : '');
+    }
+    if(kind === 'ult'){
+      const a = RT.arch[id]; const u = a && a.ult; if(!u) return '';
+      return '<b>✹ ' + rtEsc(u.pt) + '</b><p><i>Habilidade suprema · ' + rtEsc(a.pt) + '</i></p><p><i>Ato Heroico (Ímpeto ≥ 175):</i> ' + rtEsc(u.ha) + '</p><p><i>Medida Desesperada (Ímpeto ≤ 25):</i> ' + rtEsc(u.dm) + '</p>';
+    }
+    if(kind === 'tal'){
+      const t = RT.tal[id]; if(!t) return '';
+      return '<b>' + rtEsc(t.pt) + '</b><p>' + rtEsc(t.d || RT_SEM_DESC) + '</p>' + (t.req && t.req.txt ? '<p><i>Requisito:</i> ' + rtEsc(t.req.txt) + '</p>' : '')
+        + (RT_TAL_AUTO.has(id) ? '<p><i>⚙ Aplicado sozinho na ficha e no tabuleiro.</i></p>' : '');
+    }
+    if(kind === 'fam'){ const f = RT.fam.find(x=> x.id === id); return f ? '<b>' + rtEsc(f.pt) + '</b><p>' + rtEsc(f.d || '') + '</p><p><i>PM:</i> ' + (f.pm || '—') + '</p>' : ''; }
+    if(kind === 'ap') return '<b>+1 Ponto de Ação</b><p>A partir deste nível o personagem tem 1 PA a mais em cada turno.</p>';
     if(kind === 'ch'){
       const c = RT_CH_BY[id];
       const usedBy = RT.skills.filter(s=> s.c === id).map(s=> s.pt);
@@ -25203,10 +25696,12 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     let cur = null;
     const show = (el)=>{
       cur = el;
-      tip.innerHTML = rtTipHtml(el.dataset.rtTip);
+      const html = rtTipHtml(el.dataset.rtTip);
+      if(!html){ tip.hidden = true; return; }
+      tip.innerHTML = html;
       tip.hidden = false;
       const r = el.getBoundingClientRect();
-      const w = Math.min(320, window.innerWidth - 16);
+      const w = Math.min(/^(arch|ult|hw|og|sub):/.test(el.dataset.rtTip || '') ? 440 : 340, window.innerWidth - 16);
       tip.style.width = w + 'px';
       let left = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
       tip.style.left = left + 'px';
@@ -25222,8 +25717,10 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     });
     document.addEventListener('click', (e)=>{
       const el = e.target.closest && e.target.closest('[data-rt-tip]');
+      if(el && el.tagName === 'SELECT'){ hide(); return; }
       if(el){ if(el === cur && !tip.hidden) hide(); else show(el); }
     });
+    document.addEventListener('change', (e)=>{ if(e.target && e.target.tagName === 'SELECT') hide(); }, true);
     window.addEventListener('scroll', hide, true);
   }
   function rtInit(){
@@ -25420,6 +25917,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     const r = rtTurnRt();
     const tok = findTurnEntryToken(entry);
     const c = rtcOrDefault(tok);
+    if(tok && rtIsDown(tok)){ r.attacks = 0; r.mp = 0; r.mpMax = 0; return; }
     r.attacks = 0; r.rag = false; r.noLimit = !!entry.noLimit; r.meleeUnlimited = false; r.keepMp = false;
     let mp = (entry.mpOverride != null) ? entry.mpOverride : (c.pm || 0);
     if(tok && entry.mpOverride == null){
@@ -25487,8 +25985,18 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     if(fbDb) fbDb.ref('mesa40k/vidaMana/' + token.ownerUid).set({ vida, mana: live.mana || 0, escudo, path: live.path || null, fichaId: live.fichaId || null, ts: firebase.database.ServerValue.TIMESTAMP })
       .catch(err=> console.error('Não foi possível aplicar o dano na ficha ao vivo:', err));
   }
+  // peças antigas podem ter Vida guardada como texto ou inválida: conserta antes de mexer
+  function rtFixTokenVitals(token){
+    if(!token || (token.kind === 'hero' && token.vidaMax == null)) return;
+    if(token.vidaMax == null && token.vidaAtual == null) return;
+    let max = parseFloat(token.vidaMax), cur = parseFloat(token.vidaAtual);
+    if(!(max > 0)) max = Math.max(isFinite(cur) ? cur : 0, parseFloat(rtcOrDefault(token).ferimentos) || 0);
+    if(!isFinite(cur)) cur = max;
+    if(token.vidaMax !== max || token.vidaAtual !== cur) rtSyncToken(token, { vidaMax: max, vidaAtual: cur });
+  }
   function rtApplyDamage(token, dmg){
-    if(!token || dmg <= 0) return { absorvido:0, vidaAntes:0, vidaDepois:0 };
+    if(!token || !(dmg > 0)) return { absorvido:0, vidaAntes:0, vidaDepois:0 };
+    rtFixTokenVitals(token);
     const cd = resolveCombatData(token) || {};
     const vidaAntes = cd.vida || 0;
     const temp = rtTempOf(token);
@@ -25720,6 +26228,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     let lo = Math.max(0, w.min || 0), hi = Math.max(lo, w.max || 0);
     if(!lo && !hi){ lo = 1; hi = 3; }
     let dano = lo + Math.floor(Math.random() * (hi - lo + 1));
+    res.bruto = dano; res.faixa = [lo, hi];
     let flat = tFlat, pen = (w.pen || 0) + tPen;
     let pct = (opts.dmgPct || 0) + A.dmgPct + tPct;
     if(w.tipo === 'cac') pct += ((+w.maos === 2) ? (A.base.danoCac2 || 0) : (A.base.danoCac1 || 0)) + (A.cacPct || 0);
@@ -25782,6 +26291,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
       if(res.vulnUsadas){ const fx = rtFxOf(tgt); fx.vuln = 0; rtSetFx(tgt, fx); }
       if(info.vidaAntes > 0 && info.vidaDepois <= 0){
         res.abate = true;
+        { const ft = rtFxOf(tgt); if(ft.list.length || ft.vuln){ ft.list = []; ft.vuln = 0; rtSetFx(tgt, ft); } }
         rtStat(att, 'ab'); rtStat(tgt, 'q');
         const fa = rtFxOf(att); fa.kills = (fa.kills || 0) + 1; rtSetFx(att, fa);
         const ca = rtcOrDefault(att), ct = rtcOrDefault(tgt);
@@ -25791,8 +26301,12 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     } else if(res.vulnUsadas){ /* mantém as vulnerabilidades se não acertou */ }
     return info;
   }
+  // dados de dano de um resultado (pra animação): [{v: rolagem, a: mínimo, b: máximo, f: dano final}]
+  function rtDanoDados(lista){
+    return (lista || []).filter(r=> r && r.outcome === 'acerto' && r.faixa).map(r=> ({ v: r.bruto, a: r.faixa[0], b: r.faixa[1], f: r.dano || 0, c: r.crit ? 1 : 0 }));
+  }
   function rtFxPayload(att, tgt, res, extra){
-    return Object.assign({ rt:1, kind:'ataque', outcome: res.outcome, crit: !!res.crit, dano: res.dano || 0,
+    return Object.assign({ rt:1, kind:'ataque', outcome: res.outcome, crit: !!res.crit, dano: res.dano || 0, dd: rtDanoDados(res.lista || [res]),
       dice: (res.rolls[res.rolls.length - 1] || {}).v || 0, label: res.arma, deidade: (resolveCombatData(att) || {}).deidade || '' }, extra || {});
   }
   function rtPlayAndBroadcast(att, tgt, fxVal){
@@ -25878,7 +26392,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     const principal = noAlvo.length > 1 ? (()=>{
       const hits = noAlvo.filter(g=> g.res.outcome === 'acerto');
       const ult = noAlvo[noAlvo.length - 1].res;
-      return { arma: w.nome, tipo: w.tipo, outcome: hits.length ? 'acerto' : ult.outcome, crit: hits.some(g=> g.res.crit),
+      return { arma: w.nome, tipo: w.tipo, outcome: hits.length ? 'acerto' : ult.outcome, crit: hits.some(g=> g.res.crit), lista: noAlvo.map(g=> g.res),
         dano: hits.reduce((s, g)=> s + (g.res.dano || 0), 0), rolls: ult.rolls, abate: noAlvo.some(g=> g.res.abate) };
     })() : (noAlvo[0] || golpes[0]).res;
     rtAfterStrikeEffects(att, tgt, w, principal);
@@ -25897,7 +26411,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     const outros = golpes.filter(g=> g.alvo !== tgt);
     const vfx = rtVfxDaArma(w, modo.id);
     const fxVal = outros.length
-      ? { rt:1, kind:'multi', icon: md.icon || '💥', vfx, multi: golpes.map(g=> ({ r: g.alvo.anchorR, c: g.alvo.anchorC, out: g.res.outcome, txt: g.res.outcome === 'acerto' ? '-' + g.res.dano : rtOutcomeTxt(g.res) })), deidade:(resolveCombatData(att) || {}).deidade || '' }
+      ? { rt:1, kind:'multi', icon: md.icon || '💥', vfx, label: w.nome, dd: rtDanoDados(golpes.map(g=> g.res)), multi: golpes.map(g=> ({ r: g.alvo.anchorR, c: g.alvo.anchorC, out: g.res.outcome, txt: g.res.outcome === 'acerto' ? '-' + g.res.dano : rtOutcomeTxt(g.res) })), deidade:(resolveCombatData(att) || {}).deidade || '' }
       : rtFxPayload(att, tgt, principal, Object.assign({ vfx, tipo: w.tipo }, noAlvo.length > 1 ? { tiros: noAlvo.map(g=> ({ acerto:'A', cobertura:'C', esquivou:'E' })[g.res.outcome] || 'X').join('') } : {}));
     return rtPlayAndBroadcast(att, outros.length ? att : tgt, fxVal).then(()=>{
       const vuln = principal.vulnUsadas ? ` (usou ${principal.vulnUsadas} vulnerabilidade${principal.vulnUsadas > 1 ? 's' : ''})` : '';
@@ -26788,6 +27302,37 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     });
   }
 
+
+  // ---------- dado de dano (animado, na zona de Dano embaixo do tabuleiro) ----------
+  function rtPlayDamageRoll(val){
+    const dd = (val && val.dd) || [];
+    if(!dd.length || typeof boardDiceZoneDano === 'undefined' || !boardDiceZoneDano) return rtvWait(0);
+    const color = DEITY_EYE_COLOR[val.deidade] || '#e0b656';
+    const glow = hexToRgba(color, .55);
+    const group = document.createElement('div');
+    const pair = document.createElement('div'); pair.className = 'dice-pair rt-dano-pair';
+    const vis = dd.slice(0, 6);
+    const dados = vis.map(()=>{ const d = buildCubeDieEl('rt-dano-die'); d.style.setProperty('--die-color', '#c4161c'); d.style.setProperty('--die-glow', 'rgba(196,22,28,.55)'); d.classList.add('ricochet'); cubeOf(d).classList.add('rolling'); pair.appendChild(d); return d; });
+    group.appendChild(pair);
+    const cap = document.createElement('div'); cap.className = 'rt-d100-cap rt-dano-cap'; cap.textContent = 'Dano · ' + (val.label || '');
+    group.appendChild(cap);
+    appendBoardDiceGroup(boardDiceZoneDano, group);
+    const tick = setInterval(()=>{ dados.forEach((d, i)=>{ const x = vis[i]; d.querySelectorAll('.cube-face').forEach(f=>{ f.textContent = x.a + Math.floor(Math.random() * (x.b - x.a + 1)); }); }); playDiceTick(); }, 70);
+    return animateDiceRicochet(boardDiceArena, dados, 900).then(()=>{
+      clearInterval(tick);
+      dados.forEach((d, i)=>{
+        d.classList.remove('ricochet'); cubeOf(d).classList.remove('rolling'); cubeOf(d).classList.remove('settle'); void d.offsetWidth; cubeOf(d).classList.add('settle');
+        rtSetD10Face(d, String(vis[i].v));
+        d.classList.add('hit-glow');
+        d.title = 'Rolou ' + vis[i].v + ' (' + vis[i].a + '–' + vis[i].b + ') → ' + vis[i].f + ' de dano no alvo';
+      });
+      const total = dd.reduce((s, x)=> s + (x.f || 0), 0);
+      cap.textContent = 'Dano ' + (val.label ? '(' + val.label + ') ' : '') + dd.map(x=> x.v).join(' + ') + (dd.length > vis.length ? ' …' : '')
+        + ' [' + dd[0].a + '–' + dd[0].b + '] → ' + total + ' no alvo' + (dd.some(x=> x.c) ? ' (crítico)' : '');
+      cap.classList.add('ok');
+    });
+  }
+
   // ---------- animação ----------
   function rtSpawnAttackFx(attackerAnchor, targetAnchor, val){
     val = val || {};
@@ -26822,6 +27367,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
         return rtvWait(400 + lista.length * 180 + 700);
       }
       lean();
+      if((val.dd || []).length) rtPlayDamageRoll(val);
       if(/^granada_/.test(val.vfx)){
         const C = rtvCell({ r: val.cr != null ? val.cr : (lista[0] || {}).r, c: val.cc != null ? val.cc : (lista[0] || {}).c }) || T;
         return rtVfxGranada(val.vfx, A, C).then(()=>{ lista.forEach((m, i)=> setTimeout(()=> mostra(m), i * 90)); return rtvWait(lista.length * 90 + 800); });
@@ -26842,7 +27388,8 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     const v = { tens: Math.floor(((val.dice || 100) % 100) / 10), units: (val.dice || 100) % 10, roll: val.dice, ok: val.outcome === 'acerto', alvo: '', label: val.label || 'Ataque', deidade: val.deidade, graus: 0 };
     return rtPlayTestRoll(Object.assign(v, { capTxt: rtOutcomeTxt({ outcome: val.outcome, crit: val.crit, dano: val.dano }) })).then(()=>{
       const pv = !val.vfx ? rtvWait(0) : (val.tiros ? rtVfxBurst(val.vfx, A, T, val.tiros) : rtVfxStrike(val.vfx, A, T, val.outcome));
-      return pv.then(()=>{
+      const pd = (val.outcome === 'acerto' && (val.dd || []).length) ? rtPlayDamageRoll(val) : rtvWait(0);
+      return Promise.all([pv, pd]).then(()=>{
         if(val.outcome === 'acerto'){
           if(tgtEl){ tgtEl.classList.remove('board-token-shake'); void tgtEl.offsetWidth; tgtEl.classList.add('board-token-shake'); }
           floatTxt(targetXY, (val.crit ? 'CRÍTICO −' : '−') + (val.dano || 0));
@@ -26871,6 +27418,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
   function rtBuildWheelCircles(att, tgt, category){
     const circles = [];
     if(!att){ return [rtMakeCircle('⚔️', 'Ação', [], 'Nenhuma ficha na vez agora.', ()=>{})]; }
+    if(rtIsDown(att)){ return [rtMakeCircle('💀', 'Fora de combate', [], 'Esta ficha está com 0 de vida: não pode agir até ser curada.', ()=>{})]; }
     const c = rtcOrDefault(att);
     const same = tgt && att.id === tgt.id;
     const r = rtTurnRt();
@@ -27020,11 +27568,12 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     const A = rtEffective(att), T = rtEffective(tgt);
     lo = Math.max(0, Math.round(lo)); hi = Math.max(lo, Math.round(hi));
     let d = lo + Math.floor(Math.random() * (hi - lo + 1));
+    const __bruto = d;
     d = d * (1 + (A.dmgPct || 0) / 100) * (o.mult || 1);
     if(!o.ignDefl) d = Math.max(0, d - T.defl);
     if(!o.ignArm){ const armEf = Math.max(0, Math.min(95, T.arm - (o.pen || 0))); d = d * (1 - armEf / 100); }
     if(rtTal(att, 'psychic_barrage') && rtDistTok(att, tgt) >= 6) d += (A.B.BS || 0);
-    const res = { arma: o.nome || 'Poder', tipo:'psy', outcome:'acerto', rolls:[], crit:false, dano: Math.max(0, Math.round(d)) };
+    const res = { arma: o.nome || 'Poder', tipo:'psy', outcome:'acerto', rolls:[], crit:false, dano: Math.max(0, Math.round(d)), bruto: __bruto, faixa: [lo, hi] };
     rtApplyStrike(att, tgt, res);
     return res;
   }
@@ -27193,8 +27742,8 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     if(currentRole === 'mestre'){ rtAllTokens().forEach(t=>{ if(t.anchorR != null) renderBoardCell(t.anchorR, t.anchorC); }); } else renderLiveBoardMini();
     const deid = (resolveCombatData(att) || {}).deidade || '';
     const fxVal = (multi && (multi.length > 1 || (multi[0] && multi[0].alvo !== fxAlvo)))
-      ? { rt:1, kind:'multi', icon: p.icon, vfx: RT_VFX_PSY[id] || 'psi', psy:1, multi: multi.map(g=> ({ r: g.alvo.anchorR, c: g.alvo.anchorC, out:'acerto', txt: '-' + g.res.dano })), deidade: deid }
-      : multi ? { rt:1, kind:'multi', icon: p.icon, vfx: RT_VFX_PSY[id] || 'psi', psy:1, multi: [{ r: multi[0].alvo.anchorR, c: multi[0].alvo.anchorC, out:'acerto', txt: '-' + multi[0].res.dano }], deidade: deid }
+      ? { rt:1, kind:'multi', icon: p.icon, vfx: RT_VFX_PSY[id] || 'psi', psy:1, label: p.pt, dd: rtDanoDados(multi.map(g=> g.res)), multi: multi.map(g=> ({ r: g.alvo.anchorR, c: g.alvo.anchorC, out:'acerto', txt: '-' + g.res.dano })), deidade: deid }
+      : multi ? { rt:1, kind:'multi', icon: p.icon, vfx: RT_VFX_PSY[id] || 'psi', psy:1, label: p.pt, dd: rtDanoDados(multi.map(g=> g.res)), multi: [{ r: multi[0].alvo.anchorR, c: multi[0].alvo.anchorC, out:'acerto', txt: '-' + multi[0].res.dano }], deidade: deid }
       : { rt:1, kind:'buff', icon: p.icon, vfx: RT_VFX_PSY[id] || 'buff', psy:1, txt: fxTxt, deidade: deid };
     return rtPlayAndBroadcast(att, multi ? att : fxAlvo, fxVal).then(()=>{
       postToDiscord(`${p.icon} ${nomeA} usa o poder psíquico ${p.pt}${tgt && tgt !== att && p.alvo !== 'si' ? ' em ' + nomeT : ''} (${p.pa} PA): ${corpo}${pos}`, null);
@@ -27244,12 +27793,12 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     } else {
       const area = rtAliveNear(tgt, c.raio, t=> t !== att);
       const w = { nome: c.pt, tipo:'distancia', min: c.min || 0, max: c.max || 0, pen: c.pen || 0, alc: c.alc, redEsq:0, acerto:0, crit:0 };
-      const partes = [], multi = [];
+      const partes = [], multi = [], resultados = [];
       area.forEach(t=>{
         const nt = tokenTooltipText(t);
         if(c.max){
           const res = rtResolveStrike(att, t, w, { semAcerto:true, esqMult:0.5, cover:0, area:true });
-          rtApplyStrike(att, t, res);
+          rtApplyStrike(att, t, res); resultados.push(res);
           if(c.queima && res.outcome === 'acerto' && !res.abate) rtBurn(att, t, c.queima, c.pen || 0, 0);
           partes.push(`${nt}: ${res.rolls.length ? rtRollsTxt(res) + ' → ' : ''}${rtOutcomeTxt(res)}${c.queima && res.outcome === 'acerto' ? ', Queimando' : ''}${res.abate ? ' (FORA DE COMBATE!)' : ''}`);
           multi.push({ r: t.anchorR, c: t.anchorC, out: res.outcome, txt: res.outcome === 'acerto' ? '-' + res.dano : rtOutcomeTxt(res) });
@@ -27267,7 +27816,7 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
         }
       });
       corpo = partes.length ? partes.join('; ') : 'ninguém na área.';
-      fxVal = { rt:1, kind:'multi', icon: c.icon, vfx: c.id, cr: tgt.anchorR, cc: tgt.anchorC, multi: multi.length ? multi : [{ r: tgt.anchorR, c: tgt.anchorC, txt:'💨' }], deidade: deid };
+      fxVal = { rt:1, kind:'multi', icon: c.icon, vfx: c.id, label: c.pt, dd: rtDanoDados(resultados), cr: tgt.anchorR, cc: tgt.anchorC, multi: multi.length ? multi : [{ r: tgt.anchorR, c: tgt.anchorC, txt:'💨' }], deidade: deid };
     }
     rtSpendAp(rtConsCost(att, c));
     if(c.tipo === 'granada'){ const fa = rtFxOf(att); fa.gran = (fa.gran || 0) + 1; rtSetFx(att, fa); }
@@ -27523,6 +28072,57 @@ body.rt-on select option:disabled{ color:#7c6a52 !important; }
     const btns = [...document.querySelectorAll('.rt-end-combat')].filter(b=> !b.dataset.ok);
     btns.forEach(btn=>{ btn.dataset.ok = '1'; btn.addEventListener('click', rtEndCombat); });
     setInterval(()=>{ document.querySelectorAll('.rt-end-combat').forEach(btn=>{ btn.hidden = currentRole !== 'mestre'; btn.disabled = !turnState.active; }); }, 700);
+  }
+
+
+  // =====================================================================================
+  // RESUMO DO TABULEIRO (bolhas das fichas): características de Rogue Trader com os efeitos ativos,
+  // defesas, PA/PM, munição de cada arma e os ícones de estado.
+  // =====================================================================================
+  function rtBubbleSummary(entry){
+    const tok = entry.token;
+    if(!tok) return null;
+    const c = rtcOrDefault(tok);
+    const E = rtEffective(tok);
+    const wrap = document.createElement('div');
+    wrap.className = 'ficha-bubble-attrs rt-bubble';
+    const SIG = { WS:'HA', BS:'HB', STR:'FOR', TGH:'RES', AGI:'AGI', INT:'INT', PER:'PER', WP:'VON', FEL:'CAR' };
+    let h = '<div class="rt-bub-grid">' + RT_CH.map(k=>{
+      const base = (c.ch || {})[k] || 0, ef = E.ch[k] || 0;
+      const cls = ef > base ? ' up' : ef < base ? ' down' : '';
+      return '<div class="rt-bub-cell' + cls + '" title="' + rtEsc((RT_CH_BY[k] || {}).pt || k) + (ef !== base ? ' (base ' + base + ')' : '') + '"><span>' + SIG[k] + '</span><b>' + ef + '</b></div>';
+    }).join('') + '</div>';
+    const r = turnState.active ? rtTurnRt() : null;
+    const daVez = turnState.active && (()=>{ const e = currentTurnEntry(); const t = e && findTurnEntryToken(e); return t && t.id === tok.id; })();
+    const def = [
+      ['Esq', E.esq + '%', 'Esquiva'], ['Apa', E.apa, 'Aparar'], ['Arm', E.arm + '%', 'Armadura'], ['Def', E.defl, 'Deflexão'],
+      ['Acerto', E.ac + '%', 'Acerto à distância'], ['Crít', E.crit + '%', 'Chance de crítico'],
+      daVez ? ['PA', (turnState.apRemaining || 0) + '/' + (turnState.apMax || 0), 'Pontos de Ação nesta vez'] : ['PA', c.pa || 3, 'Pontos de Ação'],
+      daVez && r ? ['PM', (r.mp || 0) + '/' + (r.mpMax || 0), 'Pontos de Movimento nesta vez'] : ['PM', c.pm || 6, 'Pontos de Movimento'],
+    ];
+    h += '<div class="rt-bub-def">' + def.map(d=> '<span title="' + rtEsc(d[2]) + '">' + d[0] + ' <b>' + d[1] + '</b></span>').join('') + '</div>';
+    const armas = rtWeaponsOf(tok).filter(w=> w.nome !== 'Desarmado' || (c.armas || []).length);
+    if(armas.length){
+      h += '<div class="rt-bub-armas">' + armas.map(w=>{
+        if(w.tipo === 'cac' || !w.mun) return '<div class="rt-bub-arma"><span>' + (w.tipo === 'cac' ? '⚔️' : '🔫') + ' ' + rtEsc(w.nome) + '</span>' + (w.tipo === 'cac' ? '' : '<b>∞</b>') + '</div>';
+        const m = rtMunOf(tok, w), pct = Math.max(0, Math.min(100, m / w.mun * 100));
+        const cor = m <= 0 ? '#e0433a' : pct <= 25 ? '#e0b23c' : '#d4ac5a';
+        return '<div class="rt-bub-arma" title="Munição de ' + rtEsc(w.nome) + ': ' + m + ' de ' + w.mun + ' tiros (recarga ' + (w.rec || 1) + ' PA)"><span>🔫 ' + rtEsc(w.nome) + '</span><b style="color:' + cor + '">' + m + '/' + w.mun + '</b>'
+          + '<i class="rt-bub-mun"><i style="width:' + pct.toFixed(0) + '%;background:' + cor + '"></i></i></div>';
+      }).join('') + '</div>';
+    }
+    const fx = rtFxBadgesHtml(tok);
+    if(fx) h += '<div class="rt-bub-fx">' + fx + '</div>';
+    wrap.innerHTML = h;
+    const vitals = entry.vitals || {};
+    if(vitals.levelInfo || c.nivel){
+      const lvl = vitals.levelInfo ? vitals.levelInfo.level : c.nivel;
+      const xpWrap = document.createElement('div');
+      xpWrap.className = 'ficha-bubble-xp-wrap';
+      xpWrap.innerHTML = '<div class="ficha-bubble-xp-label">NÍVEL ' + lvl + '</div>' + (vitals.levelInfo ? '<div class="ficha-bubble-xp-track"><div class="ficha-bubble-xp-fill" style="width:' + (vitals.levelInfo.xpNeeded > 0 ? Math.max(0, Math.min(100, vitals.levelInfo.xpInBlock / vitals.levelInfo.xpNeeded * 100)) : 0).toFixed(1) + '%"></div></div>' : '');
+      wrap.appendChild(xpWrap);
+    }
+    return wrap;
   }
 
   // ---------- painel de turno ----------
