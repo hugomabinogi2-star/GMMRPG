@@ -6064,6 +6064,13 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
 .rt-meter-veu.perigo .rt-meter-head b{ color:#e3b8ff; }
 @keyframes rtVeuPulsa{ 50%{ box-shadow:0 0 14px 4px rgba(199,125,255,.9); } }
 @media (max-width:640px){ .rt-meters{ grid-template-columns:1fr; } }
+/* retratos nas bolinhas: aproxima e foca a parte de cima da imagem (onde costuma ficar o rosto) */
+.board-token.token-hero, .board-token.token-inimigo_ficha, .board-token.token-aliado_ficha,
+.tray-coin.token-hero, .tray-coin.token-inimigo_ficha, .tray-coin.token-aliado_ficha{
+  background-size:150% auto !important; background-position:50% 9% !important; background-repeat:no-repeat;
+}
+.board-token.token-dead{ background-image:none !important; }
+.ficha-bubble-portrait img{ object-fit:cover; object-position:50% 12%; transform:scale(1.45); transform-origin:50% 18%; }
 </style>
 </head>
 <body>
