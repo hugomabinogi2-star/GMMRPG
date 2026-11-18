@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rogue Trader — Mesa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
 <!-- Cinzel Decorative/EB Garamond só existem nesta cópia (index_mag.html, ex-index_40K.html) —
      usadas por toda a ficha (atributos, dados, tabuleiro, modais etc.), não só na tela de login.
      Rodada 1 trocou só a tela de login/seletor de campanha (verde-neon "terminal sci-fi" ->
@@ -6332,6 +6332,24 @@ select.rt-select.rt-pick-hidden{ position:absolute !important; width:1px !import
 .rt-pick-ok{ min-width:90px; }
 @media (max-width:640px){ .rt-pick-corpo{ grid-template-columns:1fr; grid-template-rows:minmax(140px, 42%) 1fr; } .rt-pick{ padding:8px; } }
 .rt-pick-det .rt-wstats span, .rt-pick-det .rt-astats span{ color:#6b4a1a !important; }
+/* ===== ficha inteira em Roboto, tudo em maiúsculas ===== */
+#card, #card *, #rtSheet, #rtSheet *, #rtPick, #rtPick *, #rtTip, #rtTip *,
+#card input, #card select, #card textarea, #card button, #card option, #rtSheet input, #rtSheet textarea, #rtSheet option{
+  font-family:'Roboto', 'Segoe UI', Arial, sans-serif !important;
+  text-transform:uppercase !important;
+  font-style:normal !important;
+}
+#card input::placeholder, #card textarea::placeholder, #rtPick input::placeholder{ text-transform:uppercase; }
+#card, #rtSheet, #rtPick, #rtTip{ letter-spacing:.01em; }
+#card h1, #card h2, #card h3, #card h4, #card b, #card strong, #rtPick b, #rtTip b, .rt-pick-head b, .rt-pick-grupo{ font-weight:700 !important; }
+/* ===== textos do tabuleiro 3× maiores ===== */
+.board-hit-fx-text{ font-family:'Roboto', Arial, sans-serif !important; font-weight:900 !important; font-size:48px; -webkit-text-stroke:1px rgba(0,0,0,.55); }
+.board-hit-fx-text.board-hit-fx-dano{ font-size:66px !important; }
+.board-hit-fx-text.board-hit-fx-miss{ font-size:42px !important; }
+.board-hit-fx-emoji{ font-size:52px !important; }
+.board-erro-explosion-text{ font-family:'Roboto', Arial, sans-serif !important; font-weight:900 !important; font-size:90px !important; }
+.mesa-fixed-select, .mesa-fixed-select option{ font-family:'Roboto', Arial, sans-serif !important; text-transform:uppercase !important; }
+body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Arial, sans-serif !important; font-weight:700; font-size:18px !important; max-width:300px !important; line-height:1.2; }
 </style>
 </head>
 <body>
@@ -25485,7 +25503,7 @@ select.rt-select.rt-pick-hidden{ position:absolute !important; width:1px !import
       <li>No fim do combate as frescas viram antigas; <b>4 antigas viram 1 trauma</b>. Fora de combate, 1 Kit trata 1 lesão antiga.</li>
       <li>Traumas só saram na nave: o mestre cura pelo painel da ficha.</li></ul>` + rtWikiTab(['Trauma', 'Penalidade'], Object.values(RT_TRAUMAS).map(t=> [E(t.pt), E(t.d)])), 'lesao trauma ferido costelas braco perna cabeca');
     add(R, 'fim', 'Fim do combate e XP', 'O botão 🏁 do mestre', `
-      <p><b>Todos os jogadores caíram:</b> quando todos os personagens de jogador do combate ficam com a Vida zerada, o combate no tabuleiro termina sozinho (2 segundos depois, para dar tempo de uma cura) e o resumo abre normalmente. Inimigos nunca atacam quem já está com a Vida zerada.</p>
+      <p><b>Fim automático:</b> o combate no tabuleiro termina sozinho quando todos os personagens de jogador ficam com a Vida zerada, ou quando só sobram inimigos de pé (nenhum jogador, aliado ou ficha aliada do mestre com vida). Isso acontece 2 segundos depois, para dar tempo de uma cura, e o resumo abre normalmente. Inimigos nunca atacam quem já está com a Vida zerada.</p>
       <p>O mestre encerra o combate com 🏁 (ao lado da ampulheta). Abre um resumo com dano causado e recebido, abates, críticos, curas, ataques e quem caiu, e os destaques do grupo.</p>
       <p><b>XP por abate</b>: quando o HP de um inimigo zera, <b>cada jogador que causou dano ou aplicou algum efeito nele</b> durante o combate ganha na hora <b>15 × o nível do inimigo</b>; quem deu o <b>golpe final</b> ganha <b>1,5×</b> esse valor (aparece um aviso ⭐ no tabuleiro, no chat e no Discord). Vale para abates por ataque, poder, ataque de oportunidade ou queimadura, uma vez por inimigo. Errar o ataque não conta como contribuição.</p>
       <p>No resumo do fim, a coluna "XP ganho" mostra o total de cada um. O campo "XP extra" serve para recompensas de missão: o mestre preenche e clica em ⭐ Conceder XP extra.</p>`, 'fim combate resumo xp experiencia');
@@ -28327,7 +28345,9 @@ select.rt-select.rt-pick-hidden{ position:absolute !important; width:1px !import
     const floatTxt = (xy, txt, cls)=>{ if(!xy) return; const el = document.createElement('div'); el.className = 'board-hit-fx-text ' + (cls || 'board-hit-fx-dano'); el.textContent = txt; spawnBoardHitFxFloating(xy, el, 950); };
     const floatEmoji = (xy, e)=>{ if(!xy) return; const el = document.createElement('div'); el.className = 'board-hit-fx-emoji'; el.textContent = e; spawnBoardHitFxFloating(xy, el, 850); };
     const A = rtvCell(attackerAnchor), T = rtvCell(targetAnchor);
+    const __melee = !!val.vfx && (val.tipo === 'cac' || rtVfxMelee(val.vfx));
     const lean = ()=>{
+      if(attEl && A && T && val.vfx && attackerAnchor && targetAnchor && (attackerAnchor.r !== targetAnchor.r || attackerAnchor.c !== targetAnchor.c)){ rtAtkMove(attEl, A, T, __melee); return; }
       if(attEl && attackerAnchor && targetAnchor && (attackerAnchor.r !== targetAnchor.r || attackerAnchor.c !== targetAnchor.c)){
         const dr = Math.sign((targetAnchor.r || 0) - (attackerAnchor.r || 0)), dc = Math.sign((targetAnchor.c || 0) - (attackerAnchor.c || 0));
         attEl.style.setProperty('--lean-x', (dc * 7) + 'px'); attEl.style.setProperty('--lean-y', (dr * 7) + 'px'); attEl.style.setProperty('--lean-rot', (dc * 6) + 'deg');
@@ -28343,7 +28363,7 @@ select.rt-select.rt-pick-hidden{ position:absolute !important; width:1px !import
       const lista = val.multi || [];
       const mostra = (m)=>{
         const xy = boardHitFxCenterXY(m.r, m.c);
-        if(!m.out || m.out === 'acerto') rtvShake({ r: m.r, c: m.c });
+        if(!m.out || m.out === 'acerto'){ const __el = boardHitFxTokenEl(m.r, m.c); if(__el && A) rtRecoil(__el, A, rtvCell({ r: m.r, c: m.c }), false, __melee); else rtvShake({ r: m.r, c: m.c }); }
         floatTxt(xy, m.txt, (m.out && m.out !== 'acerto') ? 'board-hit-fx-text rt-fx-miss' : null);
       };
       if(!val.vfx){
@@ -28362,21 +28382,22 @@ select.rt-select.rt-pick-hidden{ position:absolute !important; width:1px !import
         const M = rtvCell({ r: m.r, c: m.c });
         const de = (rtVfxBase(val.vfx) === 'arco' && i > 0) ? origem : A;
         if(rtVfxBase(val.vfx) === 'arco') origem = M || origem;
-        const p = val.psy ? rtVfxPsy(val.vfx, A, M, i * 140) : rtVfxStrike(val.vfx, de, M, m.out || 'acerto', { delay: i * 170 });
+        const p = val.psy ? rtVfxPsy(val.vfx, A, M, i * 140) : rtVfxStrike(val.vfx, de, M, m.out || 'acerto', { delay: i * 170 + (__melee ? RT_LUNGE_HIT : 0) });
         return p.then(()=> mostra(m));
       });
       return Promise.all(proms).then(()=> rtvWait(800));
     }
     if(!val.vfx) playCutSound();
-    lean();
+    if(!val.vfx) lean();   // com animação de arma, o avanço/coice acontece junto do golpe (depois do dado)
     if(!val.vfx) floatEmoji(targetXY, val.tipo === 'cac' ? '⚔️' : '💥');
     const v = { tens: Math.floor(((val.dice || 100) % 100) / 10), units: (val.dice || 100) % 10, roll: val.dice, ok: val.outcome === 'acerto', alvo: '', label: val.label || 'Ataque', deidade: val.deidade, graus: 0 };
     return rtPlayTestRoll(Object.assign(v, { capTxt: rtOutcomeTxt({ outcome: val.outcome, crit: val.crit, dano: val.dano }) })).then(()=>{
-      const pv = !val.vfx ? rtvWait(0) : (val.tiros ? rtVfxBurst(val.vfx, A, T, val.tiros) : rtVfxStrike(val.vfx, A, T, val.outcome));
+      if(val.vfx) lean();
+      const pv = !val.vfx ? rtvWait(0) : (val.tiros ? rtVfxBurst(val.vfx, A, T, val.tiros) : rtVfxStrike(val.vfx, A, T, val.outcome, __melee ? { delay: RT_LUNGE_HIT } : undefined));
       const pd = (val.outcome === 'acerto' && (val.dd || []).length) ? rtPlayDamageRoll(val) : rtvWait(0);
       return Promise.all([pv, pd]).then(()=>{
         if(val.outcome === 'acerto'){
-          if(tgtEl){ tgtEl.classList.remove('board-token-shake'); void tgtEl.offsetWidth; tgtEl.classList.add('board-token-shake'); }
+          if(tgtEl) rtRecoil(tgtEl, A, T, !!val.crit, __melee);
           floatTxt(targetXY, (val.crit ? 'CRÍTICO −' : '−') + (val.dano || 0));
           if(val.crit) playYaaySound(); else if(!val.vfx) playBlingSound();
         } else {
@@ -29203,12 +29224,19 @@ select.rt-select.rt-pick-hidden{ position:absolute !important; width:1px !import
   }
   // todos os jogadores caíram: o combate acaba sozinho (confere de novo depois de 2 s, para não
   // encerrar no meio de uma cura ou de um "levanta" de talento)
-  let RT_TPK_T = 0;
+  let RT_TPK_T = 0, RT_TPK_MOT = '';
   setInterval(()=>{
     try{
       if(currentRole !== 'mestre' || !turnState.active || window.__rtSemFimAuto){ RT_TPK_T = 0; return; }
+      const caido = t=> rtIsDown(t) || (typeof isTokenKnockedOut === 'function' && isTokenKnockedOut(t));
       const js = rtJogadoresNoCombate();
-      if(!js.length || !js.every(t=> rtIsDown(t) || (typeof isTokenKnockedOut === 'function' && isTokenKnockedOut(t)))){ RT_TPK_T = 0; return; }
+      const todosJogadoresCaidos = js.length > 0 && js.every(caido);
+      // só sobraram inimigos de pé: nenhuma peça do lado dos jogadores (jogador, aliado, ficha do mestre aliada) com vida
+      const ladoJ = rtAllTokens().filter(t=> rtIsCombatToken(t) && rtSideOf(t) === 'jogador');
+      const houveLadoJ = ladoJ.some(t=> (turnState.order || []).concat(turnState.baseOrder || []).some(e=> e && e.id === t.id)) || js.length > 0;
+      const soInimigos = houveLadoJ && !ladoJ.some(t=> !caido(t));
+      if(!todosJogadoresCaidos && !soInimigos){ RT_TPK_T = 0; return; }
+      RT_TPK_MOT = todosJogadoresCaidos ? 'TODOS OS JOGADORES CAÍRAM' : 'SÓ RESTARAM INIMIGOS DE PÉ NO TABULEIRO';
       if(!RT_TPK_T){ RT_TPK_T = Date.now(); return; }
       if(Date.now() - RT_TPK_T >= 2000){ RT_TPK_T = 0; rtEndCombat(true); }
     }catch(err){ console.error(err); }
@@ -29216,7 +29244,7 @@ select.rt-select.rt-pick-hidden{ position:absolute !important; width:1px !import
   function rtEndCombat(auto){
     if(currentRole !== 'mestre' || !turnState.active) return;
     if(auto !== true && !confirm('Encerrar o combate agora e ver o resumo?')) return;
-    if(auto === true){ try{ RT_AI_RODANDO = null; rtAiBotao(false); }catch(e){} postToDiscord('💀 TODOS OS JOGADORES CAÍRAM — O COMBATE NO TABULEIRO FOI ENCERRADO.', null); }
+    if(auto === true){ try{ RT_AI_RODANDO = null; rtAiBotao(false); }catch(e){} postToDiscord('💀 ' + (RT_TPK_MOT || 'TODOS OS JOGADORES CAÍRAM') + ' — O COMBATE NO TABULEIRO FOI ENCERRADO.', null); }
     try{ rtProcessXpPend(); }catch(e){}
     const D = rtCombatSummaryData();
     // fecha a fila de turnos
@@ -33344,6 +33372,275 @@ select.rt-select.rt-pick-hidden{ position:absolute !important; width:1px !import
     const sel = lb.querySelector('select.rt-select'); if(!sel) return;
     e.preventDefault(); rtPickOpen(sel);
   }, true);
+
+
+  // =====================================================================================
+  // ANIMAÇÕES GRANDIOSAS
+  // Tudo maior e mais barulhento: clarões, partículas, rajadas, feixes e explosões crescem; as
+  // explosões ganham bolas de fogo secundárias, onda de choque dupla, brasas, coluna de fumaça e
+  // tremor do tabuleiro. No corpo a corpo o atacante recua, avança com tudo até o alvo e volta; o
+  // alvo é jogado para trás e recebe um corte (lâminas) ou um impacto com fumaça (maças, martelos,
+  // escudos...). À distância o atirador sofre o coice da arma.
+  // =====================================================================================
+  const RT_LUNGE_HIT = 290;           // ms até a arma encostar no alvo
+  // ---------- tudo maior ----------
+  { const f = rtvFlash; rtvFlash = (P, color, r, dur, delay)=> f(P, color, (r || 20) * 1.7, (dur || 160) * 1.35, delay); }
+  { const f = rtvBurst; rtvBurst = (P, o)=>{ o = Object.assign({}, o || {}); if(o.forma === 'fumaca') return f(P, o); o.n = Math.round((o.n || 16) * 1.8); o.size = (o.size || 2.4) * 1.3; o.vel = (o.vel || 0.25) * 1.3; o.life = (o.life || 500) * 1.25; if(o.glow) o.glow *= 1.5; return f(P, o); }; }
+  { const f = rtvTracer; rtvTracer = (A, B, o)=>{ o = Object.assign({}, o || {}); o.larg = (o.larg || 4) * 1.7; o.glow = (o.glow || 10) * 2; o.len = (o.len || 64) * 1.5; return f(A, B, o); }; }
+  { const f = rtvBeam; rtvBeam = (A, B, o)=>{ o = Object.assign({}, o || {}); o.larg = (o.larg || 4) * 1.8; o.glow = (o.glow || 18) * 1.7; o.dur = (o.dur || 260) * 1.4; return f(A, B, o); }; }
+  { const f = rtvOrb; rtvOrb = (A, B, o)=>{ o = Object.assign({}, o || {}); o.raio = (o.raio || 7) * 1.5; return f(A, B, o); }; }
+  { const f = rtvSlash; rtvSlash = (P, o)=>{ o = Object.assign({}, o || {}); o.raio = (o.raio || 0.55) * 1.4; o.larg = (o.larg || 4) * 1.7; o.glow = (o.glow || 12) * 1.8; o.dur = (o.dur || 230) * 1.25; return f(P, o); }; }
+  { const f = rtvRing; rtvRing = (P, o)=>{ o = Object.assign({}, o || {}); o.raio = (o.raio || 1) * 1.35; o.larg = (o.larg || 3) * 1.7; return f(P, o); }; }
+  { const f = rtvFlames; rtvFlames = (A, B, o)=>{ o = Object.assign({}, o || {}); o.n = Math.round((o.n || 60) * 1.7); o.dur = (o.dur || 650) * 1.2; return f(A, B, o); }; }
+  { const f = rtvLightning; rtvLightning = (A, B, o)=>{ o = o || {}; const t = f(A, B, o); f(A, B, Object.assign({}, o, { delay: (o.delay || 0) + 70 })); rtvFlash(B, 'rgba(200,235,255,0.9)', (B.s || 40) * 0.5, 160, (o.delay || 0) + 40); return t; }; }
+  // ---------- tremor do tabuleiro ----------
+  function rtvTremor(forca, delay){
+    if(RTV_REDUZ || typeof boardGrid === 'undefined' || !boardGrid) return;
+    const k = Math.max(1, forca || 1) * 3.2;
+    const go = ()=>{
+      const q = []; for(let i = 0; i < 7; i++){ const a = Math.random() * Math.PI * 2, m = k * (1 - i / 7); q.push({ transform: `translate(${(Math.cos(a) * m).toFixed(1)}px, ${(Math.sin(a) * m).toFixed(1)}px)` }); }
+      q.push({ transform: 'translate(0,0)' });
+      try{ boardGrid.animate(q, { duration: 360 + 60 * (forca || 1), easing: 'ease-out', composite: 'add' }); }catch(e){ try{ boardGrid.animate(q, { duration: 380 }); }catch(e2){} }
+    };
+    delay ? setTimeout(go, delay) : go();
+  }
+  // ---------- explosão de verdade ----------
+  { const f = rtvExplosion; rtvExplosion = (P, o)=>{
+      o = Object.assign({}, o || {}); const R = (o.raio || 1.2) * 1.5, d = o.delay || 0, s = P.s || 40;
+      f(P, Object.assign({}, o, { raio: R }));
+      // bolas de fogo secundárias em volta
+      for(let i = 0; i < (R >= 1.2 ? 4 : 2); i++){ const a = Math.random() * Math.PI * 2, r = rtvRand(0.35, 0.8) * R * s; f({ x: P.x + Math.cos(a) * r, y: P.y + Math.sin(a) * r, s }, { raio: R * rtvRand(0.3, 0.5), onda: o.onda, delay: d + 70 + i * 60 }); }
+      // segunda onda de choque, larga
+      rtvRing(P, { cor: o.onda || '#ffcf7a', raio: R * 1.6, larg: 3, dur: 620, delay: d + 40 });
+      // clarão branco no centro
+      rtvFlash(P, 'rgba(255,250,220,1)', s * R * 0.7, 180, d);
+      // brasas subindo e coluna de fumaça
+      rtvBurst(P, { n: 18, cores: ['#ffd23a', '#ff7a00', '#ff3b00'], vel: 0.09, life: 1300, size: 1.8, g: -0.00018, glow: 10, encolhe: true, delay: d + 120 });
+      if(R >= 1.2){ rtvSmoke(P, s * 0.14, 10, d + 200, 'rgba(45,40,38,1)'); rtvSmoke({ x: P.x, y: P.y - s * 0.4, s }, s * 0.11, 7, d + 420, 'rgba(70,64,60,1)'); }
+      rtvTremor(Math.min(3, R * 1.3), d);
+    }; }
+  // ---------- peças no tabuleiro ----------
+  const rtvVet = (A, T)=>{ const dx = (T && A) ? T.x - A.x : 0, dy = (T && A) ? T.y - A.y : 0; const d = Math.hypot(dx, dy); if(d < 1){ const a = Math.random() * Math.PI * 2; return { ux: Math.cos(a), uy: Math.sin(a), d: 0 }; } return { ux: dx / d, uy: dy / d, d }; };
+  function rtvAnimEl(el, quadros, opts){ try{ return el.animate(quadros, Object.assign({ composite: 'add' }, opts)); }catch(e){ try{ return el.animate(quadros, opts); }catch(e2){ return null; } } }
+  // ataque: corpo a corpo = recua, avança até o alvo e volta; à distância = coice
+  function rtAtkMove(el, A, T, melee){
+    if(RTV_REDUZ || !el) return;
+    const v = rtvVet(A, T), s = (A && A.s) || 40;
+    const zi = el.style.zIndex; el.style.zIndex = '60';
+    let a;
+    if(melee){
+      const ida = Math.max(s * 0.35, v.d - s * 0.62);       // para encostado no alvo
+      const atras = s * 0.28;
+      const rot = (v.ux >= 0 ? 1 : -1) * 14;
+      a = rtvAnimEl(el, [
+        { transform: 'translate(0,0) rotate(0deg) scale(1)', offset: 0 },
+        { transform: `translate(${-v.ux * atras}px, ${-v.uy * atras}px) rotate(${-rot}deg) scale(1.08)`, offset: 0.34, easing: 'cubic-bezier(.2,.0,.1,1)' },
+        { transform: `translate(${v.ux * ida}px, ${v.uy * ida}px) rotate(${rot}deg) scale(1.16)`, offset: 0.5 },
+        { transform: `translate(${v.ux * ida * 0.82}px, ${v.uy * ida * 0.82}px) rotate(${rot * 0.6}deg) scale(1.1)`, offset: 0.62 },
+        { transform: 'translate(0,0) rotate(0deg) scale(1)', offset: 1 },
+      ], { duration: RT_LUNGE_HIT / 0.5, easing: 'ease-in-out' });
+      // rastro de poeira no arranque
+      setTimeout(()=>{ if(A) rtvSmoke({ x: A.x - v.ux * s * 0.2, y: A.y - v.uy * s * 0.2 + s * 0.25, s }, s * 0.08, 6, 0, 'rgba(120,110,95,1)'); }, RT_LUNGE_HIT * 0.7);
+    } else {
+      const k = s * 0.16;
+      a = rtvAnimEl(el, [
+        { transform: 'translate(0,0) rotate(0deg)', offset: 0 },
+        { transform: `translate(${-v.ux * k}px, ${-v.uy * k}px) rotate(${(v.ux >= 0 ? -1 : 1) * 6}deg)`, offset: 0.18 },
+        { transform: 'translate(0,0) rotate(0deg)', offset: 1 },
+      ], { duration: 420, easing: 'ease-out' });
+    }
+    const fim = ()=>{ el.style.zIndex = zi; };
+    if(a) a.onfinish = fim; setTimeout(fim, 900);
+  }
+  // alvo atingido: jogado para trás, gira, pisca em vermelho
+  function rtRecoil(el, A, T, crit, melee){
+    if(!el) return;
+    if(RTV_REDUZ){ el.classList.remove('board-token-shake'); void el.offsetWidth; el.classList.add('board-token-shake'); return; }
+    const v = rtvVet(A, T), s = (T && T.s) || 40, k = s * (crit ? 0.42 : (melee ? 0.3 : 0.2)), rot = (v.ux >= 0 ? 1 : -1) * (crit ? 22 : 12);
+    rtvAnimEl(el, [
+      { transform: 'translate(0,0) rotate(0deg)', offset: 0 },
+      { transform: `translate(${v.ux * k}px, ${v.uy * k}px) rotate(${rot}deg)`, offset: 0.18 },
+      { transform: `translate(${v.ux * k * 0.4 - v.uy * 3}px, ${v.uy * k * 0.4 + v.ux * 3}px) rotate(${-rot * 0.4}deg)`, offset: 0.45 },
+      { transform: `translate(${v.uy * 2}px, ${-v.ux * 2}px) rotate(${rot * 0.15}deg)`, offset: 0.7 },
+      { transform: 'translate(0,0) rotate(0deg)', offset: 1 },
+    ], { duration: crit ? 620 : 480, easing: 'ease-out' });
+    try{ el.animate([{ filter: 'brightness(2.2) saturate(2) drop-shadow(0 0 10px #ff2a1a)' }, { filter: 'brightness(1) saturate(1)' }], { duration: crit ? 520 : 380, easing: 'ease-out' }); }catch(e){}
+    if(crit){ rtvTremor(2.4); if(T) rtvFlash(T, 'rgba(255,240,200,1)', s * 0.9, 220, 0); }
+    else if(melee) rtvTremor(1);
+  }
+  // rtvShake antigo (golpes em área): agora é um tranco de verdade
+  { const f = rtvShake; rtvShake = (a)=>{ const el = a && boardHitFxTokenEl(a.r, a.c); if(el && !RTV_REDUZ) rtRecoil(el, null, null, false, false); else f(a); }; }
+  // ---------- marca do golpe no alvo, conforme a arma ----------
+  const RT_VFX_PANCADA = ['impacto', 'energia_impacto', 'escudo_golpe', 'talhadeira', 'talhadeira_energia', 'forca'];
+  const RT_VFX_CORTE = ['corte', 'corte_pesado', 'serra', 'energia', 'energia_aeldari', 'klaive', 'cutelos', 'faca_veneno', 'lamina_sugadora', 'lamina_infernal', 'foice_necron', 'garras', 'garra_energia', 'mandibulas', 'chicote', 'varredura', 'varredura_energia', 'varredura_serra', 'varredura_aeldari'];
+  function rtvMarcaGolpe(base, A, T, d){
+    if(!T) return;
+    const v = rtvVet(A, T), s = T.s || 40;
+    if(RT_VFX_PANCADA.includes(base)){
+      // impacto: anel de poeira, fumaça grossa, lascas e tremor
+      rtvFlash(T, 'rgba(255,235,200,0.95)', s * 0.55, 160, d);
+      rtvRing(T, { cor: '#e8d9b0', raio: 0.75, larg: 4, dur: 420, delay: d });
+      rtvSmoke(T, s * 0.12, 9, d + 30, 'rgba(150,140,125,1)');
+      rtvBurst(T, { n: 12, cores: ['#d9c7a0', '#8a7a60', '#5a4a3a'], vel: 0.3, life: 520, size: 2.6, g: 0.0013, dir: Math.atan2(v.uy, v.ux), spread: Math.PI * 1.1, delay: d });
+      rtvTremor(1.6, d);
+    } else if(RT_VFX_CORTE.includes(base)){
+      // corte: talho largo que fica um instante + jato de sangue na direção do golpe
+      const ang = Math.atan2(v.uy, v.ux);
+      rtvAdd(560, (cx, p)=>{
+        const L = s * 0.62, k = Math.min(1, p * 5), a = p < 0.55 ? 1 : 1 - (p - 0.55) / 0.45;
+        cx.translate(T.x, T.y); cx.rotate(ang + Math.PI / 2 + 0.5);
+        cx.globalAlpha = a; cx.lineCap = 'round';
+        cx.strokeStyle = 'rgba(30,0,0,0.65)'; cx.lineWidth = 9; cx.beginPath(); cx.moveTo(-L, 0); cx.lineTo(-L + 2 * L * k, 0); cx.stroke();
+        rtvGlow(cx, '#ff2a1a', 16); cx.strokeStyle = '#ffe7d6'; cx.lineWidth = 4.5; cx.beginPath(); cx.moveTo(-L, 0); cx.lineTo(-L + 2 * L * k, 0); cx.stroke();
+        cx.strokeStyle = '#c4161c'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(-L * 0.9, 3); cx.lineTo((-L + 2 * L * k) * 0.9, 3); cx.stroke();
+      }, d);
+      rtvBurst(T, { n: 14, cores: ['#8a0a0a', '#c4161c', '#5a0006'], vel: 0.26, life: 620, size: 2.4, g: 0.0011, dir: ang, spread: Math.PI * 0.7, delay: d + 30 });
+    }
+  }
+  { const f = rtVfxStrike; rtVfxStrike = (vfx, A, T, out, o)=>{
+      const p = f(vfx, A, T, out, o);
+      const base = rtVfxBase(vfx);
+      if(rtVfxMelee(base) && (out === 'acerto' || !out)) rtvMarcaGolpe(base, A, T, (o && o.delay) || 0);
+      // à distância: clarão de cano maior em todo disparo
+      else if(!rtVfxMelee(base) && A && !(o && o.semCano)) rtvFlash(A, 'rgba(255,225,160,0.9)', (A.s || 40) * 0.35, 120, (o && o.delay) || 0);
+      return p;
+    }; }
+
+
+  // =====================================================================================
+  // EFEITOS SONOROS — sintetizados na hora (Web Audio), sem arquivos.
+  // Cada som é feito de camadas: estalo/ataque + corpo + grave + cauda, passando por um
+  // compressor e um pouco de eco de salão (reverb gerado), para soar cheio e "de cinema".
+  // =====================================================================================
+  const RTS = { bus: null, wet: null, ctx: null, ruido: null };
+  function rtsBus(){
+    const ctx = getAudioCtx(); if(!ctx) return null;
+    if(RTS.ctx === ctx && RTS.bus) return RTS;
+    RTS.ctx = ctx;
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.knee.value = 12; comp.ratio.value = 5; comp.attack.value = 0.003; comp.release.value = 0.22;
+    const master = ctx.createGain(); master.gain.value = 0.95;
+    comp.connect(master); master.connect(ctx.destination);
+    // eco de salão: resposta de impulso de ruído que decai
+    const conv = ctx.createConvolver();
+    const len = Math.floor(ctx.sampleRate * 1.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for(let ch = 0; ch < 2; ch++){ const d = ir.getChannelData(ch); for(let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+    conv.buffer = ir;
+    const wet = ctx.createGain(); wet.gain.value = 0.32;
+    conv.connect(wet); wet.connect(comp);
+    // ruído branco reaproveitado (2 s)
+    const n = ctx.sampleRate * 2, nb = ctx.createBuffer(1, n, ctx.sampleRate), nd = nb.getChannelData(0);
+    for(let i = 0; i < n; i++) nd[i] = Math.random() * 2 - 1;
+    RTS.ruido = nb; RTS.bus = comp; RTS.wet = conv;
+    return RTS;
+  }
+  // envelope: ataque, pico, decaimento
+  function rtsEnv(g, t0, pico, ataque, dur, forma){
+    g.gain.setValueAtTime(0, g.context.currentTime);   // mudo até a hora do som (nada vaza antes)
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0002, pico), t0 + Math.max(0.001, ataque));
+    if(forma === 'lin') g.gain.linearRampToValueAtTime(0.0001, t0 + dur); else g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  }
+  function rtsSaida(node, eco){ const B = RTS; node.connect(B.bus); if(eco){ const s = B.ctx.createGain(); s.gain.value = eco; node.connect(s); s.connect(B.wet); } }
+  // ruído filtrado
+  function rtsN(dur, o){
+    const B = rtsBus(); if(!B) return; o = o || {};
+    const ctx = B.ctx, t0 = ctx.currentTime + (o.delay || 0);
+    const src = ctx.createBufferSource(); src.buffer = B.ruido; src.loop = true;
+    if(o.rate) src.playbackRate.value = o.rate;
+    const f = ctx.createBiquadFilter(); f.type = o.tipo || 'lowpass'; f.Q.value = o.q || 0.7;
+    f.frequency.setValueAtTime(o.f0 || 2000, t0); if(o.f1) f.frequency.exponentialRampToValueAtTime(Math.max(20, o.f1), t0 + (o.fdur || dur));
+    const g = ctx.createGain(); rtsEnv(g, t0, o.vol || 0.3, o.ataque || 0.004, dur, o.forma);
+    let ult = g;
+    if(o.am){ const am = ctx.createGain(); am.gain.value = 0.5; const lfo = ctx.createOscillator(); lfo.frequency.value = o.am; const lg = ctx.createGain(); lg.gain.value = 0.5; lfo.connect(lg); lg.connect(am.gain); lfo.start(t0); lfo.stop(t0 + dur + 0.05); g.connect(am); ult = am; }
+    src.connect(f); f.connect(g); rtsSaida(ult, o.eco != null ? o.eco : 0.25);
+    src.start(t0, Math.random() * 1.5); src.stop(t0 + dur + 0.05);
+  }
+  // oscilador (com vibrato / modulação opcional)
+  function rtsO(freq, dur, o){
+    const B = rtsBus(); if(!B) return; o = o || {};
+    const ctx = B.ctx, t0 = ctx.currentTime + (o.delay || 0);
+    const osc = ctx.createOscillator(); osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(freq, t0); if(o.f1) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f1), t0 + (o.fdur || dur));
+    if(o.det) osc.detune.value = o.det;
+    if(o.vib){ const l = ctx.createOscillator(); l.frequency.value = o.vib; const lg = ctx.createGain(); lg.gain.value = o.vibAmt || freq * 0.04; l.connect(lg); lg.connect(osc.frequency); l.start(t0); l.stop(t0 + dur + 0.05); }
+    const g = ctx.createGain(); rtsEnv(g, t0, o.vol || 0.15, o.ataque || 0.006, dur, o.forma);
+    let ult = osc;
+    if(o.lp){ const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; osc.connect(f); ult = f; }
+    if(o.dist){ const ws = ctx.createWaveShaper(); const c = new Float32Array(257); for(let i = 0; i < 257; i++){ const x = i / 128 - 1; c[i] = Math.tanh(x * o.dist); } ws.curve = c; ult.connect(ws); ult = ws; }
+    ult.connect(g); rtsSaida(g, o.eco != null ? o.eco : 0.2);
+    osc.start(t0); osc.stop(t0 + dur + 0.05);
+  }
+  const rtsD = d=> d || 0;
+  // ---------- peças comuns ----------
+  const rtsGrave = (d, f, dur, v)=> rtsO(f || 90, dur || 0.3, { f1: (f || 90) * 0.35, vol: v || 0.4, delay: d, eco: 0.1 });
+  const rtsEstalo = (d, v)=> rtsN(0.035, { tipo: 'highpass', f0: 3500, vol: v || 0.35, delay: d, eco: 0.05 });
+  const rtsWhoosh = (d, dur, f0, f1, v)=> rtsN(dur || 0.28, { tipo: 'bandpass', f0: f0 || 600, f1: f1 || 2600, q: 1.2, vol: v || 0.22, ataque: (dur || 0.28) * 0.6, delay: d, forma: 'lin', eco: 0.15 });
+  const rtsCarne = (d, v)=>{ rtsN(0.14, { f0: 900, f1: 180, vol: v || 0.4, delay: d, eco: 0.1 }); rtsGrave(d, 110, 0.18, (v || 0.4) * 0.8); };
+  const rtsMetal = (d, base, v)=>{ [1, 2.76, 5.4, 8.93].forEach((m, i)=> rtsO((base || 620) * m, 0.5 + 0.35 / (i + 1), { type: 'sine', vol: (v || 0.09) / (i * 0.6 + 1), delay: d, eco: 0.45 })); rtsEstalo(d, 0.25); };
+  const rtsCauda = (d, dur, v)=> rtsN(dur || 0.9, { f0: 900, f1: 120, vol: v || 0.12, ataque: 0.03, delay: rtsD(d) + 0.05, eco: 0.5 });
+  // ---------- os sons ----------
+  Object.assign(RT_SOM, {
+    tiro: (d)=>{ rtsEstalo(d, 0.4); rtsN(0.22, { f0: 2600, f1: 300, vol: 0.45, delay: d }); rtsGrave(d, 120, 0.2, 0.42); rtsCauda(d, 0.6, 0.08); },
+    metralha: (d)=>{ for(let i = 0; i < 3; i++){ rtsEstalo(rtsD(d) + i * 0.07, 0.35); rtsN(0.12, { f0: 2400, f1: 400, vol: 0.38, delay: rtsD(d) + i * 0.07 }); rtsGrave(rtsD(d) + i * 0.07, 110, 0.12, 0.3); } rtsCauda(d, 0.7, 0.1); },
+    escopeta: (d)=>{ rtsEstalo(d, 0.5); rtsN(0.45, { f0: 1800, f1: 140, vol: 0.6, delay: d }); rtsGrave(d, 85, 0.4, 0.55); rtsN(0.25, { tipo: 'bandpass', f0: 4000, q: 2, vol: 0.12, delay: rtsD(d) + 0.05 }); rtsCauda(d, 1, 0.14);
+      rtsN(0.04, { tipo: 'bandpass', f0: 1800, q: 4, vol: 0.25, delay: rtsD(d) + 0.45 }); rtsN(0.05, { tipo: 'bandpass', f0: 1200, q: 4, vol: 0.3, delay: rtsD(d) + 0.58 }); },
+    bolt: (d)=>{ rtsEstalo(d, 0.45); rtsGrave(d, 95, 0.3, 0.5); rtsN(0.35, { tipo: 'bandpass', f0: 500, f1: 2400, q: 1.5, vol: 0.3, ataque: 0.05, delay: d }); rtsN(0.2, { f0: 2000, f1: 300, vol: 0.4, delay: d }); rtsCauda(d, 0.8, 0.12); },
+    autocanhao: (d)=>{ rtsEstalo(d, 0.5); rtsGrave(d, 70, 0.45, 0.65); rtsN(0.35, { f0: 1500, f1: 120, vol: 0.55, delay: d }); rtsCauda(d, 1.1, 0.16); },
+    laser: (d)=>{ rtsO(2200, 0.2, { type: 'sawtooth', f1: 240, vol: 0.09, delay: d, lp: 5000 }); rtsO(3300, 0.12, { type: 'square', f1: 700, vol: 0.04, delay: d }); rtsN(0.12, { tipo: 'highpass', f0: 5000, vol: 0.1, delay: d }); rtsO(140, 0.15, { f1: 70, vol: 0.12, delay: d }); },
+    laser_hot: (d)=>{ rtsO(1500, 0.3, { type: 'sawtooth', f1: 160, vol: 0.12, delay: d, lp: 4200, dist: 3 }); rtsO(75, 0.3, { f1: 45, vol: 0.25, delay: d }); rtsN(0.2, { tipo: 'highpass', f0: 4200, vol: 0.14, delay: d }); },
+    plasma: (d)=>{ rtsO(260, 0.22, { type: 'sine', f1: 1800, vol: 0.08, delay: d, eco: 0.1 }); rtsO(90, 0.4, { type: 'sawtooth', f1: 45, vol: 0.18, delay: rtsD(d) + 0.18, lp: 900, dist: 4 }); rtsN(0.45, { tipo: 'bandpass', f0: 1200, f1: 3800, q: 1.6, vol: 0.3, delay: rtsD(d) + 0.18 }); rtsGrave(rtsD(d) + 0.18, 70, 0.4, 0.4); },
+    melta: (d)=>{ rtsO(55, 0.8, { type: 'sawtooth', f1: 42, vol: 0.18, delay: d, lp: 600, dist: 5 }); rtsN(0.8, { tipo: 'bandpass', f0: 380, f1: 900, q: 1, vol: 0.42, ataque: 0.06, delay: d }); rtsN(0.8, { tipo: 'highpass', f0: 3000, vol: 0.1, delay: d, am: 23 }); },
+    chamas: (d)=>{ rtsN(1, { tipo: 'bandpass', f0: 500, f1: 280, q: 0.6, vol: 0.5, ataque: 0.1, delay: d, forma: 'lin', eco: 0.3 }); rtsN(1, { tipo: 'highpass', f0: 2600, vol: 0.12, delay: d, am: 17 }); rtsGrave(d, 60, 0.8, 0.22); },
+    arco: (d)=>{ rtsN(0.45, { tipo: 'highpass', f0: 2200, vol: 0.32, delay: d, am: 41 }); rtsO(52, 0.45, { type: 'square', vol: 0.08, delay: d, vib: 30, vibAmt: 20, lp: 900 }); rtsEstalo(d, 0.45); },
+    agulha: (d)=>{ rtsN(0.06, { tipo: 'highpass', f0: 5500, vol: 0.28, delay: d }); rtsO(3800, 0.06, { f1: 1800, vol: 0.06, delay: d }); },
+    corte: (d)=>{ rtsWhoosh(d, 0.2, 700, 3400, 0.28); rtsCarne(rtsD(d) + 0.17, 0.42); rtsN(0.09, { tipo: 'bandpass', f0: 4200, q: 3, vol: 0.12, delay: rtsD(d) + 0.17 }); },
+    serra: (d)=>{ rtsO(88, 0.6, { type: 'sawtooth', f1: 150, vol: 0.14, delay: d, lp: 2000, dist: 6, vib: 32, vibAmt: 10 }); rtsN(0.6, { tipo: 'bandpass', f0: 1500, q: 2.5, vol: 0.22, delay: d, am: 32 }); rtsCarne(rtsD(d) + 0.2, 0.35); },
+    energia: (d)=>{ rtsWhoosh(d, 0.2, 900, 3600, 0.24); rtsN(0.3, { tipo: 'highpass', f0: 2600, vol: 0.2, delay: rtsD(d) + 0.12, am: 47 }); rtsO(110, 0.35, { type: 'sawtooth', f1: 55, vol: 0.1, delay: rtsD(d) + 0.12, lp: 1200, dist: 3 }); rtsCarne(rtsD(d) + 0.17, 0.35); },
+    impacto: (d)=>{ rtsWhoosh(d, 0.18, 400, 1800, 0.2); rtsGrave(rtsD(d) + 0.15, 75, 0.45, 0.65); rtsN(0.3, { f0: 700, f1: 90, vol: 0.55, delay: rtsD(d) + 0.15 }); rtsN(0.2, { tipo: 'bandpass', f0: 2200, q: 1.2, vol: 0.18, delay: rtsD(d) + 0.15 }); rtsCauda(rtsD(d) + 0.15, 0.7, 0.1); },
+    aparar: (d)=>{ rtsMetal(d, 640, 0.12); rtsN(0.12, { tipo: 'bandpass', f0: 5200, q: 2, vol: 0.18, delay: rtsD(d) + 0.02 }); },
+    explosao: (d)=>{ rtsEstalo(d, 0.5); rtsO(60, 1.4, { f1: 22, vol: 0.75, delay: d, eco: 0.2 }); rtsN(1.6, { f0: 2400, f1: 70, fdur: 1.2, vol: 0.75, delay: d, eco: 0.5 }); rtsN(1.4, { tipo: 'highpass', f0: 1800, vol: 0.12, delay: rtsD(d) + 0.15, am: 13 }); rtsCauda(rtsD(d) + 0.2, 1.8, 0.18); },
+    arremesso: (d)=>{ rtsWhoosh(d, 0.35, 500, 1600, 0.16); rtsN(0.03, { tipo: 'bandpass', f0: 2500, q: 5, vol: 0.2, delay: d }); },
+    clarao: (d)=>{ rtsN(0.4, { tipo: 'highpass', f0: 1200, vol: 0.5, delay: d, eco: 0.5 }); rtsO(3800, 1.1, { vol: 0.05, delay: d, eco: 0.3 }); rtsGrave(d, 80, 0.3, 0.3); },
+    fumaca: (d)=>{ rtsN(1.1, { tipo: 'highpass', f0: 1500, vol: 0.16, ataque: 0.12, delay: d, forma: 'lin', eco: 0.3 }); rtsEstalo(d, 0.2); },
+    psi: (d)=>{ rtsO(300, 0.9, { vol: 0.08, f1: 230, delay: d, eco: 0.6 }); rtsO(309, 0.9, { vol: 0.08, f1: 224, delay: d, eco: 0.6 }); rtsO(75, 0.9, { type: 'triangle', vol: 0.12, delay: d, vib: 6 }); rtsN(0.9, { tipo: 'bandpass', f0: 600, f1: 2400, q: 6, vol: 0.12, ataque: 0.4, delay: d, eco: 0.6 }); },
+    tele: (d)=>{ rtsO(1100, 0.6, { type: 'sawtooth', vol: 0.05, f1: 110, delay: d, lp: 3000, eco: 0.6 }); rtsO(1110, 0.6, { vol: 0.07, f1: 120, delay: d, eco: 0.6 }); rtsGrave(rtsD(d) + 0.4, 70, 0.4, 0.3); },
+    sagrado: (d)=>{ [261.63, 392, 523.25, 659.25, 783.99, 1046.5].forEach((f, i)=> rtsO(f, 1.5, { vol: 0.05, ataque: 0.15, delay: rtsD(d) + i * 0.05, eco: 0.8, vib: 5, vibAmt: 2 })); rtsN(1.2, { tipo: 'highpass', f0: 6000, vol: 0.05, ataque: 0.3, delay: d, eco: 0.8 }); },
+    bio: (d)=>{ for(let i = 0; i < 5; i++) rtsO(260 + i * 80, 0.18, { f1: 560 + i * 120, vol: 0.07, delay: rtsD(d) + i * 0.06, eco: 0.4 }); rtsO(110, 0.5, { type: 'triangle', vol: 0.1, delay: d, vib: 8 }); },
+    adiv: (d)=>{ [1318, 1567, 1975, 2637, 3136].forEach((f, i)=> rtsO(f, 0.6, { vol: 0.045, delay: rtsD(d) + i * 0.06, eco: 0.7 })); },
+    fogo: (d)=>{ rtsN(0.6, { tipo: 'bandpass', f0: 380, f1: 900, vol: 0.38, ataque: 0.05, delay: d, eco: 0.3 }); rtsN(0.6, { tipo: 'highpass', f0: 2600, vol: 0.1, delay: d, am: 19 }); rtsGrave(d, 70, 0.5, 0.25); },
+    cura: (d)=>{ [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i)=> rtsO(f, 0.6, { vol: 0.06, delay: rtsD(d) + i * 0.07, eco: 0.7 })); rtsN(0.8, { tipo: 'highpass', f0: 7000, vol: 0.04, ataque: 0.3, delay: d, eco: 0.8 }); },
+    recarga: (d)=>{ rtsN(0.05, { tipo: 'bandpass', f0: 2600, q: 4, vol: 0.3, delay: d }); rtsN(0.07, { tipo: 'bandpass', f0: 1100, q: 3, vol: 0.4, delay: rtsD(d) + 0.22 }); rtsO(170, 0.07, { type: 'square', vol: 0.06, delay: rtsD(d) + 0.24, lp: 1200 }); rtsN(0.05, { tipo: 'bandpass', f0: 3200, q: 5, vol: 0.25, delay: rtsD(d) + 0.4 }); },
+    // armas de facção
+    gauss: (d)=>{ rtsO(180, 0.18, { f1: 2400, vol: 0.07, delay: d }); rtsO(1200, 0.35, { type: 'sawtooth', f1: 3200, vol: 0.06, delay: rtsD(d) + 0.12, lp: 6000 }); rtsN(0.4, { tipo: 'bandpass', f0: 3000, f1: 800, q: 4, vol: 0.2, delay: rtsD(d) + 0.12, am: 60 }); rtsGrave(rtsD(d) + 0.12, 100, 0.3, 0.25); },
+    luz: (d)=>{ [880, 1320, 1760].forEach((f, i)=> rtsO(f, 0.7, { vol: 0.05, delay: rtsD(d) + i * 0.03, eco: 0.6, vib: 9 })); rtsN(0.5, { tipo: 'highpass', f0: 4500, vol: 0.12, delay: d, am: 35 }); },
+    dakka: (d)=>{ rtsEstalo(d, 0.55); rtsN(0.3, { f0: 2200, f1: 160, vol: 0.6, delay: d }); rtsO(70, 0.3, { type: 'square', f1: 40, vol: 0.25, delay: d, lp: 500, dist: 8 }); rtsN(0.4, { tipo: 'bandpass', f0: 2600, q: 3, vol: 0.12, delay: rtsD(d) + 0.08, am: 25 }); rtsCauda(d, 0.8, 0.14); },
+    raio: (d)=>{ rtsO(60, 0.6, { type: 'sawtooth', vol: 0.14, delay: d, vib: 18, vibAmt: 25, dist: 6, lp: 1800 }); rtsN(0.6, { tipo: 'highpass', f0: 2000, vol: 0.3, delay: d, am: 37 }); rtsEstalo(d, 0.5); },
+    shuriken: (d)=>{ for(let i = 0; i < 3; i++) rtsN(0.09, { tipo: 'bandpass', f0: 6000, f1: 2500, q: 6, vol: 0.2, delay: rtsD(d) + i * 0.045, eco: 0.1 }); rtsO(4200, 0.12, { f1: 2600, vol: 0.04, delay: d }); },
+    estilhaco: (d)=>{ for(let i = 0; i < 4; i++) rtsN(0.05, { tipo: 'highpass', f0: 5200, vol: 0.18, delay: rtsD(d) + i * 0.035 }); rtsN(0.3, { tipo: 'bandpass', f0: 900, q: 3, vol: 0.06, delay: rtsD(d) + 0.15 }); },
+    blaster: (d)=>{ rtsO(45, 0.7, { type: 'sawtooth', f1: 30, vol: 0.2, delay: d, lp: 400, dist: 6 }); rtsO(900, 0.5, { f1: 60, vol: 0.06, delay: d, eco: 0.5 }); rtsN(0.6, { tipo: 'bandpass', f0: 200, f1: 1500, q: 2, vol: 0.3, delay: d, eco: 0.5 }); },
+    teia: (d)=>{ rtsN(0.12, { tipo: 'bandpass', f0: 1800, f1: 600, q: 3, vol: 0.3, delay: d }); rtsO(500, 0.3, { f1: 160, vol: 0.06, delay: rtsD(d) + 0.08, vib: 25 }); },
+    chicote: (d)=>{ rtsWhoosh(d, 0.25, 500, 2600, 0.2); rtsN(0.03, { tipo: 'highpass', f0: 2500, vol: 0.7, delay: rtsD(d) + 0.22, eco: 0.4 }); rtsCarne(rtsD(d) + 0.24, 0.25); },
+    escudo: (d)=>{ rtsWhoosh(d, 0.15, 400, 1400, 0.18); rtsGrave(rtsD(d) + 0.13, 85, 0.35, 0.55); rtsMetal(rtsD(d) + 0.13, 380, 0.08); rtsN(0.2, { f0: 900, f1: 120, vol: 0.4, delay: rtsD(d) + 0.13 }); },
+    talhadeira: (d)=>{ rtsWhoosh(d, 0.22, 300, 1500, 0.22); rtsCarne(rtsD(d) + 0.2, 0.55); rtsN(0.1, { tipo: 'bandpass', f0: 2600, q: 2, vol: 0.2, delay: rtsD(d) + 0.2 }); rtsGrave(rtsD(d) + 0.2, 70, 0.3, 0.4); },
+    // movimento e reações
+    investida: (d)=>{ rtsN(0.12, { tipo: 'bandpass', f0: 300, q: 1, vol: 0.18, delay: d }); rtsWhoosh(rtsD(d) + 0.1, 0.22, 300, 1600, 0.26); },
+    coice: (d)=>{ rtsN(0.06, { tipo: 'bandpass', f0: 1200, q: 2, vol: 0.12, delay: d }); },
+    tremor: (d)=>{ rtsO(38, 0.7, { f1: 25, vol: 0.35, delay: d, eco: 0.2 }); rtsN(0.7, { f0: 160, f1: 50, vol: 0.25, ataque: 0.04, delay: d }); },
+    critico: (d)=>{ rtsMetal(d, 880, 0.08); rtsN(0.5, { tipo: 'highpass', f0: 3000, f1: 9000, vol: 0.12, ataque: 0.35, delay: rtsD(d) - 0, forma: 'lin', eco: 0.6 }); rtsGrave(rtsD(d) + 0.05, 60, 0.6, 0.55); },
+    queda: (d)=>{ rtsGrave(d, 70, 0.5, 0.5); rtsN(0.5, { f0: 600, f1: 80, vol: 0.4, delay: d }); rtsO(220, 1.1, { f1: 55, vol: 0.07, delay: rtsD(d) + 0.1, eco: 0.7, type: 'triangle' }); },
+  });
+  // as armas de facção usam o som próprio delas
+  { const f = rtVfx2Strike; rtVfx2Strike = (v, A, T, out, o)=>{
+      const SOM = { gauss:'gauss', gauss_pesado:'gauss', luz_necron:'luz', dakka:'dakka', raio_kustom:'raio', shuriken:'shuriken', estilhacos:'estilhaco', blaster_dk:'blaster', teia:'teia', chicote:'chicote', escudo_golpe:'escudo', talhadeira:'talhadeira', talhadeira_energia:'talhadeira', metralha:'metralha', autocanhao:'autocanhao', laser_hot:'laser_hot' };
+      const s = SOM[v];
+      if(s){ const orig = rtSom; let primeiro = true; rtSom = (nome, dl)=>{ if(primeiro && nome !== 'aparar' && nome !== 'erro'){ primeiro = false; return orig(s, dl); } primeiro = false; return orig(nome, dl); }; try{ return f(v, A, T, out, o); } finally { rtSom = orig; } }
+      return f(v, A, T, out, o);
+    }; }
+  // investida, coice, tranco, crítico e tremor ganham som
+  { const f = rtAtkMove; rtAtkMove = (el, A, T, melee)=>{ try{ rtSom(melee ? 'investida' : 'coice', 0); }catch(e){} return f(el, A, T, melee); }; }
+  { const f = rtRecoil; rtRecoil = (el, A, T, crit, melee)=>{ try{ if(crit) rtSom('critico', 0); }catch(e){} return f(el, A, T, crit, melee); }; }
+  { const f = rtvTremor; let ult = 0; rtvTremor = (forca, delay)=>{ const agora = Date.now(); if((forca || 1) >= 1.5 && agora - ult > 250){ ult = agora; try{ rtSom('tremor', delay || 0); }catch(e){} } return f(forca, delay); }; }
 
   rtInit();
 
