@@ -21515,8 +21515,15 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
   // do tabuleiro, o broadcast dele (com a posição antiga) apagaria o movimento do jogador. Só
   // ATUALIZA posição de herói já existente ou coloca um novo — nunca remove um herói local só
   // porque não apareceu no snapshot (evita sumiço por causa de uma corrida entre abas).
+  const __rtVitVisto = {};
+  function __rtVitRemoto(id, campo, remoto, local){
+    if(typeof remoto !== 'number') return local;
+    const k = id + '|' + campo, visto = __rtVitVisto[k]; __rtVitVisto[k] = remoto;
+    return (visto !== undefined && remoto !== visto) ? remoto : local;
+  }
   function mergeRemoteHeroTokensIntoLocalBoard(remoteTokensObj){
     if(currentRole !== 'mestre') return;
+    let __rtVitMudou = false;
     const remoteHeroes = {};
     Object.values(remoteTokensObj || {}).forEach(rt=>{
       if(rt && rt.kind === 'hero' && rt.id && rt.anchorR != null && rt.anchorC != null) remoteHeroes[rt.id] = rt;
@@ -21526,6 +21533,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       const localKey = findHeroCell(rt.id);
       const localTok = localKey ? boardTokens[localKey] : null;
       if(localTok && localTok.anchorR === rt.anchorR && localTok.anchorC === rt.anchorC){
+        ['vidaAtual', 'manaAtual', 'escudoAtual'].forEach(campo=>{ const v = __rtVitRemoto(localTok.id, campo, rt[campo], localTok[campo]); if(v !== localTok[campo]){ localTok[campo] = v; affected.add(localKey); __rtVitMudou = true; } });
         // não se moveu — mas facing/deidade podem ter mudado sozinhos (ver chooseLiveBoardFacing(),
         // que publica só o campo facing sem tocar em anchorR/anchorC): sem isto, a próxima vez que
         // o mestre mexer em QUALQUER outra coisa do tabuleiro (scheduleBoardTokensPush faz um
@@ -21585,9 +21593,10 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       // buildHeroVitalsSnapshot()) reconstruía a peça do ZERO aqui, apagando a Vida/Mana já
       // sofrida em combate e voltando ao caminho de compatibilidade (vidaMax null) a cada reposição.
       const src = localTok || rt;
-      if(src.vidaMax != null){ token.vidaMax = src.vidaMax; token.vidaAtual = src.vidaAtual || 0; }
-      if(src.manaMax != null){ token.manaMax = src.manaMax; token.manaAtual = src.manaAtual || 0; }
-      if(src.escudoMax != null){ token.escudoMax = src.escudoMax; token.escudoAtual = src.escudoAtual || 0; }
+      if(src.vidaMax != null){ token.vidaMax = src.vidaMax; token.vidaAtual = __rtVitRemoto(rt.id, 'vidaAtual', rt.vidaAtual, src.vidaAtual || 0); }
+      if(src.manaMax != null){ token.manaMax = src.manaMax; token.manaAtual = __rtVitRemoto(rt.id, 'manaAtual', rt.manaAtual, src.manaAtual || 0); }
+      if(src.escudoMax != null){ token.escudoMax = src.escudoMax; token.escudoAtual = __rtVitRemoto(rt.id, 'escudoAtual', rt.escudoAtual, src.escudoAtual || 0); }
+      if(localTok && token.vidaAtual !== localTok.vidaAtual) __rtVitMudou = true;
       if(src.totals) token.totals = src.totals;
       if(src.ar != null) token.ar = src.ar;
       if(src.ap != null) token.ap = src.ap;
@@ -21603,6 +21612,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       renderHeroTray();
       renderMestreTray();
     }
+    if(__rtVitMudou){ if(typeof renderFichaSummaryBubbles === 'function') renderFichaSummaryBubbles(); renderTurnBars(); }
     // Fase 3 da "dinâmica de turnos": cobre a tela do MESTRE quando é um JOGADOR quem confirma a
     // própria direção (facing muda aqui, já que renderLiveBoardMini() sempre retorna cedo pro
     // mestre -- ver comentário grande dela).
@@ -25423,6 +25433,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       <li>No fim do combate as frescas viram antigas; <b>4 antigas viram 1 trauma</b>. Fora de combate, 1 Kit trata 1 lesão antiga.</li>
       <li>Traumas só saram na nave: o mestre cura pelo painel da ficha.</li></ul>` + rtWikiTab(['Trauma', 'Penalidade'], Object.values(RT_TRAUMAS).map(t=> [E(t.pt), E(t.d)])), 'lesao trauma ferido costelas braco perna cabeca');
     add(R, 'fim', 'Fim do combate e XP', 'O botão 🏁 do mestre', `
+      <p><b>Todos os jogadores caíram:</b> quando todos os personagens de jogador do combate ficam com a Vida zerada, o combate no tabuleiro termina sozinho (2 segundos depois, para dar tempo de uma cura) e o resumo abre normalmente. Inimigos nunca atacam quem já está com a Vida zerada.</p>
       <p>O mestre encerra o combate com 🏁 (ao lado da ampulheta). Abre um resumo com dano causado e recebido, abates, críticos, curas, ataques e quem caiu, e os destaques do grupo.</p>
       <p><b>XP por abate</b>: quando o HP de um inimigo zera, <b>cada jogador que causou dano ou aplicou algum efeito nele</b> durante o combate ganha na hora <b>15 × o nível do inimigo</b>; quem deu o <b>golpe final</b> ganha <b>1,5×</b> esse valor (aparece um aviso ⭐ no tabuleiro, no chat e no Discord). Vale para abates por ataque, poder, ataque de oportunidade ou queimadura, uma vez por inimigo. Errar o ataque não conta como contribuição.</p>
       <p>No resumo do fim, a coluna "XP ganho" mostra o total de cada um. O campo "XP extra" serve para recompensas de missão: o mestre preenche e clica em ⭐ Conceder XP extra.</p>`, 'fim combate resumo xp experiencia');
@@ -25890,7 +25901,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     // ficha em criação acompanha o máximo — mas nunca em combate nem com a vida zerada
     // (senão um trauma que muda o máximo "ressuscitava" o personagem caído)
     const __emCombate = (typeof turnState !== 'undefined' && turnState.active);
-    if((!fichaSaved && wMax !== rtLastWMax && !__emCombate) || leveledUp || rtPendingFullHeal){ els.curVida.value = wMax; rtPendingFullHeal = false; }
+    if((!fichaSaved && wMax !== rtLastWMax && !__emCombate && num(els.curVida) > 0) || leveledUp || rtPendingFullHeal){ els.curVida.value = wMax; rtPendingFullHeal = false; }
     if(num(els.curVida) > wMax) els.curVida.value = wMax;
     rtLastWMax = wMax;
     try{ rtLesTick(wMax); }catch(err){}
@@ -26898,7 +26909,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     if(!canActAsBoardAttacker(att)) return 'Não é a sua vez.';
     const tc = resolveCombatData(tgt);
     if(!tc) return 'Alvo inválido.';
-    if((tc.vida || 0) <= 0) return 'O alvo já está fora de combate.';
+    if((tc.vida || 0) <= 0 || (typeof isTokenKnockedOut === 'function' && isTokenKnockedOut(tgt))) return 'O alvo já está fora de combate.';
     if(rtHasEffect(tgt, 'voando')) return 'A águia está voando: só pode ser atacada depois que pousar (quando ela ataca).';
     { const sb = rtSysBlockReason(att, tgt, w, opts); if(sb) return sb; }
     { const tw = rtTauntReason(att, tgt, w); if(tw) return tw; }
@@ -29130,9 +29141,28 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     const xpBase = inimigos.filter(s=> s.q).reduce((t, s)=> t + 15 * Math.max(1, s.nv || 1), 0);
     return { stats, grupo, inimigos, xpBase, rodadas: turnState.round || 1 };
   }
-  function rtEndCombat(){
+  // personagens de JOGADOR que estão neste combate (ficha do mestre não conta)
+  function rtJogadoresNoCombate(){
+    const ids = new Set(); const out = [];
+    [].concat(turnState.order || [], turnState.baseOrder || []).forEach(e=>{ if(!e || e.extra || ids.has(e.id)) return; ids.add(e.id); const t = findTurnEntryToken(e); if(t && t.kind === 'hero' && !(typeof t.id === 'string' && t.id.indexOf('mestre:') === 0)) out.push(t); });
+    return out;
+  }
+  // todos os jogadores caíram: o combate acaba sozinho (confere de novo depois de 2 s, para não
+  // encerrar no meio de uma cura ou de um "levanta" de talento)
+  let RT_TPK_T = 0;
+  setInterval(()=>{
+    try{
+      if(currentRole !== 'mestre' || !turnState.active || window.__rtSemFimAuto){ RT_TPK_T = 0; return; }
+      const js = rtJogadoresNoCombate();
+      if(!js.length || !js.every(t=> rtIsDown(t) || (typeof isTokenKnockedOut === 'function' && isTokenKnockedOut(t)))){ RT_TPK_T = 0; return; }
+      if(!RT_TPK_T){ RT_TPK_T = Date.now(); return; }
+      if(Date.now() - RT_TPK_T >= 2000){ RT_TPK_T = 0; rtEndCombat(true); }
+    }catch(err){ console.error(err); }
+  }, 700);
+  function rtEndCombat(auto){
     if(currentRole !== 'mestre' || !turnState.active) return;
-    if(!confirm('Encerrar o combate agora e ver o resumo?')) return;
+    if(auto !== true && !confirm('Encerrar o combate agora e ver o resumo?')) return;
+    if(auto === true){ try{ RT_AI_RODANDO = null; rtAiBotao(false); }catch(e){} postToDiscord('💀 TODOS OS JOGADORES CAÍRAM — O COMBATE NO TABULEIRO FOI ENCERRADO.', null); }
     try{ rtProcessXpPend(); }catch(e){}
     const D = rtCombatSummaryData();
     // fecha a fila de turnos
@@ -32704,6 +32734,8 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
   };
   const rtAiPerfil = tok=>{ const b = tok.bst || {}; return Object.assign({ cac:1, cobertura:1, fraco:1 }, RT_AI_PERFIL[b.f] || {}, RT_AI_PERFIL[b.v] || {}); };
   let RT_AI_RODANDO = null;
+  // personagem com a Vida zerada está fora de combate: a IA nunca mira nele
+  const rtAiCaido = t=> rtIsDown(t) || (typeof isTokenKnockedOut === 'function' && isTokenKnockedOut(t));
   const rtAiEspera = ms=> new Promise(res=> setTimeout(res, ms));
   function rtAiLigado(tok){ return !!(tok && tok.bst) && !((rtTurnRt().aiOff || {})[rtCdKey(tok.id, 'ai')]); }
   function rtAiDaVez(id){ const e = currentTurnEntry(); return !!(e && e.id === id && turnState.active); }
@@ -32784,7 +32816,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
   function rtAiPlanos(tok){
     const r = rtTurnRt(); const pa = turnState.apRemaining || 0; const perf = rtAiPerfil(tok);
     const casas = rtHasEffect(tok, 'immob') ? rtAiAlcance(tok, 0) : rtAiAlcance(tok, r.mp || 0);
-    const armas = rtWeaponsOf(tok); const foes = rtFoesOf(tok).filter(f=> !rtHasEffect(f, 'voando'));
+    const armas = rtWeaponsOf(tok); const foes = rtFoesOf(tok).filter(f=> !rtHasEffect(f, 'voando') && !rtAiCaido(f));
     const planos = [];
     casas.forEach(no=>{
       const caminho = rtAiCaminho(no); const risco = rtAiRiscoAoo(tok, caminho, perf);
@@ -32882,7 +32914,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
           if(vazia && !rtReloadReason(tok, vazia)){ await rtReload(tok, vazia); await rtAiEspera(400); }
           tok = rtTokenById(id);
           if(ok() && (rtTurnRt().mp || 0) > 0 && !rtHasEffect(tok, 'immob')){
-            const perf = rtAiPerfil(tok); const foes = rtFoesOf(tok).filter(f=> !rtHasEffect(f, 'voando'));
+            const perf = rtAiPerfil(tok); const foes = rtFoesOf(tok).filter(f=> !rtHasEffect(f, 'voando') && !rtAiCaido(f));
             const alvo = foes.sort((a, b)=> rtDistTok(tok, a) - rtDistTok(tok, b))[0];
             if(alvo){ const casas = rtAiAlcance(tok, rtTurnRt().mp || 0); const pa = rtPosOf(alvo); const atira = !rtMeleeWeaponOf(tok) || perf.cac < 1;
               const melhor = casas.map(no=> ({ no, nota: -chebyshevDist(no.r, no.c, pa.r, pa.c) * (atira ? 0.6 : 1) + (atira ? 2 * rtAiProtecao(tok, no.r, no.c) * perf.cobertura : 0) - 3 * rtAiRiscoAoo(tok, rtAiCaminho(no), perf) })).sort((a, b)=> b.nota - a.nota)[0];
