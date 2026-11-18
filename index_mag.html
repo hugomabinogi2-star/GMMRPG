@@ -6296,6 +6296,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
 .rt-ai-assumir{font-family:inherit;letter-spacing:.03em;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9000;padding:10px 18px;border-radius:999px;border:1px solid #c9a24a;background:#1b1408;color:#f3dfa6;font-weight:600;box-shadow:0 4px 18px rgba(0,0,0,.5);cursor:pointer;animation:rtAiPulse 1.6s ease-in-out infinite}
 .rt-ai-assumir:hover{background:#2a1f0c}
 @keyframes rtAiPulse{0%,100%{box-shadow:0 0 0 0 rgba(201,162,74,.5)}50%{box-shadow:0 0 0 8px rgba(201,162,74,0)}}
+.rt-weapon-off{opacity:.55}
 </style>
 </head>
 <body>
@@ -6519,7 +6520,6 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     <div class="mesa-fixed-top-actions mestre-only" id="mesaFixedTopActions">
       <input type="file" id="boardBgInput" accept="image/*" style="display:none;">
       <button id="iniciativaTabuleiroBtn" class="mini-btn ar-ap-tip" type="button">🗺️<div class="cs-tooltip">INICIATIVA</div></button>
-      <button id="rtBestBtn" class="mini-btn ar-ap-tip" type="button">📚<div class="cs-tooltip">BESTIÁRIO</div></button>
       <button id="boardSendBtn" class="mini-btn ar-ap-tip" type="button">🗺️<div class="cs-tooltip">ENVIAR PARA A MESA</div></button>
       <button id="boardBgChooseBtn" class="mini-btn ar-ap-tip" type="button">🖼️<div class="cs-tooltip">ESCOLHER IMAGEM</div></button>
       <!-- Reset combina o que antes eram 2 botões separados (Limpar tabuleiro + Tabuleiro padrão)
@@ -6884,6 +6884,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
           <button type="button" class="board-menu-tab" data-panel="boardPanelInimigos">👹 INIMIGOS</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelBlocos">BARREIRAS</button>
           <button type="button" class="board-menu-tab" data-panel="boardPanelPvp">⚔️ PVP</button>
+          <button type="button" class="board-menu-tab" id="rtBestBtn" data-panel="">📚 BESTIÁRIO</button>
           <!-- Rodada nova, pedido explícito ("dentro de mesa o botão INSTANCIA NO TABULEIRO pode ser
                removido"): a aba "🩸 Instâncias no Tabuleiro" saiu -- renderBoardInstancesPanel() (no
                <script>) já tinha um "if(!listEl) return;" logo no início, então continua sendo
@@ -16126,6 +16127,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
   // ---- menu do tabuleiro: abas Fichas dos Jogadores / Fichas do Mestre / Geral / Blocos ----
   document.querySelectorAll('.board-menu-tab').forEach(tabBtn=>{
     tabBtn.addEventListener('click', ()=>{
+      if(!tabBtn.dataset.panel) return;   // Bestiário: só abre a janela, não troca de aba
       document.querySelectorAll('.board-menu-tab').forEach(b=> b.classList.remove('active'));
       document.querySelectorAll('.board-menu-panel').forEach(p=> p.classList.remove('active'));
       tabBtn.classList.add('active');
@@ -16760,7 +16762,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
         // RODADA NOVA (ver highlightBoardReachable(), acima): mesmo critério já usado pela validação
         // de verdade em handleBoardDrop() (isBoardMoveRangeRestrictedToken()) -- peça avulsa (sem
         // ficha amarrada) continua sem nenhum destaque, porque ela também continua sem nenhum limite.
-        if(isBoardMoveRangeRestrictedToken(token)) highlightBoardReachable(token);
+        if(isBoardMoveRangeRestrictedToken(token) && !(currentRole === 'mestre' && !boardRevealMode)) highlightBoardReachable(token);
       });
       // 'dragend' sempre dispara depois de um arrasto, tenha ele terminado num drop válido, num drop
       // recusado ou solto fora do tabuleiro -- por isso é o gatilho certo pra sempre limpar o
@@ -17841,6 +17843,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       const [sizeR, sizeC] = tokenFootprintSize(tok);
       if(tok.anchorR === r && tok.anchorC === c) return; // soltou em cima de si mesmo
       if(!canPlace(r, c, sizeR, sizeC, tok.id)) return;
+      const __livre = currentRole === 'mestre' && !boardRevealMode;   // mesa ainda não revelada: arrumação livre
       // RODADA NOVA (pedido explícito: "qualquer ficha zerada no tabuleiro sai da fila de iniciativa
       // e a ficha não pode mais realizar qualquer ação no tabuleiro, ficando travada ali até
       // recuperar vida") -- trava INCONDICIONAL, diferente da trava de turno logo abaixo: vale
@@ -17848,7 +17851,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       // porque "travada ali até recuperar vida" não é um conceito de turno, é da própria peça.
       // isTokenKnockedOut() reusa a MESMA caveira de isHeroDead()/isInstanceDead() já mostrada em
       // todo lugar (ver renderBoardCell() etc.).
-      if(isTokenKnockedOut(tok)){
+      if(!__livre && isTokenKnockedOut(tok)){
         alert('Esta ficha está com a Vida zerada e não pode ser movida até recuperar Vida.');
         return;
       }
@@ -17865,7 +17868,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       // meio de uma rodada já em andamento). Rolagem/Ações Ofensivas continuam livres antes de
       // Revelar (ver isBoardRevealedForFicha() nos outros usos, intocados) -- só o MOVIMENTO pela
       // fila de turno perdeu essa exceção.
-      if(turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok)){
+      if(!__livre && turnState.active && isTurnGatedToken(tok) && !isCurrentTurnToken(tok)){
         const entry = currentTurnEntry();
         alert(`Não é a vez desta peça! Turno atual (Rodada ${turnState.round}): ${entry ? entry.nome : '—'}.`);
         announceOutOfTurn(turnEntryForToken(tok));
@@ -17876,7 +17879,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       // mais nenhum contador de "1 por turno" nem trava por já ter rolado — ver
       // canMoveThisTurnToken(). Mesma correção do bloco logo acima: não depende mais de
       // isBoardRevealedForFicha().
-      if(turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken()){
+      if(!__livre && turnState.active && isCurrentTurnToken(tok) && !canMoveThisTurnToken()){
         alert('Você não tem mais Pontos de Ação neste turno.');
         return;
       }
@@ -17897,8 +17900,8 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       // depende mais de isBoardRevealedForFicha(), pra ficar em sincronia com a trava de movimento
       // (sem isto, o aviso/alcance aqui ficaria "fora de combate" enquanto a trava de cima já
       // estivesse ativa, uma contradição).
-      const apGatedNow = turnState.active && isCurrentTurnToken(tok);
-      const rangeChecked = isBoardMoveRangeRestrictedToken(tok) || apGatedNow;
+      const apGatedNow = !__livre && turnState.active && isCurrentTurnToken(tok);
+      const rangeChecked = !__livre && (isBoardMoveRangeRestrictedToken(tok) || apGatedNow);
       // distância real do caminho encontrado (não a distância em linha reta) -- usada mais abaixo
       // pra descontar de turnState.apRemaining (ver markTurnMoved()); só existe de verdade quando
       // rangeChecked (senão reachableMap nem chega a ser calculado) -- 1 é só um valor-padrão
@@ -17948,8 +17951,8 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       if(tok.kind === 'hero'){ renderHeroTray(); renderMestreTray(); }
       // fila de iniciativa: este movimento acabou de usar a AÇÃO DE MOVIMENTO da vez (ver
       // markTurnMoved() lá em cima) — só conta se esta MESMA peça é quem está na vez agora.
-      if(rtReady && turnState.active && isCurrentTurnToken(tok) && typeof __rtDe !== 'undefined') rtOpportunityAttacks(tok, __rtDe, { r, c });
-      if(turnState.active && isCurrentTurnToken(tok)) markTurnMoved(passosMovidos);
+      if(!__livre && rtReady && turnState.active && isCurrentTurnToken(tok) && typeof __rtDe !== 'undefined') rtOpportunityAttacks(tok, __rtDe, { r, c });
+      if(!__livre && turnState.active && isCurrentTurnToken(tok)) markTurnMoved(passosMovidos);
     }
     scheduleBoardTokensPush();
   }
@@ -24049,6 +24052,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     w.talTxt = [];
     const tal = (id, fn)=>{ if(tem(id)){ fn(); w.talTxt.push(RT.tal[id] ? RT.tal[id].pt : id); } };
     const pesada = !!(base.paExtra || base.forMin);
+    if(base.id === 'escopeta' && tem('shotgun_mastery')) w.maos = 1;
     if(base.fam === 'bolt') tal('bolt_weapon_expert', ()=>{ w.pen += 10; });
     if(base.fam === 'serra') tal('chain_weapon_expert', ()=>{ w.max += 4; });
     if(base.fam === 'melta') tal('melta_weapon_expert', ()=>{ w.max += 4; });
@@ -24082,11 +24086,42 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     { const pr = RT_WPROF[base.fam] || (pesada ? 'heavy_weapon_proficiency' : null); if(pr && comp && !tem(pr)) w.semProf = RT.tal[pr] ? RT.tal[pr].pt : pr; }
     return w;
   }
-  function rtWeaponOptionsHtml(sel){
+  // ---------- mãos: arma principal = mão direita, arma secundária = mão esquerda ----------
+  const rtTemTal = (comp, id)=> !!(comp && comp.tals && rtHasTalent(comp.tals, id));
+  const rtEhEscudoBase = b=> !!b && (b.fam === 'escudo' || b.arma === 'escudo');
+  // quantas mãos a arma ocupa nesta ficha (Maestria em Escopetas: escopeta com uma mão)
+  function rtMaosDe(base, comp){ if(!base) return 0; if(base.id === 'escopeta' && rtTemTal(comp, 'shotgun_mastery')) return 1; return +base.maos === 2 ? 2 : 1; }
+  // proficiência que falta para a ficha usar a arma ('' = pode usar)
+  function rtWeaponProfFalta(base, comp){
+    const pesada = !!(base.paExtra || base.forMin);
+    const pr = RT_WPROF[base.fam] || (pesada ? 'heavy_weapon_proficiency' : null);
+    return pr && !rtTemTal(comp, pr) ? pr : '';
+  }
+  // a mão esquerda fica livre? (arma principal de duas mãos ocupa as duas; com Maestria com Escudo sobra o escudo)
+  function rtMaoEsqLivre(st, comp){
+    const b0 = st.eq.armas[0] && RT_WEAPON_BY[st.eq.armas[0].id];
+    if(!b0 || rtMaosDe(b0, comp) < 2) return 'livre';
+    return rtTemTal(comp, 'shield_mastery') ? 'escudo' : '';
+  }
+  // a arma pode ir nesta mão? (0 = direita, 1 = esquerda)
+  function rtWeaponCabe(base, i, st, comp){
+    if(!base) return false;
+    if(rtWeaponProfFalta(base, comp)) return false;
+    if(i === 0) return !rtEhEscudoBase(base);                               // escudo só na mão esquerda
+    const esq = rtMaoEsqLivre(st, comp);
+    if(!esq) return false;
+    if(esq === 'escudo') return rtEhEscudoBase(base);
+    if(rtMaosDe(base, comp) >= 2) return false;                              // arma de duas mãos só como principal
+    const b0 = st.eq.armas[0] && RT_WEAPON_BY[st.eq.armas[0].id];
+    if(rtEhEscudoBase(base) && b0 && rtMaosDe(b0, comp) >= 2 && !rtTemTal(comp, 'shield_mastery')) return false;
+    return true;
+  }
+  function rtWeaponOptionsHtml(sel, i, st, comp){
     const grps = [];
-    RT_WEAPONS.forEach(w=>{ if(!grps.includes(w.grp)) grps.push(w.grp); });
+    const lista = RT_WEAPONS.filter(w=> w.id === sel || rtWeaponCabe(w, i, st, comp));
+    lista.forEach(w=>{ if(!grps.includes(w.grp)) grps.push(w.grp); });
     return '<option value="">— sem arma —</option>' + grps.map(g=> '<optgroup label="' + rtEsc(g) + '">'
-      + RT_WEAPONS.filter(w=> w.grp === g).map(w=> '<option value="' + w.id + '"' + (w.id === sel ? ' selected' : '') + '>' + rtEsc(w.pt) + '</option>').join('') + '</optgroup>').join('');
+      + lista.filter(w=> w.grp === g).map(w=> '<option value="' + w.id + '"' + (w.id === sel ? ' selected' : '') + '>' + rtEsc(w.pt) + (w.id === sel && !rtWeaponCabe(w, i, st, comp) ? ' (não pode usar)' : '') + '</option>').join('') + '</optgroup>').join('');
   }
   function rtWeaponStatsHtml(w, comp){
     if(!w) return '<div class="rt-hint">Escolha uma arma da lista.</div>';
@@ -24110,11 +24145,15 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
   function rtRenderWeapons(comp){
     const st = rtState;
     const podeBonus = rtWeaponBonusEditable();
+    const esqLivre = rtMaoEsqLivre(st, comp);
     return st.eq.armas.map((slot, i)=>{
+      if(i === 1 && !esqLivre) return '<div class="rt-weapon rt-weapon-off" data-rt-w="1"><b class="rt-weapon-title">Arma secundária (mão esquerda)</b>'
+        + '<select class="rt-select" disabled><option>— ocupada pela arma de duas mãos —</option></select><div class="rt-hint">A arma principal usa as duas mãos.</div></div>';
       const w = rtResolveWeapon(slot, comp);
       const bonus = slot.bonus || [];
-      return '<div class="rt-weapon" data-rt-w="' + i + '"><b class="rt-weapon-title">' + (i === 0 ? 'Arma principal' : 'Arma secundária') + '</b>'
-        + '<select class="rt-select" data-wk="id"' + (!podeBonus && bonus.length ? ' disabled title="Arma especial: só o mestre troca esta arma."' : '') + '>' + rtWeaponOptionsHtml(slot.id) + '</select>'
+      return '<div class="rt-weapon" data-rt-w="' + i + '"><b class="rt-weapon-title">' + (i === 0 ? 'Arma principal (mão direita)' : 'Arma secundária (mão esquerda)') + '</b>'
+        + '<select class="rt-select" data-wk="id"' + (!podeBonus && bonus.length ? ' disabled title="Arma especial: só o mestre troca esta arma."' : '') + '>' + rtWeaponOptionsHtml(slot.id, i, st, comp) + '</select>'
+        + (i === 1 && esqLivre === 'escudo' ? '<div class="rt-hint">Arma principal de duas mãos: com Maestria com Escudo, a mão esquerda pode levar um escudo.</div>' : '')
         + rtWeaponStatsHtml(w, comp)
         + (slot.id ? '<details class="rt-details rt-wbonus"' + (bonus.length ? ' open' : '') + '><summary>Bônus de arma especial' + (bonus.length ? ' (' + bonus.length + ')' : '') + '</summary>'
           + '<label class="rt-lbl">Nome da arma especial (opcional)<input type="text" data-wk="nome" value="' + rtEsc(slot.nome || '') + '" placeholder="' + rtEsc(RT_WEAPON_BY[slot.id] ? RT_WEAPON_BY[slot.id].pt : '') + '"' + (podeBonus ? '' : ' disabled') + '></label>'
@@ -24127,8 +24166,9 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     }).join('');
   }
   function rtWeaponsSnapshot(comp){
-    return rtState.eq.armas.map(s=> rtResolveWeapon(s, comp)).filter(Boolean).map(w=> ({
-      id: w.id, nome: w.nome, tipo: w.tipo, arma: w.arma || null, maos: w.maos, min: w.min, max: w.max, pen: w.pen, alc: w.alc || 1, cad: w.cad || 1,
+    const esqLivre = rtMaoEsqLivre(rtState, comp);
+    return rtState.eq.armas.map((s, i)=>{ const w = rtResolveWeapon(s, comp); if(!w) return null; if(i === 0 && rtEhEscudoBase(w)) return null; if(i === 1 && (!esqLivre || (esqLivre === 'escudo' && !rtEhEscudoBase(w)))) return null; if(i === 1 && rtMaosDe(RT_WEAPON_BY[w.id], comp) >= 2) return null; w.mao = i === 0 ? 'dir' : 'esq'; return w; }).filter(Boolean).map(w=> ({
+      mao: w.mao, id: w.id, nome: w.nome, tipo: w.tipo, arma: w.arma || null, maos: w.maos, min: w.min, max: w.max, pen: w.pen, alc: w.alc || 1, cad: w.cad || 1,
       redEsq: w.redEsq || 0, acerto: w.acerto || 0, crit: w.crit || 0, critDmg: w.critDmg || 0, aparar: w.aparar || 0, fam: w.fam, pes: !!w.pes, mun: w.mun || 0, rec: w.rec || 0, modos: w.modosDet.map(m=> ({ id: m.id, pa: m.pa })), pa: w.pa,
       semProf: w.semProf || '', bloq: w.bloq || 0, castigo: w.castigo || 0, infusao: w.infusao || 0, devast: w.devast || 0, toxina: w.toxina || 0,
     }));
@@ -24187,7 +24227,8 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     try{ const pr = a.cls === 'pesada' ? 'heavy_armour_proficiency' : a.cls === 'energizada' ? 'power_armour_proficiency' : null; if(pr && !rtChosenTalents(rtState, (typeof rtCurrentLevel !== 'undefined' ? rtCurrentLevel : 60)).some(t=> t.id === pr)) st.push(['⚠ Sem proficiência', 'sem ' + RT.tal[pr].pt + ' a armadura não protege (0% e 0 de deflexão)']); }catch(e){}
     return '<div class="rt-wstats">' + st.map(s=> '<span>' + rtEsc(s[0]) + '</span><b>' + rtEsc(s[1]) + '</b>').join('') + '</div>';
   }
-  function rtRenderArmor(){
+  function rtArmorProfFalta(x, comp){ const pr = x.cls === 'pesada' ? 'heavy_armour_proficiency' : x.cls === 'energizada' ? 'power_armour_proficiency' : null; return pr && !rtTemTal(comp, pr) ? pr : ''; }
+  function rtRenderArmor(comp){
     const slot = rtState.eq.arm;
     const a = rtResolveArmor(slot);
     const pode = rtWeaponBonusEditable();
@@ -24195,7 +24236,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     const cls = Object.keys(RT_ARM_CLS);
     return '<div class="rt-weapon" data-rt-a="1">'
       + '<select class="rt-select" data-ak="id"' + (!pode && bonus.length ? ' disabled title="Armadura especial: só o mestre troca."' : '') + '><option value="">— sem armadura —</option>'
-      + cls.map(c=> '<optgroup label="' + rtEsc(RT_ARM_CLS[c].pt) + '">' + RT_ARMORS.filter(x=> x.cls === c).map(x=> '<option value="' + x.id + '"' + (x.id === slot.id ? ' selected' : '') + '>' + rtEsc(x.pt) + '</option>').join('') + '</optgroup>').join('')
+      + cls.filter(c=> RT_ARMORS.some(x=> x.cls === c && (x.id === slot.id || !rtArmorProfFalta(x, comp)))).map(c=> '<optgroup label="' + rtEsc(RT_ARM_CLS[c].pt) + '">' + RT_ARMORS.filter(x=> x.cls === c && (x.id === slot.id || !rtArmorProfFalta(x, comp))).map(x=> '<option value="' + x.id + '"' + (x.id === slot.id ? ' selected' : '') + '>' + rtEsc(x.pt) + '</option>').join('') + '</optgroup>').join('')
       + '</select><div class="rt-astats">' + rtArmorStatsHtml(a) + '</div>'
       + (slot.id ? '<details class="rt-details rt-wbonus"' + (bonus.length ? ' open' : '') + '><summary>Bônus de armadura especial' + (bonus.length ? ' (' + bonus.length + ')' : '') + '</summary>'
         + '<label class="rt-lbl">Nome da armadura especial (opcional)<input type="text" data-ak="nome" value="' + rtEsc(slot.nome || '') + '" placeholder="' + rtEsc(RT_ARMOR_BY[slot.id].pt) + '"' + (pode ? '' : ' disabled') + '></label>'
@@ -24321,6 +24362,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
         const p = RT_PSY[id];
         const on = id === ini || esc.includes(id);
         const lock = nav && !on ? rtNavPowerLock(id, known) : '';
+        if(lock) return '';
         const dis = id === ini || !rtCanEdit() || (on && travados.includes(id)) || (!on && esc.length >= max) || !!lock;
         return '<label class="rt-psy-pow' + (on ? ' on' : '') + '"><input type="checkbox" data-rt-pod="' + id + '"' + (on ? ' checked' : '') + (dis ? ' disabled' : '') + '>'
           + '<span><b>' + p.icon + ' ' + rtEsc(p.pt) + '</b> <small>' + (id === ini ? 'inicial · ' : '') + (nav ? (p.tier ? 'grau ' + p.tier + ' · ' : '') + 'não mexe no Véu' : (p.maior ? 'maior (+3 Véu)' : 'menor (+1 Véu)')) + ' · ' + p.pa + ' PA' + (lock ? ' · 🔒 ' + rtEsc(lock) : '') + '</small><br>' + rtEsc(p.d) + '</span></label>';
@@ -24698,6 +24740,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     const key = JSON.stringify([items, value || '', placeholder || '']);
     if(sel.__rtKey === key) return;
     sel.__rtKey = key;
+    items = items.filter(it=> !it.dis || it.v === value);   // indisponível para esta ficha: não aparece
     sel.innerHTML = '';
     const ph = document.createElement('option'); ph.value = ''; ph.textContent = placeholder || '— escolha —'; sel.appendChild(ph);
     const grps = {};
@@ -24800,7 +24843,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     const st = rtState;
     rtFillSelect(rtEl('rtHw'), RT.hw.map(h=> ({ v:h.id, t:h.pt })), st.hw, '— mundo natal —');
     rtFillSelect(rtEl('rtOg'), RT.og.map(o=> ({ v:o.id, t:o.pt + rtDlcTxt(o) })), st.og, '— origem —');
-    rtFillSelect(rtEl('rtA1'), Object.values(RT.arch).filter(a=> a.tier === 1).map(a=> ({ v:a.id, t:a.pt + rtDlcTxt(a) + (a.dlc ? ' (geral · ' + a.dlc + ')' : ' (geral)'), grp: rtArchSource(a, st).grp, title: rtArchSource(a, st).txt })), st.a1, '— arquétipo —');
+    rtFillSelect(rtEl('rtA1'), Object.values(RT.arch).filter(a=> a.tier === 1).map(a=> ({ v:a.id, t:a.pt + rtDlcTxt(a) })), st.a1, '— arquétipo —');
     rtSetArchTip(rtEl('rtA1'), st.a1);
     const hw = st.hw ? RT_HW_BY[st.hw] : null;
     let h = '';
@@ -24886,7 +24929,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
   }
   function rtArchInfoHtml(a){
     let h = '<p class="rt-role">' + rtEsc(a.role) + '</p>';
-    { const src = rtArchSource(a, rtState); h += '<div class="rt-hint">De onde vem: <b>' + rtEsc(src.txt) + '</b>.</div>'; }
+    if(a.tier === 2){ const src = rtArchSource(a, rtState); h += '<div class="rt-hint">De onde vem: <b>' + rtEsc(src.txt) + '</b>.</div>'; }
     h += '<div class="rt-hint">Características do arquétipo: ' + a.cp.map(c=> rtEsc(RT_CH_BY[c].pt)).join(', ') + '. Perícias: ' + a.sp.map(s=> rtEsc(RT_SK_BY[s].pt)).join(', ') + '.</div>';
     return h;
   }
@@ -25064,6 +25107,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
         return { v, t:u.pt + (taken ? ' — já escolhido' : ''), dis: taken, title: u.d };
       });
     }
+    opts = opts.filter(o=> !o.dis || o.v === val);   // o que esta ficha não pode escolher não aparece
     const optHtml = '<option value="">— escolha —</option>' + opts.map(o=> '<option value="' + rtEsc(o.v) + '"' + (o.v === val ? ' selected' : '') + (o.dis ? ' disabled' : '') + (o.title ? ' title="' + rtEsc(o.title) + '"' : '') + '>' + rtEsc(o.t) + '</option>').join('');
     let desc = '';
     if(val && /Tal$/.test(sl) && RT.tal[val]) desc = RT.tal[val].d || RT_SEM_DESC;
@@ -25169,7 +25213,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     } else rtSetHtml(wEl, rtRenderWeapons(comp));
     const aEl = rtEl('rtArmor');
     if(rtWeaponsSoftRender){ const box = aEl.querySelector('.rt-astats'); if(box) box.innerHTML = rtArmorStatsHtml(rtResolveArmor(st.eq.arm)); }
-    else rtSetHtml(aEl, rtRenderArmor());
+    else rtSetHtml(aEl, rtRenderArmor(comp));
     rtWeaponsSoftRender = false;
     rtSetHtml(rtEl('rtCons'), rtRenderCons() + '<div class="rt-lbl" style="margin-top:8px">Aumentos cibernéticos (Ferrum Sanctum)</div>' + RT_AUGS.map(a=> '<label class="rt-psy-pow' + ((st.eq.aug || []).includes(a.id) ? ' on' : '') + '"><input type="checkbox" data-rt-aug="' + a.id + '"' + ((st.eq.aug || []).includes(a.id) ? ' checked' : '') + (rtCanEdit() ? '' : ' disabled') + '><span><b>🦾 ' + rtEsc(a.pt) + '</b><br>' + rtEsc(a.d) + '</span></label>').join('') + '<div class="rt-hint">No tabuleiro: ação Galvanizar Aumento (1 PA, 1×/rodada) dá 1 acúmulo de Ferrum Sanctum (máx. = aumentos instalados): +5% de dano por acúmulo, mas +15% de dano recebido por acúmulo.</div>');
     const M = [['w','Ferimentos'],['esq','Esquiva %'],['apa','Aparar'],['ac','Acerto %'],['crit','Crítico %'],['ini','Iniciativa'],['pa','Pontos de Ação'],['pm','Pontos de Movimento'],['res','Determinação'],['arm','Armadura %'],['defl','Deflexão'],['psy','Nível Psíquico']];
@@ -25316,6 +25360,9 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       <ul>
         <li><b>Proficiências:</b> armas bolt, de chamas, melta, plasma, Aeldari, Drukhari e armas pesadas só disparam no tabuleiro com o talento de proficiência da família. Armadura pesada ou energizada sem proficiência não protege (0% e 0 de deflexão). A ficha avisa com ⚠.</li>
         <li><b>Escudos:</b> o escudo entra num espaço de arma. Dá chance de <b>bloquear</b> (anula o golpe) e o Golpe de Escudo empurra 1 casa. Com escudo, só armas de uma mão (o talento Maestria com Escudo libera duas mãos; a Maestria em Escopetas deixa a escopeta valer como uma mão).</li>
+        <li><b>Mãos:</b> a arma principal fica na mão direita e a secundária na mão esquerda. Arma de duas mãos só vai na principal e desabilita a secundária (com Maestria com Escudo, a esquerda ainda pode levar um escudo). Escudo só na mão esquerda. Talentos e habilidades de duas armas (Combate com Duas Armas, Golpes Cortantes, Treino da Frota, Dança das Lâminas) usam a arma de cada mão.</li>
+        <li><b>Listas da ficha:</b> armas, armaduras, talentos, arquétipos e poderes que a ficha não pode usar não aparecem como opção (ex.: arma bolt sem a Proficiência com Bolter).</li>
+        <li><b>Antes de revelar a mesa:</b> o mestre arrasta qualquer peça para qualquer casa livre, sem turno, alcance ou PA.</li>
         <li><b>Engajado:</b> armas de duas mãos à distância não disparam com inimigo ao lado (pistolas podem). Treino de Combate Próximo libera, com −10 de acerto.</li>
         <li><b>Superioridade corpo a corpo:</b> +10 de acerto por aliado (com arma corpo a corpo) também ao lado do alvo, até +30.</li>
         <li><b>Lança-teias:</b> o alvo testa Agilidade ou fica Preso na Teia (imobilizado) por 1 rodada; a Rede de teia atinge uma área 3×3.</li>
@@ -25482,7 +25529,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
         <li><b>Assumir:</b> enquanto um inimigo joga aparece o botão <b>⏸ Assumir o turno</b> embaixo da tela. Clicando, a jogada para e você termina o turno à mão; o turno automático daquela peça fica desligado.</li>
         <li><b>Ligar ou desligar:</b> clique na própria peça → aba defensiva → <b>🤖 Turno automático</b>. Vale para os próximos turnos dela.</li>
         <li>Só roda no navegador do mestre. Se o mestre estiver fora, os turnos do Bestiário esperam.</li></ul>`, 'ia automatico turno inimigo bestiario assumir');
-      if(currentRole === 'mestre') add(BZ, 'best-como', '📚 Como usar o Bestiário (só o mestre vê)', 'Para o mestre', `<ul><li>Abra o <b>📚 Bestiário</b> na barra do tabuleiro, escolha facção → vertente → unidade, defina <b>nível</b>, <b>papel</b> e <b>quantidade</b> e clique em ➕ Colocar.</li>
+      if(currentRole === 'mestre') add(BZ, 'best-como', '📚 Como usar o Bestiário (só o mestre vê)', 'Para o mestre', `<ul><li>Abra a aba <b>📚 BESTIÁRIO</b> no painel de fichas do mestre, embaixo do tabuleiro (depois de PVP), escolha facção → vertente → unidade, defina <b>nível</b>, <b>papel</b> e <b>quantidade</b> e clique em ➕ Colocar.</li>
         <li><b>Papéis</b>: ` + Object.keys(RT_PAPEL).map(p=> '<b>' + E(RT_PAPEL[p].pt) + '</b> — ' + E(RT_PAPEL[p].desc)).join('; ') + `.</li>
         <li>Tudo escala pelo nível (características +½ por nível, ferimentos, armadura e dano); XP por abate = 15 × nível.</li>
         <li><b>✏️ Personalizar</b> + <b>💾 Salvar variante</b> guardam inimigos próprios em ⭐ Minhas variantes (não aparecem aqui para os jogadores).</li>
@@ -26195,7 +26242,9 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
         if(t.dataset.wk === 'id'){
           if(!rtWeaponBonusEditable() && (arma.bonus || []).length){ rtRenderAll(); return; }
           // trocou a arma: nome e bônus de arma especial eram da arma antiga
-          arma.id = t.value || null; arma.nome = ''; arma.bonus = []; rtCommit(); return;
+          arma.id = t.value || null; arma.nome = ''; arma.bonus = [];
+          { const __c = rtCompute(st, rtCurrentLevel); const s1 = st.eq.armas[1], b1 = s1 && RT_WEAPON_BY[s1.id]; if(b1 && !rtWeaponCabe(b1, 1, st, __c)) { st.eq.armas[1] = rtBlankWeapon(); } }
+          rtCommit(); return;
         }
         if(!rtWeaponBonusEditable()){ rtRenderAll(); return; }
         rtWeaponsSoftRender = true;
@@ -27411,7 +27460,11 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
         const ac = resolveCombatData(att);
         const vizinhos = rtAllTokens().filter(t=> t !== att && rtIsCombatToken(t) && !rtIsDown(t) && (()=>{ const c = resolveCombatData(t); return c && chebyshevDist(ac.anchorR, ac.anchorC, c.anchorR, c.anchorC) === 1; })());
         if(!vizinhos.length){ postToDiscord('⛔ Ninguém ao lado para a Dança das Lâminas.', null); return Promise.resolve(); }
-        const n = 2 + Math.floor(A.B.AGI / 4) + rtStacks(att, 'spinB');
+        // uma espada em cada mão: (1 + AGI/4) golpes com cada; senão (2 + AGI/4) com a arma
+        const __p = rtDuasArmas(att); const __duas = __p && __p.every(x=> x.tipo === 'cac' && x.arma === 'espada') ? __p : null;
+        const __cada = 1 + Math.floor(A.B.AGI / 4);
+        const n = (__duas ? 2 * __cada : 2 + Math.floor(A.B.AGI / 4)) + rtStacks(att, 'spinB');
+        const __armaDo = i=> __duas ? (i < __cada ? __duas[0] : (i < 2 * __cada ? __duas[1] : __duas[0])) : w;
         rtRemoveEffects(att, ['spinB']);
         const golpes = [];
         const __alvos = []; for(let i = 0; i < n; i++) __alvos.push(vizinhos[Math.floor(Math.random() * vizinhos.length)]);
@@ -27419,7 +27472,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
         for(let i = 0; i < n; i++){
           const alvo = __alvos[i];
           if(rtIsDown(alvo)) continue;
-          const res = rtResolveStrike(att, alvo, w, { mult: (__mesmo && i === n - 1) ? 1 : 0.5 });
+          const res = rtResolveStrike(att, alvo, __armaDo(i), { mult: (__mesmo && i === n - 1) ? 1 : 0.5 });
           rtApplyStrike(att, alvo, res);
           golpes.push({ alvo, res });
         }
@@ -27521,7 +27574,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
       case 'officer/take_aim': return same ? 'Escolha um aliado (não você).' : (dist > 8 + rtTalRange(att, key, tgt) ? `Fora de alcance (${8 + rtTalRange(att, key, tgt)} casas).` : '');
       case 'warrior/sworn_enemy': return dist > 12 ? 'Fora de alcance (12 casas).' : ((tc.vida || 0) <= 0 ? 'O alvo já está fora de combate.' : '');
       case 'operative/perfect_spot': return rtHasEffect(att, 'perfect') ? 'Já está ativo.' : '';
-      case 'bladedancer/blade_dance': return rtWeaponsOf(att).every(w=> w.tipo !== 'cac') ? 'Precisa de uma arma corpo a corpo (espada).' : '';
+      case 'bladedancer/blade_dance': return rtTemEspada(att) ? '' : 'Exige espada (com duas armas, uma espada em cada mão).';
     }
     return '';
   }
@@ -29798,7 +29851,8 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
   A2('soldier/controlled_shot', { alvo:'si', icon:'🎯', run:(a)=>{ nx(a, 'nx_controlled', { when:'dist' }, '🎯', 'Tiro Controlado', 'o próximo ataque não acerta aliados'); return 'o próximo ataque não atinge aliados.'; } });
   A2('soldier/concentrated_fire', { alvo:'si', icon:'🎯', run:(a)=>{ const B = rtB(a, 'BS'); nx(a, 'nx_conc', { when:'dist', esqRed: 10 + 2 * B, concB: B }, '🎯', 'Fogo Concentrado', 'próximo ataque em área mais forte'); return `o próximo ataque à distância em área ganha +(${50 + 10 * B} ÷ inimigos na área)% de dano e +${10 + 2 * B}% de redução de esquiva.`; } });
   // ---- Dançarino das Lâminas ----
-  const rtTemEspada = (a)=> rtWeaponsOf(a).some(w=> w.tipo === 'cac' && w.nome !== 'Desarmado');
+  // exige espada: a arma usada precisa ser espada; com duas armas, uma espada em cada mão (escudo não conta como arma aqui)
+  const rtTemEspada = (a)=>{ const ws = ['dir', 'esq'].map(l=> rtArmaMao(a, l)).filter(w=> w && w.fam !== 'escudo'); return ws.length > 0 && ws.every(w=> w.tipo === 'cac' && (w.arma === 'espada' || w.id === 'espada_fe')); };
   const rtCustoFer = (a)=> 5 + Math.floor(rtLvl(a) / 2);
   A2('bladedancer/death_from_above', { alvo:'inimigo', icon:'🦅', why:(a, t)=>{ if(!rtTemEspada(a)) return 'Exige espada.'; if(rtStacks(a, 'dfaCharge') < 1) return 'Sem cargas (1 por inimigo morto).'; return rtBestCellNear(t, 3, a) ? '' : 'Nenhuma casa livre ao lado do alvo a até 3 casas.'; },
     run:(a, t)=>{ rtStackFx(a, 'dfaCharge', -1, 99); return rtDfaJump(a, t, true); } });
@@ -30032,7 +30086,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     const fx = rtFxOf(att); fx.list = fx.list.map(e=> e.t === 'talho' ? Object.assign({}, e, { n: e.n - 1, feitos: (e.feitos || []).concat([tgt.id]) }) : e).filter(e=> !(e.t === 'talho' && e.n <= 0)); rtSetFx(att, fx);
     const w = rtMeleeWeaponOf(att) || rtWeaponsOf(att)[0];
     const __fl = rtTal(att, 'blade_flurry') ? rtStackFx(att, 'flurry', 1, 99, { ic:'🗡️', nm:'Turbilhão de Lâminas', ds:'+1 de dano por Talho já feito' }) - 1 : 0;
-    const __w2 = rtTal(att, 'shearing_strikes') ? rtWeaponsOf(att).filter(x=> x.tipo === 'cac')[1] : null;
+    const __w2 = (()=>{ if(!rtTal(att, 'shearing_strikes')) return null; const p = rtDuasArmas(att); if(!p || p.some(x=> x.tipo !== 'cac' || x.fam === 'escudo')) return null; return rtMesmaArma(p[0], w) ? p[1] : p[0]; })();
     return rtFreeStrike(att, tgt, w, Object.assign({ mult: 0.5, skipRange:true }, __fl ? { flatAdd: __fl } : {}), 'Talho')
       .then(()=> (__w2 && !rtIsDown(tgt)) ? rtFreeStrike(att, tgt, __w2, Object.assign({ mult: 0.5, skipRange:true }, __fl ? { flatAdd: __fl } : {}), 'Talho (Golpes Cortantes)') : null)
       .then(()=>{ rtTalAb(att, 'talho', tgt); pushTurnState(); renderTurnBars(); });
@@ -30998,7 +31052,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
   function rtOrigStrikeMods(att, tgt, w, M, opts){
     const og = rtOg(att);
     // Pistola Icônica (Comissário)
-    if(og === 'commissar' && rtEhPistola(w) && (rtTal(att, 'one_for_the_enemies_two_for_the_traitors') || (rtWeaponsOf(att)[0] || {}).nome === w.nome)){ M.pct += 2 * rtB(att, 'BS'); M.crit += 15; M.esqRed += 2 * rtB(att, 'FEL'); }
+    if(og === 'commissar' && rtEhPistola(w) && (rtTal(att, 'one_for_the_enemies_two_for_the_traitors') || rtMesmaArma(rtArmaMao(att, 'dir'), w))){ M.pct += 2 * rtB(att, 'BS'); M.crit += 15; M.esqRed += 2 * rtB(att, 'FEL'); }
     // Preceitos da Retribuição (Sacerdote)
     if(rtTal(att, 'tenets_of_retribution')){ const W = rtB(att, 'WP'), x = rtXenoOuDemonio(tgt) ? 2 : 1;
       if(w.fam === 'bolt'){ M.flat += Math.floor(W / 3) * x; M.critDmg += W * x; }
@@ -31029,7 +31083,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
   // ao acertar (Treino de Combate da Frota, Zelo, Você. Mate Aquilo.)
   function rtOrigOnHit(att, t, res, w){
     if(rtOg(att) === 'ministorum_priest' && ['bolt', 'chama', 'serra', 'melta', 'energizada'].includes(w.fam)){ const fx = rtFxOf(t); const ja = (rtEff(att, 'zeloAlvos') || { ids: [] }).ids; if(!ja.includes(t.id)){ rtAddEffect(att, { t:'zeloAlvos', ids: ja.concat([t.id]) }); rtStackFx(att, 'zelo', 1, 99, { ic:'🔥', nm:'Zelo', ds:'acúmulos de fé' }); } }
-    if(rtTal(att, 'fleet_combat_training') && res.crit && !res.contra){ const ws = rtWeaponsOf(att); if(ws[1] && (ws[0] || {}).nome === w.nome) setTimeout(()=> rtFreeStrike(att, t, ws[1], { skipRange:true }, 'Treino da Frota'), 500); }
+    if(rtTal(att, 'fleet_combat_training') && res.crit && !res.contra){ const d = rtArmaMao(att, 'dir'), e = rtArmaMao(att, 'esq'); if(d && e && rtMesmaArma(d, w)) setTimeout(()=> rtFreeStrike(att, t, e, { skipRange:true }, 'Treino da Frota'), 500); }
   }
   function rtOrigOnKill(att, tgt){
     if(rtOg(att) === 'ministorum_priest' && rtXenoOuDemonio(tgt)) rtStackFx(att, 'zelo', 2, 99, { ic:'🔥', nm:'Zelo', ds:'acúmulos de fé' });
@@ -31202,7 +31256,7 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
     if(!rtTal(att, 'dual_weapon_combat') || !w) return 0;
     const r = rtTurnRt();
     if(r.dualDone || r.dualFirst == null || r.dualFirst < 0 || (r.attacks || 0) < rtTalBaseLim(att)) return 0;
-    if(rtWeaponsOf(att).length < 2 || (w._i != null ? w._i : 0) === r.dualFirst) return 0;
+    if(!rtDuasArmas(att) || (w._i != null ? w._i : 0) === r.dualFirst) return 0;   // precisa de uma arma em cada mão
     return r.dualSpec ? 2 : 1;
   }
   // Bloco de Energia Externo: ataque extra de plasma na 1ª rodada e depois da 1ª recarga de plasma de cada rodada
@@ -31822,6 +31876,14 @@ body.rt-on .rt-dice-group .rt-d100-cap{ max-width:125px; font-size:10px; line-he
   // =====================================================================================
   const rtEscudoDe = a=> rtWeaponsOf(a).find(w=> w.fam === 'escudo' || w.arma === 'escudo') || null;
   const rtCajadoDe = a=> rtWeaponsOf(a).find(w=> w.arma === 'cajado' || /cajado/i.test(w.id || w.nome || '')) || null;
+  // arma de cada mão: principal = direita ('dir'), secundária = esquerda ('esq')
+  function rtArmaMao(tok, lado){
+    const ws = rtWeaponsOf(tok).filter(w=> w._i !== 90 && w.nome !== 'Desarmado');
+    if(ws.some(w=> w.mao)) return ws.find(w=> w.mao === lado) || null;
+    return (lado === 'dir' ? ws[0] : ws[1]) || null;          // fichas antigas / Bestiário: ordem das armas
+  }
+  const rtDuasArmas = tok=>{ const d = rtArmaMao(tok, 'dir'), e = rtArmaMao(tok, 'esq'); return d && e ? [d, e] : null; };
+  const rtMesmaArma = (a, b)=> !!a && !!b && a.nome === b.nome && (a._i == null || b._i == null || a._i === b._i);
   const rtAugsDe = a=> (rtcOrDefault(a).aug || []);
   const rtEhJogador = a=> !!(rtcOrDefault(a).a1);
   // ---------- bloqueios de ataque ----------
