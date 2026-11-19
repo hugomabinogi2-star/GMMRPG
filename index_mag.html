@@ -6466,12 +6466,7 @@ body.rt-on .board-dice-footer .board-dice-zone .rt-dice-group, body.rt-on .board
 @keyframes rtFaisca{ 0%{ transform:translateY(0) scale(1); opacity:0; } 15%{ opacity:1; } 100%{ transform:translateY(-90px) scale(.3); opacity:0; } }
 @media (prefers-reduced-motion: reduce){ .rt-arma-img > svg, .rt-arma-img > img, .rt-arma-img::before, .rt-faisca{ animation:none !important; } }
 .rt-arma-wiki{ max-width:380px; margin:2px 0 10px; }
-/* botão das vozes dos inimigos (embaixo dos dados) */
 .rt-dice-col{ position:relative; }
-.rt-voz-btn{ position:absolute; right:6px; bottom:6px; z-index:3; font:700 10px Roboto,Arial,sans-serif; letter-spacing:.05em; text-transform:uppercase; padding:3px 7px; border-radius:6px; border:1px solid rgba(224,182,86,.45); background:rgba(20,16,10,.85); color:#efe3c8; cursor:pointer; }
-.rt-voz-btn.off{ opacity:.6; }
-.rt-voz-btn:hover{ border-color:#e0b656; }
-.rt-voz-prev{ white-space:nowrap; } .rt-voz-prev .rt-btn{ padding:2px 6px; margin:1px; min-width:0; }
 /* wiki: peças grandes, mãos e etiquetas maiores */
 .rt-wk-slot.rt-wk-grande .rt-wk-tok{ font-size:40px; }
 .rt-wk-tag{ font-size:13px; }
@@ -6508,6 +6503,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
 .rt-ali-acoes{ display:flex; gap:6px; align-items:center; margin-top:4px; }
 .rt-ali-acoes input{ width:52px; }
 .rt-ali-acoes .rt-btn{ white-space:nowrap; display:inline-flex; flex-direction:row; align-items:center; gap:4px; padding:4px 8px; }
+.rt-fila-oculto{ opacity:.55; font-style:italic; }
 </style>
 </head>
 <body>
@@ -14054,8 +14050,14 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
       turnUndoHistory = [];
       pushTurnState();
       renderTurnBars();
-      const linhas = itens.map((it, idx) => `${idx+1}. **${it.nome}**` + (it.ini != null ? ` — iniciativa ${it.ini} (1d10: ${it.iniD10})` : '')).join('\n');
-      await postToDiscord(`⚔️ **O MESTRE** sorteou a **ORDEM DE INICIATIVA pelo tabuleiro!** Rodada 1 — vez de **${itens[0].nome}**!\n${linhas}`.toUpperCase());
+      // quem ainda não avistou ninguém (inimigos/aliados do Bestiário em espera) fica fora da lista que os jogadores leem
+      const __vis = itens.filter(it=> !(typeof rtIniOculto === 'function' && rtIniOculto(it)));
+      const linhas = __vis.map((it, idx) => `${idx+1}. **${it.nome}**` + (it.ini != null ? ` — iniciativa ${it.ini} (1d10: ${it.iniD10})` : '')).join('\n');
+      const __vez = (itens[0] && !(typeof rtIniOculto === 'function' && rtIniOculto(itens[0]))) ? itens[0].nome : '';
+      if(typeof RT_POST_LIVRE !== 'undefined') RT_POST_LIVRE = true;
+      const __anuncio = postToDiscord(`⚔️ **O MESTRE** sorteou a **ORDEM DE INICIATIVA pelo tabuleiro!** Rodada 1${__vez ? ` — vez de **${__vez}**` : ''}!\n${linhas}`.toUpperCase());
+      if(typeof RT_POST_LIVRE !== 'undefined') RT_POST_LIVRE = false;
+      await __anuncio;
       iniciativaTabuleiroBtn.textContent = '✓ Enviado!';
       iniciativaTabuleiroHint.textContent = `Ordem sorteada: ${itens.map(it=>it.nome).join(' → ')}`;
     }catch(err){
@@ -19033,6 +19035,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
       // totals "de fábrica" (rodada nova, ver collectBoardTokensOut()) -- mesmo tratamento de
       // vidaMax/manaMax/escudoMax acima.
       if(rt.totals) token.totals = rt.totals;
+      ['rtc', 'rtFx', 'famOf', 'bst', 'facing', 'deidade', 'ar', 'ap'].forEach(k=>{ if(rt[k] != null && token[k] == null) token[k] = rt[k]; });
       placeToken(rt.anchorR, rt.anchorC, token);
     });
     applyBoardBackground(data.background || null);
@@ -25723,21 +25726,11 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
         <li><b>💤 Aguardando:</b> o inimigo do Bestiário com turno automático que ainda não avistou nem foi avistado continua na fila de iniciativa, mas passa a vez em silêncio: não anda, não ataca e não manda nada para o chat nem para o Discord.</li>
         <li><b>❗ Alerta:</b> ele acorda quando avista alguém, quando é avistado ou quando leva dano. Aí sai o anúncio da vez e o aviso no chat ("👁️ X avista Y!" ou "👁️ X foi avistado por Y e entra no combate!"), e ele age normalmente até o fim do combate, mesmo que perca o alvo de vista.</li>
         <li>Em mapas grandes, só os grupos avistados avançam; os outros ficam no lugar até alguém chegar perto.</li>
+        <li><b>Fila de iniciativa:</b> enquanto está 💤, a peça (inimigo ou reforço) fica fora da fila que os jogadores veem e do anúncio da iniciativa, para não entregar que ela existe. O mestre a vê com 💤. Ela aparece na fila depois que acorda e age, ou quando leva dano.</li>
+        <li><b>Facções rivais:</b> inimigos de facções diferentes do Bestiário (Caos, Drukhari, Orks, Necrons, T'au) também são inimigos entre si: podem se avistar, se atacar e levar ataques de oportunidade um do outro. Mas sempre preferem atacar os jogadores e os aliados; só atacam a outra facção quando não têm nenhum jogador ou aliado para atacar naquele turno, e ao avançar vão primeiro na direção do grupo. Inimigos sem facção (fichas do mestre) não entram nessa briga.</li>
+        <li><b>Carregar um tabuleiro salvo:</b> as peças do Bestiário e os reforços voltam com a ficha, os efeitos e o turno automático. Se o combate já estiver rolando, quem chegou com o mapa entra no fim da fila com iniciativa sorteada, e quem saiu do tabuleiro sai da fila.</li>
         <li>O mestre vê o estado de cada peça na roda de ações dela (aba defensiva → 🤖): 💤 ou ❗ e o alcance da visão.</li>
         <li>Fichas completas de inimigo, fichas do mestre e inimigos com o turno automático desligado são jogados à mão e não usam esta regra.</li></ul>`, 'visao campo avistar alerta dormindo aguardando percepcao inimigo silencio');
-    add(R, 'vozes', 'Vozes dos inimigos', 'Grunhidos, gritos de guerra, dor e morte', (()=>{
-      const linhas = [['Orks', 'orks|choque|garoto|tropa', 'Grave, rouco e rosnado; "OI!" no alerta e "WAAAGH!" nas habilidades'], ['Grot', 'orks|choque|grot|tropa', 'Esganiçado'],
-        ['Chefe Ork', 'orks|choque|chefe_guerra|chefe', 'Mais grave, com uma segunda voz uma oitava abaixo'], ['Necrons', 'necrons|falange|guerreiro|tropa', 'Sem voz de carne: estalos, varredura e som de desligar ao cair'],
-        ['Khorne', 'caos|khorne|demonio_menor|elite', 'Rugido distorcido'], ['Nurgle', 'caos|nurgle|demonio_menor|elite', 'Gorgolejo molhado'], ['Tzeentch', 'caos|tzeentch|demonio_menor|elite', 'Coro que oscila, com eco'],
-        ['Slaanesh', 'caos|slaanesh|demonio_menor|elite', 'Agudo, com risadas ao atacar'], ['Fuzileiro Traidor', 'caos|indiv|traidor|elite', 'Grave, pelo alto-falante do capacete'], ['Cultista', 'caos|indiv|cultista|tropa', 'Voz humana'],
-        ['Drukhari', 'drukhari|kabal|guerreiro|tropa', 'Sibilante'], ['Bruxa', 'drukhari|bruxas|bruxa|elite', 'Aguda, com risadas'], ['Grotesco', 'drukhari|haemonculo|grotesco|elite', 'Gemido arrastado']];
-      const evs = [['golpe', '⚔️'], ['dor', '🩸'], ['morte', '💀'], ['alerta', '❗'], ['grito', '📣']];
-      return '<p>Os inimigos têm voz própria, criada na hora pelo próprio navegador (sem arquivos de áudio). Ela sai junto da animação, em todos os navegadores da mesa:</p>'
-        + '<ul><li><b>Ataque:</b> grunhido ao golpear (sempre no corpo a corpo, às vezes nos tiros).</li><li><b>Dor:</b> quando leva um golpe e continua de pé.</li><li><b>Morte:</b> grito na hora do golpe que derruba; quem cai por sangramento, poder ou granada também grita.</li><li><b>Alerta:</b> quando avista alguém (❗).</li><li><b>Grito de guerra:</b> nas habilidades de inimigo (WAAAGH!, Grito do Caos...).</li></ul>'
-        + '<p>Chefes e Demônios Maiores têm voz mais grave; Hordas soam como um grupo. O botão <b>🗣️ Vozes</b> embaixo dos dados liga ou desliga as vozes só no seu navegador.</p>'
-        + '<p><i>Clique para ouvir:</i></p><table class="rt-wiki-tab"><tr><th>Inimigo</th><th>Timbre</th><th>Ouvir</th></tr>'
-        + linhas.map(([n, k, d])=> '<tr><td>' + E(n) + '</td><td>' + E(d) + '</td><td class="rt-voz-prev">' + evs.map(([ev, ic])=> '<button type="button" class="rt-btn" data-voz-prev="' + k + '|' + ev + '" title="' + ev + '">' + ic + '</button>').join('') + '</td></tr>').join('') + '</table>';
-    })(), 'voz vozes som grito grunhido morte inimigo audio');
     add(R, 'efeitos-visuais', 'Efeitos visuais e sons', 'O que aparece no tabuleiro', `<p>Cada arma e poder tem efeito e som próprios (tiro, laser, plasma, chamas, cortes, explosões, luzes no chão). Quem ativou "reduzir movimento" no sistema só ouve os sons.</p>
       <p><b>Armas:</b> cada arma da ficha tem a sua imagem (na escolha de armas, no card da arma e na wiki). Na janela de efeitos a arma ganha uma <b>aura</b> que cresce com a soma dos bônus (contorno → brilho pulsando → brilho forte com faíscas → aura máxima) e muda de cor pelo tipo de bônus que mais pesa: dano laranja, penetração azul, acerto/crítico/cadência/munição dourado, alcance e redução de esquiva verde, aparar/bloqueio prateado, cajado roxo.</p>
       <p><b>Dados:</b> o teste de d100 aparece como <b>um único dado</b> com o valor total (1–100). Os dados giram, deixam rastro, soltam faíscas ao bater na borda e terminam no centro da caixa com uma onda (verde se acertou, vermelha se errou). A rolagem nova apaga a anterior; o texto do resultado fica na caixa embaixo dos dados.</p>`, 'efeito som animacao');
@@ -28885,7 +28878,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
     if(p.alvo === 'si') return '';
     const tc = resolveCombatData(tgt);
     if(p.alvo === 'aliado' && tgt && rtSideOf(tgt) !== rtSideOf(att)) return 'Este poder só pode ser usado em aliados.';
-    if(p.alvo === 'inimigo' && tgt && rtSideOf(tgt) === rtSideOf(att)) return 'Este poder só pode ser usado em inimigos.';
+    if(p.alvo === 'inimigo' && tgt && rtSideOf(tgt) === rtSideOf(att) && !rtRival(att, tgt)) return 'Este poder só pode ser usado em inimigos.';
     if((id === 'sobrecarga_metabolica' || id === 'elo_mental') && tgt === att) return 'Não pode ser usado em você mesmo.';
     if(id === 'sobrecarga_metabolica' && !(turnState.order || []).some(e=> e.id === tgt.id && !e.extra)) return 'O aliado não está na fila de iniciativa.';
     if(id === 'sobrecarga_metabolica' && rtIsDown(tgt)) return 'O aliado está fora de combate.';
@@ -29357,7 +29350,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
     const ladoM = rtSideOf(mover);
     const ameacas = rtAllTokens().filter(t=>{
       if(t === mover || t.id === mover.id || !rtIsCombatToken(t) || rtIsDown(t)) return false;
-      const lado = rtSideOf(t); if(!lado || lado === ladoM) return false;
+      const lado = rtSideOf(t); if(!lado || (lado === ladoM && !rtRival(t, mover))) return false;
       if(rtHasEffect(t, 'stun')) return false;
       const c = resolveCombatData(t); if(!c) return false;
       const __ft = rtFp(t); const antes = rtDistRect(rtFp(mover, de.r, de.c), __ft), depois = rtDistRect(rtFp(mover, para.r, para.c), __ft);
@@ -31032,7 +31025,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
     if(entry && rtOnCooldown(entry.id, 'eab_' + id)) return 'Já usou nesta rodada.';
     if(d.uma && (rtTurnRt().eabUma || {})[rtCdKey(att.id, id)]) return 'Só uma vez por combate.';
     if((turnState.apRemaining || 0) < d.pa) return 'Pontos de Ação insuficientes.';
-    if(d.alvo === 'inimigo'){ if(!tgt || rtSideOf(tgt) === rtSideOf(att)) return 'Escolha um inimigo.'; if(rtIsDown(tgt)) return 'O alvo já está fora de combate.'; if(d.alc && rtDistTok(att, tgt) > d.alc) return `Fora de alcance (${rtDistTok(att, tgt)} casas; alcance ${d.alc}).`; if(rtCoverFor(att, tgt).bloqueada) return 'Sem linha de visão.'; }
+    if(d.alvo === 'inimigo'){ if(!tgt || (rtSideOf(tgt) === rtSideOf(att) && !rtRival(att, tgt))) return 'Escolha um inimigo.'; if(rtIsDown(tgt)) return 'O alvo já está fora de combate.'; if(d.alc && rtDistTok(att, tgt) > d.alc) return `Fora de alcance (${rtDistTok(att, tgt)} casas; alcance ${d.alc}).`; if(rtCoverFor(att, tgt).bloqueada) return 'Sem linha de visão.'; }
     return '';
   }
   function rtWheelEab(att, tgt, category, same, circles){
@@ -33407,7 +33400,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
           tok = rtTokenById(id);
           if(ok() && (rtTurnRt().mp || 0) > 0 && !rtHasEffect(tok, 'immob')){
             const perf = rtAiPerfil(tok); const foes = rtFoesOf(tok).filter(f=> !rtHasEffect(f, 'voando') && !rtAiCaido(f));
-            const alvo = foes.sort((a, b)=> rtDistTok(tok, a) - rtDistTok(tok, b))[0];
+            const alvo = foes.sort((a, b)=> (rtRival(tok, a) - rtRival(tok, b)) || (rtDistTok(tok, a) - rtDistTok(tok, b)))[0];   // jogadores e aliados primeiro; outra facção só se não houver
             if(alvo){ const casas = rtAiAlcance(tok, rtTurnRt().mp || 0); const pa = rtPosOf(alvo); const atira = !rtMeleeWeaponOf(tok) || perf.cac < 1;
               const melhor = casas.map(no=> ({ no, nota: -rtDistRect(rtFp(tok, no.r, no.c), rtFp(alvo)) * (atira ? 0.6 : 1) + (atira ? 2 * rtAiProtecao(tok, no.r, no.c) * perf.cobertura : 0) - 3 * rtAiRiscoAoo(tok, rtAiCaminho(no), perf) })).sort((a, b)=> b.nota - a.nota)[0];
               if(melhor && melhor.no.d > 0){ await rtAiAndar(tok, rtAiCaminho(melhor.no), id); postToDiscord(`🤖 ${rtNm(rtTokenById(id) || tok)} avança em direção a ${rtNm(alvo)}.`, null); }
@@ -33423,7 +33416,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
   // nada vai para o chat/Discord durante a vez de uma peça dormindo (nem o anúncio da vez)
   { const f = postToDiscord; postToDiscord = function(content){
       try{ const e = turnState && turnState.active && currentTurnEntry(); const t = e && rtTokenById(e.id);
-        if(t && rtAiDormindo(t)) return Promise.resolve('dormindo');
+        if(t && !RT_POST_LIVRE && rtAiDormindo(t)) return Promise.resolve('dormindo');
       }catch(err){}
       return f.apply(this, arguments);
   }; }
@@ -34490,7 +34483,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
       `<ul><li><b>Janelas de escolha</b>: cada lista da ficha é um botão. Ele abre uma janela com as opções à esquerda e os detalhes à direita; <b>OK</b> (ou duplo clique) escolhe. Com muitas opções aparece uma busca.</li>
         <li><b>Textos de ajuda</b>: passe o mouse sobre quase tudo (valores, talentos, peças do tabuleiro) para ver a explicação num quadro de pergaminho, que nunca fica embaixo do mouse.</li>
         <li><b>Modificadores</b>: não existem mais modificadores manuais na ficha. Bônus e penalidades em características e perícias vêm dos <b>efeitos das armas e da armadura</b> (janela de efeitos → Característica ou Perícia) e dos <b>efeitos globais</b> do mapa.</li>
-        <li><b>Dados</b>: a animação fica dentro da caixa dos dados; o texto do resultado vai para a caixa embaixo. Uma rolagem nova apaga a anterior. O botão <b>🗣️ Vozes</b> liga ou desliga as vozes dos inimigos só para você.</li>
+        <li><b>Dados</b>: a animação fica dentro da caixa dos dados; o texto do resultado vai para a caixa embaixo. Uma rolagem nova apaga a anterior.</li>
         <li><b>Imagens das armas</b>: aparecem na escolha da arma, no card da arma e aqui na wiki; na janela de efeitos a arma ganha a aura dos bônus.</li>
         <li><b>Pet</b>: quem tem familiar (Supervisor e outros) ou o mastim do Árbitro ganha uma caixa de imagem no verso da ficha, do lado oposto ao retrato. Clique nela para escolher a imagem.</li></ul>`,
       'interface janela escolha tooltip texto ajuda modificadores dados pet verso');
@@ -35466,230 +35459,6 @@ RTA_IMG.cajado_navis = `
 
 
   // =====================================================================================
-  // VOZES DOS INIMIGOS — grunhidos, gritos de guerra, dor e morte, sintetizados na hora
-  // (Web Audio, síntese de formantes: uma "corda vocal" em dente de serra passando por filtros
-  // que imitam a boca em cada vogal). Cada facção tem um timbre: Ork grave e rouco, Grot
-  // esganiçado, Necron metálico, demônios distorcidos e com eco, Drukhari sibilantes...
-  // Toca em todos os navegadores da mesa junto com a animação (mesmo caminho dos efeitos).
-  // Quem não quiser ouvir desliga no botão 🗣️ embaixo dos dados (vale só para quem clicou).
-  // =====================================================================================
-  const RT_VOGAL = { a:[730, 1090, 2440], e:[530, 1840, 2480], i:[300, 2200, 2950], o:[570, 840, 2410], u:[320, 870, 2240], h:[640, 1190, 2390] };
-  function rtsVoz(o){
-    const B = rtsBus(); if(!B) return;
-    const ctx = B.ctx, t0 = ctx.currentTime + Math.max(0, o.delay || 0), dur = o.dur || 0.4, f0 = o.f0 || 120, vol = o.vol || 0.3;
-    // envelope geral
-    const out = ctx.createGain();
-    out.gain.setValueAtTime(0, ctx.currentTime); out.gain.setValueAtTime(0.0001, t0);
-    out.gain.exponentialRampToValueAtTime(vol, t0 + (o.at || 0.03));
-    out.gain.linearRampToValueAtTime(vol * 0.75, t0 + dur * 0.65);
-    out.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    // fonte: dente de serra com a curva de altura do grito + vibrato
-    const osc = ctx.createOscillator(); osc.type = 'sawtooth';
-    const curva = (o.curva && o.curva.length > 1 ? o.curva : [1, 1]).map(m=> Math.max(25, f0 * m));
-    osc.frequency.setValueCurveAtTime(Float32Array.from(curva), t0, dur);
-    const nos = [osc];
-    if(o.vib){ const l = ctx.createOscillator(); l.frequency.value = o.vib; const lg = ctx.createGain(); lg.gain.value = f0 * (o.vibAmt || 0.03); l.connect(lg); lg.connect(osc.frequency); nos.push(l); }
-    const fonte = ctx.createGain(); fonte.gain.value = 1; osc.connect(fonte);
-    // ronco: modulação rápida de volume (garganta rouca / rosnado)
-    if(o.ronco){ fonte.gain.value = 1 - o.ronco / 2; const l = ctx.createOscillator(); l.frequency.value = o.roncoHz || 42; const lg = ctx.createGain(); lg.gain.value = o.ronco / 2; l.connect(lg); lg.connect(fonte.gain); nos.push(l); }
-    // sopro (ar passando)
-    const ent = ctx.createGain(); fonte.connect(ent);
-    if(o.sopro){ const n = ctx.createBufferSource(); n.buffer = B.ruido; n.loop = true; const ng = ctx.createGain(); ng.gain.value = o.sopro; n.connect(ng); ng.connect(ent); nos.push(n); }
-    // boca: 3 formantes que deslizam entre as vogais
-    const soma = ctx.createGain(); soma.gain.value = 3.2;
-    const vogs = (o.vog && o.vog.length ? o.vog : ['a']).map(v=> RT_VOGAL[v] || RT_VOGAL.a);
-    const tr = o.tr || 1;
-    [0, 1, 2].forEach(k=>{
-      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = [7, 10, 12][k];
-      vogs.forEach((vg, i)=>{ const t = t0 + (vogs.length > 1 ? dur * 0.85 * i / (vogs.length - 1) : 0); if(i === 0) f.frequency.setValueAtTime(vg[k] * tr, t); else f.frequency.linearRampToValueAtTime(vg[k] * tr, t); });
-      const g = ctx.createGain(); g.gain.value = [1, 0.6, 0.32][k];
-      ent.connect(f); f.connect(g); g.connect(soma);
-    });
-    // um pouco do som "cru" dá corpo
-    const cru = ctx.createBiquadFilter(); cru.type = 'lowpass'; cru.frequency.value = 900 * tr; const cg = ctx.createGain(); cg.gain.value = 0.18; ent.connect(cru); cru.connect(cg); cg.connect(soma);
-    let ult = soma;
-    if(o.dist){ const ws = ctx.createWaveShaper(); const c = new Float32Array(257); for(let i = 0; i < 257; i++){ const x = i / 128 - 1; c[i] = Math.tanh(x * o.dist); } ws.curve = c; ult.connect(ws); ult = ws; }
-    // robô (Necron): modulação em anel = voz metálica
-    if(o.robo){ const rm = ctx.createGain(); rm.gain.value = 0; const l = ctx.createOscillator(); l.frequency.value = o.robo; l.connect(rm.gain); ult.connect(rm); ult = rm; nos.push(l); }
-    // vox (capacete / alto-falante): faixa estreita
-    if(o.vox){ const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = o.vox; f.Q.value = 1.1; const g = ctx.createGain(); g.gain.value = 1.8; ult.connect(f); f.connect(g); ult = g; }
-    ult.connect(out); rtsSaida(out, o.eco != null ? o.eco : 0.25);
-    nos.forEach(n=>{ n.start(t0); n.stop(t0 + dur + 0.08); });
-  }
-  // timbre de cada tipo de inimigo
-  const RT_VOZ_PERFIL = {
-    humano:   { f0:125, tr:1,    dist:1.6, ronco:.08, sopro:.12, vib:5 },
-    fanatico: { f0:140, tr:1,    dist:2.6, ronco:.16, sopro:.15, vib:6 },
-    chefe_h:  { f0:96,  tr:.88,  dist:2.4, ronco:.18, sopro:.1,  vib:4 },
-    traidor:  { f0:92,  tr:.88,  dist:3.5, ronco:.2,  sopro:.08, vox:1250, eco:.3 },
-    feiticeiro:{ f0:108, tr:.95, dist:2,   sopro:.15, eco:.6, coro:1.012 },
-    khorne:   { f0:72,  tr:.74,  dist:7,   ronco:.5,  sopro:.12, oitava:1, eco:.35 },
-    nurgle:   { f0:84,  tr:.8,   dist:3,   ronco:.4,  roncoHz:11, sopro:.32, eco:.3 },
-    tzeentch: { f0:172, tr:1.08, dist:1.5, vib:9, vibAmt:.06, eco:.75, coro:1.5 },
-    slaanesh: { f0:250, tr:1.22, dist:1.4, sopro:.3, vib:7, vibAmt:.05, eco:.45 },
-    ork:      { f0:84,  tr:.78,  dist:5.5, ronco:.45, roncoHz:38, sopro:.12 },
-    ork_chefe:{ f0:66,  tr:.7,   dist:7,   ronco:.55, roncoHz:34, sopro:.12, oitava:1 },
-    grot:     { f0:330, tr:1.35, dist:2,   sopro:.08, vib:8, vibAmt:.04 },
-    drukhari: { f0:150, tr:1.04, dist:1.3, sopro:.32, vib:5 },
-    bruxa:    { f0:245, tr:1.18, dist:1.2, sopro:.25, vib:6 },
-    grotesco: { f0:62,  tr:.68,  dist:3,   ronco:.4, roncoHz:20, sopro:.25 },
-    necron:   { f0:70,  tr:.9,   dist:5,   robo:85, vox:1100, sopro:.05, necron:1, eco:.4 },
-    fera:     { f0:60,  tr:.6,   dist:5,   ronco:.7, roncoHz:30, sopro:.45 },
-    tau:      { f0:150, tr:1.05, dist:1.4, sopro:.12, vib:5, vox:1500, eco:.3 },
-    kroot:    { f0:230, tr:1.15, dist:2.6, sopro:.2, vib:13, vibAmt:.09, ronco:.2, roncoHz:55 },
-  };
-  // cada momento: duração, curva de altura e vogais
-  const RT_VOZ_EV = {
-    ataque: { dur:.32, curva:[1, 1.18, .92], vog:['h', 'a'], vol:.3, at:.02 },
-    golpe:  { dur:.46, curva:[.95, 1.25, 1.12, .85], vog:['h', 'a', 'a'], vol:.36, at:.03 },
-    dor:    { dur:.24, curva:[1.35, .88], vog:['u', 'h'], vol:.3, at:.01 },
-    morte:  { dur:1.15, curva:[1.3, 1.7, 1.45, .9, .5], vog:['a', 'a', 'o', 'u'], vol:.4, at:.03 },
-    alerta: { dur:.42, curva:[.85, 1.42], vog:['h', 'a'], vol:.34, at:.02 },
-    grito:  { dur:1, curva:[.9, 1.15, 1.25, 1.2, 1], vog:['u', 'a', 'a', 'a', 'h'], vol:.42, at:.06 },
-  };
-  // jeitos próprios de algumas facções
-  const RT_VOZ_ESPECIAL = {
-    ork:      { alerta:{ vog:['o', 'i'], curva:[1, 1.3] }, grito:{ vog:['u', 'a', 'a', 'a', 'h'], dur:1.2, curva:[.85, 1.1, 1.2, 1.2, 1.1, .9] } },
-    ork_chefe:{ alerta:{ vog:['o', 'i'], curva:[1, 1.3] }, grito:{ vog:['u', 'a', 'a', 'a', 'h'], dur:1.35, curva:[.85, 1.1, 1.2, 1.2, 1.1, .9] } },
-    grot:     { alerta:{ vog:['e', 'i'], curva:[1, 1.5] }, morte:{ curva:[1.2, 1.8, 1.3, .7] } },
-    nurgle:   { morte:{ vog:['o', 'u', 'u'], curva:[1, .8, .6, .4] }, ataque:{ vog:['u', 'o'] } },
-    slaanesh: { ataque:{ riso:1 }, grito:{ riso:1 } },
-    bruxa:    { ataque:{ riso:1 } },
-    drukhari: { alerta:{ vog:['i', 'e'], curva:[1.1, .9] } },
-    tzeentch: { grito:{ vog:['i', 'a', 'o'], curva:[1, 1.5, .8, 1.3] } },
-  };
-  function rtVozLigada(){ try{ return localStorage.getItem('rtVozes') !== '0'; }catch(e){ return true; } }
-  function rtVozPerfilDe(tok){
-    if(!tok || boardActionSide(tok) !== 'inimigo') return null;
-    const b = tok.bst;
-    if(!b) return tok.kind === 'monstro' ? 'fera' : tok.kind === 'boss' ? 'chefe_h' : 'humano';
-    if(b.f === 'necrons') return 'necron';
-    if(b.f === 'tau') return b.u === 'drone' ? 'necron' : (b.u === 'kroot' || b.v === 'kroot') ? 'kroot' : 'tau';
-    if(b.f === 'orks') return b.u === 'grot' ? 'grot' : (b.u === 'chefe_guerra' || b.u === 'nobre' || b.p === 'chefe') ? 'ork_chefe' : 'ork';
-    if(b.f === 'drukhari') return b.u === 'bruxa' ? 'bruxa' : b.u === 'grotesco' ? 'grotesco' : 'drukhari';
-    if(b.f === 'caos'){
-      if(/demonio/.test(b.u || '')) return ['khorne', 'nurgle', 'tzeentch', 'slaanesh'].includes(b.v) ? b.v : 'khorne';
-      if(b.u === 'traidor') return 'traidor';
-      if(b.u === 'feiticeiro') return 'feiticeiro';
-      if(b.u === 'fanatico') return 'fanatico';
-      return b.p === 'chefe' ? 'chefe_h' : 'humano';
-    }
-    return 'humano';
-  }
-  // Necrons não têm voz de carne: estalos, varredura e desligamento
-  function rtVozNecron(ev, d, P){
-    const v = P.vol || 1;
-    if(ev === 'morte'){ rtsO(900, 1.3, { type:'sawtooth', f1:40, vol:.12 * v, delay:d, lp:2400, dist:4, eco:.5 }); for(let i = 0; i < 4; i++) rtsN(.05, { tipo:'highpass', f0:4000, vol:.25, delay:d + .15 + i * .18 }); return; }
-    if(ev === 'dor'){ rtsN(.18, { tipo:'bandpass', f0:2600, q:3, vol:.28, delay:d, am:60 }); rtsO(220, .15, { type:'square', f1:120, vol:.05, delay:d, lp:1500 }); return; }
-    if(ev === 'alerta'){ [0, .14].forEach((t, i)=> rtsO(i ? 1320 : 880, .1, { type:'square', vol:.05, delay:d + t, lp:3000, eco:.4 })); rtsO(300, .45, { type:'sawtooth', f1:1400, vol:.05, delay:d + .28, lp:2600, eco:.5 }); return; }
-    if(ev === 'grito'){ rtsO(55, 1, { type:'sawtooth', vol:.12, delay:d, vib:8, vibAmt:6, lp:900, dist:5, eco:.6 }); rtsO(1100, 1, { type:'square', f1:700, vol:.03, delay:d, lp:2600, eco:.6 }); return; }
-    rtsO(160, .22, { type:'square', f1:90, vol:.06, delay:d, lp:1600 }); rtsN(.12, { tipo:'highpass', f0:3500, vol:.15, delay:d, am:80 });
-  }
-  const RT_VOZ_ULT = {};
-  // toca a voz de um inimigo num momento (ataque, golpe, dor, morte, alerta, grito)
-  function rtVoz(tok, ev, delayS){
-    if(!rtVozLigada() || !tok) return;
-    const k = rtVozPerfilDe(tok); if(!k) return;
-    const chave = tok.id + '|' + ev, agora = Date.now();
-    if(ev !== 'morte' && RT_VOZ_ULT[chave] && agora - RT_VOZ_ULT[chave] < 700) return;
-    RT_VOZ_ULT[chave] = agora;
-    const P = RT_VOZ_PERFIL[k]; const d = delayS || 0;
-    const b = tok.bst || {};
-    const grande = (b.p === 'chefe' || /maior/.test(b.u || '')) ? .8 : b.p === 'elite' ? .92 : 1;
-    if(P.necron){ try{ rtVozNecron(ev, d, P); }catch(e){} return; }
-    const E = Object.assign({}, RT_VOZ_EV[ev] || RT_VOZ_EV.ataque, (RT_VOZ_ESPECIAL[k] || {})[ev] || {});
-    const n = b.p === 'horda' ? 3 : 1;
-    for(let i = 0; i < n; i++){
-      const varia = 1 + (Math.random() - .5) * .14;
-      const base = Object.assign({}, P, E, { f0: P.f0 * grande * varia * (i ? .88 + Math.random() * .3 : 1), tr: P.tr * (grande < 1 ? .93 : 1), delay: d + (i ? .04 + Math.random() * .12 : 0), vol: E.vol * (n > 1 ? .55 : 1) });
-      try{
-        if(E.riso){
-          // risada: "ha-ha-ha-ha" subindo
-          for(let s = 0; s < 4; s++) rtsVoz(Object.assign({}, base, { dur:.12, curva:[1.1 + s * .08, 1 + s * .08], vog:['h', 'a'], delay: base.delay + s * .14, vol: base.vol * .8 }));
-        } else {
-          rtsVoz(base);
-          if(P.oitava) rtsVoz(Object.assign({}, base, { f0: base.f0 / 2, vol: base.vol * .55, tr: base.tr * .9 }));
-          if(P.coro) rtsVoz(Object.assign({}, base, { f0: base.f0 * P.coro, vol: base.vol * .5, delay: base.delay + .015 }));
-        }
-      }catch(e){}
-    }
-  }
-  // ---------- ligações com os efeitos do tabuleiro (rodam em todos os navegadores) ----------
-  function rtVozTokEm(a){ if(!a) return null; try{ return (rtTokenPool() || {})[rtBoardKeyOf(a.r, a.c)] || null; }catch(e){ return null; } }
-  const RT_VOZ_EL = new WeakMap();
-  const RT_VOZ_MORTE = {};
-  // o pacote do efeito leva junto se o golpe derrubou o alvo (para o grito de morte sair na hora do impacto)
-  { const f = rtFxPayload; rtFxPayload = function(att, tgt, res, extra){ const o = f(att, tgt, res, extra); try{ if(res && res.abate) o.abate = 1; }catch(e){} return o; }; }
-  { const f = rtSpawnAttackFx; rtSpawnAttackFx = function(aA, tA, val){
-      try{
-        val = val || {};
-        const at = rtVozTokEm(aA), al = rtVozTokEm(tA);
-        if(at && rtVozPerfilDe(at)){
-          const melee = val.tipo === 'cac' || (val.vfx && typeof rtVfxMelee === 'function' && rtVfxMelee(val.vfx));
-          if(val.kind === 'ataque' || val.kind === 'multi'){ if(melee || Math.random() < .55) rtVoz(at, melee ? 'golpe' : 'ataque', 0); }
-          else if(val.kind === 'buff'){
-            if(val.txt === 'ALERTA') rtVoz(at, 'alerta', 0);
-            else if(val.vfx !== 'recarga' && val.vfx !== 'mira' && val.vfx !== 'cura') rtVoz(at, 'grito', 0);
-          }
-        }
-        // quem vai levar o golpe (o grito sai no tranco do impacto)
-        const marca = (r, c, abate)=>{ const t = rtVozTokEm({ r, c }); const el = boardHitFxTokenEl(r, c); if(t && el && rtVozPerfilDe(t)) RT_VOZ_EL.set(el, { id: t.id, abate: !!abate, ts: Date.now() }); };
-        if(val.kind === 'ataque' && tA && al) marca(tA.r, tA.c, val.abate);
-        if(val.kind === 'multi' && Array.isArray(val.multi)) val.multi.forEach(m=>{ if(!m.out || m.out === 'acerto') marca(m.r, m.c, false); });
-      }catch(e){}
-      return f.apply(this, arguments);
-  }; }
-  { const f = rtRecoil; rtRecoil = function(el, A, T, crit, melee){
-      try{
-        const inf = el && RT_VOZ_EL.get(el);
-        if(inf && Date.now() - inf.ts < 6000){
-          RT_VOZ_EL.delete(el);
-          const t = rtTokenById(inf.id);
-          if(t){ if(inf.abate || rtIsDown(t)){ RT_VOZ_MORTE[t.id] = Date.now(); rtVoz(t, 'morte', 0); } else rtVoz(t, 'dor', 0); }
-        }
-      }catch(e){}
-      return f.apply(this, arguments);
-  }; }
-  // quem cai por outro motivo (sangramento, poder psíquico, granada...) também grita
-  const RT_VOZ_CAIDO = {};
-  let RT_VOZ_PRIMEIRA = true;
-  setInterval(()=>{
-    try{
-      const pool = rtTokenPool() || {}; const vistos = {};
-      Object.values(pool).forEach(t=>{
-        if(!t || !t.id || vistos[t.id] || !rtVozPerfilDe(t)) return; vistos[t.id] = 1;
-        const caiu = !!rtIsDown(t);
-        if(caiu && RT_VOZ_CAIDO[t.id] === false && !RT_VOZ_PRIMEIRA){
-          const id = t.id;
-          setTimeout(()=>{ if(RT_VOZ_MORTE[id] && Date.now() - RT_VOZ_MORTE[id] < 5000) return; const t2 = rtTokenById(id); if(t2 && rtIsDown(t2)){ RT_VOZ_MORTE[id] = Date.now(); rtVoz(t2, 'morte', 0); } }, 1800);
-        }
-        RT_VOZ_CAIDO[t.id] = caiu;
-      });
-      RT_VOZ_PRIMEIRA = false;
-    }catch(e){}
-  }, 400);
-  // botão 🗣️ embaixo dos dados: liga/desliga as vozes só neste navegador
-  function rtVozBotao(){
-    const col = document.querySelector('.rt-dice-col'); if(!col || col.querySelector('.rt-voz-btn')) return;
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'rt-voz-btn';
-    const pinta = ()=>{ const on = rtVozLigada(); b.textContent = on ? '🗣️ Vozes' : '🔇 Vozes'; b.classList.toggle('off', !on); b.title = on ? 'Vozes dos inimigos ligadas (clique para desligar só para você)' : 'Vozes dos inimigos desligadas (clique para ligar)'; };
-    b.addEventListener('click', (e)=>{ e.preventDefault(); try{ localStorage.setItem('rtVozes', rtVozLigada() ? '0' : '1'); }catch(err){} pinta(); });
-    pinta(); col.appendChild(b);
-  }
-  setInterval(rtVozBotao, 1000);
-  // botões "ouvir" da wiki
-  document.addEventListener('click', (e)=>{
-    const b = e.target.closest && e.target.closest('[data-voz-prev]'); if(!b) return;
-    e.preventDefault();
-    const [f, v, u, pp, ev] = b.dataset.vozPrev.split('|');
-    const salvo = (()=>{ try{ return localStorage.getItem('rtVozes'); }catch(err){ return null; } })();
-    try{ localStorage.removeItem('rtVozes'); }catch(err){}
-    rtVoz({ id:'wiki_' + Math.random(), kind:'inimigo', bst:{ f, v, u, p: pp } }, ev, 0);
-    try{ if(salvo != null) localStorage.setItem('rtVozes', salvo); }catch(err){}
-  });
-
-
-  // =====================================================================================
   // EFEITOS GLOBAIS DO MAPA (aba no gerenciador do tabuleiro, só o mestre mexe)
   // Cada efeito soma/tira pontos numa característica ou perícia, ou causa dano no começo de cada
   // turno, para um grupo: jogadores, aliados, jogadores e aliados, inimigos ou todas as fichas.
@@ -35972,6 +35741,118 @@ RTA_IMG.cajado_navis = `
   }; }
   // a marcação não entra como "ataque" no plano da IA (ela é usada antes, pelos reforços acima)
   { const f = rtAiPlanos; rtAiPlanos = function(tok){ return f.apply(this, arguments).filter(p=> !(p.tipo === 'eab' && p.id === 'marcador')); }; }
+
+
+  // =====================================================================================
+  // FILA DE INICIATIVA, MAPAS CARREGADOS E FACÇÕES RIVAIS
+  // - Peças do Bestiário/Reforços com turno automático que ainda não agiram (💤) ficam fora da
+  //   fila que os jogadores veem; o mestre vê com 💤. Aparecem quando acordam e agem.
+  // - Carregar um tabuleiro salvo com o combate rolando: as peças novas entram na fila e as que
+  //   sumiram saem.
+  // - Inimigos de facções diferentes do Bestiário (Caos × Orks × T'au...) também são inimigos
+  //   entre si, mas a IA sempre prefere os jogadores e os aliados.
+  // =====================================================================================
+  var RT_POST_LIVRE = false;   // deixa passar o anúncio da iniciativa mesmo se a 1ª vez for de uma peça em espera
+  // ---------- facções ----------
+  function rtFacDe(tok){
+    if(!tok || boardActionSide(tok) !== 'inimigo') return null;
+    return (tok.bst && tok.bst.f) || (rtcOf(tok) || {}).bstF || null;
+  }
+  // duas peças do lado dos inimigos, cada uma de uma facção do Bestiário diferente
+  function rtRival(a, b){
+    if(!a || !b || a === b || a.id === b.id) return false;
+    const fa = rtFacDe(a), fb = rtFacDe(b);
+    return !!(fa && fb && fa !== fb);
+  }
+  { const f = rtFoesOf; rtFoesOf = function(tok){
+      const out = f.apply(this, arguments);
+      if(!rtFacDe(tok)) return out;
+      return out.concat(rtAllTokens().filter(t=> rtIsCombatToken(t) && !rtIsDown(t) && rtRival(tok, t)));
+  }; }
+  { const f = rtFriendsOf; rtFriendsOf = function(tok){
+      const out = f.apply(this, arguments);
+      return rtFacDe(tok) ? out.filter(t=> !rtRival(tok, t)) : out;
+  }; }
+  rtAlliesNear = function(token, raio){ return rtFriendsOf(token).filter(t=> t !== token && rtDistTok(token, t) <= raio).length; };
+  // clicar com uma peça de outra facção abre as ações ofensivas
+  { const f = classifyBoardActionCategory; classifyBoardActionCategory = function(token, attackerToken){
+      try{ if(attackerToken && token && rtRival(token, attackerToken)) return 'ofensiva'; }catch(e){}
+      return f.apply(this, arguments);
+  }; }
+  // IA: atacar outra facção só quando não houver nenhum jogador ou aliado para atacar
+  { const f = rtAiPlanos; rtAiPlanos = function(tok){
+      const l = f.apply(this, arguments);
+      if(!rtFacDe(tok)) return l;
+      const pref = l.filter(p=> !(p.alvo && rtRival(tok, p.alvo))), rivais = l.filter(p=> p.alvo && rtRival(tok, p.alvo));
+      return pref.concat(rivais);
+  }; }
+
+  // ---------- peças em espera (ainda não agiram) ----------
+  function rtIniOculto(entry){
+    try{
+      const tok = entry && rtTokenById(entry.id);
+      if(!tok || !tok.bst || rtIsDown(tok) || !rtAiLigado(tok)) return false;
+      if(rtAiAlerta(tok)) return false;
+      if(((rtTurnRt().dmgLog) || {})[rtCdKey(tok.id, 'd')]) return false;   // já levou dano: todos sabem que ela existe
+      return true;
+    }catch(e){ return false; }
+  }
+  const rtIniOcultoAgora = ()=> currentRole !== 'mestre' && turnState.active && rtIniOculto(currentTurnEntry());
+  renderTurnQueuePanel = function(){
+    const roundEl = $('turnQueueRound'), listEl = $('turnQueueList');
+    if(!roundEl || !listEl) return;
+    if(!turnState.active || !turnState.order || !turnState.order.length){ roundEl.textContent = ''; listEl.innerHTML = ''; return; }
+    roundEl.textContent = `RODADA ${turnState.round}`;
+    const mestre = currentRole === 'mestre';
+    const lista = turnState.order.slice(turnState.turnIndex).filter(it=> !isTurnEntryKnockedOut(it))
+      .map((it, i)=> ({ it, atual: i === 0, oc: rtIniOculto(it) })).filter(x=> mestre || !x.oc);
+    listEl.innerHTML = lista.map(x=> `<li class="turn-queue-item${x.atual ? ' turn-queue-current' : ''}${x.oc ? ' rt-fila-oculto' : ''}"${x.oc ? ' title="Em espera: ainda não avistou ninguém. Os jogadores não veem esta peça na fila."' : ''}>${x.oc ? '💤 ' : ''}${escapeHtml(x.it.nome)}</li>`).join('');
+  };
+  { const f = turnStatusText; turnStatusText = function(){
+      if(rtIniOcultoAgora()) return `Rodada ${turnState.round} — aguardando...`;
+      return f.apply(this, arguments);
+  }; }
+  { const f = renderTurnPhaseBanner; renderTurnPhaseBanner = function(){
+      f.apply(this, arguments);
+      const el = $('turnPhaseBanner'); if(el && rtIniOcultoAgora()){ el.hidden = true; el.textContent = ''; }
+  }; }
+  { const f = renderApDots; renderApDots = function(){
+      f.apply(this, arguments);
+      const el = $('apDotsBar'); if(el && rtIniOcultoAgora()){ el.hidden = true; el.innerHTML = ''; }
+  }; }
+
+  // ---------- carregar um tabuleiro com o combate rolando ----------
+  { const f = applyBoardData; applyBoardData = function(data){
+      const o = f.apply(this, arguments);
+      try{
+        if(currentRole === 'mestre' && turnState.active && Array.isArray(turnState.order)){
+          const vistos = new Set(); const toks = [];
+          Object.values(boardTokens).forEach(t=>{ if(t && !vistos.has(t.id) && rtIsCombatToken(t)){ vistos.add(t.id); toks.push(t); } });
+          const existe = new Set(toks.map(t=> t.id));
+          // quem não está mais no tabuleiro sai da fila (senão a vez trava numa peça que não existe)
+          const atual = currentTurnEntry();
+          const tira = (arr)=> (arr || []).filter(e=> e && existe.has(e.id));
+          let idx = 0; turnState.order.forEach((e, i)=>{ if(i < turnState.turnIndex && e && existe.has(e.id)) idx++; });
+          turnState.order = tira(turnState.order); turnState.baseOrder = tira(turnState.baseOrder);
+          turnState.turnIndex = Math.min(idx, Math.max(0, turnState.order.length - 1));
+          // quem chegou com o mapa entra no fim da rodada, com iniciativa sorteada
+          const naFila = new Set(turnState.order.map(e=> e.id));
+          let novos = 0;
+          toks.forEach(t=>{
+            if(naFila.has(t.id)) return;
+            let ini = null, d10 = null; try{ const r = rtRollInitiative(t); ini = r.total; d10 = r.d10; }catch(e){}
+            const e = { id: t.id, kind: t.kind, nome: tokenTooltipText(t), baseNome: (t.name || '').trim(), bonusDes: t.bonusDes || 0, ini, iniD10: d10 };
+            turnState.order.push(e); (turnState.baseOrder = turnState.baseOrder || []).push(Object.assign({}, e)); novos++;
+          });
+          const agora = currentTurnEntry();
+          if(agora && (!atual || atual.id !== agora.id)){ try{ turnState.apMax = apMaxForToken(agora); turnState.apRemaining = turnState.apMax; rtTurnStart(agora); }catch(e){ console.error(e); } }
+          if(!turnState.order.length) turnState.active = false;
+          pushTurnState(); renderTurnBars();
+          if(novos) console.info('mapa carregado: ' + novos + ' peça(s) entraram na fila de iniciativa');
+        }
+      }catch(e){ console.error('fila ao carregar mapa', e); }
+      return o;
+  }; }
 
   rtInit();
 
