@@ -6504,6 +6504,65 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
 .rt-ali-acoes input{ width:52px; }
 .rt-ali-acoes .rt-btn{ white-space:nowrap; display:inline-flex; flex-direction:row; align-items:center; gap:4px; padding:4px 8px; }
 .rt-fila-oculto{ opacity:.55; font-style:italic; }
+/* marcas de combate no chão (sangue, queimado, crateras...) */
+.rt-dec-wrap{ position:absolute; inset:0; pointer-events:none; z-index:1; overflow:visible; }
+.rt-dec{ position:absolute; left:50%; top:50%; width:calc(var(--s) * 100%); height:calc(var(--s) * 100%); transform:translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--rot)); opacity:.88; }
+.rt-dec svg{ width:100%; height:100%; display:block; }
+.rt-dec-novo{ animation: rtDecIn .6s ease-out; }
+@keyframes rtDecIn{ from{ opacity:0; transform:translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--rot)) scale(.4); } to{ opacity:.88; transform:translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--rot)) scale(1); } }
+.board-cell-mist .rt-dec-wrap, .reveal-hidden .rt-dec-wrap{ display:none; }
+/* caveira entrando depois da animação */
+.board-token.rt-cav-in{ animation: rtCavIn .55s ease-out; }
+@keyframes rtCavIn{ 0%{ filter:brightness(2.2) saturate(0); transform:scale(1.18); } 60%{ transform:scale(.94); } 100%{ filter:none; transform:scale(1); } }
+.board-menu-tab.rt-end-tab{ border-color:#8a1f1f; color:#8a1f1f; font-weight:700; }
+.board-menu-tab.rt-end-tab:not(:disabled):hover{ background:#8a1f1f; color:#fff8e6; }
+.board-menu-tab.rt-end-tab:disabled{ opacity:.45; cursor:not-allowed; }
+/* ===== peça caída: só a caveira, sem fundo, com fade a partir da ficha ===== */
+body.rt-on .board-token.token-dead{ background:transparent !important; background-image:none !important; box-shadow:none !important; border:none !important; container-type:size; overflow:visible; }
+body.rt-on .board-token.token-dead .token-skull-icon{ font-size:62cqmin; filter:drop-shadow(0 2px 3px rgba(0,0,0,.85)) drop-shadow(0 0 6px rgba(0,0,0,.5)); }
+body.rt-on .board-token.token-dead ~ .board-token-hpbar, body.rt-on .board-token.token-dead .rt-fx-badges{ display:none; }
+.board-token.rt-cav-in{ animation-name: rtCavIn; animation-timing-function: ease-in-out; animation-fill-mode: both; }
+@keyframes rtCavIn{ 0%{ opacity:0; transform:scale(.7); } 70%{ opacity:1; transform:scale(1.06); } 100%{ opacity:1; transform:scale(1); } }
+.rt-cav-fantasma{ animation-name: rtCavSai; animation-timing-function: ease-in-out; animation-fill-mode: both; }
+@keyframes rtCavSai{ from{ opacity:1; filter:none; } to{ opacity:0; filter:grayscale(1) brightness(.6); } }
+/* resumo do tabuleiro: a ficha caída sai com o mesmo fade */
+.ficha-bubble.rt-bub-saindo{ animation-name: rtBubSai; animation-timing-function: ease-in-out; animation-fill-mode: both; overflow:hidden; }
+@keyframes rtBubSai{ from{ opacity:1; max-height:400px; } 70%{ opacity:0; max-height:400px; } to{ opacity:0; max-height:0; margin-top:0; margin-bottom:0; padding-top:0; padding-bottom:0; } }
+/* ===== pausa ===== */
+.rt-pausa-btn.rt-pausa-on{ background:#8a1f1f !important; color:#fff8e6 !important; box-shadow:0 0 0 2px #e0b656, 0 0 12px rgba(224,182,86,.6); }
+#liveBoardWrap{ position:relative; }
+.rt-pausa-veu{ position:absolute; inset:0; z-index:40; background:rgba(8,6,6,.55); display:flex; align-items:flex-start; justify-content:center; padding-top:24px; backdrop-filter:grayscale(.6); }
+.rt-pausa-veu.rt-pausa-mestre{ pointer-events:none; background:rgba(8,6,6,.25); }
+.rt-pausa-caixa{ position:sticky; top:24px; background:#1a1416; border:2px solid #e0b656; border-radius:8px; padding:10px 22px; text-align:center; color:#efe3c8; box-shadow:0 8px 30px rgba(0,0,0,.6); animation: rtPausaPulsa 2s ease-in-out infinite; }
+.rt-pausa-caixa b{ display:block; font-family:'Cinzel Decorative', serif; font-size:20px; letter-spacing:.08em; color:#e0b656; }
+.rt-pausa-caixa small{ font-size:11px; letter-spacing:.06em; }
+@keyframes rtPausaPulsa{ 50%{ box-shadow:0 8px 30px rgba(0,0,0,.6), 0 0 18px rgba(224,182,86,.45); } }
+/* ===== fim do combate: tudo em maiúsculas + frase final ===== */
+.rt-summary-card{ text-transform:uppercase; }
+.rt-summary-fim{ text-align:center; font-family:'Cinzel Decorative', serif; font-size:24px; letter-spacing:.06em; margin:6px 0 12px; padding:10px; border-radius:6px; }
+.rt-fim-imperador{ color:#e9dcbc; background:linear-gradient(90deg, transparent, rgba(120,20,20,.55), transparent); text-shadow:0 0 12px rgba(0,0,0,.9); }
+.rt-fim-hereges{ color:#ffd27a; background:linear-gradient(90deg, transparent, rgba(160,70,10,.55), transparent); text-shadow:0 0 14px rgba(255,120,30,.8); }
+/* ===== zoom da peça ao passar o mouse ===== */
+body.rt-on .board-cell:hover .board-token:not(.token-block){ transform:scale(1.12); }
+body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscard{ display:none !important; }
+.rt-zoom{ position:fixed; z-index:9600; display:flex; align-items:center; gap:10px; pointer-events:none; opacity:0; transform:scale(.92); transform-origin:left center; transition:opacity .14s, transform .14s; }
+.rt-zoom[data-lado="esq"]{ transform-origin:right center; }
+.rt-zoom.rt-zoom-on{ opacity:1; transform:scale(1); }
+.rt-zoom-img{ width:230px; height:230px; border-radius:18px; background-size:cover; background-position:center; background-color:#14100c; border:3px solid var(--zc); box-shadow:0 10px 30px rgba(0,0,0,.7), 0 0 0 1px rgba(0,0,0,.6); flex:none; }
+.rt-zoom-info{ width:230px; background:rgba(20,16,12,.96); border:2px solid var(--zc); border-radius:10px; padding:9px 11px; color:#efe3c8; font:12px Roboto, Arial, sans-serif; box-shadow:0 8px 24px rgba(0,0,0,.6); display:flex; flex-direction:column; gap:5px; text-transform:uppercase; }
+.rt-zoom-nome{ font-family:'Cinzel Decorative', serif; font-weight:700; font-size:15px; color:var(--zc); line-height:1.15; }
+.rt-zoom-sub{ font-size:10px; letter-spacing:.05em; color:#cdb98d; }
+.rt-zoom-morto{ font-weight:700; color:#e0433a; letter-spacing:.06em; }
+.rt-zoom-vida{ display:flex; justify-content:space-between; font-size:11px; letter-spacing:.05em; }
+.rt-zoom-vida b{ font-size:13px; }
+.rt-zoom-barra{ height:8px; border-radius:4px; background:#3a2c22; overflow:hidden; }
+.rt-zoom-barra i{ display:block; height:100%; border-radius:4px; }
+.rt-zoom-def{ display:flex; flex-wrap:wrap; gap:3px 9px; font-size:10.5px; color:#d8c8a2; }
+.rt-zoom-def b{ color:#fff3d6; }
+.rt-zoom-armas, .rt-zoom-fx{ display:flex; flex-direction:column; gap:2px; font-size:10.5px; }
+.rt-zoom-fx{ border-top:1px solid rgba(224,182,86,.25); padding-top:4px; color:#ffd9a0; }
+.rt-zoom-ia{ font-size:10.5px; color:#8fd3ff; border-top:1px solid rgba(224,182,86,.25); padding-top:4px; }
+.rt-summary-card button, .rt-summary-card input{ text-transform:uppercase; }
 </style>
 </head>
 <body>
@@ -6763,6 +6822,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
       <button type="button" class="board-mode-toggle ar-ap-tip" id="boardDarkModeLabel" aria-pressed="false">
         <span class="board-mode-toggle-name">🌑</span><div class="cs-tooltip">ESCURIDÃO TOTAL</div>
       </button>
+      <button type="button" class="mini-btn ar-ap-tip rt-pausa-btn" id="rtPausaBtn" aria-pressed="false"><span class="rt-pausa-ic">⏸️</span><div class="cs-tooltip">PAUSAR A MESA</div></button>
       <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
       <div id="boardSendHint" class="mesa-hint"></div>
       <!-- Rodada nova: aviso bem visível SÓ pro Mestre (ver .board-dark-mode-warning no <style> e
@@ -7097,6 +7157,8 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
           <button type="button" class="board-menu-tab" id="rtBestBtn" data-panel="">📚 BESTIÁRIO</button>
           <button type="button" class="board-menu-tab" id="rtAliBtn" data-panel="">🦅 REFORÇOS</button>
           <button type="button" class="board-menu-tab" data-panel="rtPanelGlob">🌐 EFEITOS GLOBAIS</button>
+          <button type="button" class="board-menu-tab rt-dec-limpar" id="rtDecLimpar" data-panel="" title="Apaga o sangue, as queimaduras e as crateras deixadas no tabuleiro">🧽 LIMPAR MARCAS</button>
+          <button type="button" class="board-menu-tab rt-end-combat rt-end-tab" id="rtEndCombatTab" data-panel="" disabled title="Encerrar o combate agora e ver o resumo">🏁 ENCERRAR COMBATE</button>
           <!-- Rodada nova, pedido explícito ("dentro de mesa o botão INSTANCIA NO TABULEIRO pode ser
                removido"): a aba "🩸 Instâncias no Tabuleiro" saiu -- renderBoardInstancesPanel() (no
                <script>) já tinha um "if(!listEl) return;" logo no início, então continua sendo
@@ -13453,6 +13515,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
       apMax: turnState.apMax || 0, apRemaining: turnState.apRemaining || 0,
       rt: turnState.rt || null,
       glob: (typeof RT_GLOB !== 'undefined' && RT_GLOB && RT_GLOB.list && RT_GLOB.list.length) ? RT_GLOB : null,
+      pausa: (typeof RT_PAUSA !== 'undefined' && RT_PAUSA) ? true : null,
       ts: firebase.database.ServerValue.TIMESTAMP,
     }).catch(err=> console.error('Não foi possível publicar o turno:', err));
   }
@@ -16952,7 +17015,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
       const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
       // RODADA NOVA: além de hero de jogador (isHeroDead()), agora inimigo_ficha/aliado_ficha
       // também "morrem" na tela quando a Vida PRÓPRIA da peça chega a 0 (ver isInstanceDead()).
-      const dead = isHeroDead(token) || isInstanceDead(token);
+      const dead = rtCavMostra(token, isHeroDead(token) || isInstanceDead(token));
       const isBlock = isBlockKind(token.kind);
       t.className = 'board-token token-' + token.kind + (isBlock ? '' : tokenSizeClass(token.size)) + (isBlock ? ' token-block' : '') + (isMestreHero ? ' token-hero-mestre' : '') + (token.pvp ? ' token-hero-pvp' : '') + (dead ? ' token-dead' : '');
       t.draggable = true;
@@ -17512,7 +17575,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
     // RODADA NOVA (pedido explícito, ver isInstanceDead()/isHeroDead() acima): Vida 0 troca o
     // retrato pela MESMA caveira 💀 que o tabuleiro já mostra (renderBoardCell()/
     // renderLiveBoardMini()) -- mesmo glifo do aviso de morte do chat/Discord, nenhum ícone novo.
-    const dead = isHeroDead(entry.token) || isInstanceDead(entry.token);
+    const dead = rtCavJaMostra(entry.token, isHeroDead(entry.token) || isInstanceDead(entry.token));
     if(dead){
       portraitWrap.classList.add('ficha-bubble-portrait-dead');
       portraitWrap.innerHTML = '<span class="token-skull-icon">💀</span>';
@@ -21261,7 +21324,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
           const isMestreHero = token.kind === 'hero' && typeof token.id === 'string' && token.id.indexOf('mestre:') === 0;
           // RODADA NOVA: mesmo critério novo de renderBoardCell() (ver isInstanceDead()) -- aqui no
           // mini-tabuleiro do jogador também.
-          const dead = isHeroDead(token) || isInstanceDead(token);
+          const dead = rtCavMostra(token, isHeroDead(token) || isInstanceDead(token));
           const isBlock = isBlockKind(token.kind);
           t.className = 'board-token token-' + token.kind + (isBlock ? '' : tokenSizeClass(token.size))
             + (isBlock ? ' token-block' : '')
@@ -22058,6 +22121,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
         rt: val.rt || null,
       } : { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false, apMax:0, apRemaining:0 };
       try{ rtGlobRecebe(val); }catch(err){ console.error(err); }
+      try{ rtPausaRecebe(val); }catch(err){ console.error(err); }
       renderTurnBars();
     });
     // réplica em tempo real da animação de rolagem de dado/moeda -- pedido explícito ("a animação
@@ -25704,9 +25768,16 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
       <li>Com qualquer lesão: −1 de Determinação. Qualquer cura durante o combate trata uma lesão fresca.</li>
       <li>No fim do combate as frescas viram antigas; <b>4 antigas viram 1 trauma</b>. Fora de combate, 1 Kit trata 1 lesão antiga.</li>
       <li>Traumas só saram na nave: o mestre cura pelo painel da ficha.</li></ul>` + rtWikiTab(['Trauma', 'Penalidade'], Object.values(RT_TRAUMAS).map(t=> [E(t.pt), E(t.d)])), 'lesao trauma ferido costelas braco perna cabeca');
-    add(R, 'fim', 'Fim do combate e XP', 'O botão 🏁 do mestre', `
-      <p><b>Fim automático:</b> o combate no tabuleiro termina sozinho quando todos os personagens de jogador ficam com a Vida zerada, ou quando só sobram inimigos de pé (nenhum jogador, aliado ou ficha aliada do mestre com vida). Isso acontece 2 segundos depois, para dar tempo de uma cura, e o resumo abre normalmente. Inimigos nunca atacam quem já está com a Vida zerada.</p>
-      <p>O mestre encerra o combate com 🏁 (ao lado da ampulheta). Abre um resumo com dano causado e recebido, abates, críticos, curas, ataques e quem caiu, e os destaques do grupo.</p>
+    add(R, 'fim', 'Fim do combate e XP', 'Quando acaba sozinho e o botão 🏁 do mestre', `
+      <p><b>Fim automático:</b> o combate no tabuleiro termina sozinho quando:</p>
+      <ol><li><b>todos os jogadores foram eliminados</b> (todos os personagens de jogador com a Vida zerada);</li>
+        <li><b>só restam inimigos no mapa</b> (nenhum jogador, aliado ou ficha aliada do mestre com vida);</li>
+        <li><b>todos os inimigos do mapa foram eliminados</b> (🏆). Inimigos 💤 que ainda não acordaram contam como vivos, então o combate não acaba enquanto houver algum escondido.</li></ol>
+      <p>O fim acontece 2 segundos depois (para dar tempo de uma cura) e só depois que todas as animações terminaram; o resumo abre normalmente. Inimigos nunca atacam quem já está com a Vida zerada.</p>
+      <p>No resumo final aparece <b>"SE ESTA É A VONTADE DO IMPERADOR..."</b> quando todos os jogadores caíram, ou <b>"HEREGES PURGADOS!!!"</b> quando todos os inimigos caíram.</p>
+      <p><b>⏸️ Pausa:</b> o último botão da linha em cima do tabuleiro (só o mestre) pausa a mesa. Enquanto pausada, a IA dos inimigos e reforços para e retoma do ponto em que estava, os jogadores não mexem no tabuleiro nem encerram a vez, e todos veem o aviso "MESA PAUSADA". Clique em ▶️ para continuar.</p>
+      <p><b>🔍 Zoom:</b> passar o mouse numa peça do tabuleiro mostra a imagem dela grande, um pouco à direita do mouse, com uma caixa ao lado: nome, facção e unidade, vida, defesas, armas, efeitos ativos e (para o mestre) se a peça está 💤 em espera ou ❗ em alerta.</p>
+      <p>O mestre também encerra quando quiser: botão 🏁 (ao lado da ampulheta) ou a aba <b>🏁 ENCERRAR COMBATE</b> no gerenciador do tabuleiro. Abre um resumo com dano causado e recebido, abates, críticos, curas, ataques e quem caiu, e os destaques do grupo.</p>
       <p><b>XP por abate</b>: quando o HP de um inimigo zera, <b>cada jogador que causou dano ou aplicou algum efeito nele</b> durante o combate ganha na hora <b>15 × o nível do inimigo</b>; quem deu o <b>golpe final</b> ganha <b>1,5×</b> esse valor (aparece um aviso ⭐ no tabuleiro, no chat e no Discord). Vale para abates por ataque, poder, ataque de oportunidade ou queimadura, uma vez por inimigo. Errar o ataque não conta como contribuição.</p>
       <p>No resumo do fim, a coluna "XP ganho" mostra o total de cada um. O campo "XP extra" serve para recompensas de missão: o mestre preenche e clica em ⭐ Conceder XP extra.</p>`, 'fim combate resumo xp experiencia');
     add(R, 'visao', 'Campo de visão dos inimigos', 'Quem dorme, quem acorda e por quê', rtWikiScene({ cols:14, rows:7,
@@ -25731,6 +25802,16 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
         <li><b>Carregar um tabuleiro salvo:</b> as peças do Bestiário e os reforços voltam com a ficha, os efeitos e o turno automático. Se o combate já estiver rolando, quem chegou com o mapa entra no fim da fila com iniciativa sorteada, e quem saiu do tabuleiro sai da fila.</li>
         <li>O mestre vê o estado de cada peça na roda de ações dela (aba defensiva → 🤖): 💤 ou ❗ e o alcance da visão.</li>
         <li>Fichas completas de inimigo, fichas do mestre e inimigos com o turno automático desligado são jogados à mão e não usam esta regra.</li></ul>`, 'visao campo avistar alerta dormindo aguardando percepcao inimigo silencio');
+    add(R, 'marcas', 'Marcas de combate no chão', 'Sangue, queimaduras, crateras e a caveira', `
+      <p>As ações deixam marcas que ficam no tabuleiro até o mestre limpar. Elas aparecem no fim da animação, para todos (o jogador vê um instante depois do mestre), e somem na névoa junto com o resto do mapa.</p>
+      <ul><li><b>🩸 Sangue:</b> todo golpe que acerta respinga no chão (crítico respinga mais). Necrons e máquinas T'au (drones e armaduras de batalha) vazam <b>óleo</b>; demônios, <b>icor</b> roxo.</li>
+        <li><b>Poça:</b> quem cai com o golpe deixa uma poça embaixo.</li>
+        <li><b>🔥 Queimado:</b> lança-chamas, piromancia e granada incendiária deixam o chão chamuscado, com brasas (o fogo marca até quando erra).</li>
+        <li><b>💥 Cratera:</b> granadas de fragmentação e perfurantes; granadas de fumaça e cegantes deixam fuligem.</li>
+        <li><b>Plasma</b> (vidro azul rachado), <b>melta</b> (metal derretido), <b>gauss</b> (pó verde), <b>poderes psíquicos e do Caos</b> (mancha roxa), <b>Nurgle</b> (gosma verde).</li>
+        <li><b>Buracos de bala:</b> tiros que erram às vezes deixam buracos no chão perto do alvo.</li></ul>
+      <p>Cada casa guarda até 5 marcas e o tabuleiro até 160 (as mais antigas somem primeiro). As marcas vão junto quando o tabuleiro é salvo. O botão <b>🧽 LIMPAR MARCAS</b> no gerenciador do tabuleiro apaga todas; resetar o tabuleiro também.</p>
+      <p><b>💀 Caveira:</b> a peça que zera a Vida só vira caveira depois que tudo daquela ação terminou de animar (dados, golpes, golpes extras, recuo). Aí a ficha some num fade de 1 segundo e no lugar fica só a caveira, sem fundo, para a sujeira do chão aparecer. Em seguida a ficha sai do resumo do tabuleiro com o mesmo fade. Se ela for curada, volta ao normal.</p>`, 'marcas sangue poça queimado cratera chao caveira limpar decal');
     add(R, 'efeitos-visuais', 'Efeitos visuais e sons', 'O que aparece no tabuleiro', `<p>Cada arma e poder tem efeito e som próprios (tiro, laser, plasma, chamas, cortes, explosões, luzes no chão). Quem ativou "reduzir movimento" no sistema só ouve os sons.</p>
       <p><b>Armas:</b> cada arma da ficha tem a sua imagem (na escolha de armas, no card da arma e na wiki). Na janela de efeitos a arma ganha uma <b>aura</b> que cresce com a soma dos bônus (contorno → brilho pulsando → brilho forte com faíscas → aura máxima) e muda de cor pelo tipo de bônus que mais pesa: dano laranja, penetração azul, acerto/crítico/cadência/munição dourado, alcance e redução de esquiva verde, aparar/bloqueio prateado, cajado roxo.</p>
       <p><b>Dados:</b> o teste de d100 aparece como <b>um único dado</b> com o valor total (1–100). Os dados giram, deixam rastro, soltam faíscas ao bater na borda e terminam no centro da caixa com uma onda (verde se acertou, vermelha se errou). A rolagem nova apaga a anterior; o texto do resultado fica na caixa embaixo dos dados.</p>`, 'efeito som animacao');
@@ -29506,25 +29587,38 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
       const ladoJ = rtAllTokens().filter(t=> rtIsCombatToken(t) && rtSideOf(t) === 'jogador');
       const houveLadoJ = ladoJ.some(t=> (turnState.order || []).concat(turnState.baseOrder || []).some(e=> e && e.id === t.id)) || js.length > 0;
       const soInimigos = houveLadoJ && !ladoJ.some(t=> !caido(t));
-      if(!todosJogadoresCaidos && !soInimigos){ RT_TPK_T = 0; return; }
-      RT_TPK_MOT = todosJogadoresCaidos ? 'TODOS OS JOGADORES CAÍRAM' : 'SÓ RESTARAM INIMIGOS DE PÉ NO TABULEIRO';
+      // todos os inimigos do mapa caíram (peças 💤 que ainda não acordaram contam como vivas)
+      const naFila = id=> (turnState.order || []).concat(turnState.baseOrder || []).some(e=> e && e.id === id);
+      const inimigosT = rtAllTokens().filter(t=> rtIsCombatToken(t) && rtSideOf(t) === 'inimigo');
+      const semInimigos = inimigosT.some(t=> naFila(t.id)) && !inimigosT.some(t=> !caido(t));
+      if(!todosJogadoresCaidos && !soInimigos && !semInimigos){ RT_TPK_T = 0; return; }
+      RT_TPK_MOT = todosJogadoresCaidos ? 'TODOS OS JOGADORES CAÍRAM' : soInimigos ? 'SÓ RESTARAM INIMIGOS DE PÉ NO TABULEIRO' : 'TODOS OS INIMIGOS FORAM ELIMINADOS';
       if(!RT_TPK_T){ RT_TPK_T = Date.now(); return; }
+      // espera as animações (e a caveira) terminarem antes de fechar
+      if(typeof rtFxOcupado === 'function' && rtFxOcupado()) return;
       if(Date.now() - RT_TPK_T >= 2000){ RT_TPK_T = 0; rtEndCombat(true); }
     }catch(err){ console.error(err); }
   }, 700);
   function rtEndCombat(auto){
     if(currentRole !== 'mestre' || !turnState.active) return;
     if(auto !== true && !confirm('Encerrar o combate agora e ver o resumo?')) return;
-    if(auto === true){ try{ RT_AI_RODANDO = null; rtAiBotao(false); }catch(e){} postToDiscord('💀 ' + (RT_TPK_MOT || 'TODOS OS JOGADORES CAÍRAM') + ' — O COMBATE NO TABULEIRO FOI ENCERRADO.', null); }
+    if(auto === true){ try{ RT_AI_RODANDO = null; rtAiBotao(false); }catch(e){} postToDiscord((RT_TPK_MOT === 'TODOS OS INIMIGOS FORAM ELIMINADOS' ? '🏆 ' : '💀 ') + (RT_TPK_MOT || 'TODOS OS JOGADORES CAÍRAM') + ' — O COMBATE NO TABULEIRO FOI ENCERRADO.', null); }
     try{ rtProcessXpPend(); }catch(e){}
     const D = rtCombatSummaryData();
+    // como acabou: todos os jogadores caídos ou todos os inimigos caídos
+    try{
+      const caido = t=> rtIsDown(t) || (typeof isTokenKnockedOut === 'function' && isTokenKnockedOut(t));
+      const js = rtJogadoresNoCombate();
+      const inim = rtAllTokens().filter(t=> rtIsCombatToken(t) && rtSideOf(t) === 'inimigo');
+      D.fim = (js.length && js.every(caido)) ? 'imperador' : (D.inimigos.length && inim.length && inim.every(caido)) ? 'hereges' : '';
+    }catch(e){ D.fim = ''; }
     // fecha a fila de turnos
     turnState = { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false, apMax:0, apRemaining:0 };
     try{ turnUndoHistory = []; }catch(e){}
     pushTurnState(); renderTurnBars();
     rtResetCombatFx();
     const linha = s=> `${s.n}: ${s.dc} de dano causado, ${s.dr} recebido, ${s.ab} abate(s), ${s.cr} crítico(s)` + (s.cu ? `, ${s.cu} de cura` : '') + (s.q ? ' — caiu' : '');
-    postToDiscord(`🏁 FIM DO COMBATE (${D.rodadas} rodada${D.rodadas > 1 ? 's' : ''})\n` + D.grupo.map(linha).join('\n') + (D.inimigos.length ? `\nInimigos abatidos: ${D.inimigos.filter(s=> s.q).length}/${D.inimigos.length}` : ''), null);
+    postToDiscord(`🏁 FIM DO COMBATE (${D.rodadas} rodada${D.rodadas > 1 ? 's' : ''})` + (D.fim === 'imperador' ? ' — SE ESTA É A VONTADE DO IMPERADOR...' : D.fim === 'hereges' ? ' — HEREGES PURGADOS!!!' : '') + `\n` + D.grupo.map(linha).join('\n') + (D.inimigos.length ? `\nInimigos abatidos: ${D.inimigos.filter(s=> s.q).length}/${D.inimigos.length}` : ''), null);
     rtShowSummary(D);
   }
   function rtShowSummary(D){
@@ -29537,6 +29631,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
       + lista.map(s=> `<tr class="${s.q ? 'caiu' : ''}"><td>${rtEsc(s.n)}${s.q ? ' 💀' : ''}</td><td>${s.dc}</td><td>${s.dr}</td><td>${s.ab}</td><td>${s.cr}</td><td>${s.cu}</td><td>${s.at}</td>`
         + (xp ? `<td>⭐ ${s.xp || 0}</td><td>${s.u ? `<input type="number" min="0" step="5" data-xp-uid="${rtEsc(s.u)}" data-xp-nome="${rtEsc(s.n)}" value="0">` : '<small>sem dono</small>'}</td>` : '') + '</tr>').join('') + '</table>';
     box.innerHTML = '<div class="rt-summary-card"><div class="rt-summary-head">🏁 Fim do combate <small>' + D.rodadas + ' rodada(s)</small><button type="button" class="rt-btn" data-x>✕</button></div>'
+      + (D.fim === 'imperador' ? '<div class="rt-summary-fim rt-fim-imperador">💀 SE ESTA É A VONTADE DO IMPERADOR... 💀</div>' : D.fim === 'hereges' ? '<div class="rt-summary-fim rt-fim-hereges">🔥 HEREGES PURGADOS!!! 🔥</div>' : '')
       + (dest ? '<div class="rt-summary-dest">' + dest + '</div>' : '')
       + '<h4>Grupo</h4>' + tabela(D.grupo, true)
       + (D.inimigos.length ? '<h4>Inimigos</h4>' + tabela(D.inimigos, false) : '')
@@ -34476,7 +34571,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
         <li>Enquanto o tabuleiro <b>não está revelado</b>, os jogadores veem tudo escuro e o mestre pode mover e reposicionar qualquer peça livremente.</li>
         <li>Clique em <b>REVELAR</b> para mostrar o tabuleiro e depois role a <b>iniciativa</b>: a fila sai na barra de turnos.</li>
         <li>Os inimigos do Bestiário jogam sozinhos e só agem depois de avistar alguém (${rtWikiLink('regras', 'visao', 'Campo de visão')}).</li>
-        <li>O combate termina sozinho quando todos os jogadores caem ou quando só sobram inimigos de pé; ou pelo botão 🏁 (${rtWikiLink('regras', 'fim', 'Fim do combate')}).</li></ol>`,
+        <li>O combate termina sozinho quando todos os jogadores caem, quando só sobram inimigos de pé ou quando todos os inimigos do mapa caem; ou pelo botão 🏁 (${rtWikiLink('regras', 'fim', 'Fim do combate')}).</li></ol>`,
       'mestre revelar iniciativa preparar mesa tabuleiro pvp bestiario');
     poeDepois(R, null, 'mesa');
     add(R, 'interface', 'Ficha e mesa: como usar', 'Janelas, textos de ajuda, dados e pet',
@@ -35853,6 +35948,484 @@ RTA_IMG.cajado_navis = `
       }catch(e){ console.error('fila ao carregar mapa', e); }
       return o;
   }; }
+
+
+  // =====================================================================================
+  // MARCAS DE COMBATE NO TABULEIRO + CAVEIRA NO FIM DA AÇÃO
+  // - Golpes deixam sangue (óleo nos Necrons e máquinas T'au, icor nos demônios); fogo deixa
+  //   chão queimado; granadas abrem crateras; plasma, melta, gauss, poderes psíquicos e Nurgle
+  //   têm marca própria; tiros que erram deixam buracos. Quem cai deixa uma poça.
+  // - As marcas ficam guardadas junto das marcações do tabuleiro (mesa40k/liveBoard/marks, campo
+  //   "__dec"), que só o mestre grava: quem gera é o navegador do mestre, que vê todas as
+  //   animações. Vão junto quando o tabuleiro é salvo. Botão 🧽 LIMPAR MARCAS apaga.
+  // - A peça só vira caveira depois que todas as animações daquela ação terminaram.
+  // =====================================================================================
+  // var (não const): o desenho do tabuleiro pode rodar antes deste trecho
+  var RT_FX_PEND = 0, RT_FX_FIM = 0, RT_CAV = null;
+  // ---------- animações em andamento (dados, golpes, poderes: tudo passa por scheduleSyncedRoll) ----------
+  { const f = scheduleSyncedRoll; scheduleSyncedRoll = function(){
+      RT_FX_PEND++;
+      const fim = ()=>{ RT_FX_PEND = Math.max(0, RT_FX_PEND - 1); RT_FX_FIM = Date.now(); };
+      let p; try{ p = f.apply(this, arguments); }catch(e){ fim(); throw e; }
+      Promise.resolve(p).then(fim, fim);
+      return p;
+  }; }
+  function rtFxOcupado(){
+    if(RT_FX_PEND > 0 || Date.now() - RT_FX_FIM < 750) return true;
+    return !!(RT_CAV && Object.values(RT_CAV.est).some(e=> !e.ok));
+  }
+  // ---------- caveira adiada ----------
+  function rtCavMostra(token, morto){
+    try{
+      if(!RT_CAV) RT_CAV = { vivo:{}, est:{} };
+      if(!token || isBlockKind(token.kind)) return morto;
+      const id = token.id;
+      if(!morto){ RT_CAV.vivo[id] = 1; delete RT_CAV.est[id]; return false; }
+      if(!RT_CAV.vivo[id]) return true;            // já chegou caída (mapa carregado, página aberta agora)
+      const e = RT_CAV.est[id];
+      if(e && e.ok) return true;
+      if(!e){ RT_CAV.est[id] = { t0: Date.now() }; rtCavAgenda(id); }
+      return false;
+    }catch(err){ return morto; }
+  }
+  function rtCavAgenda(id){
+    setTimeout(()=>{
+      const e = RT_CAV && RT_CAV.est[id]; if(!e || e.ok) return;
+      const agora = Date.now();
+      const livre = RT_FX_PEND <= 0 && agora - RT_FX_FIM >= 750;
+      if((agora - e.t0 >= 700 && livre) || agora - e.t0 > 9000){ e.ok = 1; rtCavRedesenha(id); }
+      else rtCavAgenda(id);
+    }, 150);
+  }
+  const RT_CAV_FADE = 1000;   // ms do fade entre a ficha e a caveira (e da saída do resumo)
+  function rtCavRedesenha(id){
+    // 1) fantasma da ficha viva, no mesmo lugar, que some devagar
+    try{
+      document.querySelectorAll('.board-token').forEach(el=>{
+        if(el.dataset.tokenId !== id || el.classList.contains('token-dead')) return;
+        const rc = el.getBoundingClientRect(); if(!rc.width) return;
+        const g = el.cloneNode(true); g.classList.add('rt-cav-fantasma'); g.removeAttribute('draggable');
+        Object.assign(g.style, { position:'fixed', left: rc.left + 'px', top: rc.top + 'px', width: rc.width + 'px', height: rc.height + 'px', inset:'auto', margin:'0', transform:'none', zIndex: 60, pointerEvents:'none', animationDuration: RT_CAV_FADE + 'ms' });
+        document.body.appendChild(g);
+        setTimeout(()=> g.remove(), RT_CAV_FADE + 80);
+      });
+    }catch(e){}
+    // 2) a peça é redesenhada como caveira (sem fundo), que aparece devagar
+    try{
+      if(currentRole === 'mestre'){ const tok = boardTokens && Object.values(boardTokens).find(t=> t && t.id === id); if(tok) renderBoardCell(tok.anchorR, tok.anchorC); }
+      else scheduleRenderLiveBoardMini();
+    }catch(e){}
+    try{ renderFichaSummaryBubbles(); }catch(e){}
+    const t0 = Date.now(), ate = t0 + RT_CAV_FADE;
+    const marca = ()=>{
+      // se o tabuleiro for redesenhado no meio do fade, a caveira nova continua do ponto em que estava
+      document.querySelectorAll('.board-token.token-dead').forEach(el=>{ if(el.dataset.tokenId === id && !el.__cav){ el.__cav = 1; el.style.animationDuration = RT_CAV_FADE + 'ms'; el.style.animationDelay = '-' + (Date.now() - t0) + 'ms'; el.classList.add('rt-cav-in'); } });
+      if(Date.now() < ate) setTimeout(marca, 40);
+    };
+    setTimeout(marca, 0);
+    // 3) depois do fade, a ficha sai do resumo do tabuleiro com o mesmo fade
+    setTimeout(()=> rtCavSaiDoResumo(id), RT_CAV_FADE);
+  }
+  // o retrato do resumo só vira caveira junto com o tabuleiro
+  function rtCavJaMostra(tok, morto){
+    if(!morto || !RT_CAV || !tok) return morto;
+    const e = RT_CAV.est[tok.id]; if(e) return !!e.ok;
+    return !RT_CAV.vivo[tok.id];
+  }
+  function rtCavSaiDoResumo(id){
+    const e = RT_CAV && RT_CAV.est[id]; if(!e || !e.ok) return;
+    const els = [...document.querySelectorAll('.ficha-bubble')].filter(b=> b.dataset.tokenId === id);
+    els.forEach(b=>{ b.style.animationDuration = RT_CAV_FADE + 'ms'; b.classList.add('rt-bub-saindo'); });
+    setTimeout(()=>{ const e2 = RT_CAV && RT_CAV.est[id]; if(e2 && e2.ok){ e2.fora = 1; try{ renderFichaSummaryBubbles(); }catch(err){} } }, els.length ? RT_CAV_FADE : 0);
+  }
+  // resumo do tabuleiro: quem já virou caveira (e terminou o fade) sai da lista
+  function rtCavForaDoResumo(tok){
+    if(!tok || !RT_CAV) return false;
+    let morto = false; try{ morto = isTokenKnockedOut(tok); }catch(e){}
+    if(!morto) return false;
+    const e = RT_CAV.est[tok.id];
+    if(e) return !!e.fora;
+    return !RT_CAV.vivo[tok.id];        // já estava caída quando apareceu
+  }
+  { const f = collectBoardOccupantsForSummary; collectBoardOccupantsForSummary = function(){
+      const l = f.apply(this, arguments);
+      try{ return l.filter(en=> !rtCavForaDoResumo(en && en.token)); }catch(e){ return l; }
+  }; }
+  { const f = buildFichaSummaryBubble; buildFichaSummaryBubble = function(entry){
+      const b = f.apply(this, arguments);
+      try{ if(b && entry && entry.token) b.dataset.tokenId = entry.token.id; }catch(e){}
+      return b;
+  }; }
+
+  // ---------- marcas no chão ----------
+  const RT_DEC_MAX = 160, RT_DEC_POR_CASA = 5;
+  const RT_DEC_FAM = {
+    fogo: ['chamas', 'piro', 'piro_feixe', 'piro_grande', 'granada_fogo', 'queimando'],
+    plasma: ['plasma', 'laser_hot', 'sanct_raio'],
+    derretido: ['melta', 'raio_kustom'],
+    cinza: ['gauss', 'gauss_pesado', 'luz_necron', 'necrons'],
+    psi: ['tele', 'tele_escuro', 'caos', 'tzeentch', 'slaanesh', 'sanct_area'],
+    muco: ['nurgle', 'bio_mal'],
+    tiro: ['bolt', 'escopeta', 'dakka', 'metralha', 'shuriken', 'agulha', 'laser', 'autocanhao', 'estilhacos', 'blaster_dk', 'feixe_aeldari'],
+  };
+  function rtDecFam(vfx){ const b = String(vfx || '').split('~')[0]; for(const k in RT_DEC_FAM) if(RT_DEC_FAM[k].includes(b)) return k; return ''; }
+  // de que é feito quem levou o golpe
+  function rtDecMaterial(tok){
+    const b = (tok && tok.bst) || {};
+    if(b.f === 'necrons') return 'oleo';
+    if(b.f === 'tau' && ['drone', 'crise', 'furtivo', 'riptide'].includes(b.u)) return 'oleo';
+    if(/demonio/.test(b.u || '')) return 'icor';
+    return 'sangue';
+  }
+  function rtDecTokEm(r, c){ try{ return rtTokenPool()[rtBoardKeyOf(r, c)] || null; }catch(e){ return null; } }
+  function rtDecRand(seed){ let x = (seed >>> 0) || 1; return ()=>{ x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return (x % 100000) / 100000; }; }
+  const rtDecLista = ()=>{
+    const m = currentRole === 'mestre' ? boardMarks : ((liveBoardState && liveBoardState.marks) || {});
+    const d = m && m.__dec; return (d && typeof d === 'object') ? d : {};
+  };
+  // grava uma marca (só o mestre)
+  function rtDecAdd(r, c, t, o){
+    if(currentRole !== 'mestre' || r == null || c == null || !t) return;
+    o = o || {};
+    if(!boardMarks.__dec || typeof boardMarks.__dec !== 'object') boardMarks.__dec = {};
+    const D = boardMarks.__dec;
+    const R = Math.random;
+    const ts = Date.now();
+    const v = [r, c, t, +(o.s || 1).toFixed(2), Math.round(R() * 360), Math.floor(R() * 1e9), Math.round(o.x != null ? o.x : (R() - 0.5) * 30), Math.round(o.y != null ? o.y : (R() - 0.5) * 30), ts].join(',');
+    D['d' + ts.toString(36) + Math.floor(R() * 1e6).toString(36)] = v;
+    // limites: por casa e no total (sai a mais antiga)
+    const lst = Object.entries(D).map(([k, s])=> [k, String(s).split(',')]).sort((a, b)=> (+a[1][8]) - (+b[1][8]));
+    const naCasa = lst.filter(x=> +x[1][0] === r && +x[1][1] === c);
+    while(naCasa.length > RT_DEC_POR_CASA){ delete D[naCasa.shift()[0]]; }
+    const resto = Object.keys(D).length - RT_DEC_MAX;
+    if(resto > 0) lst.filter(x=> D[x[0]]).slice(0, resto).forEach(x=> delete D[x[0]]);
+    rtDecPendente();
+  }
+  let RT_DEC_T = 0;
+  function rtDecPendente(){ clearTimeout(RT_DEC_T); RT_DEC_T = setTimeout(()=>{ try{ scheduleBoardMarksPush(); }catch(e){} rtDecSync(); }, 60); }
+  // marca centralizada numa peça (peça grande: no meio das casas dela)
+  function rtDecNaPeca(r, c, t, s, extra){
+    const tok = rtDecTokEm(r, c); const n = tok && !isBlockKind(tok.kind) ? (tok.size || 1) : 1;
+    const ar = tok ? tok.anchorR : r, ac = tok ? tok.anchorC : c;
+    const o = Object.assign({ s: (s || 1) * (n > 1 ? n * 0.8 : 1) }, extra || {});
+    if(n > 1){ o.x = (n - 1) * 50 + (Math.random() - 0.5) * 20; o.y = (n - 1) * 50 + (Math.random() - 0.5) * 20; }
+    rtDecAdd(ar, ac, t, o);
+  }
+  // o que cada animação deixa no chão (decide antes, aplica no fim do efeito)
+  function rtDecDeEfeito(aA, tA, val){
+    const out = []; const fam = rtDecFam(val.vfx);
+    const famMarca = { fogo:'queimado', plasma:'plasma', derretido:'derretido', cinza:'cinza', psi:'psi', muco:'muco' }[fam];
+    const sangue = (r, c, crit)=>{ const tok = rtDecTokEm(r, c); if(!tok || isBlockKind(tok.kind)) return; out.push({ r, c, t: rtDecMaterial(tok), s: crit ? 1.4 : 1.15, peca:1 }); };
+    if(val.kind === 'buff'){
+      if(famMarca && tA && aA && (tA.r !== aA.r || tA.c !== aA.c)) out.push({ r: tA.r, c: tA.c, t: famMarca, s: 1.2, peca:1 });
+      return out;
+    }
+    if(val.kind === 'multi'){
+      const lista = val.multi || [];
+      if(/^granada_/.test(String(val.vfx || ''))){
+        const cr = val.cr != null ? val.cr : (lista[0] || {}).r, cc = val.cc != null ? val.cc : (lista[0] || {}).c;
+        const g = String(val.vfx).split('~')[0];
+        if(cr != null){
+          if(g === 'granada_frag' || g === 'granada_krak') out.push({ r: cr, c: cc, t:'cratera', s: g === 'granada_krak' ? 1.3 : 1.8, x:0, y:0 });
+          else if(g === 'granada_fogo'){ out.push({ r: cr, c: cc, t:'queimado', s: 2, x:0, y:0 }); }
+          else if(g === 'granada_fumaca' || g === 'granada_cegante') out.push({ r: cr, c: cc, t:'fuligem', s: 1.8, x:0, y:0 });
+        }
+        lista.forEach(m=>{ if(!m.out || m.out === 'acerto') sangue(m.r, m.c); });
+        return out;
+      }
+      lista.forEach(m=>{
+        const acertou = !m.out || m.out === 'acerto';
+        if(acertou) sangue(m.r, m.c);
+        if(famMarca && (acertou || fam === 'fogo')) out.push({ r: m.r, c: m.c, t: famMarca, s: 1.15, peca:1 });
+      });
+      return out;
+    }
+    if(!tA) return out;
+    if(val.outcome === 'acerto'){
+      sangue(tA.r, tA.c, !!val.crit);
+      if(famMarca) out.push({ r: tA.r, c: tA.c, t: famMarca, s: 1.2, peca:1 });
+    } else {
+      if(fam === 'fogo') out.push({ r: tA.r, c: tA.c, t:'queimado', s: 1.1, peca:1 });
+      else if((fam === 'tiro' || famMarca) && Math.random() < 0.6) out.push({ r: tA.r, c: tA.c, t: fam === 'tiro' ? 'buracos' : famMarca, s: 0.9 });
+    }
+    return out;
+  }
+  function rtDecAplica(lista, tA, val){
+    if(currentRole !== 'mestre') return;
+    lista.forEach(d=>{ if(d.peca) rtDecNaPeca(d.r, d.c, d.t, d.s); else rtDecAdd(d.r, d.c, d.t, d); });
+    // quem caiu com o golpe deixa uma poça
+    const alvos = val.kind === 'multi' ? (val.multi || []).map(m=> ({ r: m.r, c: m.c })) : (tA ? [tA] : []);
+    const vistos = new Set();
+    alvos.forEach(a=>{
+      const tok = rtDecTokEm(a.r, a.c); if(!tok || isBlockKind(tok.kind) || vistos.has(tok.id)) return; vistos.add(tok.id);
+      let caiu = false; try{ caiu = isTokenKnockedOut(tok); }catch(e){}
+      if(caiu && !(RT_DEC_POCA[tok.id])){ RT_DEC_POCA[tok.id] = 1; const m = rtDecMaterial(tok); rtDecNaPeca(tok.anchorR, tok.anchorC, m === 'sangue' ? 'poca' : m === 'oleo' ? 'poca_oleo' : 'poca_icor', 1.75, { x: 0, y: 0 }); }
+    });
+  }
+  const RT_DEC_POCA = {};
+  { const f = rtSpawnAttackFx; rtSpawnAttackFx = function(aA, tA, val){
+      const p = f.apply(this, arguments);
+      try{
+        if(currentRole === 'mestre' && val){
+          const plano = rtDecDeEfeito(aA, tA, val);
+          Promise.resolve(p).then(()=>{ try{ rtDecAplica(plano, tA, val); }catch(e){ console.error('marcas', e); } });
+        }
+      }catch(e){ console.error('marcas', e); }
+      return p;
+  }; }
+
+  // ---------- desenho (SVG gerado a partir da semente da marca) ----------
+  const RT_DEC_SVG_CACHE = {};
+  function rtDecSvg(t, sd){
+    const k = t + '|' + sd; if(RT_DEC_SVG_CACHE[k]) return RT_DEC_SVG_CACHE[k];
+    const R = rtDecRand(sd); const f = n=> n.toFixed(1);
+    const blobs = (n, cx, cy, rr, spread, cor, op)=>{ let s = ''; for(let i = 0; i < n; i++){ const a = R() * 6.283, d = R() * spread; s += `<circle cx="${f(cx + Math.cos(a) * d)}" cy="${f(cy + Math.sin(a) * d)}" r="${f(rr * (0.45 + R() * 0.7))}" fill="${cor}" opacity="${op}"/>`; } return s; };
+    const gotas = (n, cor, op, max)=>{ let s = ''; for(let i = 0; i < n; i++){ const a = R() * 6.283, d = 20 + R() * (max || 28); const x = 50 + Math.cos(a) * d, y = 50 + Math.sin(a) * d; s += `<ellipse cx="${f(x)}" cy="${f(y)}" rx="${f(1.2 + R() * 2.6)}" ry="${f(1 + R() * 1.8)}" transform="rotate(${f(a * 57.3)} ${f(x)} ${f(y)})" fill="${cor}" opacity="${op}"/>`; } return s; };
+    const riscos = (n, cor, w, op)=>{ let s = ''; for(let i = 0; i < n; i++){ const a = R() * 6.283; let x = 50, y = 50, d = `M50 50`; const passos = 3 + Math.floor(R() * 3); for(let j = 0; j < passos; j++){ const aa = a + (R() - 0.5) * 0.9, l = 6 + R() * 9; x += Math.cos(aa) * l; y += Math.sin(aa) * l; d += ` L${f(x)} ${f(y)}`; } s += `<path d="${d}" stroke="${cor}" stroke-width="${w}" fill="none" stroke-linecap="round" opacity="${op}"/>`; } return s; };
+    const G = (id, pares)=> `<radialGradient id="${id}">${pares.map(([o, c, a])=> `<stop offset="${o}" stop-color="${c}" stop-opacity="${a}"/>`).join('')}</radialGradient>`;
+    const uid = 'g' + sd.toString(36) + t.replace(/[^a-z]/g, '');
+    let body = '', defs = '';
+    switch(t){
+      case 'sangue': body = blobs(7, 50, 50, 12, 12, '#6e0909', 0.88) + blobs(4, 50, 50, 7, 8, '#9a1410', 0.8) + gotas(11, '#760b0b', 0.85, 32); break;
+      case 'oleo': defs = G(uid, [[0, '#2f3b2a', 0.95], [0.7, '#0d120c', 0.9], [1, '#0d120c', 0]]); body = `<circle cx="50" cy="50" r="20" fill="url(#${uid})"/>` + blobs(5, 50, 50, 8, 10, '#0f1510', 0.85) + gotas(6, '#141c13', 0.85) + `<ellipse cx="45" cy="44" rx="6" ry="2.5" fill="#7fae8a" opacity=".25"/>`; break;
+      case 'icor': body = blobs(6, 50, 50, 9, 10, '#2c0a33', 0.85) + blobs(3, 50, 50, 5, 6, '#7a1f7f', 0.55) + gotas(6, '#3a0c40', 0.85); break;
+      case 'poca': defs = G(uid, [[0, '#8c0f0d', 0.95], [0.75, '#560606', 0.92], [1, '#560606', 0]]); body = blobs(10, 50, 50, 14, 14, '#5a0707', 0.9) + `<circle cx="50" cy="50" r="22" fill="url(#${uid})"/>` + gotas(9, '#5a0707', 0.85, 34) + `<ellipse cx="43" cy="42" rx="7" ry="3" fill="#ff8c7a" opacity=".18"/>`; break;
+      case 'poca_oleo': body = blobs(10, 50, 50, 14, 14, '#0c110b', 0.9) + gotas(8, '#0c110b', 0.85, 34) + `<ellipse cx="43" cy="42" rx="8" ry="3" fill="#9fd0ad" opacity=".22"/>` + blobs(4, 50, 50, 2.2, 22, '#7dff9a', 0.35); break;
+      case 'poca_icor': body = blobs(10, 50, 50, 14, 14, '#26082c', 0.9) + blobs(5, 50, 50, 6, 10, '#8f2a96', 0.4) + gotas(8, '#2c0a33', 0.85, 34); break;
+      case 'queimado': defs = G(uid, [[0, '#0a0806', 0.92], [0.55, '#2a1a0e', 0.7], [1, '#3a2614', 0]]); body = `<circle cx="50" cy="50" r="40" fill="url(#${uid})"/>` + blobs(6, 50, 50, 10, 16, '#0d0a07', 0.4) + blobs(5, 50, 50, 1.6, 22, '#ff7a2a', 0.55) + blobs(3, 50, 50, 1, 14, '#ffd27a', 0.6); break;
+      case 'fuligem': defs = G(uid, [[0, '#3b3a38', 0.5], [1, '#3b3a38', 0]]); body = `<circle cx="50" cy="50" r="42" fill="url(#${uid})"/>` + blobs(6, 50, 50, 9, 20, '#2a2927', 0.18); break;
+      case 'cratera': defs = G(uid, [[0, '#050403', 0.95], [0.38, '#1c140d', 0.92], [0.5, '#4a3826', 0.85], [0.62, '#2a1d12', 0.6], [1, '#2a1d12', 0]]); body = `<circle cx="50" cy="50" r="44" fill="url(#${uid})"/>` + riscos(9, '#0d0905', 1.6, 0.8) + blobs(10, 50, 50, 1.8, 40, '#3c2f22', 0.8) + blobs(4, 50, 50, 1.2, 16, '#ff8a3a', 0.45); break;
+      case 'plasma': defs = G(uid, [[0, '#dff8ff', 0.75], [0.35, '#4fb6ff', 0.55], [0.7, '#123049', 0.6], [1, '#123049', 0]]); body = `<circle cx="50" cy="50" r="30" fill="url(#${uid})"/>` + riscos(6, '#9fe6ff', 1, 0.55); break;
+      case 'derretido': defs = G(uid, [[0, '#fff1b0', 0.85], [0.3, '#ff7a1a', 0.75], [0.65, '#5a1a05', 0.75], [1, '#2a0d03', 0]]); body = `<circle cx="50" cy="50" r="26" fill="url(#${uid})"/>` + blobs(4, 50, 50, 3, 14, '#2a0d03', 0.6); break;
+      case 'cinza': defs = G(uid, [[0, '#6dff9a', 0.35], [0.6, '#1f3a26', 0.4], [1, '#1f3a26', 0]]); body = `<circle cx="50" cy="50" r="32" fill="url(#${uid})"/>` + blobs(12, 50, 50, 1.4, 26, '#0f1a12', 0.7) + blobs(5, 50, 50, 1, 22, '#b6ffc9', 0.55); break;
+      case 'psi': defs = G(uid, [[0, '#c48bff', 0.45], [0.6, '#4a1a6e', 0.35], [1, '#4a1a6e', 0]]); body = `<circle cx="50" cy="50" r="34" fill="url(#${uid})"/><circle cx="50" cy="50" r="${f(14 + R() * 6)}" fill="none" stroke="#d6a8ff" stroke-width="1" stroke-dasharray="3 4" opacity=".45"/>` + blobs(4, 50, 50, 1.4, 24, '#e2c2ff', 0.5); break;
+      case 'muco': body = blobs(7, 50, 50, 9, 12, '#4f6a16', 0.75) + blobs(4, 50, 50, 4, 8, '#9bbf2e', 0.55) + gotas(6, '#4f6a16', 0.75) + blobs(3, 50, 50, 1.3, 14, '#e6ff8a', 0.5); break;
+      case 'buracos': { let s = ''; const n = 2 + Math.floor(R() * 3); for(let i = 0; i < n; i++){ const x = 30 + R() * 40, y = 30 + R() * 40, rr = 2 + R() * 1.6; s += `<circle cx="${f(x)}" cy="${f(y)}" r="${f(rr + 2.4)}" fill="#3a3530" opacity=".35"/><circle cx="${f(x)}" cy="${f(y)}" r="${f(rr)}" fill="#0b0907" opacity=".9"/>`; } body = s; break; }
+      default: body = '';
+    }
+    const svg = `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${defs ? '<defs>' + defs + '</defs>' : ''}${body}</svg>`;
+    RT_DEC_SVG_CACHE[k] = svg; return svg;
+  }
+  // coloca as marcas dentro de cada casa (o tabuleiro do jogador é redesenhado inteiro: confere sempre)
+  let RT_DEC_CASAS = new Set();
+  function rtDecSync(){
+    try{
+      const lista = rtDecLista();
+      const mestre = currentRole === 'mestre';
+      const revelado = mestre || !!(liveBoardState && liveBoardState.revealed);
+      let fogOk = null;
+      if(!mestre && revelado && liveBoardState && liveBoardState.fog){ try{ fogOk = computeFogReachableKeys(); }catch(e){} }
+      const porCasa = {};
+      Object.entries(lista).forEach(([id, s])=>{
+        const p = String(s).split(','); if(p.length < 9) return;
+        const r = +p[0], c = +p[1]; const key = r + '_' + c;
+        (porCasa[key] = porCasa[key] || []).push({ id, r, c, t: p[2], s: +p[3] || 1, rot: +p[4] || 0, sd: +p[5] || 1, x: +p[6] || 0, y: +p[7] || 0, ts: +p[8] || 0 });
+      });
+      const agora = Date.now(); const novas = new Set();
+      Object.entries(porCasa).forEach(([key, ds])=>{
+        const d0 = ds[0]; const cell = getCellEl(d0.r, d0.c); if(!cell) return;
+        const visivel = revelado && (!fogOk || fogOk.has(liveBoardKey ? liveBoardKey(d0.r, d0.c) : key));
+        ds.sort((a, b)=> a.ts - b.ts);
+        const sig = (visivel ? 'v' : 'h') + ds.map(d=> d.id).join('|');
+        novas.add(cell);
+        let w = cell.querySelector(':scope > .rt-dec-wrap');
+        if(w && w.__sig === sig) return;
+        if(!w){ w = document.createElement('div'); w.className = 'rt-dec-wrap'; cell.insertBefore(w, cell.firstChild); }
+        w.__sig = sig;
+        w.innerHTML = visivel ? ds.map(d=> `<div class="rt-dec rt-dec-${d.t}${agora - d.ts < 2500 ? ' rt-dec-novo' : ''}" style="--s:${d.s};--rot:${d.rot}deg;--x:${d.x}%;--y:${d.y}%">${rtDecSvg(d.t, d.sd)}</div>`).join('') : '';
+      });
+      RT_DEC_CASAS.forEach(cell=>{ if(!novas.has(cell)){ const w = cell.querySelector(':scope > .rt-dec-wrap'); if(w) w.remove(); } });
+      RT_DEC_CASAS = novas;
+    }catch(e){ console.error('marcas do tabuleiro', e); }
+  }
+  setInterval(rtDecSync, 700);
+  { const f = renderLiveBoardMini; renderLiveBoardMini = function(){ const o = f.apply(this, arguments); rtDecSync(); return o; }; }
+  { const f = buildBoardGrid; buildBoardGrid = function(){ const o = f.apply(this, arguments); RT_DEC_CASAS = new Set(); rtDecSync(); return o; }; }
+  // botão 🧽 LIMPAR MARCAS (mestre)
+  document.addEventListener('click', (e)=>{
+    const b = e.target.closest && e.target.closest('#rtDecLimpar'); if(!b || currentRole !== 'mestre') return;
+    const n = Object.keys((boardMarks && boardMarks.__dec) || {}).length;
+    if(!n){ alert('Não há marcas de combate no tabuleiro.'); return; }
+    if(!confirm('Apagar as ' + n + ' marcas de combate (sangue, queimaduras, crateras) do tabuleiro?')) return;
+    delete boardMarks.__dec; Object.keys(RT_DEC_POCA).forEach(k=> delete RT_DEC_POCA[k]);
+    try{ scheduleBoardMarksPush(); }catch(err){} rtDecSync();
+  });
+  setInterval(()=>{ const b = document.getElementById('rtDecLimpar'); if(b) b.hidden = currentRole !== 'mestre'; }, 1000);
+
+
+  // =====================================================================================
+  // PAUSA DA MESA (botão ⏸️ do mestre, último da linha de botões do tabuleiro)
+  // Fica salva junto do turno (mesa40k/liveBoard/turn, campo "pausa"). Enquanto pausada:
+  // a IA para (e retoma do ponto em que estava), os jogadores não mexem no tabuleiro nem
+  // encerram a vez, e todos veem o véu "MESA PAUSADA" em cima do tabuleiro.
+  // =====================================================================================
+  var RT_PAUSA = false;
+  function rtPausaRecebe(val){
+    const antes = RT_PAUSA;
+    RT_PAUSA = !!(val && val.pausa);
+    rtPausaRender();
+    if(antes && !RT_PAUSA) rtPausaRetoma();
+  }
+  function rtPausaRetoma(){
+    // a IA volta a jogar a vez que estava rodando
+    // (se a vez da IA ainda estiver terminando a animação de antes da pausa, espera ela soltar)
+    let n = 0;
+    const tenta = ()=>{
+      try{
+        if(RT_PAUSA || currentRole !== 'mestre' || !turnState.active) return;
+        const e = currentTurnEntry(); if(!e) return;
+        if(RT_AI_RODANDO && RT_AI_RODANDO === e.id){ if(++n < 60) setTimeout(tenta, 250); return; }
+        rtAiMaybe(e);
+      }catch(err){}
+    };
+    tenta();
+  }
+  function rtPausaRender(){
+    const b = document.getElementById('rtPausaBtn');
+    if(b){
+      b.setAttribute('aria-pressed', RT_PAUSA ? 'true' : 'false');
+      b.classList.toggle('rt-pausa-on', RT_PAUSA);
+      const ic = b.querySelector('.rt-pausa-ic'); if(ic) ic.textContent = RT_PAUSA ? '▶️' : '⏸️';
+      const tip = b.querySelector('.cs-tooltip'); if(tip) tip.textContent = RT_PAUSA ? 'CONTINUAR A MESA' : 'PAUSAR A MESA';
+    }
+    const wrap = document.getElementById('liveBoardWrap');
+    if(wrap){
+      let v = wrap.querySelector(':scope > .rt-pausa-veu');
+      if(RT_PAUSA && !v){
+        v = document.createElement('div'); v.className = 'rt-pausa-veu';
+        v.innerHTML = '<div class="rt-pausa-caixa"><b>⏸️ MESA PAUSADA</b><small>' + (currentRole === 'mestre' ? 'SÓ VOCÊ PODE MEXER. CLIQUE EM ▶️ PARA CONTINUAR.' : 'AGUARDE O MESTRE CONTINUAR.') + '</small></div>';
+        wrap.appendChild(v);
+      } else if(!RT_PAUSA && v) v.remove();
+      wrap.classList.toggle('rt-pausada', RT_PAUSA);
+      if(v) v.classList.toggle('rt-pausa-mestre', currentRole === 'mestre');
+    }
+  }
+  setInterval(()=>{ try{ rtPausaRender(); const b = document.getElementById('rtPausaBtn'); if(b) b.hidden = currentRole !== 'mestre'; }catch(e){} }, 800);
+  document.addEventListener('click', (e)=>{
+    const b = e.target.closest && e.target.closest('#rtPausaBtn'); if(!b || currentRole !== 'mestre') return;
+    RT_PAUSA = !RT_PAUSA;
+    pushTurnState(); rtPausaRender();
+    postToDiscord(RT_PAUSA ? '⏸️ O MESTRE PAUSOU A MESA.' : '▶️ A MESA CONTINUA!', null);
+    if(!RT_PAUSA) rtPausaRetoma();
+  });
+  // jogadores: nada de agir nem encerrar a vez com a mesa pausada
+  { const f = canActAsBoardAttacker; canActAsBoardAttacker = function(){ if(RT_PAUSA && currentRole !== 'mestre') return false; return f.apply(this, arguments); }; }
+  { const f = canEndCurrentTurn; canEndCurrentTurn = function(){ if(RT_PAUSA && currentRole !== 'mestre') return false; return f.apply(this, arguments); }; }
+  // IA: para no meio (cada passo confere se ainda é a vez dela) e não começa vez nova
+  { const f = rtAiDaVez; rtAiDaVez = function(){ if(RT_PAUSA) return false; return f.apply(this, arguments); }; }
+  { const f = rtAiMaybe; rtAiMaybe = function(){ if(RT_PAUSA) return; return f.apply(this, arguments); }; }
+
+
+  // =====================================================================================
+  // ZOOM AO PASSAR O MOUSE NUMA PEÇA DO TABULEIRO
+  // A imagem da peça aparece grande um pouco à direita do mouse e, à esquerda dela, a caixa com
+  // o nome da unidade, a vida, as defesas e os efeitos ativos. Perto da borda direita da tela,
+  // o conjunto vira para o lado esquerdo do mouse.
+  // =====================================================================================
+  const RT_ZOOM = { el: null, tokEl: null, id: null, mx: 0, my: 0 };
+  function rtZoomFacInfo(tok){
+    const b = tok.bst; if(!b) return null;
+    const F = (RT_BFAC[b.f]) || (typeof RT_AFAC !== 'undefined' && RT_AFAC[b.f]) || null; if(!F) return null;
+    const V = (F.vert || {})[b.v] || {}, U = (F.uni || {})[b.u] || {};
+    return { fac: F.pt, icon: F.icon || '', vert: V.pt || '', uni: U.pt || '', papel: b.p || U.papel || '' };
+  }
+  function rtZoomHtml(tok, img){
+    const E = (()=>{ try{ return rtEffective(tok); }catch(e){ return null; } })();
+    const c = rtcOrDefault(tok) || {};
+    const hp = rtHpInfo(tok);
+    let morto = false; try{ morto = isTokenKnockedOut(tok) || rtIsDown(tok); }catch(e){}
+    const lado = boardActionSide(tok);
+    const cor = lado === 'inimigo' ? '#e0433a' : tok.kind === 'hero' ? '#e0b656' : '#7cc46a';
+    const fi = rtZoomFacInfo(tok);
+    const papelPt = { tropa:'TROPA', elite:'ELITE', chefe:'CHEFE', horda:'HORDA' };
+    const sub = fi ? [fi.icon + ' ' + fi.fac, fi.vert, fi.uni].filter(Boolean).join(' · ') + (fi.papel && papelPt[fi.papel] ? ' · ' + papelPt[fi.papel] : '')
+      : tok.kind === 'hero' ? (String(tok.id).indexOf('mestre:') === 0 ? 'FICHA DO MESTRE' : 'PERSONAGEM DE JOGADOR') : lado === 'inimigo' ? 'INIMIGO' : 'ALIADO';
+    const pct = Math.max(0, Math.min(100, hp.frac * 100));
+    const corVida = pct > 50 ? '#5fbf4a' : pct > 20 ? '#e0b23c' : '#e0433a';
+    let h = '<div class="rt-zoom-info" style="--zc:' + cor + '">'
+      + '<div class="rt-zoom-nome">' + rtEsc(String(tokenTooltipText(tok) || tok.name || '').toUpperCase()) + '</div>'
+      + '<div class="rt-zoom-sub">' + rtEsc(String(sub).toUpperCase()) + (c.nivel ? ' · NÍVEL ' + c.nivel : '') + '</div>';
+    if(morto) h += '<div class="rt-zoom-morto">💀 FORA DE COMBATE</div>';
+    h += '<div class="rt-zoom-vida"><span>❤️ VIDA</span><b>' + Math.max(0, Math.round(hp.vida)) + ' / ' + Math.round(hp.max) + '</b></div>'
+      + '<div class="rt-zoom-barra"><i style="width:' + pct.toFixed(0) + '%;background:' + corVida + '"></i></div>';
+    if(+tok.escudoAtual > 0) h += '<div class="rt-zoom-vida"><span>🛡️ ESCUDO</span><b>' + Math.round(tok.escudoAtual) + '</b></div>';
+    if(E && !morto){
+      const daVez = (()=>{ try{ const e = currentTurnEntry(); return turnState.active && e && e.id === tok.id; }catch(err){ return false; } })();
+      const r = daVez ? rtTurnRt() : null;
+      const def = [['ARM', (E.arm || 0) + '%'], ['ESQ', (E.esq || 0) + '%'], ['APA', E.apa || 0], ['DEF', E.defl || 0]];
+      if(daVez) def.push(['PA', (turnState.apRemaining || 0) + '/' + (turnState.apMax || 0)], ['PM', ((r && r.mp) || 0) + '/' + ((r && r.mpMax) || 0)]);
+      h += '<div class="rt-zoom-def">' + def.map(d=> '<span>' + d[0] + ' <b>' + d[1] + '</b></span>').join('') + '</div>';
+      const armas = (()=>{ try{ return rtWeaponsOf(tok).filter(w=> w.nome && w.nome !== 'Desarmado').map(w=> (w.tipo === 'cac' ? '⚔️ ' : '🔫 ') + w.nome); }catch(err){ return []; } })();
+      if(armas.length) h += '<div class="rt-zoom-armas">' + armas.slice(0, 3).map(a=> '<span>' + rtEsc(a.toUpperCase()) + '</span>').join('') + '</div>';
+    }
+    // efeitos ativos
+    try{
+      const fx = rtFxOf(tok); const itens = [];
+      (fx.list || []).forEach(e=>{ const inf = RT_FX_INFO[e.t]; if(inf) itens.push(inf[0] + ' ' + inf[1] + (rtFxDuracao(e) ? ' (' + rtFxDuracao(e) + ')' : '')); });
+      if(fx.vuln > 0) itens.push('🎯 ' + fx.vuln + ' VULNERABILIDADE(S)');
+      if(itens.length) h += '<div class="rt-zoom-fx">' + itens.slice(0, 6).map(t=> '<span>' + rtEsc(String(t).toUpperCase()) + '</span>').join('') + (itens.length > 6 ? '<span>+' + (itens.length - 6) + ' EFEITO(S)</span>' : '') + '</div>';
+    }catch(e){}
+    // turno automático (só o mestre vê)
+    try{ if(currentRole === 'mestre' && tok.bst && rtAiLigado(tok) && !morto) h += '<div class="rt-zoom-ia">' + (rtAiAlerta(tok) ? '❗ EM ALERTA' : '💤 EM ESPERA (AINDA NÃO AVISTOU NINGUÉM)') + '</div>'; }catch(e){}
+    h += '</div>';
+    const quadro = img ? '<div class="rt-zoom-img" style="--zc:' + cor + ';background-image:' + img.replace(/"/g, "'") + '"></div>' : '';
+    return h + quadro;
+  }
+  function rtZoomEsconde(){ if(RT_ZOOM.el){ RT_ZOOM.el.remove(); } RT_ZOOM.el = null; RT_ZOOM.tokEl = null; RT_ZOOM.id = null; }
+  function rtZoomPosiciona(){
+    const el = RT_ZOOM.el; if(!el) return;
+    const w = el.offsetWidth, h = el.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+    let x = RT_ZOOM.mx + 26, lado = 'dir';
+    if(x + w > vw - 8){ x = RT_ZOOM.mx - 26 - w; lado = 'esq'; }
+    x = Math.max(8, x);
+    const y = Math.max(8, Math.min(vh - h - 8, RT_ZOOM.my - h / 2));
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    el.dataset.lado = lado;
+  }
+  function rtZoomMostra(tokEl){
+    const id = tokEl.dataset.tokenId; const tok = id && rtTokenById(id);
+    if(!tok || isBlockKind(tok.kind)) return;
+    let img = tokEl.style.backgroundImage || '';
+    if(!img || img === 'none'){ try{ const p = resolveTokenPortrait(tok); if(p) img = 'url("' + p + '")'; }catch(e){} }
+    if(img === 'none') img = '';
+    if(!RT_ZOOM.el){ RT_ZOOM.el = document.createElement('div'); RT_ZOOM.el.className = 'rt-zoom'; document.body.appendChild(RT_ZOOM.el); }
+    RT_ZOOM.el.innerHTML = rtZoomHtml(tok, img);
+    RT_ZOOM.tokEl = tokEl; RT_ZOOM.id = id;
+    rtZoomPosiciona();
+    requestAnimationFrame(()=>{ if(RT_ZOOM.el) RT_ZOOM.el.classList.add('rt-zoom-on'); });
+  }
+  document.addEventListener('mouseover', (e)=>{
+    if(!rtReady) return;
+    const t = e.target.closest && e.target.closest('#liveBoardGrid .board-token:not(.token-block)');
+    if(!t){ return; }
+    RT_ZOOM.mx = e.clientX; RT_ZOOM.my = e.clientY;
+    if(RT_ZOOM.tokEl === t && RT_ZOOM.el) return;
+    rtZoomMostra(t);
+  }, true);
+  document.addEventListener('mousemove', (e)=>{
+    if(!RT_ZOOM.el) return;
+    RT_ZOOM.mx = e.clientX; RT_ZOOM.my = e.clientY;
+    const t = e.target.closest && e.target.closest('#liveBoardGrid .board-token:not(.token-block)');
+    if(!t){ rtZoomEsconde(); return; }
+    if(t !== RT_ZOOM.tokEl) rtZoomMostra(t); else rtZoomPosiciona();
+  }, { capture: true, passive: true });
+  document.addEventListener('mouseout', (e)=>{
+    if(!RT_ZOOM.tokEl) return;
+    if(RT_ZOOM.tokEl.contains(e.target) && !(e.relatedTarget && RT_ZOOM.tokEl.contains(e.relatedTarget))) rtZoomEsconde();
+  }, true);
+  ['mousedown', 'dragstart', 'wheel', 'scroll'].forEach(ev=> document.addEventListener(ev, ()=> rtZoomEsconde(), { capture: true, passive: true }));
+  // o tabuleiro foi redesenhado embaixo do mouse: atualiza (vida, efeitos) ou some
+  setInterval(()=>{
+    if(!RT_ZOOM.el) return;
+    if(!RT_ZOOM.tokEl || !document.body.contains(RT_ZOOM.tokEl)){
+      const n = [...document.querySelectorAll('#liveBoardGrid .board-token')].find(x=> x.dataset.tokenId === RT_ZOOM.id);
+      if(n && n.matches(':hover')){ RT_ZOOM.tokEl = n; } else { rtZoomEsconde(); return; }
+    }
+    const tok = rtTokenById(RT_ZOOM.id); if(!tok){ rtZoomEsconde(); return; }
+    const img = (RT_ZOOM.el.querySelector('.rt-zoom-img') || {}).style;
+    RT_ZOOM.el.innerHTML = rtZoomHtml(tok, img && img.backgroundImage ? img.backgroundImage : '');
+    rtZoomPosiciona();
+  }, 600);
 
   rtInit();
 
