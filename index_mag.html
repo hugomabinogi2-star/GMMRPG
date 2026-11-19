@@ -6472,6 +6472,13 @@ body.rt-on .board-dice-footer .board-dice-zone .rt-dice-group, body.rt-on .board
 .rt-voz-btn.off{ opacity:.6; }
 .rt-voz-btn:hover{ border-color:#e0b656; }
 .rt-voz-prev{ white-space:nowrap; } .rt-voz-prev .rt-btn{ padding:2px 6px; margin:1px; min-width:0; }
+/* wiki: peças grandes, mãos e etiquetas maiores */
+.rt-wk-slot.rt-wk-grande .rt-wk-tok{ font-size:40px; }
+.rt-wk-tag{ font-size:13px; }
+.rt-wk-maos{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin:4px 0 10px; }
+.rt-wk-mao{ margin:0; } .rt-wk-mao figcaption{ font-size:11px; margin-top:4px; text-align:center; }
+.rt-reroll-btn{ margin:6px auto 0; display:block; }
+.rt-wk-fx .rt-wk-tag{ font-size:24px; top:-12px; right:-16px; filter:drop-shadow(0 1px 2px #000); }
 </style>
 </head>
 <body>
@@ -25478,7 +25485,7 @@ body.rt-on .board-dice-footer .board-dice-zone .rt-dice-group, body.rt-on .board
   function rtWikiScene(o){
     const C = o.cols || 5, Rn = o.rows || 3, U = 40, id = 'wk' + (++rtWkSeq);
     const pc = (v, n)=> (v / n * 100).toFixed(3) + '%';
-    let h = '<figure class="rt-wk-fig"><div class="rt-wk-scene" style="aspect-ratio:' + C + '/' + Rn + ';max-width:' + (C * (o.cel || 52)) + 'px">';
+    let h = '<figure class="rt-wk-fig' + (o.cls ? ' ' + o.cls : '') + '"><div class="rt-wk-scene" style="aspect-ratio:' + C + '/' + Rn + ';max-width:' + (C * (o.cel || 52)) + 'px">';
     for(let r = 0; r < Rn; r++) for(let c = 0; c < C; c++){
       const trap = (o.traps || []).some(t=> Math.max(Math.abs(t.r - r), Math.abs(t.c - c)) <= (t.raio == null ? 2 : t.raio));
       const bar = (o.barreiras || []).find(b=> b.r === r && b.c === c);
@@ -25493,7 +25500,7 @@ body.rt-on .board-dice-footer .board-dice-zone .rt-dice-group, body.rt-on .board
     (o.tokens || []).forEach(t=>{
       const conds = t.conds || [];
       const filt = conds.map(c=> RT_WK_FILTRO[c]).filter(Boolean).join(' ');
-      h += '<div class="rt-wk-slot" style="left:' + pc(t.c, C) + ';top:' + pc(t.r, Rn) + ';width:' + pc(1, C) + ';height:' + pc(1, Rn) + '" title="' + rtEsc(t.nm || '') + '">'
+      h += '<div class="rt-wk-slot' + ((t.s || 1) > 1 ? ' rt-wk-grande' : '') + '" style="left:' + pc(t.c, C) + ';top:' + pc(t.r, Rn) + ';width:' + pc(t.s || 1, C) + ';height:' + pc(t.s || 1, Rn) + '" title="' + rtEsc(t.nm || '') + '">'
         + '<div class="rt-wk-tok ' + (t.lado === 'ini' ? 'ini' : 'ali') + ' ' + filt + '" style="' + (t.cor ? '--tc:' + t.cor : '') + '"><span>' + (t.t || '') + '</span></div>'
         + (conds.length ? '<div class="rt-cond-fx">' + conds.map(c=> '<i class="rc rc-' + c + '"></i>').join('') + '</div>' : '')
         + (t.tag ? '<b class="rt-wk-tag">' + t.tag + '</b>' : '') + '</div>';
@@ -25577,11 +25584,13 @@ body.rt-on .board-dice-footer .board-dice-zone .rt-dice-group, body.rt-on .board
       ['Tiro único', '1', 'Um disparo.'], ['Rajada', '2', 'Dispara a cadência da arma; cada tiro rola acerto (−10%), cobertura e esquiva separados.'],
       ['Tiro certeiro', '2', '+25% de acerto e +50% de dano crítico.'], ['Sobrecarga', '2', '+50% de dano; a arma esfria por 1 rodada.'],
       ['Jato de chamas', '1', 'Sem teste de acerto; atinge o alvo e quem estiver ao lado dele; esquiva pela metade; ignora cobertura parcial.'],
-      ['Descarga em arco', '1', 'Acerta o alvo e salta para até 2 inimigos a 2 casas, com metade do dano.']]) + '<p>Armas pesadas custam +1 ou +2 PA. Com Força abaixo do mínimo da arma: −20% de acerto.</p>', 'golpe varredura rajada certeiro sobrecarga chamas arco');
+      ['Descarga em arco', '1', 'Acerta o alvo e salta para até 2 inimigos a 2 casas, com metade do dano.'],
+      ['Rede de teia (área)', '2', 'Lança-Teias: sem teste de acerto; atinge o alvo e os inimigos ao lado dele (3×3), esquiva pela metade, ignora cobertura. Quem falhar em Agilidade fica Preso na Teia.'],
+      ['Sobrecarga (área)', '2', 'Armas de plasma: o alvo recebe o tiro normal e os inimigos a 1 casa dele levam 75% do dano, sem teste de acerto e com esquiva pela metade. A arma esfria por 1 rodada.']]) + '<p>Armas pesadas custam +1 ou +2 PA. Com Força abaixo do mínimo da arma: −20% de acerto.</p>', 'golpe varredura rajada certeiro sobrecarga chamas arco');
     add(R, 'sistemas-talentos', 'Regras novas dos talentos', 'Proficiência, escudo, teia, aumentos, plasma...', `
       <p>Para que todos os talentos funcionassem como a descrição, a mesa ganhou estas regras:</p>
       <ul>
-        <li><b>Proficiências:</b> armas bolt, de chamas, melta, plasma, Aeldari, Drukhari e armas pesadas só disparam no tabuleiro com o talento de proficiência da família. Armadura pesada ou energizada sem proficiência não protege (0% e 0 de deflexão). A ficha avisa com ⚠.</li>
+        <li><b>Proficiências:</b> armas bolt, de chamas, melta, plasma, Aeldari, Drukhari e armas pesadas só disparam no tabuleiro com o talento de proficiência da família. Armadura pesada ou energizada sem proficiência não protege (0% e 0 de deflexão). Sem o talento, essas armas e armaduras nem aparecem na lista de escolha da ficha.</li>
         <li><b>Escudos:</b> o escudo entra num espaço de arma. Dá chance de <b>bloquear</b> (anula o golpe) e o Golpe de Escudo empurra 1 casa. Com escudo, só armas de uma mão (o talento Maestria com Escudo libera duas mãos; a Maestria em Escopetas deixa a escopeta valer como uma mão).</li>
         <li><b>Mãos:</b> a arma principal fica na mão direita e a secundária na mão esquerda. Arma de duas mãos só vai na principal e desabilita a secundária (com Maestria com Escudo, a esquerda ainda pode levar um escudo). Escudo só na mão esquerda. Talentos e habilidades de duas armas (Combate com Duas Armas, Golpes Cortantes, Treino da Frota, Dança das Lâminas) usam a arma de cada mão.</li>
         <li><b>Listas da ficha:</b> cada escolha da ficha é um botão que abre uma janela: as opções ficam à esquerda e os detalhes da opção marcada à direita; <b>OK</b> grava a escolha (duplo clique também). Armas, armaduras, talentos, arquétipos e poderes que a ficha não pode usar não aparecem (ex.: arma bolt sem a Proficiência com Bolter).</li>
@@ -25923,6 +25932,7 @@ body.rt-on .board-dice-footer .board-dice-zone .rt-dice-group, body.rt-on .board
       + (Object.keys(o.sk || {}).length ? '<p><b>Perícias:</b> ' + Object.keys(o.sk).map(k=> E(((RT.skills.find(s=> s.id === k) || {}).pt || k)) + ' +' + o.sk[k]).join(', ') + '</p>' : '')
       + (o.feats || []).map(f=> '<p><b>' + E(f.pt) + ':</b> ' + E(f.d) + '</p>').join('')
       + ((o.tal || []).length ? '<p class="rt-wiki-meta">Talentos: ' + o.tal.map(t=> E((RT.tal[t] || {}).pt || t)).join(', ') + '</p>' : '')));
+    try{ rtWikiExtra(cats, add, cat, E); }catch(err){ console.error('wiki extra', err); }
     return cats;
   }
   function rtWikiMarca(txt, termos){
@@ -26276,8 +26286,9 @@ body.rt-on .board-dice-footer .board-dice-zone .rt-dice-group, body.rt-on .board
     const graus = Math.floor(Math.abs(alvo - roll) / 10);
     return { ok, graus };
   }
-  function rtRollTest(key, mod){
+  function rtRollTest(key, mod, denovo){
     if(rollingInterval) return;
+    rtRerollBtn(null);
     const info = rtTestInfo(key);
     if(!info) return;
     if(typeof isFichaGateActive === 'function' && isFichaGateActive()){
@@ -26305,7 +26316,8 @@ body.rt-on .board-dice-footer .board-dice-zone .rt-dice-group, body.rt-on .board
     const units = Math.floor(Math.random() * 10);
     const roll = (tens === 0 && units === 0) ? 100 : tens * 10 + units;
     const j = rtJudge(roll, alvo);
-    const val = { tens, units, roll, alvo, mod: m, label: info.label, ok: j.ok, graus: j.graus, nome: (els.nome.value || '').trim() || '(sem nome)', deidade: els.deidade.value, verdict: j.ok ? 'acerto' : 'erro' };
+    const val = { tens, units, roll, alvo, mod: m, label: info.label, ok: j.ok, graus: j.graus, nome: (els.nome.value || '').trim() || '(sem nome)', deidade: els.deidade.value, verdict: j.ok ? 'acerto' : 'erro', key, denovo: !!denovo };
+    if(denovo) val.label += ' (nova tentativa)';
     rollingInterval = true;
     diceVerdict.textContent = ''; diceVerdict.className = 'dice-verdict';
     diceHint.textContent = 'Rolando 1d100...';
@@ -26358,6 +26370,22 @@ body.rt-on .board-dice-footer .board-dice-zone .rt-dice-group, body.rt-on .board
     try{ postToDiscord(msg); }catch(err){ console.warn(err); }
     try{ pushRollLogFeed({ nome: val.nome, tipo:'teste_rt', teste: val.label, alvo: val.alvo, resultado: val.roll, sucesso: !!val.ok, graus: val.graus, ts: Date.now() }); }catch(err){}
     // no Rogue Trader, falhar num teste não encerra o turno (regra antiga de Mag Mell removida)
+    // Perícia Avançada: depois de uma falha naquela perícia, uma nova tentativa
+    try{
+      const [kind, id] = String(val.key || '').split(':');
+      const comp = rtLastComputed || rtCompute(rtState, rtCurrentLevel);
+      if(!val.ok && !val.denovo && kind === 'sk' && rtTemTal(comp, 'adv_skill_' + id)) rtRerollBtn(val);
+    }catch(err){ console.warn(err); }
+  }
+  // botão "🎲 Rolar de novo" (Perícia Avançada) embaixo do resultado
+  function rtRerollBtn(val){
+    const velho = document.getElementById('rtRerollBtn'); if(velho) velho.remove();
+    if(!val) return;
+    const b = document.createElement('button'); b.type = 'button'; b.id = 'rtRerollBtn'; b.className = 'rt-btn rt-reroll-btn';
+    b.textContent = '🎲 Rolar de novo (Perícia Avançada)';
+    b.addEventListener('click', ()=>{ b.remove(); rtRollTest(val.key, val.mod, true); });
+    const ref = document.getElementById('rtDiceLog') || diceHint;
+    if(ref && ref.parentNode) ref.parentNode.insertBefore(b, ref.nextSibling);
   }
 
   // ---------- barra de baixo do tabuleiro ----------
@@ -34221,6 +34249,159 @@ body.rt-on .board-dice-footer .board-dice-zone .rt-dice-group, body.rt-on .board
     });
   }
   setInterval(rtBonusSync, 300);
+
+
+  // efeitos de habilidades e talentos (gerado por rt/gera_fx_extra.py a partir do código; usado pela wiki)
+  const RT_FX_EXTRA = [{"t": "apNext", "ic": "⏩", "nm": "+1 PA", "d": ["+1 PA no próximo turno"]}, {"t": "aac", "ic": "🔫", "nm": "A Qualquer Custo!", "d": ["+X% de dano, esquiva e aparar; +X em tudo"]}, {"t": "recklessAb", "ic": "😈", "nm": "Abandono Imprudente", "d": ["+30% de dano corpo a corpo enquanto tiver temporários"]}, {"t": "cullBold", "ic": "🎯", "nm": "Abater o Ousado", "d": ["−X% de armadura contra X"]}, {"t": "opening", "ic": "🗡️", "nm": "Abertura", "d": ["lado vulnerável ao Assassino"]}, {"t": "openingX", "ic": "🎯", "nm": "Abertura criada", "d": ["lado voltado ao Assassino"]}, {"t": "openingX", "ic": "🎯", "nm": "Abertura extra", "d": ["lado"]}, {"t": "cautious", "ic": "🛡️", "nm": "Abordagem Cautelosa", "d": ["cada acúmulo de Versatilidade dá +5% de esquiva e aparar"]}, {"t": "confident", "ic": "⚔️", "nm": "Abordagem Confiante", "d": ["todos os ataques são críticos (dano crítico pela metade)"]}, {"t": "glory", "ic": "🏅", "nm": "Acostumado à Glória", "d": ["+10% e +1 de dano"]}, {"t": "adaptLow", "ic": "🧠", "nm": "Adaptação", "d": ["os próximos 3 golpes causam −X"]}, {"t": "depAlly", "ic": "🤝", "nm": "Aliado Confiável", "d": ["+5 nas características-chave do familiar"]}, {"t": "soulBurn", "ic": "🔥", "nm": "Alma em Chamas", "d": ["X de dano no início do turno"]}, {"t": "inscribed", "ic": "📜", "nm": "Alma Inscrita", "d": ["o próximo poder é seguro"]}, {"t": "tender", "ic": "🥩", "nm": "Amaciado", "d": ["o próximo golpe que o acertar causa mais dano"]}, {"t": "taunt", "ic": "😤", "nm": "Ameaça Letal", "d": ["precisa atacar"]}, {"t": "suppAdv", "ic": "♟️", "nm": "Apoiar o Avanço", "d": ["1º ataque de rajada ou área custa −1 PA"]}, {"t": "apathy", "ic": "💤", "nm": "Apático", "d": ["imobilizado; testa Vontade no próximo turno"]}, {"t": "immob", "ic": "⛓️", "nm": "Apático", "d": ["não pode se mover"]}, {"t": "doom", "ic": "☠️", "nm": "Arauto da Perdição", "d": ["−10% de armadura e esquiva até o fim do turno do Assassino"]}, {"t": "ensnarePm", "ic": "🪤", "nm": "Armadilha armada", "d": ["+PM no próximo turno"]}, {"t": "armContempt", "ic": "🛡️", "nm": "Armadura do Desprezo", "d": ["+10% armadura"]}, {"t": "hitAlly", "ic": "🎯", "nm": "Atacou", "d": ["atacou"]}, {"t": "hitAlly", "ic": "🎯", "nm": "Atacou um aliado", "d": ["atacou"]}, {"t": "attentionB", "ic": "👀", "nm": "Atenção", "d": ["+7% armadura e esquiva"]}, {"t": "fled", "ic": "😱", "nm": "Aterrorizado", "d": ["fugiu do Carrasco"]}, {"t": "recklessRush", "ic": "🏃", "nm": "Avanço Imprudente", "d": ["ataques não gastam PM"]}, {"t": "luckBad", "ic": "🐈‍⬛", "nm": "Azar Contagioso", "d": ["20% de falhar esquiva/aparar"]}, {"t": "bulwark", "ic": "🏰", "nm": "Baluarte", "d": ["+X de deflexão contra tiros; imune a empurrões"]}, {"t": "noAoo", "ic": "🏃", "nm": "Brecha I", "d": ["sem ataques de oportunidade"]}, {"t": "breachKillPm", "ic": "🏃", "nm": "Brecha II", "d": ["+4 PM por abate"]}, {"t": "tauntOnHit", "ic": "😤", "nm": "Brecha III", "d": ["quem for golpeado precisa atacá-lo"]}, {"t": "breach3", "ic": "🛡️", "nm": "Brecha III", "d": ["+20% aparar, +2 deflexão"]}, {"t": "breach4", "ic": "💪", "nm": "Brecha IV", "d": ["+X de dano corpo a corpo"]}, {"t": "bencaoSombria", "ic": "🌑", "nm": "Bênção Sombria", "d": ["+15% de dano"]}, {"t": "dotNoArm", "ic": "🩸", "nm": "Carnaval I", "d": ["seus danos contínuos ignoram armadura"]}, {"t": "dotDouble", "ic": "🩸", "nm": "Carnaval III", "d": ["+100% de dano contínuo"]}, {"t": "dotLeech", "ic": "🩸", "nm": "Carnaval IV", "d": ["danos contínuos curam você"]}, {"t": "cataclysm", "ic": "🌋", "nm": "Cataclismo", "d": ["+X% de dano"]}, {"t": "wh1", "ic": "🏹", "nm": "Caçada I", "d": ["−X% de armadura"]}, {"t": "pmMinus", "ic": "🐌", "nm": "Caçada IV", "d": ["menos PM"]}, {"t": "prone", "ic": "🛌", "nm": "Caído", "d": ["−20% de esquiva e metade dos PM no próximo turno", "metade dos PM"]}, {"t": "tacKnowD", "ic": "📚", "nm": "Conhecimento Tático", "d": ["+X de dano"]}, {"t": "cuidado", "ic": "👁️", "nm": "Cuidado!", "d": ["+10% esquiva e cobertura"]}, {"t": "danseUsed", "ic": "💃", "nm": "Dança Macabra", "d": ["reusos grátis neste turno", "+X% de cobertura até se mover"]}, {"t": "onFeet", "ic": "🦶", "nm": "De Pé!", "d": ["o próximo ataque dá +3 PM"]}, {"t": "lowPrio", "ic": "🫥", "nm": "Desengajado", "d": ["trata"]}, {"t": "pmMinus", "ic": "😩", "nm": "Desespero", "d": ["−3 PM no próximo turno", "−10% de dano no próximo turno"]}, {"t": "pmMinus", "ic": "🐌", "nm": "Desmantelado I", "d": ["−3 PM"]}, {"t": "dism3", "ic": "⚙️", "nm": "Desmantelado III", "d": ["−15% esquiva e armadura"]}, {"t": "aooOnAttack", "ic": "⚡", "nm": "Desmantelado IV", "d": ["provoca ataque de oportunidade ao atacar"]}, {"t": "dismantleT", "ic": "🔧", "nm": "Desmantelar", "d": ["−2 deflexão e −7% armadura"]}, {"t": "dmgTaken", "ic": "☠️", "nm": "Despachar (penalidade)", "d": ["recebe +100% de dano"]}, {"t": "disp1", "ic": "🗡️", "nm": "Despachar I", "d": ["metade da armadura e deflexão"]}, {"t": "dispTemp", "ic": "🗡️", "nm": "Despachar III", "d": ["acertar aberturas dá ferimentos temporários"]}, {"t": "ironDisc", "ic": "🛡️", "nm": "Disciplina de Ferro", "d": ["+testes de resistência"]}, {"t": "taunt", "ic": "🎺", "nm": "Distraído", "d": ["precisa atacar"]}, {"t": "distracted", "ic": "😵", "nm": "Distraído", "d": ["−8% de esquiva"]}, {"t": "lowPrio", "ic": "🫥", "nm": "Diversão", "d": ["alvo de menor prioridade"]}, {"t": "lexImune", "ic": "⚖️", "nm": "Em Nome da Lex", "d": ["imune a queda, atordoamento e imobilização"]}, {"t": "immob", "ic": "⛓️", "nm": "Em Nome da Lex", "d": ["imobilizado"]}, {"t": "ambushIds", "ic": "🗡️", "nm": "Emboscada", "d": ["X inimigo(s) desprevenido(s)"]}, {"t": "residualPow", "ic": "⚡", "nm": "Energia Residual", "d": ["+X% de dano"]}, {"t": "ingenMark", "ic": "🧠", "nm": "Engenhoso", "d": ["penalidade em todos os testes de resistência"]}, {"t": "entrench", "ic": "🪖", "nm": "Entrincheirado", "d": ["+30% de cobertura; o próximo Correr e Atirar devolve PA e PM"]}, {"t": "slipAway", "ic": "🤸", "nm": "Escapulir", "d": ["+X% de esquiva e de cobertura"]}, {"t": "escudoFase", "ic": "🔷", "nm": "Escudo de Fase", "d": ["+3 deflexão, +10% armadura"]}, {"t": "lunge", "ic": "🐍", "nm": "Estocada Impecável", "d": ["−X% de esquiva"]}, {"t": "openStrat", "ic": "♟️", "nm": "Estratégia de Abertura", "d": ["repete o estratagema por 0 PA"]}, {"t": "improv", "ic": "🎲", "nm": "Estratégia Improvisada", "d": []}, {"t": "cullEsq", "ic": "🎯", "nm": "Exposto ao Caçador", "d": ["−X% de esquiva"]}, {"t": "noForced", "ic": "🧱", "nm": "Firme", "d": ["imune a movimento forçado"]}, {"t": "firme", "ic": "⚓", "nm": "Firme", "d": ["−20% de dano recebido; imune a empurrões e a cair"]}, {"t": "openStrike", "ic": "🎯", "nm": "Golpe de Abertura", "d": ["+dano à distância recebido"]}, {"t": "grandPerf", "ic": "🎭", "nm": "Grande Espetáculo", "d": ["−X% de armadura, esquiva e aparar"]}, {"t": "dmgTaken", "ic": "☠️", "nm": "Guarda (penalidade)", "d": ["recebe +30% de dano"]}, {"t": "noDie", "ic": "🛡️", "nm": "Guarda I", "d": ["não pode morrer", "−X de dano recebido"]}, {"t": "tauntOnHit", "ic": "😤", "nm": "Guarda II", "d": ["quem ele acertar precisa atacá-lo"]}, {"t": "guardAura", "ic": "🛡️", "nm": "Guarda III", "d": ["aliados a até 3 casas recebem menos dano"]}, {"t": "guardDuty", "ic": "🛡️", "nm": "Guarda Inabalável", "d": ["ataca quem atacar aliados a até 3 casas e sempre revida"]}, {"t": "guardMom", "ic": "⚡", "nm": "Guarda IV", "d": ["+Ímpeto ao ser atingido"]}, {"t": "guideSouls", "ic": "🧭", "nm": "Guia de Almas", "d": ["+3 PM no começo do próximo turno"]}, {"t": "fhDmg", "ic": "✹", "nm": "Hora Gloriosa I", "d": ["+X% de dano"]}, {"t": "noDie", "ic": "🛡️", "nm": "Hora Gloriosa II", "d": ["ferimentos não caem abaixo de 1"]}, {"t": "fhCheap", "ic": "⏱️", "nm": "Hora Gloriosa IV", "d": ["habilidades custam 1 PA a menos"]}, {"t": "immob", "ic": "⛓️", "nm": "Imobilizado", "d": ["não pode se mover", "preso na armadilha", "preso pelo corvo", "preso na teia", "até o próximo turno"]}, {"t": "vocHalf", "ic": "📣", "nm": "Impressão Duradoura", "d": ["+X em tudo"]}, {"t": "apImmune", "ic": "💤", "nm": "Imune à Apatia", "d": []}, {"t": "raid", "ic": "⚔️", "nm": "Incursão", "d": ["aliados +X% de dano contra Presas"]}, {"t": "inspire", "ic": "✨", "nm": "Inspirado", "d": ["+X% de dano"]}, {"t": "heroInsp", "ic": "✹", "nm": "Inspiração Heroica", "d": ["a próxima habilidade de arquétipo fica grátis até o fim do combate"]}, {"t": "liveBait", "ic": "🪱", "nm": "Isca Viva", "d": ["X acúmulo(s): a águia ataca quem atacar"]}, {"t": "vengeance", "ic": "🗡️", "nm": "Juramento de Vingança", "d": ["+X% de crítico e +X% de dano crítico contra quem atacou X"]}, {"t": "litHatred", "ic": "🔥", "nm": "Ladainha do Ódio", "d": ["+X% de dano (dobro contra demônios, psíquicos e xenos)"]}, {"t": "immob", "ic": "⛓️", "nm": "Lei e Ordem", "d": ["imobilizado"]}, {"t": "slow", "ic": "🐌", "nm": "Lento", "d": ["metade dos PM"]}, {"t": "noAoo", "ic": "🎺", "nm": "Livre", "d": ["ignora ataques de oportunidade"]}, {"t": "outsmart", "ic": "🧠", "nm": "Ludibriar", "d": ["+X% de esquiva"]}, {"t": "cadUp", "ic": "🔫", "nm": "Maestria II", "d": ["+30% de cadência"]}, {"t": "fm3", "ic": "🎯", "nm": "Maestria III", "d": ["+10% penetração à distância; ataques 20% mais difíceis de esquivar"]}, {"t": "fmArea", "ic": "💥", "nm": "Maestria IV", "d": ["ataques em área +dano por alvo"]}, {"t": "warpCurse", "ic": "🧿", "nm": "Maldição da Disformidade", "d": ["+X% de dano da Disformidade e +X% dos outros; se espalha"]}, {"t": "noAoo", "ic": "🛡️", "nm": "Manobra Defensiva", "d": ["sem ataques de oportunidade neste turno"]}, {"t": "evasM", "ic": "⚓", "nm": "Manobras Evasivas", "d": ["+X% de esquiva", "sem ataques de oportunidade"]}, {"t": "standby", "ic": "🐕", "nm": "Mastim Ciberético", "d": ["luta sozinho"]}, {"t": "armsM", "ic": "🗡️", "nm": "Mestre de Armas", "d": []}, {"t": "standby", "ic": "🐕", "nm": "Modo de Combate", "d": ["ataca sozinho"]}, {"t": "unwMot", "ic": "✨", "nm": "Motivação Inabalável", "d": ["+X% de dano"]}, {"t": "wall", "ic": "🧱", "nm": "Muralha de Rococreto", "d": ["o próximo ataque recebido causa −50%"]}, {"t": "nspaOn", "ic": "🔫", "nm": "Nunca Pare de Atirar", "d": ["1º ataque: 0 PA e fora do limite"]}, {"t": "bloodHaze", "ic": "🩸", "nm": "Névoa de Sangue", "d": ["+esquiva nesta rodada"]}, {"t": "lastPlanUsed", "ic": "🃏", "nm": "O Último Plano", "d": ["usado"]}, {"t": "objective", "ic": "🎖️", "nm": "Objetivo", "d": ["quem matar ganha Ímpeto e +5 em tudo"]}, {"t": "obstructed", "ic": "🦅", "nm": "Obstruído", "d": ["precisa atacar a águia"]}, {"t": "unblink", "ic": "👁️", "nm": "Olhar Imperturbável", "d": ["não esquiva ataques de oportunidade e recebe mais dano deles"]}, {"t": "unscathed", "ic": "👁️", "nm": "Olho para o Ileso", "d": ["+20% de esquiva"]}, {"t": "pibReady", "ic": "🩸", "nm": "Pago em Sangue", "d": ["a próxima habilidade que custa ferimentos cura"]}, {"t": "protWord", "ic": "🗣️", "nm": "Palavra Protetora", "d": ["−X% de chance de sofrer crítico"]}, {"t": "getCover", "ic": "⚓", "nm": "Para a Cobertura!", "d": ["+30% de eficiência de cobertura"]}, {"t": "perfReady", "ic": "♟️", "nm": "Perfeição pronta", "d": ["o próximo estratagema aplica todos os conhecidos"]}, {"t": "armPierce", "ic": "🔩", "nm": "Perfura-Armadura", "d": ["−X% de armadura"]}, {"t": "perplex", "ic": "😵", "nm": "Perplexo", "d": []}, {"t": "persistF", "ic": "⚙️", "nm": "Persistência da Forja", "d": ["mais acerto e redução de esquiva contra ele"]}, {"t": "pillarLaw", "ic": "⚖️", "nm": "Pilar da Lei", "d": ["+X% de bloqueio e +X de Coerção"]}, {"t": "planDis", "ic": "🃏", "nm": "Plano Desorientador", "d": ["−X% de esquiva e aparar"]}, {"t": "planoMov", "ic": "🃏", "nm": "Plano Infalível", "d": ["+X% de esquiva e aparar"]}, {"t": "strongpoint", "ic": "🏛️", "nm": "Ponto Forte", "d": ["ganha Ímpeto com os temporários perdidos"]}, {"t": "prey", "ic": "🏹", "nm": "Presa", "d": []}, {"t": "teia", "ic": "🕸️", "nm": "Preso na Teia", "d": ["imobilizado"]}, {"t": "immob", "ic": "⛓️", "nm": "Preso no Olhar", "d": ["não pode se mover"]}, {"t": "apprehended", "ic": "🐕", "nm": "Preso!", "d": ["o mastim ataca quando o dono acerta"]}, {"t": "taunt", "ic": "📡", "nm": "Prioridade", "d": ["precisa atacar o enxame"]}, {"t": "readyServe", "ic": "🫡", "nm": "Pronto para Servir", "d": ["+X de Determinação"]}, {"t": "protected", "ic": "🐕", "nm": "Protegido", "d": ["o mastim revida"]}, {"t": "taunt", "ic": "😤", "nm": "Provocado", "d": ["precisa atacar"]}, {"t": "taunt", "ic": "📢", "nm": "Provocado", "d": ["precisa atacar"]}, {"t": "tracked", "ic": "🐾", "nm": "Rastreado", "d": ["aliados +10 de acerto; se morrer, o Caçador age de novo"]}, {"t": "trackM", "ic": "🐾", "nm": "Rastreamento", "d": ["+X de dano"]}, {"t": "trackRaven", "ic": "🐦‍⬛", "nm": "Rastreamento (corvo)", "d": ["retransmitir imobiliza um inimigo"]}, {"t": "shatter", "ic": "🐾", "nm": "Rastro e Estilhaço", "d": ["−X% de armadura"]}, {"t": "mendDefl", "ic": "🧵", "nm": "Realidade Reparada", "d": ["+X de deflexão contra Disformidade e poderes"]}, {"t": "withdraw", "ic": "↩️", "nm": "Recuar", "d": ["o próximo golpe corpo a corpo recebido é esquivado"]}, {"t": "slow", "ic": "🕸️", "nm": "Rede Aracnoide", "d": ["lento"]}, {"t": "noAoo", "ic": "⚡", "nm": "Relâmpago", "d": ["sem ataques de oportunidade"]}, {"t": "selfless", "ic": "🛡️", "nm": "Resiliência Altruísta", "d": ["+X% de armadura"]}, {"t": "retalVs", "ic": "😤", "nm": "Retaliar", "d": ["mais dano contra a Presa que feriu um aliado"]}, {"t": "brkRanks", "ic": "⚔️", "nm": "Rompam as Fileiras!", "d": ["+X de dano corpo a corpo por inimigo ao lado"]}, {"t": "planoDeb", "ic": "🃏", "nm": "Sabotado", "d": ["−X% de dano"]}, {"t": "offFollow", "ic": "🚩", "nm": "Seguimento Ofensivo", "d": ["+X% de dano contra inimigos perto do Vanguarda"]}, {"t": "servo", "ic": "🫅", "nm": "Servo", "d": []}, {"t": "followLead", "ic": "🚩", "nm": "Sigam-me!", "d": ["+X% de dano e penetração contra inimigos a até 2 casas"]}, {"t": "servoBuff", "ic": "🫅", "nm": "Sirva-me", "d": ["+5 em todas as características"]}, {"t": "watched", "ic": "👁️", "nm": "Sob Vigilância", "d": ["sem cobertura contra o Supervisor"]}, {"t": "famOver", "ic": "✹", "nm": "Sobrecarga", "d": ["as próximas 3 habilidades de familiar custam −1 PA; o corvo retransmite ataques", "dano extra pelos ferimentos máximos do alvo"]}, {"t": "ocDmg", "ic": "🐾", "nm": "Sobrecarga I", "d": ["+2% de dano cada vez que o familiar é atacado"]}, {"t": "oc2a", "ic": "✹", "nm": "Sobrecarga II", "d": ["+30 nas características", "+10 nas características"]}, {"t": "ocDefl", "ic": "🛡️", "nm": "Sobrecarga III", "d": ["habilidades de Supervisor dão +1 deflexão"]}, {"t": "ocReact", "ic": "⚡", "nm": "Sobrecarga IV", "d": ["Reativar dá Ímpeto"]}, {"t": "swiftShadow", "ic": "🪶", "nm": "Sombra Veloz", "d": ["+X de deflexão"]}, {"t": "luckGood", "ic": "🍀", "nm": "Sorte Contagiosa", "d": ["20% de rolar de novo"]}, {"t": "superior", "ic": "✹", "nm": "Superioridade Constante", "d": ["+1 ataque por turno; o primeiro de cada turno custa 0 PA"]}, {"t": "amRevive", "ic": "💪", "nm": "Superioridade I", "d": ["volta com 20% na primeira queda"]}, {"t": "amCrit", "ic": "🎯", "nm": "Superioridade II", "d": ["+2% de crítico por ataque"]}, {"t": "amEsqOn", "ic": "💨", "nm": "Superioridade III", "d": ["+5% esquiva por ataque"]}, {"t": "suppressed", "ic": "🎯", "nm": "Suprimido", "d": ["tiros dele batem mais na cobertura"]}, {"t": "huntSurge", "ic": "🏹", "nm": "Surto de Caça", "d": ["+X% de dano"]}, {"t": "talho", "ic": "🗡️", "nm": "Talho", "d": ["X carga(s): atravessa e golpeia com −50%"]}, {"t": "mt4", "ic": "🛡️", "nm": "Tempestade IV", "d": ["+35% armadura"]}, {"t": "terrorPa", "ic": "😱", "nm": "Terror", "d": ["−1 PA no próximo turno"]}, {"t": "witness", "ic": "👁️", "nm": "Testemunha", "d": []}, {"t": "takeHold", "ic": "🏳️", "nm": "Tomar e Manter", "d": ["aliados nas zonas ganham turno extra no seu próximo turno"]}, {"t": "mmmDM", "ic": "☠️", "nm": "Tomar e Manter (penalidade)", "d": ["PM = 1"]}, {"t": "th1", "ic": "🏳️", "nm": "Tomar e Manter I", "d": ["+20% esquiva, aparar e armadura"]}, {"t": "th3", "ic": "🏳️", "nm": "Tomar e Manter III", "d": ["+20% redução de esquiva e penetração"]}, {"t": "traceVs", "ic": "📐", "nm": "Traçar a Trajetória", "d": []}, {"t": "rigor", "ic": "💨", "nm": "Treino Rigoroso", "d": ["+esquiva"]}, {"t": "preyBonus", "ic": "🏹", "nm": "Troféus de caça", "d": ["bônus de crítico contra Presas"]}, {"t": "regTac", "ic": "🎖️", "nm": "Táticas Regimentais", "d": ["+X% de dano; sem fogo amigo"]}, {"t": "halfCostFer", "ic": "🩸", "nm": "Valsa I", "d": ["custos em ferimentos pela metade"]}, {"t": "waltzDmg", "ic": "💃", "nm": "Valsa II", "d": ["+AGI de dano na Valsa"]}, {"t": "dwShred", "ic": "🗡️", "nm": "Valsa III", "d": ["golpes reduzem HA, armadura e esquiva do alvo"]}, {"t": "waltzKillEsq", "ic": "💃", "nm": "Valsa IV", "d": ["+3% esquiva por morte na Valsa"]}, {"t": "elusSpeed", "ic": "💨", "nm": "Velocidade Esquiva", "d": ["+10 de Letalidade neste turno"]}, {"t": "versa", "ic": "🔀", "nm": "Versatilidade", "d": ["+3 HA e HB por acúmulo"]}, {"t": "vigil", "ic": "⏳", "nm": "Vigília Além do Tempo", "d": ["o próximo uso devolve posição e ferimentos marcados"]}, {"t": "glimpseEsq", "ic": "✨", "nm": "Vislumbre (esquiva)", "d": ["+X% na próxima esquiva"]}, {"t": "glimpseRes", "ic": "✨", "nm": "Vislumbre (resistência)", "d": ["+X no próximo teste de resistência"]}, {"t": "voando", "ic": "🪽", "nm": "Voando", "d": ["não pode ser alvo de ataques; pousa quando ataca"]}, {"t": "veilProt", "ic": "🛡️", "nm": "Véu de Proteção", "d": ["+X% de armadura"]}, {"t": "waaaghBuff", "ic": "📣", "nm": "WAAAGH!", "d": ["+20% de dano"]}, {"t": "noAoo", "ic": "🏃", "nm": "Zona de Mobilidade", "d": ["move sem ataques de oportunidade"]}, {"t": "enduringZ", "ic": "🛡️", "nm": "Zona Resistente", "d": ["+X de deflexão contra o próximo golpe corpo a corpo"]}];
+
+
+  // =====================================================================================
+  // WIKI — complementos: regras que faltavam (mãos, peças 2×2, testes, níveis, mesa do mestre,
+  // interface), imagem de referência nas regras, nos efeitos, nos poderes e nos consumíveis, e a
+  // lista completa dos efeitos de habilidades/talentos (RT_FX_EXTRA, gerada a partir do código).
+  // =====================================================================================
+  function rtWikiExtra(cats, add, cat, E){
+    const C = id=> cats.find(c=> c.id === id) || null;
+    const item = (cid, id)=> ((C(cid) || {}).itens || []).find(i=> i.id === id);
+    const antes = (cid, id, html)=>{ const it = item(cid, id); if(it) it.html = html + it.html; };
+    const poeDepois = (c, depoisDe, id)=>{ const i = c.itens.findIndex(x=> x.id === id); if(i < 0) return; const it = c.itens.splice(i, 1)[0]; const j = depoisDe ? c.itens.findIndex(x=> x.id === depoisDe) : -1; c.itens.splice(j + 1, 0, it); };
+    const S = rtWikiScene;
+    const R = C('regras');
+
+    // ---------- imagens nas regras que já existiam ----------
+    antes('regras', 'pa-pm', S({ cols:9, rows:3, tokens:[{ r:1, c:1, t:'⚔️', lado:'ali', nm:'Você (6 PM)' }, { r:0, c:7, t:'👹', lado:'ini' }],
+      setas:[{ de:[1, 1], para:[1, 5], cor:'#7dff9a', txt:'4 casas = 4 PM' }, { de:[1, 5], para:[0, 6], cor:'#7dff9a', txt:'diagonal = 1 PM' }],
+      legenda:'Cada casa custa 1 PM, inclusive na diagonal. Depois de andar, ainda dá para atacar com os PA (e atacar zera os PM que sobraram).' }));
+    antes('regras', 'cac', S({ cols:6, rows:3, tokens:[{ r:1, c:1, t:'⚔️', lado:'ali', nm:'Atacante' }, { r:1, c:2, t:'👹', lado:'ini', nm:'Ao lado' }, { r:0, c:2, t:'👹', lado:'ini', nm:'Na diagonal' }, { r:1, c:5, t:'👹', lado:'ini', nm:'Longe' }],
+      setas:[{ de:[1, 1], para:[1, 5], cor:'#ff3b2f', txt:'✖ longe demais' }], estouros:[{ r:1, c:2, txt:'⚔️' }, { r:0, c:2, txt:'⚔️' }],
+      legenda:'O corpo a corpo só alcança as 8 casas em volta (diagonal conta). Para atacar quem está longe, ande antes ou use Investida.' }));
+    antes('regras', 'dist', S({ cols:14, rows:3, visao:[{ r:1, c:0, raio:5, cor:'#7dff9a', txt:'alcance 5: acerto normal' }, { r:1, c:0, raio:10, cor:'#ffb000', txt:'' }],
+      tokens:[{ r:1, c:0, t:'🎯', lado:'ali', nm:'Atirador (alcance 5)' }, { r:1, c:4, t:'👹', lado:'ini' }, { r:1, c:8, t:'👹', lado:'ini' }, { r:1, c:12, t:'👹', lado:'ini' }],
+      setas:[{ de:[0, 0], para:[0, 4], cor:'#7dff9a', txt:'normal' }, { de:[2, 0], para:[2, 8], cor:'#ffb000', txt:'até o dobro: ½ acerto' }, { de:[1, 9], para:[1, 12], cor:'#ff3b2f', txt:'✖ fora' }],
+      legenda:'Verde: dentro do alcance da arma. Laranja: até o dobro, com metade da chance de acerto. Além disso não dá para atirar.' }));
+    antes('regras', 'granadas', S({ cols:10, rows:5, visao:[{ r:2, c:7, raio:1, cor:'#ff6a4d', txt:'3×3' }],
+      tokens:[{ r:2, c:0, t:'💣', lado:'ali', nm:'Quem arremessa' }, { r:2, c:7, t:'👹', lado:'ini' }, { r:1, c:8, t:'👹', lado:'ini' }, { r:3, c:6, t:'🛡️', lado:'ali', nm:'Aliado' }, { r:0, c:5, t:'👹', lado:'ini' }],
+      setas:[{ de:[2, 0], para:[2, 7], cor:'#ffd36b', arco:true, txt:'até 8 casas' }], estouros:[{ r:2, c:7, txt:'−18' }, { r:1, c:8, txt:'−14' }, { r:3, c:6, txt:'−16' }],
+      legenda:'A granada explode na casa escolhida e pega a área 3×3 em volta, inclusive aliados. Quem está na área esquiva com metade da chance; quem está fora não sofre nada.' }));
+    antes('regras', 'kit', S({ cols:5, rows:3, tokens:[{ r:1, c:1, t:'🩹', lado:'ali', nm:'Quem usa o kit' }, { r:1, c:2, t:'🛡️', lado:'ali', nm:'Aliado ferido', tag:'+7' }],
+      legenda:'O kit funciona em você ou num aliado nas casas em volta.' }));
+
+    // ---------- regras novas ----------
+    const qa = (id, rot)=> '<figure class="rt-wk-mao">' + rtArmaQuadro(id, [], '') + '<figcaption>' + rot + '</figcaption></figure>';
+    add(R, 'maos', 'Mãos e armas', 'Principal, secundária, duas mãos e escudo',
+      '<div class="rt-wk-maos">' + qa('laspistola', '<b>Arma principal</b> = mão direita') + qa('espada_serra', '<b>Arma secundária</b> = mão esquerda') + qa('lasgun', '<b>Duas mãos</b>: ocupa as duas e desliga a secundária') + qa('escudo', '<b>Escudo</b>: só na mão esquerda') + '</div>'
+      + `<ul><li>A <b>arma principal</b> vai na mão direita e a <b>secundária</b> na mão esquerda.</li>
+        <li>Arma de <b>duas mãos</b> na principal desliga a secundária (se havia algo nela, sai). Exceções: Maestria em Escopetas deixa a escopeta com uma mão; Maestria com Escudo deixa usar escudo junto de uma arma de duas mãos.</li>
+        <li>O <b>escudo</b> só vai na mão esquerda.</li>
+        <li>Talentos que pedem <b>duas armas</b> olham uma arma em cada mão.</li>
+        <li>Armas e armaduras que pedem <b>proficiência</b> só aparecem na lista quando a ficha tem o talento; o mesmo vale para qualquer opção que a ficha ainda não pode escolher.</li></ul>`,
+      'mao direita esquerda principal secundaria duas maos escudo proficiencia');
+    poeDepois(R, 'dist', 'maos');
+    add(R, 'grandes', 'Peças grandes (2×2)', 'Demônios Maiores, chefes e veículos', S({ cols:9, rows:5, visao:[{ r:3, c:6, raio:1, cor:'#ff6a4d', txt:'' }],
+        tokens:[{ r:1, c:4, s:2, t:'👹', lado:'ini', nm:'Peça 2×2' }, { r:2, c:3, t:'⚔️', lado:'ali', nm:'Ao lado' }, { r:0, c:0, t:'🎯', lado:'ali', nm:'Atirador' }],
+        setas:[{ de:[0, 0], para:[1, 4], cor:'#7dff9a', txt:'4 casas' }], estouros:[{ r:2, c:5, txt:'💥 granada' }],
+        legenda:'A peça grande ocupa 4 casas. Tudo conta a partir da casa dela mais próxima: distância (o atirador está a 4 casas), estar ao lado, alcance, linha de visão e cobertura. A granada (área vermelha) pega a peça porque cobre uma das 4 casas.' })
+      + `<ul><li>Para atacar corpo a corpo basta estar ao lado de <b>qualquer</b> das 4 casas.</li>
+        <li>Ataques de oportunidade, áreas, auras e o turno automático dos inimigos também usam as 4 casas.</li></ul>`, 'grande 2x2 quatro casas tamanho demonio maior');
+    poeDepois(R, 'maos', 'grandes');
+    add(R, 'testes', 'Testes, graus e dificuldade', 'Como funciona a rolagem de 1d100',
+      `<p>Escolha a característica ou perícia na barra embaixo do tabuleiro, a dificuldade e role. O dado é um <b>d100</b> (um dado só com o valor de 1 a 100).</p>
+      <ul><li><b>Sucesso</b> se o resultado for <b>menor ou igual</b> ao valor (característica ou perícia + dificuldade). <b>1</b> sempre passa e <b>100</b> sempre falha.</li>
+        <li><b>Graus</b> de sucesso ou de falha = quantas dezenas inteiras o resultado ficou longe do valor (ex.: valor 45, rolou 12 → 3 graus de sucesso).</li>
+        <li><b>Perícia Avançada</b>: depois de uma falha naquela perícia aparece o botão <b>🎲 Rolar de novo</b> (uma vez por teste).</li>
+        <li>No combate, os testes de resistência (apagar o fogo, resistir a atordoamento, teia, medo...) são rolados sozinhos e aparecem no chat.</li></ul>`
+      + rtWikiTab(['Dificuldade', 'Modificador'], [['Trivial', '+30'], ['Fácil', '+20'], ['Rotineiro', '+10'], ['Normal', '0'], ['Difícil', '−10'], ['Muito difícil', '−20'], ['Árduo', '−30']]),
+      'teste d100 graus sucesso falha dificuldade pericia avancada rolar de novo');
+    poeDepois(R, 'turnos', 'testes');
+    const xp = (RT.xp || {}); const niv = Object.keys(xp).map(Number).sort((a, b)=> a - b);
+    const marcos = niv.filter(n=> n <= 16 || n % 5 === 0 || n === 36 || n === 55);
+    add(R, 'niveis', 'Níveis, XP e talentos', 'Como a ficha evolui',
+      `<ul><li>Cada nível libera escolhas na aba de progressão: aumento de característica (+5), de perícia (+10), talentos, habilidades e aprimoramentos, conforme o arquétipo.</li>
+        <li><b>Grau I</b> no nível 1, <b>arquétipo avançado (Grau II)</b> no nível 16 e <b>Exemplar</b> no nível 36. PA +1 nos níveis 20, 45 e 55.</li>
+        <li><b>Pré-requisitos</b>: o talento ou poder exigido precisa ter sido escolhido num <b>nível anterior</b>. Se você tirar um requisito, os talentos que dependiam dele saem junto (a ficha avisa quais).</li>
+        <li>As janelas de escolha só mostram o que a ficha pode pegar naquele nível.</li>
+        <li>XP vem dos abates no tabuleiro (15 × nível do inimigo, 1,5× para quem dá o golpe final) e do XP extra dado pelo mestre no fim do combate.</li></ul>`
+      + '<h5>XP necessário</h5>' + rtWikiTab(['Nível', 'XP total'], marcos.map(n=> [n, String(xp[n]).replace(/\B(?=(\d{3})+(?!\d))/g, '.')])),
+      'nivel xp experiencia talento prerequisito requisito progressao grau exemplar');
+    poeDepois(R, 'fim', 'niveis');
+    add(R, 'mesa', 'Preparar a mesa (mestre)', 'Tabuleiro, revelar, iniciativa e fim',
+      `<ol><li>Monte o mapa e coloque as peças pelo painel do mestre (fichas, aliados e a aba <b>📚 BESTIÁRIO</b>, logo depois de PVP).</li>
+        <li>Enquanto o tabuleiro <b>não está revelado</b>, os jogadores veem tudo escuro e o mestre pode mover e reposicionar qualquer peça livremente.</li>
+        <li>Clique em <b>REVELAR</b> para mostrar o tabuleiro e depois role a <b>iniciativa</b>: a fila sai na barra de turnos.</li>
+        <li>Os inimigos do Bestiário jogam sozinhos e só agem depois de avistar alguém (${rtWikiLink('regras', 'visao', 'Campo de visão')}).</li>
+        <li>O combate termina sozinho quando todos os jogadores caem ou quando só sobram inimigos de pé; ou pelo botão 🏁 (${rtWikiLink('regras', 'fim', 'Fim do combate')}).</li></ol>`,
+      'mestre revelar iniciativa preparar mesa tabuleiro pvp bestiario');
+    poeDepois(R, null, 'mesa');
+    add(R, 'interface', 'Ficha e mesa: como usar', 'Janelas, textos de ajuda, dados e pet',
+      `<ul><li><b>Janelas de escolha</b>: cada lista da ficha é um botão. Ele abre uma janela com as opções à esquerda e os detalhes à direita; <b>OK</b> (ou duplo clique) escolhe. Com muitas opções aparece uma busca.</li>
+        <li><b>Textos de ajuda</b>: passe o mouse sobre quase tudo (valores, talentos, peças do tabuleiro) para ver a explicação num quadro de pergaminho, que nunca fica embaixo do mouse.</li>
+        <li><b>Modificadores</b>: o painel de modificadores da ficha pode ser minimizado.</li>
+        <li><b>Dados</b>: a animação fica dentro da caixa dos dados; o texto do resultado vai para a caixa embaixo. Uma rolagem nova apaga a anterior. O botão <b>🗣️ Vozes</b> liga ou desliga as vozes dos inimigos só para você.</li>
+        <li><b>Imagens das armas</b>: aparecem na escolha da arma, no card da arma e aqui na wiki; na janela de efeitos a arma ganha a aura dos bônus.</li>
+        <li><b>Pet</b>: quem tem familiar (Supervisor e outros) ou o mastim do Árbitro ganha uma caixa de imagem no verso da ficha, do lado oposto ao retrato. Clique nela para escolher a imagem.</li></ul>`,
+      'interface janela escolha tooltip texto ajuda modificadores dados pet verso');
+    poeDepois(R, 'ficha', 'interface');
+
+    // ---------- efeitos: imagem de referência + todos os efeitos de habilidades e talentos ----------
+    const F = C('efeitos');
+    const solo = (icone)=> S({ cols:3, rows:1, cel:70, cls:'rt-wk-fx', tokens:[{ r:0, c:1, t:'⚔️', lado:'ali', tag: icone }] });
+    if(F){
+      F.itens.forEach(it=>{ const inf = RT_FX_INFO[it.id]; if(inf) it.html = solo(inf[0]) + it.html; });
+      // de onde vem cada efeito: talento, habilidade, suprema, aprimoramento, poder ou habilidade de inimigo com o mesmo nome
+      const norm = s=> rtWikiNorm(s).replace(/\s*\([^)]*\)\s*/g, ' ').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+      const fontes = {};
+      const poe = (nome, f)=>{ const k = norm(nome); if(k && !fontes[k]) fontes[k] = f; };
+      Object.keys(RT.tal).forEach(id=> poe(RT.tal[id].pt, { cat:'talentos', id, pt: RT.tal[id].pt, d: RT.tal[id].d }));
+      Object.values(RT.arch).forEach(a=>{
+        (a.ab || []).forEach(x=> poe(x.pt, { cat:'arquetipos', id: a.id, pt: x.pt + ' (' + a.pt + ')', d: x.d }));
+        if(a.ult) poe(a.ult.pt, { cat:'arquetipos', id: a.id, pt: a.ult.pt + ' (' + a.pt + ')', d: a.ult.ha });
+        (a.upg || []).forEach(x=> poe(x.pt, { cat:'arquetipos', id: a.id, pt: x.pt + ' (' + a.pt + ')', d: x.d }));
+      });
+      Object.keys(RT_PSY).forEach(id=> poe(RT_PSY[id].pt, { cat:'poderes', id, pt: RT_PSY[id].pt, d: RT_PSY[id].d }));
+      if(typeof RT_EAB !== 'undefined') Object.keys(RT_EAB).forEach(id=> poe(RT_EAB[id].pt, { cat:'bestiario', id:'best-hab', pt: RT_EAB[id].pt + ' (inimigo)', d: RT_EAB[id].d }));
+      const acha = nm=>{ let k = norm(nm); if(fontes[k]) return fontes[k]; k = k.replace(/ (i|ii|iii|iv|v)$/, '').trim(); if(fontes[k]) return fontes[k];
+        const ks = Object.keys(fontes).filter(x=> x.length > 4 && (k.startsWith(x) || x.startsWith(k))); return ks.length ? fontes[ks.sort((a, b)=> b.length - a.length)[0]] : null; };
+      const MANUAL = { 'Imune à Apatia':'Depois de resistir ao Ponto de Apatia do Navegador, a peça fica imune a ele.', 'Perplexo':'−5 de Inteligência e Vontade por acúmulo.',
+        'Presa':'Marcada pelo Caçador de Recompensas (ver Condições → Presa / Rastreado).', 'Servo':'Escolhido pelo Nobre com "Você. Sirva-me.": ganha bônus enquanto o serve neste combate.' };
+      const conhecidos = new Set(Object.values(RT_FX_INFO).map(v=> norm(v[1])));
+      (typeof RT_FX_EXTRA !== 'undefined' ? RT_FX_EXTRA : []).forEach((x, i)=>{
+        if(conhecidos.has(norm(x.nm))) return;
+        const f = acha(x.nm);
+        const d = (x.d || []).join('; ') || MANUAL[x.nm] || '';
+        const corpo = solo(x.ic || '✨') + (d ? '<p>' + E(d.charAt(0).toUpperCase() + d.slice(1)) + '.</p>' : (f && f.d ? '<p>' + E(f.d) + '</p>' : ''))
+          + (f ? '<p><i>De onde vem:</i> ' + rtWikiLink(f.cat, f.id, E(f.pt)) + '</p>' : '');
+        add(F, 'x' + i, (x.ic ? x.ic + ' ' : '') + x.nm, 'Efeito de habilidade ou talento', corpo, 'efeito ' + (f ? f.pt : ''));
+      });
+      F.desc = 'Os ícones que aparecem em cima das peças: efeitos gerais e os criados por habilidades, talentos e poderes.';
+    }
+
+    // ---------- poderes: imagem de alvo e alcance ----------
+    const P = C('poderes');
+    if(P) P.itens.forEach(it=>{
+      const p = RT_PSY[it.id]; if(!p) return;
+      const alc = p.alc >= 99 ? 'qualquer distância' : 'até ' + p.alc + ' casas';
+      let cena;
+      if(p.alvo === 'si') cena = S({ cols:3, rows:1, cel:80, tokens:[{ r:0, c:1, t:'🔮', lado:'ali', tag: p.icon }], legenda:'Usado em você.' });
+      else if(p.alvo === 'aliado') cena = S({ cols:7, rows:1, cel:60, tokens:[{ r:0, c:0, t:'🔮', lado:'ali' }, { r:0, c:6, t:'🛡️', lado:'ali', tag: p.icon }], setas:[{ de:[0, 0], para:[0, 6], cor:'#7dff9a', txt: alc }], legenda:'Num aliado (ou em você), ' + alc + '.' });
+      else cena = S({ cols:7, rows:1, cel:60, tokens:[{ r:0, c:0, t:'🔮', lado:'ali' }, { r:0, c:6, t:'👹', lado:'ini', tag: p.icon }], setas:[{ de:[0, 0], para:[0, 6], cor:'#b77bff', txt: alc }], legenda:'Num inimigo, ' + alc + '.' });
+      it.html = cena + it.html;
+    });
+
+    // ---------- consumíveis: imagem do arremesso e da área ----------
+    const K = C('consumiveis');
+    if(K) K.itens.forEach(it=>{
+      const c = RT_CONS.find(x=> x.id === it.id);
+      let cena = '';
+      if(c && c.tipo === 'granada' && c.raio) cena = S({ cols:10, rows:3, visao:[{ r:1, c:7, raio: c.raio, cor:'#ff6a4d', txt:'3×3' }], tokens:[{ r:1, c:0, t: c.icon, lado:'ali' }, { r:1, c:7, t:'👹', lado:'ini' }, { r:0, c:8, t:'👹', lado:'ini' }, { r:2, c:6, t:'🛡️', lado:'ali' }], setas:[{ de:[1, 0], para:[1, 7], cor:'#ffd36b', arco:true, txt:'até ' + c.alc + ' casas' }], legenda:'Explode na casa escolhida e pega a área 3×3, inclusive aliados.' });
+      else if(c && c.tipo === 'granada') cena = S({ cols:10, rows:1, cel:50, tokens:[{ r:0, c:0, t: c.icon, lado:'ali' }, { r:0, c:7, t:'👹', lado:'ini', tag:'💥' }], setas:[{ de:[0, 0], para:[0, 7], cor:'#ffd36b', arco:true, txt:'até ' + c.alc + ' casas' }], legenda:'Um único alvo.' });
+      else if(c && c.tipo === 'si') cena = S({ cols:3, rows:1, cel:80, tokens:[{ r:0, c:1, t:'⚔️', lado:'ali', tag: c.icon }], legenda:'Usado em você.' });
+      else if(it.id === 'kit') cena = S({ cols:5, rows:1, cel:70, tokens:[{ r:0, c:1, t:'🩹', lado:'ali' }, { r:0, c:2, t:'🛡️', lado:'ali', tag:'+❤' }], legenda:'Em você ou num aliado ao lado.' });
+      it.html = cena + it.html;
+    });
+    // zonas: reposicionar (Zona de Combate Pessoal)
+    { const z = item('exemplos', 'ex-zonas'); if(z) z.html += '<p>Com o talento <b>Zona de Combate Pessoal</b>, um aliado dentro de uma zona pode usar <b>🗺️ Reposicionar zona</b> (1 PA, aba defensiva da própria peça) para centralizar a zona nele.</p>'; }
+    { const v = item('efeitos', 'vuln'); if(v) v.html = solo('🎯') + v.html; }
+  }
 
 
   // =====================================================================================
