@@ -6350,6 +6350,60 @@ select.rt-select.rt-pick-hidden{ position:absolute !important; width:1px !import
 .board-erro-explosion-text{ font-family:'Roboto', Arial, sans-serif !important; font-weight:900 !important; font-size:90px !important; }
 .mesa-fixed-select, .mesa-fixed-select option{ font-family:'Roboto', Arial, sans-serif !important; text-transform:uppercase !important; }
 body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Arial, sans-serif !important; font-weight:700; font-size:18px !important; max-width:300px !important; line-height:1.2; }
+/* ===== caixas de dica: todas no mesmo visual (papel, borda vermelha no topo, título vinho) ===== */
+.rt-tip, .cs-tooltip-float, .board-token-tip-float, .map-icon-tip-float, #rtTitleTip{
+  position:fixed !important; z-index:100500 !important; pointer-events:none !important;
+  transform:none !important; transition:opacity .12s !important;
+  padding:10px 12px !important; max-width:min(440px, calc(100vw - 16px)) !important;
+  font-family:'Roboto', 'Segoe UI', Arial, sans-serif !important; font-size:13.5px !important; font-style:normal !important; font-weight:500 !important;
+  line-height:1.38 !important; letter-spacing:.01em !important; text-transform:uppercase !important; text-align:left !important;
+  color:#2b1d12 !important;
+  background:radial-gradient(ellipse at 50% 0%, #f6ecd2 0%, #e9dcbc 60%, #d6c193 100%) !important;
+  border:1px solid #8a6a3a !important; border-top:3px solid #7d1116 !important; border-radius:3px !important;
+  box-shadow:0 8px 22px rgba(0,0,0,.6) !important;
+}
+.rt-tip *, .cs-tooltip-float *, .board-token-tip-float *, .map-icon-tip-float *, #rtTitleTip *{ font-family:inherit !important; text-transform:uppercase !important; font-style:normal !important; color:inherit; }
+.rt-tip b, .rt-tip strong, .cs-tooltip-float b, .cs-tooltip-float strong, .board-token-tip-float b, .map-icon-tip-float b, #rtTitleTip b,
+.cs-tooltip-float h1, .cs-tooltip-float h2, .cs-tooltip-float h3, .cs-tooltip-float h4{ color:#5e0b10 !important; font-weight:700 !important; font-size:14.5px !important; }
+.rt-tip i, .cs-tooltip-float i, .cs-tooltip-float em, #rtTitleTip i{ color:#6b4a1a !important; font-weight:700 !important; }
+.rt-tip p, #rtTitleTip p{ margin:5px 0 0 !important; }
+#rtTitleTip p.rt-tt-unica{ margin:0 !important; }
+#rtTitleTip[hidden], .rt-tip[hidden]{ display:none !important; }
+/* nome das peças no tabuleiro: mesma caixa, só que curta e em negrito */
+.board-token-tip-float{ width:auto !important; max-width:260px !important; padding:6px 10px !important; font-size:14px !important; font-weight:700 !important; color:#5e0b10 !important; text-align:center !important; }
+.cs-tooltip-float{ width:min(300px, 70vw) !important; height:auto !important; }
+.cs-tooltip-float-visible, .board-token-tip-float-visible, .map-icon-tip-float-visible{ opacity:1 !important; visibility:visible !important; }
+/* ===== dados de dano invertidos: fundo na cor do dado, borda e número pretos ===== */
+.rt-dano-die .cube-face{
+  background:var(--die-color, #c4161c) !important; border-color:#161616 !important; color:#161616 !important;
+  box-shadow:inset 0 0 8px rgba(0,0,0,.4), 0 0 8px rgba(0,0,0,.45) !important;
+}
+/* painel minimizável */
+.rt-panel-min > h3{ display:flex; align-items:center; gap:8px; cursor:default; }
+.rt-min-btn{ margin-left:auto; flex:none; width:26px; height:26px; padding:0; cursor:pointer; font-size:14px; line-height:1; color:var(--rt-gold, #d4ac5a); background:#140e0f; border:1px solid var(--rt-gold-dim, #8a6a3a); border-radius:3px; }
+.rt-min-btn:hover{ border-color:var(--rt-gold, #d4ac5a); }
+.rt-panel-min.rt-min > :not(h3){ display:none !important; }
+.rt-panel-min.rt-min > h3{ margin-bottom:0; }
+/* ===== painel dos dados: dado preso na caixa, texto do resultado na caixa de baixo ===== */
+.rt-dice-col{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:6px; }
+.rt-dice-col > .board-dice-footer{ flex:none; overflow:hidden !important; contain:paint; }
+.board-dice-footer{ overflow:hidden !important; }
+.board-dice-footer .rt-d100-cap{ display:none !important; }
+.rt-dice-log{ min-height:30px; padding:6px 10px; border:1px solid rgba(224,182,86,.35); border-radius:8px; background:rgba(0,0,0,.35);
+  font-family:'Roboto', Arial, sans-serif; font-size:13px; font-weight:600; line-height:1.35; text-transform:uppercase; color:#e9dcbc; }
+.rt-dice-log:empty::before{ content:'O RESULTADO DA ÚLTIMA ROLAGEM APARECE AQUI.'; color:rgba(233,220,188,.45); font-weight:400; font-size:12px; }
+.rt-dice-log-l + .rt-dice-log-l{ margin-top:3px; }
+.rt-dice-log-l.ok{ color:#9be37f; } .rt-dice-log-l.fail{ color:#ff7a6a; } .rt-dice-log-l.dano{ color:#ffb59c; }
+/* ===== verso: retrato do personagem e imagem do pet lado a lado ===== */
+.rt-verso-imgs{ display:flex; justify-content:center; align-items:flex-start; gap:28px; flex-wrap:wrap; width:100%; }
+.rt-verso-imgs.com-pet{ justify-content:space-between; padding:0 6%; box-sizing:border-box; }
+.rt-verso-imgs.com-pet > .portrait-back{ width:200px; max-width:42%; }
+.rt-pet-box{ position:relative; cursor:pointer !important; }
+.rt-pet-box[hidden]{ display:none !important; }
+.rt-pet-box span{ text-align:center; }
+.rt-pet-box .rt-pet-nome{ position:absolute; left:0; right:0; bottom:-24px; text-align:center; font-size:11px; letter-spacing:.06em; color:var(--rt-gold, #d4ac5a); }
+.rt-verso-imgs{ margin-bottom:18px; }
+.rt-pet-box .rt-pet-nome{ bottom:0 !important; padding:4px 6px; background:linear-gradient(transparent, rgba(0,0,0,.75)); color:#f3dfa6 !important; font-weight:700; }
 </style>
 </head>
 <body>
@@ -6690,6 +6744,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
                dados só dentro desta caixa). A da DIREITA é o elemento NOVO #boardAbilityInfoCard,
                ver logo abaixo. -->
           <div class="board-lower-panels" id="boardLowerPanels">
+            <div class="rt-dice-col">
             <div class="board-dice-footer" id="boardDiceFooter">
               <!-- pouso da rolagem de Dano: ESQUERDA da caixa -->
               <div class="board-dice-zone board-dice-zone-dano" id="boardDiceZoneDano"></div>
@@ -6697,6 +6752,8 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
               <div class="board-dice-zone board-dice-zone-atributo" id="boardDiceZoneAtributo">
                 <div class="dice-particle-layer" id="diceParticleLayer"></div>
               </div>
+            </div>
+            <div class="rt-dice-log" id="rtDiceLog" aria-live="polite"></div>
             </div>
             <!-- RODADA NOVA (pedido explícito): caixa nova, vazia por padrão -- ganha o resumo
                  (nome + dano/efeito + alcance + custo de PA/Mana) da Ação Ofensiva ou Poção que o
@@ -7446,8 +7503,8 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
               <div id="rtCons" class="rt-cons"></div>
               <div class="rt-hint">Use pela roda de ações do tabuleiro, na sua vez (clique no inimigo para granadas, em você para estimulantes). A quantidade cai sozinha.</div>
             </div>
-            <div class="rt-panel">
-              <h3>Modificadores manuais <small>(itens, efeitos, decisões do mestre)</small></h3>
+            <div class="rt-panel rt-panel-min" id="rtModsPanel" data-rt-min="mods">
+              <h3>Modificadores manuais <small>(itens, efeitos, decisões do mestre)</small><button type="button" class="rt-min-btn" data-rt-min-toggle aria-label="Minimizar ou expandir os modificadores" title="Minimizar/expandir os modificadores">▾</button></h3>
               <div class="rt-mods" id="rtMods"></div>
             </div>
             <div class="rt-inv-slot" id="rtInvSlot"></div>
@@ -7902,8 +7959,11 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
           <!-- Rodada Segment 4: retratos alternativos (pixie/animal/humana) removidos a pedido
                explícito ("remove os retratos alternativos no Ver Verso") -- volta a ter um único
                retrato de verso fixo, como era antes da feature de "Formas". -->
+          <div class="rt-verso-imgs" id="rtVersoImgs">
           <div class="portrait portrait-back" id="portraitBack">
             <span>Sem retrato</span>
+          </div>
+          <div class="portrait portrait-back rt-pet-box" id="rtPetBox" hidden></div>
           </div>
           <div class="history-wrap">
             <textarea id="f_historia" placeholder="Conte a origem, os laços e os segredos do seu personagem..."></textarea>
@@ -14617,6 +14677,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     // recalc()/applyFichaLockUI() logo abaixo), igual ownerUid/donoChave acima.
     loadedFichaIsNpc = !!s.__isNpcFicha;
     rtLoadState(s.rt || null);
+    if(typeof rtPetLoad === "function") rtPetLoad(s.petImg || null);
     // reavalia se o mestre deve "escutar" os atributos ao vivo de alguém — só depois que
     // loadedFichaOwnerUid (linha acima) já está com o valor novo, ver
     // syncMestreAtributosJogadorListener() perto de connectAtributosListener() no <script>.
@@ -25442,6 +25503,9 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
         <li><b>Mãos:</b> a arma principal fica na mão direita e a secundária na mão esquerda. Arma de duas mãos só vai na principal e desabilita a secundária (com Maestria com Escudo, a esquerda ainda pode levar um escudo). Escudo só na mão esquerda. Talentos e habilidades de duas armas (Combate com Duas Armas, Golpes Cortantes, Treino da Frota, Dança das Lâminas) usam a arma de cada mão.</li>
         <li><b>Listas da ficha:</b> cada escolha da ficha é um botão que abre uma janela: as opções ficam à esquerda e os detalhes da opção marcada à direita; <b>OK</b> grava a escolha (duplo clique também). Armas, armaduras, talentos, arquétipos e poderes que a ficha não pode usar não aparecem (ex.: arma bolt sem a Proficiência com Bolter).</li>
         <li><b>Talentos em sequência:</b> o talento exigido precisa ter sido escolhido num nível anterior (ex.: Psíquico Minoris → Majoris → Terminus → Extremis). Se você tirar um talento, os que dependiam dele saem da ficha com um aviso.</li>
+        <li><b>Peças grandes (2×2):</b> contam as 4 casas para tudo: alcance, ficar ao lado (corpo a corpo, ataques de oportunidade), áreas, linha de tiro e cobertura.</li>
+        <li><b>Dados:</b> cada rolagem nova apaga a anterior; o resultado aparece na caixa de texto embaixo do painel dos dados (só a última rolagem — o teste e o dano dele).</li>
+        <li><b>Pet no verso:</b> quem tem familiar (ou o mastim do Árbitro) ganha uma caixa de imagem no verso da ficha, do lado oposto ao retrato; clique para escolher a imagem.</li>
         <li><b>Antes de revelar a mesa:</b> o mestre arrasta qualquer peça para qualquer casa livre, sem turno, alcance ou PA.</li>
         <li><b>Engajado:</b> armas de duas mãos à distância não disparam com inimigo ao lado (pistolas podem). Treino de Combate Próximo libera, com −10 de acerto.</li>
         <li><b>Superioridade corpo a corpo:</b> +10 de acerto por aliado (com arma corpo a corpo) também ao lado do alvo, até +30.</li>
@@ -26497,12 +26561,9 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
       const r = el.getBoundingClientRect();
       const w = Math.min(/^(arch|ult|hw|og|sub):/.test(el.dataset.rtTip || '') ? 440 : 340, window.innerWidth - 16);
       tip.style.width = w + 'px';
-      let left = Math.min(Math.max(8, r.left), window.innerWidth - w - 8);
-      tip.style.left = left + 'px';
-      const th = tip.offsetHeight;
-      let top = r.bottom + 6;
-      if(top + th > window.innerHeight - 8) top = Math.max(8, r.top - th - 6);
-      tip.style.top = top + 'px';
+      // ao lado do cursor, nunca embaixo dele (no toque, sem mouse, usa o meio do elemento)
+      const mx = (RT_MOUSE.x || RT_MOUSE.y) ? RT_MOUSE.x : r.left + r.width / 2, my = (RT_MOUSE.x || RT_MOUSE.y) ? RT_MOUSE.y : r.top + r.height / 2;
+      rtTipPos(tip, mx, my);
     };
     const hide = ()=>{ cur = null; tip.hidden = true; };
     document.addEventListener('mouseover', (e)=>{
@@ -26515,7 +26576,8 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
       if(el){ if(el === cur && !tip.hidden) hide(); else show(el); }
     });
     document.addEventListener('change', (e)=>{ if(e.target && e.target.tagName === 'SELECT') hide(); }, true);
-    window.addEventListener('scroll', hide, true);
+    // rolar a página só fecha a caixa se o mouse saiu de cima do elemento
+    window.addEventListener('scroll', ()=>{ if(!cur) return; const e = document.elementFromPoint(RT_MOUSE.x, RT_MOUSE.y); if(!e || !cur.contains(e)) hide(); }, true);
   }
   function rtInit(){
     if(!document.getElementById('rtSheet')) return;
@@ -26939,13 +27001,14 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     const out = { pct: 0, bloqueada: false };
     if(!ac || !tc) return out;
     const pool = rtTokenPool();
-    const cells = computeLineCells(ac.anchorR, ac.anchorC, tc.anchorR, tc.anchorC);
+    const __pp = rtCasasProximas(att, tgt) || [{ r: ac.anchorR, c: ac.anchorC }, { r: tc.anchorR, c: tc.anchorC }];
+    const cells = computeLineCells(__pp[0].r, __pp[0].c, __pp[1].r, __pp[1].c);
     for(let i = 0; i < cells.length - 1; i++){
       const [r, c] = cells[i];
       const occ = pool[rtBoardKeyOf(r, c)];
-      if(!occ || !isBlockKind(occ.kind)) continue;
+      if(!occ || !isBlockKind(occ.kind) || occ.id === att.id || occ.id === tgt.id) continue;
       if(occ.kind === 'barreira_meia'){
-        if(chebyshevDist(r, c, tc.anchorR, tc.anchorC) <= 1) out.pct = Math.max(out.pct, 50);
+        if(rtDistTokCell(tgt, r, c) <= 1) out.pct = Math.max(out.pct, 50);
       } else { out.bloqueada = true; out.pct = 100; }
     }
     return out;
@@ -26986,7 +27049,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     { const sb = rtSysBlockReason(att, tgt, w, opts); if(sb) return sb; }
     { const tw = rtTauntReason(att, tgt, w); if(tw) return tw; }
     const ac = resolveCombatData(att);
-    const dist = chebyshevDist(ac.anchorR, ac.anchorC, tc.anchorR, tc.anchorC);
+    const dist = rtDistTok(att, tgt);
     const rangeMult = rtHasEffect(att, 'takeAim') ? 2 : 1;
     if(!opts.skipRange){
       if(w.tipo === 'cac' && dist > 1) return `Arma corpo a corpo: o alvo precisa estar ao lado (está a ${dist} casas).`;
@@ -27012,7 +27075,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     opts = opts || {};
     const A = rtEffective(att), T = rtEffective(tgt);
     const ac = resolveCombatData(att), tc = resolveCombatData(tgt);
-    const dist = chebyshevDist(ac.anchorR, ac.anchorC, tc.anchorR, tc.anchorC);
+    const dist = rtDistTok(att, tgt);
     const res = { arma: w.nome, tipo: w.tipo, outcome:'acerto', rolls:[], crit:false, dano:0 };
     const takeAim = rtFindEffect(att, 'takeAim');
     const reckless = (w.tipo === 'cac') ? rtFindEffect(att, 'reckless') : null;
@@ -27266,7 +27329,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
         rtAllTokens().forEach(t=>{
           if(rtSideOf(t) && rtSideOf(t) === rtSideOf(tgt)){
             const c = resolveCombatData(t);
-            if(c && chebyshevDist(tc.anchorR, tc.anchorC, c.anchorR, c.anchorC) <= 5) rtAddEffect(t, { t:'intimidated', v: intim.v, exp: intim.exp });
+            if(c && rtDistTok(tgt, t) <= 5) rtAddEffect(t, { t:'intimidated', v: intim.v, exp: intim.exp });
           }
         });
         res.intimidou = true;
@@ -27278,7 +27341,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   function rtAliveFoesNear(att, center, raio, lado){
     const cc = resolveCombatData(center);
     return rtAllTokens().filter(t=> t !== att && t !== center && rtIsCombatToken(t) && !rtIsDown(t) && !rtHasEffect(t, 'voando') && rtSideOf(t) === lado && (()=>{
-      const c = resolveCombatData(t); return c && chebyshevDist(cc.anchorR, cc.anchorC, c.anchorR, c.anchorC) <= raio;
+      const c = resolveCombatData(t); return c && cc && rtDistTok(center, t) <= raio;
     })());
   }
   function rtPlanStrikes(att, tgt, w, modo, opts){
@@ -27541,7 +27604,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
       case 'bladedancer/blade_dance': {
         const w = rtWeaponsOf(att).find(x=> x.tipo === 'cac') || { nome:'Desarmado', tipo:'cac', min:1, max:3, pen:0, alc:1, maos:1, pa:1 };
         const ac = resolveCombatData(att);
-        const vizinhos = rtAllTokens().filter(t=> t !== att && rtIsCombatToken(t) && !rtIsDown(t) && (()=>{ const c = resolveCombatData(t); return c && chebyshevDist(ac.anchorR, ac.anchorC, c.anchorR, c.anchorC) === 1; })());
+        const vizinhos = rtAllTokens().filter(t=> t !== att && rtIsCombatToken(t) && !rtIsDown(t) && (()=>{ const c = resolveCombatData(t); return c && rtDistTok(att, t) === 1; })());
         if(!vizinhos.length){ postToDiscord('⛔ Ninguém ao lado para a Dança das Lâminas.', null); return Promise.resolve(); }
         // uma espada em cada mão: (1 + AGI/4) golpes com cada; senão (2 + AGI/4) com a arma
         const __p = rtDuasArmas(att); const __duas = __p && __p.every(x=> x.tipo === 'cac' && x.arma === 'espada') ? __p : null;
@@ -27629,7 +27692,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     if(base) return base;
     const ac = resolveCombatData(att), tc = resolveCombatData(tgt);
     if(!tc) return 'Alvo inválido.';
-    const dist = chebyshevDist(ac.anchorR, ac.anchorC, tc.anchorR, tc.anchorC);
+    const dist = rtDistTok(att, tgt);
     const same = att.id === tgt.id;
     switch(key){
       case 'warrior/charge': {
@@ -27692,7 +27755,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
         const w = rtWeaponsOf(att).find(x=> x.tipo !== 'cac');
         if(!w) return 'Precisa de uma arma de fogo.';
         const ac = resolveCombatData(att), tc = resolveCombatData(tgt);
-        if(chebyshevDist(ac.anchorR, ac.anchorC, tc.anchorR, tc.anchorC) > rtWeaponRange(w) * 2) return 'Fora de alcance.';
+        if(rtDistTok(att, tgt) > rtWeaponRange(w) * 2) return 'Fora de alcance.';
       }
     }
     return '';
@@ -27809,6 +27872,9 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     const cell = getCellEl(a.r, a.c);
     if(!cell) return null;
     const rc = cell.getBoundingClientRect();
+    // peça grande ancorada aqui: o efeito mira o centro das casas que ela ocupa
+    try{ const tk = rtTokenPool()[rtBoardKeyOf(a.r, a.c)]; const n = tk && tk.anchorR === a.r && tk.anchorC === a.c && !isBlockKind(tk.kind) ? (tk.size || 1) : 1;
+      if(n > 1){ const e2 = getCellEl(a.r + n - 1, a.c + n - 1); if(e2){ const r2 = e2.getBoundingClientRect(); return { x: (rc.left + r2.right) / 2, y: (rc.top + r2.bottom) / 2, s: rc.width * n * 0.8 }; } } }catch(e){}
     return { x: rc.left + rc.width / 2, y: rc.top + rc.height / 2, s: rc.width };
   }
   const rtvWait = ms=> new Promise(res=> setTimeout(res, ms));
@@ -28537,7 +28603,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     if((turnState.apRemaining || 0) < rtKitCost(att)) return 'Pontos de Ação insuficientes.';
     const ac = resolveCombatData(att), tc = resolveCombatData(tgt);
     if(!tc) return 'Alvo inválido.';
-    if(chebyshevDist(ac.anchorR, ac.anchorC, tc.anchorR, tc.anchorC) > 1) return 'O alvo precisa estar ao seu lado.';
+    if(rtDistTok(att, tgt) > 1) return 'O alvo precisa estar ao seu lado.';
     if((tc.vida || 0) >= (tc.vidaMax || 0)) return 'O alvo já está com os ferimentos cheios.';
     return '';
   }
@@ -28573,7 +28639,27 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     return { ok: r <= v, r, v };
   }
   function rtTestTxt(nome, t, c){ return `${nome} testa ${RT_CH_BY[c] ? RT_CH_BY[c].pt : c} ${t.r}/${t.v} → ${t.ok ? 'resistiu' : 'falhou'}`; }
-  function rtDistTok(a, b){ const x = resolveCombatData(a), y = resolveCombatData(b); return (x && y) ? chebyshevDist(x.anchorR, x.anchorC, y.anchorR, y.anchorC) : 99; }
+  // ---------- peças grandes: a distância conta todas as casas que a peça ocupa ----------
+  function rtFp(tok, r, c){                 // retângulo da peça (opcionalmente numa âncora hipotética r,c)
+    if(!tok) return null;
+    let r0 = r, c0 = c;
+    if(r0 == null){ const d = resolveCombatData(tok); if(!d) return null; r0 = d.anchorR; c0 = d.anchorC; }
+    const sz = (typeof tokenFootprintSize === 'function') ? tokenFootprintSize(tok) : [tok.size || 1, tok.size || 1];
+    return { r0, c0, r1: r0 + (sz[0] || 1) - 1, c1: c0 + (sz[1] || 1) - 1 };
+  }
+  function rtDistRect(a, b){ if(!a || !b) return 99; const dr = Math.max(0, a.r0 - b.r1, b.r0 - a.r1), dc = Math.max(0, a.c0 - b.c1, b.c0 - a.c1); return Math.max(dr, dc); }
+  const rtCellRect = (r, c)=> ({ r0: r, c0: c, r1: r, c1: c });
+  function rtDistTokCell(tok, r, c){ return rtDistRect(rtFp(tok), rtCellRect(r, c)); }
+  function rtDistTok(a, b){ return rtDistRect(rtFp(a), rtFp(b)); }
+  // par de casas mais próximas entre duas peças (para a linha de tiro)
+  function rtCasasProximas(a, b){
+    const A = rtFp(a), B = rtFp(b); if(!A || !B) return null;
+    const cl = (v, lo, hi)=> Math.max(lo, Math.min(hi, v));
+    const bc = { r: (B.r0 + B.r1) / 2, c: (B.c0 + B.c1) / 2 }, ac = { r: (A.r0 + A.r1) / 2, c: (A.c0 + A.c1) / 2 };
+    const pa = { r: Math.round(cl(bc.r, A.r0, A.r1)), c: Math.round(cl(bc.c, A.c0, A.c1)) };
+    const pb = { r: Math.round(cl(ac.r, B.r0, B.r1)), c: Math.round(cl(ac.c, B.c0, B.c1)) };
+    return [pa, pb];
+  }
   function rtAliveNear(center, raio, filtro){
     return rtAllTokens().filter(t=> rtIsCombatToken(t) && !rtIsDown(t) && rtDistTok(center, t) <= raio && (!filtro || filtro(t)));
   }
@@ -29082,7 +29168,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
       const lado = rtSideOf(t); if(!lado || lado === ladoM) return false;
       if(rtHasEffect(t, 'stun')) return false;
       const c = resolveCombatData(t); if(!c) return false;
-      const antes = chebyshevDist(de.r, de.c, c.anchorR, c.anchorC), depois = chebyshevDist(para.r, para.c, c.anchorR, c.anchorC);
+      const __ft = rtFp(t); const antes = rtDistRect(rtFp(mover, de.r, de.c), __ft), depois = rtDistRect(rtFp(mover, para.r, para.c), __ft);
       if(antes !== 1 || depois <= 1) return false;
       if(r.aoo[rtCdKey(t.id, 'aoo')] === round) return false;
       return !!rtMeleeWeaponOf(t) || (rtTal(t, 'lawful_intervention') && rtWeaponsOf(t).some(rtEhPistola));
@@ -29434,8 +29520,8 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     }
     return best;
   }
-  function rtFoesAdjCell(tok, r, c){ return rtFoesOf(tok).filter(t=>{ const p = rtPosOf(t); return p && chebyshevDist(p.r, p.c, r, c) <= 1; }); }
-  function rtInRadius(center, raio, list){ const cp = rtPosOf(center); return list.filter(t=>{ const p = rtPosOf(t); return p && cp && chebyshevDist(cp.r, cp.c, p.r, p.c) <= raio; }); }
+  function rtFoesAdjCell(tok, r, c){ return rtFoesOf(tok).filter(t=>{ const p = rtPosOf(t); return p && rtDistRect(rtFp(t), rtFp(tok, r, c)) <= 1; }); }
+  function rtInRadius(center, raio, list){ const cp = rtPosOf(center); return list.filter(t=>{ const p = rtPosOf(t); return p && cp && rtDistTok(center, t) <= raio; }); }
   function rtTokensOnLine(a, b){
     const pa = rtPosOf(a), pb = rtPosOf(b); const out = [];
     const n = Math.max(Math.abs(pb.r - pa.r), Math.abs(pb.c - pa.c));
@@ -29477,7 +29563,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   }
   function rtZoneAt(tok){
     const z = (rtTurnRt().zones) || {}; const p = rtPosOf(tok); if(!p) return null;
-    for(const k in z){ const q = z[k]; if(q && chebyshevDist(q.r, q.c, p.r, p.c) <= (q.raio || 1)) return Object.assign({ k }, q); }
+    for(const k in z){ const q = z[k]; if(q && rtDistTokCell(tok, q.r, q.c) <= (q.raio || 1)) return Object.assign({ k }, q); }
     return null;
   }
   function rtStratOn(tok, nome){ const z = rtZoneAt(tok); return !!(z && z.strat && z.strat[nome] && z.strat[nome] >= RT_RND()); }
@@ -29626,7 +29712,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
       if(energia) rtAddEffect(t, { t:'blind', v:20 });
     },
     nx_feint: (att, t, res, e, w)=>{ if(w.tipo !== 'cac'){ rtPush(t, att, 3); } },
-    nx_terror: (att, t)=>{ const __de = rtPosOf(t); const __viz = rtTal(att, 'unbearable_presence') && __de ? rtFriendsOf(att).filter(x=>{ const p = rtPosOf(x); return p && chebyshevDist(p.r, p.c, __de.r, __de.c) <= 1 && rtMeleeWeaponOf(x); }) : []; rtFleeFrom(t, att, 3); __viz.forEach((x, i)=> setTimeout(()=> rtFreeStrike(x, t, rtMeleeWeaponOf(x), { skipRange:true, _aoo:true }, 'Oportunidade (Presença Insuportável)'), 400 + 300 * i)); rtAddEffect(t, { t:'fled', ic:'😱', nm:'Aterrorizado', ds:'fugiu do Carrasco' }); },
+    nx_terror: (att, t)=>{ const __de = rtPosOf(t); const __viz = rtTal(att, 'unbearable_presence') && __de ? rtFriendsOf(att).filter(x=>{ const p = rtPosOf(x); return p && rtDistTokCell(x, __de.r, __de.c) <= 1 && rtMeleeWeaponOf(x); }) : []; rtFleeFrom(t, att, 3); __viz.forEach((x, i)=> setTimeout(()=> rtFreeStrike(x, t, rtMeleeWeaponOf(x), { skipRange:true, _aoo:true }, 'Oportunidade (Presença Insuportável)'), 400 + 300 * i)); rtAddEffect(t, { t:'fled', ic:'😱', nm:'Aterrorizado', ds:'fugiu do Carrasco' }); },
     nx_verdict: (att, t, res, e, w)=>{ const nv = Math.max(1, Math.round((w.min || 0) / 7)) + (rtTal(att, 'death_warrant') ? Math.floor((w.max || 0) / 5) : 0); const en = w.fam === 'energizada' || /laser|plasma|melta|chama|lança/i.test(w.nome || ''); if(en) rtAddEffect(t, { t:'burn', v: nv * 2, pen:0, dc:0, by: att.id }); else rtDot(t, 'toxin', nv * 2, att); },
     nx_whereHurts: (att, t, res, e)=>{ const n = e.inst || 3; const d = rtDotBurst(t, n, att); if(d) res.extraTxt = (res.extraTxt || '') + ` (+${d} de dano contínuo instantâneo)`; },
     nx_carnival: (att, t, res)=>{ const d = rtDotBurst(t, 4, att); if(d) res.extraTxt = (res.extraTxt || '') + ` (+${d} do Carnaval)`; },
@@ -30037,7 +30123,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   const rtStratRun = (nome, txt)=> (a, t)=>{ const r = rtTurnRt(); const z = rtZoneAt(t || a); if(!z) return 'o alvo não está em nenhuma zona.'; const q = r.zones[z.k]; q.strat = q.strat || {}; q.strat[nome] = RT_RND() + 1; q.sv = q.sv || {}; const IF = rtB(a, 'INT') + rtB(a, 'FEL'); q.sv[nome] = IF; return txt(a, q, IF, z.k); };
   const rtStratWhy = (a, t)=> rtZoneAt(t || a) ? '' : 'Escolha uma peça dentro de uma zona (crie com Linha de Frente / Retaguarda / Fundo).';
   A2('grand_strategist/overwhelming_stratagem', { alvo:'qualquer', icon:'🌊', why: rtStratWhy, run: rtStratRun('overwhelming', (a, q, IF, k)=> `por 1 rodada, ataques de aliados na zona ${RT_ZONE_NM[k][1]} deixam Sobrepujado quem falhar em Vontade.`) });
-  A2('grand_strategist/blitz_stratagem', { alvo:'qualquer', icon:'⚡', why: rtStratWhy, run: rtStratRun('blitz', (a, q)=>{ const al = rtFriendsOf(a, true).filter(x=>{ const p = rtPosOf(x); return p && chebyshevDist(p.r, p.c, q.r, q.c) <= 4; }); al.forEach(x=>{ rtAddEffect(x, { t:'mmm', v: 3 }); rtAddEffect(x, { t:'noAoo', exp: rtExpTurn(1), ic:'⚡', nm:'Relâmpago', ds:'sem ataques de oportunidade' }); }); return `${al.length} aliado(s) próximos ganham +3 PM no próximo turno e não provocam ataques de oportunidade.`; }) });
+  A2('grand_strategist/blitz_stratagem', { alvo:'qualquer', icon:'⚡', why: rtStratWhy, run: rtStratRun('blitz', (a, q)=>{ const al = rtFriendsOf(a, true).filter(x=>{ const p = rtPosOf(x); return p && rtDistTokCell(x, q.r, q.c) <= 4; }); al.forEach(x=>{ rtAddEffect(x, { t:'mmm', v: 3 }); rtAddEffect(x, { t:'noAoo', exp: rtExpTurn(1), ic:'⚡', nm:'Relâmpago', ds:'sem ataques de oportunidade' }); }); return `${al.length} aliado(s) próximos ganham +3 PM no próximo turno e não provocam ataques de oportunidade.`; }) });
   A2('grand_strategist/trenchline_stratagem', { alvo:'qualquer', icon:'🪖', why: rtStratWhy, run: rtStratRun('trench', (a, q, IF)=> `por 1 rodada, aliados na zona ganham +${5 + IF}% de eficiência de cobertura.`) });
   A2('grand_strategist/killzone_stratagem', { alvo:'qualquer', icon:'☠️', why: rtStratWhy, run: rtStratRun('killzone', (a, q, IF)=> `por 1 rodada, inimigos na zona rolam de novo esquivas e aparos bem-sucedidos; quem ficar com menos de ${2 * IF} ferimentos morre.`) });
   A2('grand_strategist/stronghold_stratagem', { alvo:'qualquer', icon:'🏰', why: rtStratWhy, run: rtStratRun('stronghold', (a, q, IF)=> `por 1 rodada, aliados na zona ganham +${3 + Math.floor(IF / 2)}% de armadura e +${Math.floor(IF / 4)} de deflexão e não sofrem lesões.`) });
@@ -31510,7 +31596,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   TL('tenderise', { dealt:(a, t, res)=>{ if(res && res.__area && rtSideOf(t) !== rtSideOf(a)) rtAddEffect(t, { t:'tender', v: 1 + Math.floor(rtB(a, 'BS') / 2), ic:'🥩', nm:'Amaciado', ds:'o próximo golpe que o acertar causa mais dano' }); } });
   TL('trace_the_trajectory', { defended:(t, a, res)=>{ if(res.outcome === 'esquivou' || res.outcome === 'cobertura') rtAddEffect(t, { t:'traceVs', vs: a.id, ic:'📐', nm:'Traçar a Trajetória', ds:'o próximo ataque contra ' + rtNm(a) + ' é crítico' }); } });
   TL('forewarning', { abCost:(a, key)=> (key === 'soldier/controlled_shot' && rtFriendsOf(a).some(x=> rtDistTok(a, x) <= 1)) ? -1 : 0 });
-  TL('tactical_disengage', { ab:(a, key)=>{ if(key === 'soldier/dash'){ const r = rtTurnRt(); const p0 = (r.tsPos || {})[rtCdKey(a.id, 'p')]; if(p0) rtFoesOf(a).filter(x=>{ const p = rtPosOf(x); return p && chebyshevDist(p.r, p.c, p0.r, p0.c) <= 1; }).forEach(x=> rtAddEffect(x, { t:'lowPrio', vs: a.id, exp:{ id: x.id, r: RT_RND() + 1 }, ic:'🫥', nm:'Desengajado', ds:'trata ' + rtNm(a) + ' como alvo de menor prioridade' })); } } });
+  TL('tactical_disengage', { ab:(a, key)=>{ if(key === 'soldier/dash'){ const r = rtTurnRt(); const p0 = (r.tsPos || {})[rtCdKey(a.id, 'p')]; if(p0) rtFoesOf(a).filter(x=>{ const p = rtPosOf(x); return p && rtDistTokCell(x, p0.r, p0.c) <= 1; }).forEach(x=> rtAddEffect(x, { t:'lowPrio', vs: a.id, exp:{ id: x.id, r: RT_RND() + 1 }, ic:'🫥', nm:'Desengajado', ds:'trata ' + rtNm(a) + ' como alvo de menor prioridade' })); } } });
   TL('on_the_double', {});
   TL('unfaltering_fire', {});
   // ---------------- VANGUARDA ----------------
@@ -31519,7 +31605,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   TL('centre_of_attention', { st:(base, tok)=>{ const n = rtFoesOf(tok).filter(x=> rtTauntedBy(x, tok)).length; return n ? { arm: 5 * n } : null; } });
   TL('formidable_distraction', {});
   TL('protective_word', { ab:(a, key, t)=>{ if(!/^vanguard\//.test(key)) return; const v = 5 + rtB(a, 'FEL'); rtVgAliados(a, key, t).forEach(x=> rtAddEffect(x, { t:'protWord', v, ic:'🗣️', nm:'Palavra Protetora', ds:`−${v}% de chance de sofrer crítico` })); } });
-  TL('punish_the_imprudent', { anyMove:(o, mover, de, para)=>{ if(rtSideOf(mover) === rtSideOf(o) || !rtTauntedBy(mover, o) || !para) return; const p = rtPosOf(o); if(!p || chebyshevDist(p.r, p.c, para.r, para.c) > 1 || (de && chebyshevDist(p.r, p.c, de.r, de.c) <= 1)) return; const r = rtTurnRt(); r.pun = r.pun || {}; const k = rtCdKey(o.id, 'pun'); if(r.pun[k] === RT_RND()) return; r.pun[k] = RT_RND(); const w = rtMeleeWeaponOf(o); if(w) setTimeout(()=> rtFreeStrike(o, mover, w, { skipRange:true, _aoo:true }, 'Punir o Imprudente'), 300); } });
+  TL('punish_the_imprudent', { anyMove:(o, mover, de, para)=>{ if(rtSideOf(mover) === rtSideOf(o) || !rtTauntedBy(mover, o) || !para) return; const p = rtPosOf(o); if(!p || rtDistRect(rtFp(o), rtFp(mover, para.r, para.c)) > 1 || (de && rtDistRect(rtFp(o), rtFp(mover, de.r, de.c)) <= 1)) return; const r = rtTurnRt(); r.pun = r.pun || {}; const k = rtCdKey(o.id, 'pun'); if(r.pun[k] === RT_RND()) return; r.pun[k] = RT_RND(); const w = rtMeleeWeaponOf(o); if(w) setTimeout(()=> rtFreeStrike(o, mover, w, { skipRange:true, _aoo:true }, 'Punir o Imprudente'), 300); } });
   TL('renitent_beacon', { st:(base, tok, fx)=>{ const e = fx.list.find(x=> x.t === 'beacon'); const n = (e && e.n) || 0; return n ? { arm: n, apa: n } : null; } });
   TL('selfless_resilience', { ab:(a, key, t)=>{ if(!/^vanguard\//.test(key)) return; const v = 2 + rtB(a, 'FEL'); rtVgAliados(a, key, t).forEach(x=> rtAddEffect(x, { t:'selfless', st:{ arm: v }, exp: rtExpTurn(0), ic:'🛡️', nm:'Resiliência Altruísta', ds:`+${v}% de armadura` })); } });
   TL('taunting_defence', { def:(t, a, w, o, M)=>{ if(rtTauntedBy(a, t)) M.apaRed -= 5 + 2 * rtB(t, 'TGH'); } });
@@ -31608,7 +31694,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   TL('imminent_demise', { direto:(a, t)=>{ if(!rtIsDown(t)) rtStackFx(t, 'iminente', 1, 99, { by: a.id, ic:'⚰️', nm:'Fim Iminente', ds:'mais dano dos ataques do Assassino' }); },
     atk:(a, t, w, o, M)=>{ const e = rtEff(t, 'iminente'); if(e && e.by === a.id) M.pct += (e.n || 0) * rtB(a, 'PER'); } });
   TL('inevitable_enervation', { ab:(a, key, t)=>{ if(key === 'assassin/aim_for_the_opening' && t){ const n = rtStackFx(t, 'enerv', 1, 99, { ic:'😵', nm:'Enervação Inevitável', ds:'' }); const e = rtEff(t, 'enerv'); if(e){ e.st = { esq: -10 * n }; e.ds = `−${10 * n}% de esquiva e de redução de esquiva`; rtAddEffect(t, e); } } } });
-  TL('keep_your_distance', { anyMove:(o, mover, de, para)=>{ if(!para || rtSideOf(mover) === rtSideOf(o)) return; const p = rtPosOf(o); if(!p || chebyshevDist(p.r, p.c, para.r, para.c) > 1 || (de && chebyshevDist(p.r, p.c, de.r, de.c) <= 1)) return; if(rtFoesOf(o).filter(x=> x.id !== mover.id && rtDistTok(o, x) <= 1).length > 1) return; const te = rtTestCh(mover, 'AGI', -2 * rtB(o, 'STR')); if(!te.ok){ rtAddEffect(mover, { t:'prone', ic:'🛌', nm:'Caído', ds:'' }); rtAddEffect(mover, { t:'immob', exp:{ id: mover.id, r: RT_RND() }, ic:'⛓️', nm:'Imobilizado', ds:'até o próximo turno' }); } postToDiscord(`🗡️ Mantenha Distância: ${rtTestTxt(rtNm(mover), te, 'AGI')}` + (te.ok ? '.' : ' → Caído e Imobilizado.'), null); } });
+  TL('keep_your_distance', { anyMove:(o, mover, de, para)=>{ if(!para || rtSideOf(mover) === rtSideOf(o)) return; const p = rtPosOf(o); if(!p || rtDistRect(rtFp(o), rtFp(mover, para.r, para.c)) > 1 || (de && rtDistRect(rtFp(o), rtFp(mover, de.r, de.c)) <= 1)) return; if(rtFoesOf(o).filter(x=> x.id !== mover.id && rtDistTok(o, x) <= 1).length > 1) return; const te = rtTestCh(mover, 'AGI', -2 * rtB(o, 'STR')); if(!te.ok){ rtAddEffect(mover, { t:'prone', ic:'🛌', nm:'Caído', ds:'' }); rtAddEffect(mover, { t:'immob', exp:{ id: mover.id, r: RT_RND() }, ic:'⛓️', nm:'Imobilizado', ds:'até o próximo turno' }); } postToDiscord(`🗡️ Mantenha Distância: ${rtTestTxt(rtNm(mover), te, 'AGI')}` + (te.ok ? '.' : ' → Caído e Imobilizado.'), null); } });
   TL('killing_spree', { hit:(a, t)=>{ if(rtHasAbility(a, 'assassin/seek_the_opening') && rtOpeningHit(a, t)){ const v = Math.max(1, Math.floor(rtB(a, 'AGI') / 2)); const n = rtStackFx(a, 'spree', 1, 99, { ic:'🔪', nm:'Matança', ds:'' }); const e = rtEff(a, 'spree'); if(e){ e.atk = { pct: v * n }; e.ds = `+${v * n}% de dano`; rtAddEffect(a, e); } } } });
   TL('leave_no_witness', { dealt:(a, t)=>{ if(rtSideOf(t) !== rtSideOf(a) && !rtIsDown(t)) rtAddEffect(a, { t:'witness', id: t.id, ic:'👁️', nm:'Testemunha', ds:'' }); },
     turnEnd:(a)=>{ const e = rtEff(a, 'witness'); if(!e) return; rtRemoveEffects(a, ['witness']); const t = rtTokenById(e.id); if(!t || rtIsDown(t) || !rtCoverFor(t, a).bloqueada) return; const w = rtWeaponsOf(a)[0]; const v = Math.round((w.max || 10) * rtLetal(a, t) / 300); if(v){ rtDanoDireto(a, t, v); postToDiscord(`👁️ Não Deixe Testemunhas: ${rtNm(t)} sofre ${v} de dano direto.`, null); } } });
@@ -32093,7 +32179,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   // teia no chão: quem entra ou começa o turno testa Agilidade ou fica lento
   function rtSysWebCheck(tok, p, msgs){
     const r = rtTurnRt(); const z = r.webZ || {};
-    Object.keys(z).forEach(k=>{ const q = z[k]; if(!q) return; if(q.ate < RT_RND()){ delete z[k]; return; } const by = rtTokenById(q.by); if(!by || rtSideOf(by) === rtSideOf(tok) || chebyshevDist(q.r, q.c, p.r, p.c) > q.raio || rtHasEffect(tok, 'slow')) return; const te = rtTestCh(tok, 'AGI', rtTal(by, 'sticky_webbing') ? -30 : 0); if(!te.ok){ const v = 3 * rtB(by, 'PER'); rtAddEffect(tok, Object.assign({ t:'slow', exp:{ id: tok.id, r: RT_RND() + 1 }, ic:'🕸️', nm:'Rede Aracnoide', ds:'lento' }, rtTal(by, 'durable_knotting') ? { st:{ ch:{ WS: -v, BS: -v, AGI: -v } } } : {})); rtAddEffect(tok, { t:'teia', by: by.id, exp:{ id: tok.id, r: RT_RND() + 1 } }); } const m = `🕸️ Rede Aracnoide: ${rtTestTxt(rtNm(tok), te, 'AGI')}` + (te.ok ? '.' : ' → lento.'); if(msgs) msgs.push(m); else postToDiscord(m, null); });
+    Object.keys(z).forEach(k=>{ const q = z[k]; if(!q) return; if(q.ate < RT_RND()){ delete z[k]; return; } const by = rtTokenById(q.by); if(!by || rtSideOf(by) === rtSideOf(tok) || rtDistTokCell(tok, q.r, q.c) > q.raio || rtHasEffect(tok, 'slow')) return; const te = rtTestCh(tok, 'AGI', rtTal(by, 'sticky_webbing') ? -30 : 0); if(!te.ok){ const v = 3 * rtB(by, 'PER'); rtAddEffect(tok, Object.assign({ t:'slow', exp:{ id: tok.id, r: RT_RND() + 1 }, ic:'🕸️', nm:'Rede Aracnoide', ds:'lento' }, rtTal(by, 'durable_knotting') ? { st:{ ch:{ WS: -v, BS: -v, AGI: -v } } } : {})); rtAddEffect(tok, { t:'teia', by: by.id, exp:{ id: tok.id, r: RT_RND() + 1 } }); } const m = `🕸️ Rede Aracnoide: ${rtTestTxt(rtNm(tok), te, 'AGI')}` + (te.ok ? '.' : ' → lento.'); if(msgs) msgs.push(m); else postToDiscord(m, null); });
   }
   // ---------- começo do turno (sistemas) ----------
   function rtSysTurn(entry, tok, r, msgs){
@@ -32420,7 +32506,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     postToDiscord(`⚠️ Caminhos Perigosos: ${rtNm(t)} sofre ${d} de dano ao ser arrastado.`, null);
   }
   function rtNavFreeNear(r0, c0){ for(let raio = 0; raio <= 4; raio++){ for(let dr = -raio; dr <= raio; dr++) for(let dc = -raio; dc <= raio; dc++){ if(Math.max(Math.abs(dr), Math.abs(dc)) !== raio) continue; if(rtCellFree(r0 + dr, c0 + dc)) return { r: r0 + dr, c: c0 + dc }; } } return null; }
-  function rtNavFoesIn(att, pr, pc, raio, filtro){ return rtFoesOf(att).filter(t=>{ const p = rtPosOf(t); return p && chebyshevDist(p.r, p.c, pr, pc) <= raio && (!filtro || filtro(p)); }); }
+  function rtNavFoesIn(att, pr, pc, raio, filtro){ return rtFoesOf(att).filter(t=>{ const p = rtPosOf(t); return p && rtDistTokCell(t, pr, pc) <= raio && (!filtro || filtro(p)); }); }
   // ---------- os poderes ----------
   function rtNavRun(att, id, tgt, X){
     const W = rtB(att, 'WP'), nomeT = tgt ? rtNm(tgt) : '';
@@ -32485,7 +32571,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
       }
       case 'entalhe_proposito': {
         const foes = rtFoesOf(att); if(!foes.length){ out.corpo = 'nenhum inimigo.'; break; }
-        const dist = f=>{ const p = rtPosOf(f); return p ? chebyshevDist(p.r, p.c, tp.r, tp.c) : 99; };
+        const dist = f=>{ const p = rtPosOf(f); return p ? rtDistTokCell(f, tp.r, tp.c) : 99; };
         const min = Math.min(...foes.map(dist));
         out.corpo = foes.filter(f=> dist(f) === min).map(f=>{ const k = rtNavPull(att, f, tp.r, tp.c, 4); rtNavTouched(att, f); return `${rtNm(f)} anda ${k} casa(s) até ${nomeT}`; }).join('; ') + '.';
         out.fxTxt = 'PROPÓSITO'; break;
@@ -32497,7 +32583,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
           const te = rtNavTest(att, f); rtNavTouched(att, f);
           if(te.ok) return tt(f, te);
           const de = rtPosOf(f);
-          const viz = rtFriendsOf(att, true).filter(a=>{ const p = rtPosOf(a); return p && de && chebyshevDist(p.r, p.c, de.r, de.c) <= 1 && rtMeleeWeaponOf(a); });
+          const viz = rtFriendsOf(att, true).filter(a=>{ const p = rtPosOf(a); return p && de && rtDistTokCell(a, de.r, de.c) <= 1 && rtMeleeWeaponOf(a); });
           const k = rtNavAway(att, f, tp.r, tp.c, 2);
           if(k) viz.forEach((a, i)=> setTimeout(()=> rtFreeStrike(a, rtTokenById(f.id) || f, rtMeleeWeaponOf(a), { skipRange:true }, 'Oportunidade (Zona de Medo)'), 500 + 350 * i));
           return tt(f, te) + ` → foge ${k} casa(s)` + (k && viz.length ? ` e leva ${viz.length} ataque(s) de oportunidade` : '');
@@ -32549,7 +32635,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
         r.navZones = r.navZones || {};
         const lo = 1 + W, hi = 4 + 2 * W;
         r.navZones[rtCdKey(att.id, 'scourge')] = { t:'scourge', r: tp.r, c: tp.c, raio: 2, ate: (turnState.round || 1) + 3, by: att.id, lo, hi };
-        const dentro = rtAllTokens().filter(t=> rtIsCombatToken(t) && !rtIsDown(t) && t.id !== att.id && (()=>{ const p = rtPosOf(t); return p && chebyshevDist(p.r, p.c, tp.r, tp.c) <= 2; })());
+        const dentro = rtAllTokens().filter(t=> rtIsCombatToken(t) && !rtIsDown(t) && t.id !== att.id && (()=>{ const p = rtPosOf(t); return p && rtDistTokCell(t, tp.r, tp.c) <= 2; })());
         out.corpo = 'a Maré Vermelha cobre 2 casas por 3 rodadas: ' + (dentro.map(t=>{ const res = hit(t, lo, hi, {}); rtNavTouched(att, t); return `${rtNm(t)} −${res.dano}` + (res.abate || rtIsDown(t) ? ' (FORA DE COMBATE!)' : ''); }).join('; ') || 'ninguém dentro agora.');
         out.fxTxt = 'MARÉ VERMELHA'; break;
       }
@@ -32590,7 +32676,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
     Object.keys(z).forEach(k=>{
       const q = z[k]; if(!q) return;
       if(q.ate < (turnState.round || 1)){ delete z[k]; return; }
-      const p = rtPosOf(tok); if(!p || chebyshevDist(p.r, p.c, q.r, q.c) > q.raio) return;
+      const p = rtPosOf(tok); if(!p || rtDistTokCell(tok, q.r, q.c) > q.raio) return;
       const by = rtTokenById(q.by); if(!by || tok.id === by.id) return;
       if(q.t === 'scourge'){ const res = rtPsyHit(by, tok, q.lo, q.hi, { nome:'Flagelo da Maré Vermelha' }); msgs.push(`🌊 Maré Vermelha: ${nome} sofre ${res.dano}` + (res.abate ? ' — FORA DE COMBATE!' : '.')); }
       if(q.t === 'apathy' && rtSideOf(tok) !== rtSideOf(by) && !ap){ const t = rtNavApatia(by, tok); if(t) msgs.push('💤 Ponto de Apatia: ' + t + '.'); }
@@ -32838,8 +32924,10 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   const rtAiCaminho = no=>{ const l = []; let x = no; while(x){ l.unshift({ r: x.r, c: x.c }); x = x.prev; } return l; };
   // linha de tiro e cobertura a partir de uma casa hipotética
   function rtAiCobertura(r0, c0, alvo){
-    const t = rtPosOf(alvo); const cells = computeLineCells(r0, c0, t.r, t.c); let pct = 0;
-    for(let i = 0; i < cells.length - 1; i++){ const [r, c] = cells[i]; const o = rtTokenPool()[rtBoardKeyOf(r, c)]; if(!o || !isBlockKind(o.kind)) continue; if(o.kind === 'barreira_meia'){ if(chebyshevDist(r, c, t.r, t.c) <= 1) pct = Math.max(pct, 50); } else return 100; }
+    // peça grande: mira na casa dela mais perto de quem atira
+    const F = rtFp(alvo); if(!F) return 100; const t = { r: Math.max(F.r0, Math.min(F.r1, r0)), c: Math.max(F.c0, Math.min(F.c1, c0)) };
+    const cells = computeLineCells(r0, c0, t.r, t.c); let pct = 0;
+    for(let i = 0; i < cells.length - 1; i++){ const [r, c] = cells[i]; const o = rtTokenPool()[rtBoardKeyOf(r, c)]; if(!o || !isBlockKind(o.kind)) continue; if(o.kind === 'barreira_meia'){ if(rtDistTokCell(alvo, r, c) <= 1) pct = Math.max(pct, 50); } else return 100; }
     return pct;
   }
   // quão protegida fica uma casa contra os inimigos (para quem atira)
@@ -32851,7 +32939,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   // ---------- estimativa de dano de um ataque ----------
   function rtAiValor(att, alvo, w, modo, r0, c0, perf){
     const A = rtEffective(att), T = rtEffective(alvo), hp = rtHpInfo(alvo);
-    const pt = rtPosOf(alvo); const dist = chebyshevDist(r0, c0, pt.r, pt.c);
+    const pt = rtPosOf(alvo); const dist = rtDistRect(rtFp(att, r0, c0), rtFp(alvo));
     const md = rtModeInfo(modo);
     let pAcerto, golpes = 1;
     if(w.tipo === 'cac'){
@@ -32863,7 +32951,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
       pAcerto = (1 - ap / 100) * (1 - esq / 100);
     } else {
       if(dist > rtWeaponRange(w) * 2) return null;
-      if((w.maos || 1) >= 2 && !rtTal(att, 'close_quarters_training') && rtFoesOf(att).some(f=>{ const p = rtPosOf(f); return p && chebyshevDist(p.r, p.c, r0, c0) <= 1; })) return null;
+      if((w.maos || 1) >= 2 && !rtTal(att, 'close_quarters_training') && rtFoesOf(att).some(f=>{ const p = rtPosOf(f); return p && rtDistRect(rtFp(f), rtFp(att, r0, c0)) <= 1; })) return null;
       const cob = modo.id === 'chama' ? (rtAiCobertura(r0, c0, alvo) >= 100 ? 100 : 0) : rtAiCobertura(r0, c0, alvo); if(cob >= 100) return null;
       if(rtMunOf(att, w) <= 0) return null;
       let ac = Math.max(5, Math.min(95, (A.ac || 50) + (w.acerto || 0) + (md.acerto || 0) + (modo.id === 'rajada' ? -10 : 0)));
@@ -32891,7 +32979,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   function rtAiRiscoAoo(tok, caminho, perf){
     if(rtTrait(tok, 'voador') || rtHasEffect(tok, 'noAoo') || perf.furia) return 0;
     let n = 0;
-    for(let i = 0; i < caminho.length - 1; i++){ const a = caminho[i], b = caminho[i + 1]; rtFoesOf(tok).forEach(f=>{ const p = rtPosOf(f); if(p && chebyshevDist(p.r, p.c, a.r, a.c) === 1 && chebyshevDist(p.r, p.c, b.r, b.c) > 1 && rtMeleeWeaponOf(f)) n++; }); }
+    for(let i = 0; i < caminho.length - 1; i++){ const a = caminho[i], b = caminho[i + 1]; rtFoesOf(tok).forEach(f=>{ const p = rtPosOf(f); const Ff = rtFp(f); if(p && rtDistRect(Ff, rtFp(tok, a.r, a.c)) === 1 && rtDistRect(Ff, rtFp(tok, b.r, b.c)) > 1 && rtMeleeWeaponOf(f)) n++; }); }
     return n;
   }
   // ---------- planejamento ----------
@@ -32909,7 +32997,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
           const why = rtAttackBlockReason(tok, f, w, { modo: modo.id, skipRange:true, skipCover:true }); if(why) return;
           const v = rtAiValor(tok, f, w, modo, no.r, no.c, perf); if(!(v > 0)) return;
           const pf0 = rtPosOf(f); let nota = v - 3 * risco - 0.15 * no.d - 0.03 * (Math.abs(no.r - pf0.r) + Math.abs(no.c - pf0.c));
-          if(w.tipo !== 'cac'){ nota += 2 * prot * perf.cobertura; if(perf.cac > 1.2){ const pf = rtPosOf(f); nota -= (perf.cac - 1) * 0.5 * chebyshevDist(no.r, no.c, pf.r, pf.c); } }
+          if(w.tipo !== 'cac'){ nota += 2 * prot * perf.cobertura; if(perf.cac > 1.2){ const pf = rtPosOf(f); nota -= (perf.cac - 1) * 0.5 * rtDistRect(rtFp(tok, no.r, no.c), rtFp(f)); } }
           planos.push({ tipo:'ataque', no, caminho, w, modo: modo.id, alvo: f, nota, custo });
         });
       }); });
@@ -32927,7 +33015,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
           : 2 * (3 + N / 8) + 6;
         med *= 0.85 * (1 + 0.4 * perf.fraco * (1 - rtHpInfo(f).frac));
         casas.forEach(no=>{
-          if(d.alc && chebyshevDist(no.r, no.c, pf.r, pf.c) > d.alc) return;
+          if(d.alc && rtDistRect(rtFp(tok, no.r, no.c), rtFp(f)) > d.alc) return;
           if(d.alc > 1 && rtAiCobertura(no.r, no.c, f) >= 100) return;
           const caminho = rtAiCaminho(no);
           planos.push({ tipo:'eab', id, alvo: f, nota: med - 3 * rtAiRiscoAoo(tok, caminho, perf) - 0.15 * no.d + 2 * rtAiProtecao(tok, no.r, no.c) * perf.cobertura * (d.alc > 1 ? 1 : 0), caminho, no, custo: d.pa });
@@ -32999,7 +33087,7 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
             const perf = rtAiPerfil(tok); const foes = rtFoesOf(tok).filter(f=> !rtHasEffect(f, 'voando') && !rtAiCaido(f));
             const alvo = foes.sort((a, b)=> rtDistTok(tok, a) - rtDistTok(tok, b))[0];
             if(alvo){ const casas = rtAiAlcance(tok, rtTurnRt().mp || 0); const pa = rtPosOf(alvo); const atira = !rtMeleeWeaponOf(tok) || perf.cac < 1;
-              const melhor = casas.map(no=> ({ no, nota: -chebyshevDist(no.r, no.c, pa.r, pa.c) * (atira ? 0.6 : 1) + (atira ? 2 * rtAiProtecao(tok, no.r, no.c) * perf.cobertura : 0) - 3 * rtAiRiscoAoo(tok, rtAiCaminho(no), perf) })).sort((a, b)=> b.nota - a.nota)[0];
+              const melhor = casas.map(no=> ({ no, nota: -rtDistRect(rtFp(tok, no.r, no.c), rtFp(alvo)) * (atira ? 0.6 : 1) + (atira ? 2 * rtAiProtecao(tok, no.r, no.c) * perf.cobertura : 0) - 3 * rtAiRiscoAoo(tok, rtAiCaminho(no), perf) })).sort((a, b)=> b.nota - a.nota)[0];
               if(melhor && melhor.no.d > 0){ await rtAiAndar(tok, rtAiCaminho(melhor.no), id); postToDiscord(`🤖 ${rtNm(rtTokenById(id) || tok)} avança em direção a ${rtNm(alvo)}.`, null); }
             }
           }
@@ -33641,6 +33729,154 @@ body.rt-on .rt-dice-group .rt-d100-cap, .rt-d100-cap{ font-family:'Roboto', Aria
   { const f = rtAtkMove; rtAtkMove = (el, A, T, melee)=>{ try{ rtSom(melee ? 'investida' : 'coice', 0); }catch(e){} return f(el, A, T, melee); }; }
   { const f = rtRecoil; rtRecoil = (el, A, T, crit, melee)=>{ try{ if(crit) rtSom('critico', 0); }catch(e){} return f(el, A, T, crit, melee); }; }
   { const f = rtvTremor; let ult = 0; rtvTremor = (forca, delay)=>{ const agora = Date.now(); if((forca || 1) >= 1.5 && agora - ult > 250){ ult = agora; try{ rtSom('tremor', delay || 0); }catch(e){} } return f(forca, delay); }; }
+
+
+  // =====================================================================================
+  // CAIXAS DE DICA (passar o mouse) — todas com o mesmo visual (papel, borda vermelha no topo,
+  // título vinho, destaques marrons) e NUNCA embaixo do cursor: a caixa nasce ao lado do mouse
+  // (à direita; se não couber, à esquerda) e acompanha o movimento.
+  // =====================================================================================
+  const RT_MOUSE = { x: 0, y: 0 };
+  document.addEventListener('mousemove', (e)=>{ RT_MOUSE.x = e.clientX; RT_MOUSE.y = e.clientY; }, { capture: true, passive: true });
+  // o cursor da mesa é grande (seta dourada): a área dele vai ~44 px para a direita e ~56 px para baixo do ponto
+  const RT_CURSOR_W = 46, RT_CURSOR_H = 58, RT_TIP_GAP = 10;
+  function rtTipPos(el, mx, my){
+    if(!el) return;
+    if(mx == null){ mx = RT_MOUSE.x; my = RT_MOUSE.y; }
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const W = el.offsetWidth, H = el.offsetHeight;
+    // nome da peça no tabuleiro: acima do cursor (do lado direito fica a barrinha de vida da peça)
+    if(el.classList.contains('board-token-tip-float') && my - 14 - H >= 8){
+      const l = Math.min(Math.max(8, mx - W / 2), vw - W - 8), t = my - 14 - H;
+      el.style.setProperty('left', Math.round(l) + 'px', 'important'); el.style.setProperty('top', Math.round(t) + 'px', 'important'); return;
+    }
+    let left = mx + RT_CURSOR_W + RT_TIP_GAP, top = my - 6;
+    if(left + W > vw - 8){ left = mx - RT_TIP_GAP - W; }                       // não cabe à direita: vai para a esquerda
+    if(left < 8){                                                                // nem à esquerda: fica abaixo do cursor
+      left = Math.min(Math.max(8, mx - W / 2), vw - W - 8);
+      top = my + RT_CURSOR_H + RT_TIP_GAP;
+      if(top + H > vh - 8) top = Math.max(8, my - RT_TIP_GAP - H);              // ou acima
+    } else top = Math.min(Math.max(8, top), vh - H - 8);
+    el.style.setProperty('left', Math.round(left) + 'px', 'important');
+    el.style.setProperty('top', Math.round(top) + 'px', 'important');
+  }
+  // caixas flutuantes da mesa (nomes das peças no tabuleiro, ícones da barra, marcadores do mapa)
+  const RT_TIP_FLOATS = '.cs-tooltip-float, .board-token-tip-float, .map-icon-tip-float, #rtTip:not([hidden]), #rtTitleTip:not([hidden])';
+  (function rtTipLoop(){
+    try{ document.querySelectorAll(RT_TIP_FLOATS).forEach(el=> rtTipPos(el)); }catch(e){}
+    requestAnimationFrame(rtTipLoop);
+  })();
+  // dicas que eram o "title" do navegador (caixinha cinza do sistema) viram a mesma caixa de papel
+  let RT_TT_EL = null, RT_TT_ALVO = null;
+  function rtTitleTipEl(){
+    if(RT_TT_EL && document.body.contains(RT_TT_EL)) return RT_TT_EL;
+    RT_TT_EL = document.createElement('div'); RT_TT_EL.id = 'rtTitleTip'; RT_TT_EL.className = 'rt-tip rt-title-tip'; RT_TT_EL.hidden = true;
+    document.body.appendChild(RT_TT_EL); return RT_TT_EL;
+  }
+  function rtTitleHide(){
+    if(RT_TT_ALVO && RT_TT_ALVO.dataset.rtTitle != null && !RT_TT_ALVO.hasAttribute('title')) RT_TT_ALVO.setAttribute('title', RT_TT_ALVO.dataset.rtTitle);
+    if(RT_TT_ALVO) delete RT_TT_ALVO.dataset.rtTitle;
+    RT_TT_ALVO = null; if(RT_TT_EL) RT_TT_EL.hidden = true;
+  }
+  document.addEventListener('mouseover', (e)=>{
+    let t = e.target && e.target.closest ? e.target.closest('[title]') : null;
+    while(t && !(t.getAttribute('title') || '').trim()){ t = t.parentElement ? t.parentElement.closest('[title]') : null; }
+    if(!t || t === RT_TT_ALVO) return;
+    if(t.closest('[data-rt-tip]') || t.closest('.ar-ap-tip')) return;           // essas já têm caixa própria
+    const txt = (t.getAttribute('title') || '').trim();
+    if(!txt){ return; }
+    rtTitleHide();
+    RT_TT_ALVO = t; t.dataset.rtTitle = t.getAttribute('title'); t.removeAttribute('title');   // some a caixinha do sistema
+    const linhas = txt.split(/\n+/).map(l=> l.trim()).filter(Boolean);
+    const el = rtTitleTipEl();
+    el.innerHTML = linhas.length > 1 ? '<b>' + rtEsc(linhas[0]) + '</b>' + linhas.slice(1).map(l=> '<p>' + rtEsc(l) + '</p>').join('') : '<p class="rt-tt-unica">' + rtEsc(linhas[0]) + '</p>';
+    el.style.width = ''; el.hidden = false;
+    el.style.width = Math.min(el.scrollWidth + 2, 360) + 'px';
+    rtTipPos(el, e.clientX, e.clientY);
+  }, true);
+  document.addEventListener('mouseout', (e)=>{ if(RT_TT_ALVO && (!e.relatedTarget || !RT_TT_ALVO.contains(e.relatedTarget))) rtTitleHide(); }, true);
+  document.addEventListener('mousedown', ()=> rtTitleHide(), true);
+  window.addEventListener('scroll', ()=>{ if(!RT_TT_ALVO) return; const e = document.elementFromPoint(RT_MOUSE.x, RT_MOUSE.y); if(!e || !RT_TT_ALVO.contains(e)) rtTitleHide(); }, true);
+  // ---------- painéis que podem ser minimizados (ex.: Modificadores manuais) ----------
+  function rtMinAplica(){
+    document.querySelectorAll('[data-rt-min]').forEach(p=>{
+      let min = true; try{ const v = localStorage.getItem('rtMin_' + p.dataset.rtMin); if(v != null) min = v === '1'; }catch(e){}
+      p.classList.toggle('rt-min', min);
+      const b = p.querySelector('[data-rt-min-toggle]'); if(b){ b.textContent = min ? '▸' : '▾'; b.setAttribute('aria-expanded', min ? 'false' : 'true'); }
+    });
+  }
+  document.addEventListener('click', (e)=>{
+    const b = e.target.closest && e.target.closest('[data-rt-min-toggle]'); if(!b) return;
+    const p = b.closest('[data-rt-min]'); if(!p) return;
+    e.preventDefault(); e.stopPropagation();
+    const min = !p.classList.contains('rt-min');
+    try{ localStorage.setItem('rtMin_' + p.dataset.rtMin, min ? '1' : '0'); }catch(err){}
+    rtMinAplica();
+  }, true);
+  setTimeout(rtMinAplica, 0); setTimeout(rtMinAplica, 1500);
+
+
+  // =====================================================================================
+  // PAINEL DOS DADOS: cada rolagem nova apaga o conjunto anterior (dados e texto); o texto do
+  // resultado sai de baixo do dado e vai para a caixa embaixo do painel, só com a última rolagem.
+  // =====================================================================================
+  const RT_DADOS = { ultAtr: 0 };
+  { const f = appendBoardDiceGroup; appendBoardDiceGroup = function(zone, group){
+      const agora = Date.now();
+      const daMesmaRolagem = zone === boardDiceZoneDano && RT_DADOS.ultAtr && agora - RT_DADOS.ultAtr < 12000 && !boardDiceZoneDano.querySelector('.board-dice-group');
+      if(!daMesmaRolagem) clearBoardDice();          // teste novo (ou dano avulso): some o conjunto anterior
+      if(zone === boardDiceZoneAtributo) RT_DADOS.ultAtr = agora;
+      const r = f(zone, group);
+      group.style.marginLeft = '0px'; group.style.marginTop = '0px';   // sem o "empilhar" antigo: um conjunto por vez
+      rtDadosLog();
+      return r;
+    }; }
+  function rtDadosLog(){
+    const box = document.getElementById('rtDiceLog'); if(!box) return;
+    const caps = [...document.querySelectorAll('#boardDiceZoneAtributo .rt-d100-cap'), ...document.querySelectorAll('#boardDiceZoneDano .rt-d100-cap')];   // teste primeiro, depois o dano
+    const html = caps.map(c=> '<div class="rt-dice-log-l' + (c.classList.contains('ok') ? ' ok' : c.classList.contains('fail') ? ' fail' : '') + (c.classList.contains('rt-dano-cap') ? ' dano' : '') + '">' + rtEsc(c.textContent) + '</div>').join('');
+    if(box.__h !== html){ box.innerHTML = html; box.__h = html; }
+  }
+  // o texto final do dado é escrito no fim da animação: acompanha as mudanças
+  (function(){
+    const arena = document.getElementById('boardDiceFooter'); if(!arena) return;
+    try{ new MutationObserver(()=> rtDadosLog()).observe(arena, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] }); }catch(e){}
+  })();
+
+
+  // =====================================================================================
+  // IMAGEM DO PET NO VERSO DA FICHA (familiar do Supervisor/Oficial/Agente, mastim do Árbitro…)
+  // Fica do lado oposto ao retrato do personagem. Vai salva junto da ficha (campo petImg).
+  // =====================================================================================
+  let RT_PET_IMG = null;
+  function rtPetTipo(st){ st = st || rtState; let f = null; try{ f = rtFamiliar(st, rtCurrentLevel); }catch(e){} if(!f && st.og === 'arbitrator') f = 'mastiff'; return f; }
+  function rtPetRender(){
+    const box = document.getElementById('rtPetBox'), wrap = document.getElementById('rtVersoImgs'); if(!box) return;
+    const tipo = rtPetTipo();
+    box.hidden = !tipo;
+    if(wrap) wrap.classList.toggle('com-pet', !!tipo);
+    if(!tipo) return;
+    const fam = (RT.fam || []).find(x=> x.id === tipo);
+    const nome = fam ? fam.pt : 'Pet';
+    const html = (RT_PET_IMG ? '<img src="' + RT_PET_IMG + '" alt="' + rtEsc(nome) + '">' : '<span>Clique para<br>adicionar a imagem<br>do pet</span>') + '<b class="rt-pet-nome">' + rtEsc(nome) + '</b>';
+    if(box.__h !== html){ box.innerHTML = html; box.__h = html; }
+    box.title = rtCanEdit() ? 'Clique para trocar a imagem do pet' : '';
+  }
+  function rtPetLoad(img){ RT_PET_IMG = (typeof img === 'string' && img) ? img : null; rtPetRender(); }
+  { const f = rtDecorateSavedState; rtDecorateSavedState = function(st){ const r = f.apply(this, arguments); try{ (r || st).petImg = RT_PET_IMG || null; }catch(e){} return r; }; }
+  { const f = rtRenderAll; rtRenderAll = function(){ const r = f.apply(this, arguments); try{ rtPetRender(); }catch(e){} return r; }; }
+  (function(){
+    const box = document.getElementById('rtPetBox'); if(!box) return;
+    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'; inp.style.display = 'none'; box.after(inp);
+    box.addEventListener('click', ()=>{ if(rtCanEdit()) inp.click(); });
+    inp.addEventListener('change', (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      resizeImageFile(file, 480, 0.85).then(dataUrl=>{ RT_PET_IMG = dataUrl; rtPetRender(); try{ if(typeof scheduleAutoSave === 'function') scheduleAutoSave(); }catch(err){} })
+        .catch(err=>{ console.error(err); alert('Não foi possível usar essa imagem. Tente outra.'); });
+      e.target.value = '';
+    });
+    setTimeout(rtPetRender, 0);
+  })();
 
   rtInit();
 
