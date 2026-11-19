@@ -31083,9 +31083,22 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
   // =====================================================================================
   // JANELA DO BESTIÁRIO (mestre): escolher, ajustar e colocar inimigos; variantes salvas
   // =====================================================================================
-  const RT_BUI = { f:'caos', v:'indiv', u:'cultista', p:'', n:0, q:1, aba:'fac', edit:null, varId:null };
+  const RT_BUI = { f:'caos', v:'indiv', u:'cultista', p:'', n:0, q:1, aba:'fac', edit:null, varId:null, lado:'inimigo' };
+  // a mesma janela serve para os inimigos (Bestiário) e para os aliados (Reforços imperiais)
+  const RT_BUI_SALVO = { inimigo: null, aliado: null };
+  const rtBestAli = ()=> RT_BUI.lado === 'aliado';
+  function rtBestFacs(){ return rtBestAli() && typeof RT_AFAC !== 'undefined' ? RT_AFAC : RT_BFAC; }
+  function rtBestModo(lado){
+    if(RT_BUI.lado === lado) return;
+    RT_BUI_SALVO[RT_BUI.lado] = Object.assign({}, RT_BUI);
+    const F = lado === 'aliado' ? RT_AFAC : RT_BFAC; const f0 = Object.keys(F)[0];
+    Object.assign(RT_BUI, RT_BUI_SALVO[lado] || { f: f0, v: Object.keys(F[f0].vert)[0], u: Object.keys(F[f0].uni)[0], p:'', n:0, q:1, aba:'fac', edit:null, varId:null, msg:'' }, { lado });
+  }
+  // variantes salvas de cada lado
+  function rtBestVarsDoLado(){ const vars = (RT_BEST_DB || {}).vars || {}; const out = {}; Object.keys(vars).forEach(k=>{ const v = vars[k]; if(!v) return; if((v.lado === 'aliado') === rtBestAli()) out[k] = v; }); return out; }
+  function rtBestPoe(sp, q, varId){ return rtBestAli() ? rtAliPlace(sp, q, varId) : rtBestPlace(sp, q, varId); }
   function rtBestNivelGrupo(){
-    const nv = rtAllTokens().filter(t=> rtIsParty(t) && !t.famOf).map(t=> (rtcOf(t) || {}).nivel || 0).filter(Boolean);
+    const nv = rtAllTokens().filter(t=> rtIsParty(t) && !t.famOf && !t.bst).map(t=> (rtcOf(t) || {}).nivel || 0).filter(Boolean);
     return nv.length ? Math.round(nv.reduce((a, b)=> a + b, 0) / nv.length) : 10;
   }
   function rtBestCurSpec(){
@@ -31104,7 +31117,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
   }
   function rtBestStats(sp){
     const ch = RT_CH.map(c=> '<span><small>' + rtEsc((RT_CH_BY[c] || {}).sig || c) + '</small><b>' + (sp.ch[c] || 0) + '</b></span>').join('');
-    const der = [['Ferimentos', sp.fer], ['Armadura', sp.arm + '%'], ['Deflexão', sp.defl], ['Esquiva', sp.esq + '%'], ['Aparar', sp.apa + '%'], ['PA / PM', (sp.pa || 3) + ' / ' + (sp.pm || 6)], ['Acerto', Math.min(95, 30 + (sp.ch.BS || 0)) + '%'], ['XP por abate', 15 * sp.nivel]];
+    const der = [['Ferimentos', sp.fer], ['Armadura', sp.arm + '%'], ['Deflexão', sp.defl], ['Esquiva', sp.esq + '%'], ['Aparar', sp.apa + '%'], ['PA / PM', (sp.pa || 3) + ' / ' + (sp.pm || 6)], ['Acerto', Math.min(95, 30 + (sp.ch.BS || 0)) + '%'], rtBestAli() ? ['XP por abate', 'não dá'] : ['XP por abate', 15 * sp.nivel]];
     return '<div class="rt-best-ch">' + ch + '</div><div class="rt-best-der">' + der.map(d=> '<span><small>' + d[0] + '</small><b>' + d[1] + '</b></span>').join('') + '</div>';
   }
   function rtBestDetalhes(sp){
@@ -31117,17 +31130,19 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
   function rtBestRender(){
     const m = document.getElementById('rtBestiario'); if(!m) return;
     const S = RT_BUI;
-    let h = '<div class="rt-best-card"><div class="rt-best-head">📚 Bestiário <small>arraste depois para posicionar · clique com o botão direito para remover</small><button type="button" class="rt-btn" data-bx>✕</button></div>';
-    h += '<div class="rt-best-tabs">' + Object.keys(RT_BFAC).map(f=> '<button type="button" class="rt-best-tab' + (S.aba === 'fac' && S.f === f ? ' on' : '') + '" data-bf="' + f + '">' + RT_BFAC[f].icon + ' ' + rtEsc(RT_BFAC[f].pt) + '</button>').join('')
+    const FACS = rtBestFacs(), ALI = rtBestAli();
+    let h = '<div class="rt-best-card' + (ALI ? ' rt-best-ali' : '') + '"><div class="rt-best-head">' + (ALI ? '🦅 Reforços imperiais <small>aliados que jogam sozinhos · entram pela esquerda · arraste depois para posicionar</small>' : '📚 Bestiário <small>arraste depois para posicionar · clique com o botão direito para remover</small>') + '<button type="button" class="rt-btn" data-bx>✕</button></div>';
+    h += '<div class="rt-best-tabs">' + Object.keys(FACS).map(f=> '<button type="button" class="rt-best-tab' + (S.aba === 'fac' && S.f === f ? ' on' : '') + '" data-bf="' + f + '">' + FACS[f].icon + ' ' + rtEsc(ALI ? FACS[f].vert[Object.keys(FACS[f].vert)[0]].pt : FACS[f].pt) + '</button>').join('')
       + '<button type="button" class="rt-best-tab' + (S.aba === 'var' ? ' on' : '') + '" data-baba="var">⭐ Minhas variantes</button></div>';
     if(S.aba === 'var'){
-      const vars = (RT_BEST_DB || {}).vars || {};
+      const vars = rtBestVarsDoLado();
       const ks = Object.keys(vars);
-      h += '<div class="rt-best-vars">' + (ks.length ? ks.map(k=>{ const sp = vars[k]; const im = rtBestImgOf(sp, k); return '<div class="rt-best-var"><img src="' + im.src + '" alt=""><span><b>' + rtEsc(sp.nomeCustom || sp.nome) + '</b><small>' + rtEsc((RT_BFAC[sp.f] || {}).pt || '') + ' · ' + rtEsc(((RT_BFAC[sp.f] || {}).vert || {})[sp.v] ? RT_BFAC[sp.f].vert[sp.v].pt : '') + ' · nível ' + sp.nivel + ' · ' + rtEsc((RT_PAPEL[sp.papel] || {}).pt || '') + '</small></span>'
-        + '<input type="number" min="1" max="12" value="1" data-bvq="' + k + '" title="Quantidade"><button type="button" class="rt-btn" data-bvput="' + k + '">➕ Colocar</button><button type="button" class="rt-btn" data-bvedit="' + k + '">✏️</button><button type="button" class="rt-btn" data-bvdel="' + k + '">🗑</button></div>'; }).join('') : '<div class="rt-hint">Nenhuma variante salva. Personalize um inimigo e clique em 💾 Salvar variante.</div>') + '</div></div>';
+      h += '<div class="rt-best-vars">' + (ks.length ? ks.map(k=>{ const sp = vars[k]; const im = rtBestImgOf(sp, k); return '<div class="rt-best-var"><img src="' + im.src + '" alt=""><span><b>' + rtEsc(sp.nomeCustom || sp.nome) + '</b><small>' + rtEsc((FACS[sp.f] || {}).pt || '') + ' · ' + rtEsc(((FACS[sp.f] || {}).vert || {})[sp.v] ? FACS[sp.f].vert[sp.v].pt : '') + ' · nível ' + sp.nivel + ' · ' + rtEsc((RT_PAPEL[sp.papel] || {}).pt || '') + '</small></span>'
+        + '<input type="number" min="1" max="12" value="1" data-bvq="' + k + '" title="Quantidade"><button type="button" class="rt-btn" data-bvput="' + k + '">➕ Colocar</button><button type="button" class="rt-btn" data-bvedit="' + k + '">✏️</button><button type="button" class="rt-btn" data-bvdel="' + k + '">🗑</button></div>'; }).join('') : '<div class="rt-hint">Nenhuma variante salva. Personalize ' + (ALI ? 'um aliado' : 'um inimigo') + ' e clique em 💾 Salvar variante.</div>') + '</div></div>';
       m.innerHTML = h; return;
     }
-    const F = RT_BFAC[S.f];
+    const F = FACS[S.f];
+    if(ALI) h += '<div class="rt-hint rt-best-vdesc">Usam o turno automático (🤖 na roda de ações da peça liga ou desliga) e só agem depois de avistar um inimigo. Não dão XP quando caem.</div>';
     h += '<div class="rt-best-verts">' + Object.keys(F.vert).map(v=> '<button type="button" class="rt-best-vert' + (S.v === v ? ' on' : '') + '" data-bv="' + v + '" style="--vc:' + F.vert[v].cor + '" title="' + rtEsc(F.vert[v].desc) + '"><i></i>' + rtEsc(F.vert[v].pt) + '</button>').join('') + '</div>';
     h += '<div class="rt-hint rt-best-vdesc">' + rtEsc(F.vert[S.v].desc) + '</div>';
     h += '<div class="rt-best-cols"><div class="rt-best-unis">' + Object.keys(F.uni).map(u=>{ const sp = rtBestSpec(S.f, S.v, u, S.n || 10, null); const im = rtBestImgOf(sp); return '<button type="button" class="rt-best-uni' + (S.u === u ? ' on' : '') + '" data-bu="' + u + '"><img src="' + im.src + '" alt=""><span><b>' + rtEsc(sp.nome) + '</b><small>' + rtEsc(RT_PAPEL[F.uni[u].papel].pt) + (F.uni[u].size > 1 ? ' · 2×2' : '') + '</small></span></button>'; }).join('') + '</div>';
@@ -31138,7 +31153,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
       h += rtBestEditorHtml(sp, im);
     } else {
       h += '<div class="rt-best-ctrl"><label>Nível <input type="number" min="1" max="55" value="' + sp.nivel + '" data-bn></label><label>Papel <select data-bp>' + Object.keys(RT_PAPEL).map(p=> '<option value="' + p + '"' + (sp.papel === p ? ' selected' : '') + '>' + RT_PAPEL[p].pt + '</option>').join('') + '</select></label><label>Quantidade <input type="number" min="1" max="12" value="' + S.q + '" data-bq></label></div>';
-      h += '<div class="rt-best-top"><img class="rt-best-big' + (sp.papel === 'chefe' ? ' chefe' : '') + '" src="' + im.src + '" alt=""><div><div class="rt-best-nome">' + rtEsc(sp.nome) + '</div><div class="rt-best-sub">' + rtEsc(F.pt) + ' · ' + rtEsc(F.vert[S.v].pt) + ' · ' + rtEsc(RT_PAPEL[sp.papel].pt) + ' · nível ' + sp.nivel + '</div><div class="rt-hint">' + rtEsc(RT_PAPEL[sp.papel].desc) + '</div>'
+      h += '<div class="rt-best-top"><img class="rt-best-big' + (sp.papel === 'chefe' ? ' chefe' : '') + '" src="' + im.src + '" alt=""><div><div class="rt-best-nome">' + rtEsc(sp.nome) + '</div><div class="rt-best-sub">' + rtEsc(F.pt) + ' · ' + rtEsc(F.vert[S.v].pt) + ' · ' + rtEsc(RT_PAPEL[sp.papel].pt) + ' · nível ' + sp.nivel + '</div><div class="rt-hint">' + rtEsc(ALI ? RT_PAPEL[sp.papel].desc.replace('Inimigo comum', 'Aliado comum') : RT_PAPEL[sp.papel].desc) + '</div>'
         + '<div class="rt-best-img"><label class="rt-btn">🖼️ Imagem desta unidade<input type="file" accept="image/*" data-bimg="' + im.k + '" hidden></label>' + (im.img ? '<button type="button" class="rt-btn" data-bimgdel="' + im.k + '">↺ Emblema padrão</button>' : '') + '</div></div></div>';
       h += rtBestStats(sp) + rtBestDetalhes(sp);
       h += '<div class="rt-best-acoes"><button type="button" class="rt-btn rt-best-put" data-bput>➕ Colocar ' + S.q + ' no tabuleiro</button><button type="button" class="rt-btn" data-bedit>✏️ Personalizar</button></div>';
@@ -31148,7 +31163,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
   }
   function rtBestArmasCatalogo(){
     const out = {}; RT_WEAPONS.forEach(w=>{ out[w.id] = BW(w.id); });
-    Object.values(RT_BFAC).forEach(F=>{ Object.values(F.uni).forEach(U=> (U.armas || []).forEach(a=>{ if(typeof a !== 'string') out[a.id] = a; })); Object.values(F.vert).forEach(V=>{ if(V.ranged) out[V.ranged.id] = V.ranged; }); });
+    Object.values(RT_BFAC).concat(typeof RT_AFAC !== 'undefined' ? Object.values(RT_AFAC) : []).forEach(F=>{ Object.values(F.uni).forEach(U=> (U.armas || []).forEach(a=>{ if(typeof a !== 'string') out[a.id] = a; })); Object.values(F.vert).forEach(V=>{ if(V.ranged) out[V.ranged.id] = V.ranged; }); });
     return out;
   }
   function rtBestEditorHtml(sp, im){
@@ -31170,19 +31185,20 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
     const g = (sel)=> t.closest(sel);
     let el;
     if(g('[data-bf], [data-bv], [data-bu], [data-baba], [data-bedit], [data-eback]')) S.msg = '';
-    if((el = g('[data-bf]'))){ S.aba = 'fac'; S.f = el.dataset.bf; S.v = Object.keys(RT_BFAC[S.f].vert)[0]; S.u = Object.keys(RT_BFAC[S.f].uni)[0]; S.p = ''; S.edit = null; S.varId = null; rtBestRender(); return; }
+    if((el = g('[data-bf]'))){ const FACS = rtBestFacs(); S.aba = 'fac'; S.f = el.dataset.bf; S.v = Object.keys(FACS[S.f].vert)[0]; S.u = Object.keys(FACS[S.f].uni)[0]; S.p = ''; S.edit = null; S.varId = null; rtBestRender(); return; }
     if((el = g('[data-baba]'))){ S.aba = 'var'; S.edit = null; rtBestRender(); return; }
     if((el = g('[data-bv]'))){ S.v = el.dataset.bv; S.edit = null; S.varId = null; rtBestRender(); return; }
     if((el = g('[data-bu]'))){ S.u = el.dataset.bu; S.p = ''; S.edit = null; S.varId = null; rtBestRender(); return; }
-    if(g('[data-bput]')){ const sp = rtBestCurSpec(); const n = rtBestPlace(sp, S.q, S.varId); rtBestMsg(n ? `✓ ${n} ${sp.nomeCustom || sp.nome} colocado(s) no tabuleiro.` : 'Não há casas livres suficientes.'); return; }
+    if(g('[data-bput]')){ const sp = rtBestCurSpec(); const n = rtBestPoe(sp, S.q, S.varId); rtBestMsg(n ? `✓ ${n} ${sp.nomeCustom || sp.nome} colocado(s) no tabuleiro.` : 'Não há casas livres suficientes.'); if(n && rtBestAli()) postToDiscord(`🦅 Reforços: ${n}× ${sp.nomeCustom || sp.nome} (nível ${sp.nivel}) entram no combate ao lado do grupo.`, null); return; }
     if(g('[data-bedit]')){ S.edit = JSON.parse(JSON.stringify(rtBestCurSpec())); S.varId = null; rtBestRender(); return; }
     if(g('[data-eback]')){ S.edit = null; S.varId = null; rtBestRender(); return; }
     if(g('[data-esave]')){
       const sp = S.edit; if(!sp) return;
+      if(rtBestAli()) sp.lado = 'aliado'; else delete sp.lado;
       if(fbDb){ const ref = S.varId ? fbDb.ref('mesa40k/bestiario/vars/' + S.varId) : fbDb.ref('mesa40k/bestiario/vars').push(); S.varId = ref.key; ref.set(JSON.parse(JSON.stringify(sp))).then(()=> rtBestMsg('✓ Variante salva em ⭐ Minhas variantes.')).catch(err=> rtBestMsg('Não foi possível salvar: ' + err.message)); }
       return;
     }
-    if((el = g('[data-bvput]'))){ const k = el.dataset.bvput; const sp = ((RT_BEST_DB || {}).vars || {})[k]; const q = parseInt((m.querySelector('[data-bvq="' + k + '"]') || {}).value, 10) || 1; if(sp){ const n = rtBestPlace(sp, q, k); el.textContent = n ? '✓ ' + n : 'Sem espaço'; setTimeout(()=>{ el.textContent = '➕ Colocar'; }, 1500); } return; }
+    if((el = g('[data-bvput]'))){ const k = el.dataset.bvput; const sp = ((RT_BEST_DB || {}).vars || {})[k]; const q = parseInt((m.querySelector('[data-bvq="' + k + '"]') || {}).value, 10) || 1; if(sp){ const n = rtBestPoe(sp, q, k); el.textContent = n ? '✓ ' + n : 'Sem espaço'; setTimeout(()=>{ el.textContent = '➕ Colocar'; }, 1500); } return; }
     if((el = g('[data-bvedit]'))){ const k = el.dataset.bvedit; const sp = ((RT_BEST_DB || {}).vars || {})[k]; if(sp){ S.aba = 'fac'; S.f = sp.f; S.v = sp.v; S.u = sp.u; S.edit = JSON.parse(JSON.stringify(sp)); S.varId = k; rtBestRender(); } return; }
     if((el = g('[data-bvdel]'))){ const k = el.dataset.bvdel; if(confirm('Excluir esta variante?') && fbDb){ fbDb.ref('mesa40k/bestiario/vars/' + k).remove(); fbDb.ref('mesa40k/bestiario/imgs/var_' + k).remove(); } return; }
     if((el = g('[data-bimgdel]'))){ if(fbDb) fbDb.ref('mesa40k/bestiario/imgs/' + el.dataset.bimgdel).remove(); return; }
@@ -31253,7 +31269,7 @@ body.rt-on .mesa-fixed-top-actions{ justify-content:center; }
   setInterval(()=>{
     try{ if(currentRole === 'mestre') Object.keys(boardTokens).forEach(k=>{ const t = boardTokens[k]; if(t && t.bst && !t.portrait){ t.portrait = rtBestPortrait(t); const [r, c] = k.split('_').map(Number); renderBoardCell(r, c); } }); }catch(e){}
     const b = document.getElementById('rtBestBtn');
-    if(b && !b.dataset.ok){ b.dataset.ok = '1'; b.addEventListener('click', rtBestOpen); }
+    if(b && !b.dataset.ok){ b.dataset.ok = '1'; b.addEventListener('click', ()=>{ rtBestModo('inimigo'); rtBestOpen(); }); }
   }, 700);
   function rtDecorateBossBars(grid){
     const chefes = turnState.active ? rtAllTokens().filter(t=> rtTrait(t, 'chefe') && rtIsCombatToken(t)) : [];
@@ -35772,12 +35788,13 @@ RTA_IMG.cajado_navis = `
     for(let c = 0; c <= d.cols - size && out.length < n; c++) for(const r of linhas){ if(out.length >= n) break; if(r + size > d.rows) continue; if(livre(r, c)){ out.push({ r, c }); for(let i = 0; i < size; i++) for(let j = 0; j < size; j++) usado.add((r + i) + '_' + (c + j)); } }
     return out;
   }
-  function rtAliPlace(sp, q){
+  function rtAliPlace(sp, q, varId){
     if(currentRole !== 'mestre' || !sp) return 0;
     const s = sp.size || 1;
     const cels = rtAliFreeCells(q, s);
     cels.forEach((cel, i)=>{
-      const tok = rtBestToken(sp, q > 1 ? i + 1 : 0);
+      const tok = rtBestToken(Object.assign({}, sp, varId ? { img: 'var_' + varId } : {}), q > 1 ? i + 1 : 0);
+      if(sp.nomeCustom) tok.name = sp.nomeCustom.toUpperCase() + (q > 1 ? ' ' + (i + 1) : '');
       tok.id = tok.id.replace(/^inimigo_ficha:/, 'aliado_ficha:');
       tok.kind = 'aliado_ficha';
       tok.portrait = rtBestPortrait(tok);
@@ -35788,55 +35805,8 @@ RTA_IMG.cajado_navis = `
     if(cels.length && turnState.active){ pushTurnState(); renderTurnBars(); }
     return cels.length;
   }
-  // ---------- janela "Reforços" (mestre) ----------
-  const RT_AUI = { n: 0, q: {}, p: {}, msg: '' };
-  function rtAliOpen(){
-    if(currentRole !== 'mestre') return;
-    let m = document.getElementById('rtReforcos');
-    if(!m){
-      m = document.createElement('div'); m.id = 'rtReforcos'; m.className = 'rt-best-modal rt-ali-modal'; document.body.appendChild(m);
-      m.addEventListener('click', rtAliClick); m.addEventListener('change', rtAliChange);
-    }
-    if(!RT_AUI.n) RT_AUI.n = rtAliNivelGrupo();
-    m.hidden = false; rtAliRender();
-  }
-  function rtAliRender(){
-    const m = document.getElementById('rtReforcos'); if(!m) return;
-    const F = RT_AFAC.imperio, V = F.vert.guarda;
-    let h = '<div class="rt-best-card"><div class="rt-best-head">🦅 Reforços imperiais <small>aliados que jogam sozinhos · entram pela esquerda do tabuleiro</small><button type="button" class="rt-btn" data-ax>✕</button></div>';
-    h += '<div class="rt-hint rt-best-vdesc">' + rtEsc(V.desc) + ' Eles usam o turno automático (🤖 na roda de ações da peça liga ou desliga) e só agem depois de avistar um inimigo.</div>';
-    h += '<div class="rt-best-ctrl"><label>Nível <input type="number" min="1" max="55" value="' + RT_AUI.n + '" data-an></label><span class="rt-hint">Nível médio do grupo: ' + rtAliNivelGrupo() + '</span></div>';
-    h += '<div class="rt-ali-grid">' + Object.keys(F.uni).map(u=>{
-      const sp = rtBestSpec('imperio', 'guarda', u, RT_AUI.n, RT_AUI.p[u] || null); const im = rtBestImgOf(sp);
-      const armas = sp.armas.map(a=> (a.tipo === 'cac' ? '🗡️ ' : '🔫 ') + rtEsc(a.nome)).join(' · ');
-      return '<div class="rt-ali-uni"><img src="' + im.src + '" alt=""><div class="rt-ali-info"><b>' + rtEsc(sp.nome) + '</b><small>' + rtEsc(RT_PAPEL[sp.papel].pt) + ' · nível ' + sp.nivel + '</small>'
-        + '<div class="rt-wk-bst"><span>❤️ ' + sp.fer + '</span><span>🛡️ ' + sp.arm + '%</span><span>💨 ' + sp.esq + '%</span><span>🎯 ' + Math.min(95, 30 + sp.ch.BS) + '%</span></div>'
-        + '<div class="rt-ali-armas">' + armas + '</div>'
-        + '<div class="rt-ali-acoes"><input type="number" min="1" max="12" value="' + (RT_AUI.q[u] || 1) + '" data-aq="' + u + '" title="Quantidade"><button type="button" class="rt-btn rt-best-put" data-aput="' + u + '">➕ Colocar</button>'
-        + '<label class="rt-btn">🖼️<input type="file" accept="image/*" data-bimg="' + im.k + '" hidden></label></div></div></div>';
-    }).join('') + '</div>';
-    h += '<div class="rt-best-msg" id="rtAliMsg">' + rtEsc(RT_AUI.msg || '') + '</div></div>';
-    m.innerHTML = h;
-  }
-  function rtAliClick(e){
-    const m = document.getElementById('rtReforcos');
-    if(e.target === m || e.target.closest('[data-ax]')){ m.hidden = true; return; }
-    const put = e.target.closest('[data-aput]');
-    if(put){
-      const u = put.dataset.aput; const q = Math.max(1, Math.min(12, RT_AUI.q[u] || 1));
-      const sp = rtBestSpec('imperio', 'guarda', u, RT_AUI.n, RT_AUI.p[u] || null);
-      const n = rtAliPlace(sp, q);
-      RT_AUI.msg = n ? `✔ ${n}× ${sp.nome} no tabuleiro.` : 'Sem espaço livre no tabuleiro.';
-      if(n) postToDiscord(`🦅 Reforços: ${n}× ${sp.nome} (nível ${sp.nivel}) entram no combate ao lado do grupo.`, null);
-      rtAliRender();
-    }
-  }
-  function rtAliChange(e){
-    const t = e.target;
-    if(t.matches('[data-an]')){ RT_AUI.n = Math.max(1, Math.min(55, parseInt(t.value, 10) || 1)); rtAliRender(); }
-    else if(t.matches('[data-aq]')){ RT_AUI.q[t.dataset.aq] = Math.max(1, Math.min(12, parseInt(t.value, 10) || 1)); }
-    else if(t.matches('[data-bimg]') && t.files && t.files[0]){ try{ rtBestUploadImg(t.files[0], t.dataset.bimg); setTimeout(rtAliRender, 1500); }catch(err){ console.error(err); } }
-  }
+  // ---------- janela "Reforços": a mesma do Bestiário, no modo dos aliados ----------
+  function rtAliOpen(){ if(currentRole !== 'mestre') return; rtBestModo('aliado'); rtBestOpen(); }
   setInterval(()=>{ const b = document.getElementById('rtAliBtn'); if(b && !b.dataset.ok){ b.dataset.ok = '1'; b.addEventListener('click', rtAliOpen); } }, 700);
 
 
