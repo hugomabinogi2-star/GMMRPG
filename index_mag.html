@@ -6564,6 +6564,36 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
 .rt-zoom-ia{ font-size:10.5px; color:#8fd3ff; border-top:1px solid rgba(224,182,86,.25); padding-top:4px; }
 .rt-summary-card button, .rt-summary-card input{ text-transform:uppercase; }
 </style>
+<script>
+/* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
+   por minuto depois de alguns minutos), o que travava a IA dos inimigos, as animações e a fila quando o
+   mestre ou o jogador trocava de aba. Os timers do worker não sofrem esse freio. */
+(function(){
+  try{
+    var src = "var T={};onmessage=function(e){var d=e.data;if(d.c==='s'){T[d.id]=(d.rep?setInterval:setTimeout)(function(){postMessage(d.id);},d.ms);}else{clearTimeout(T[d.id]);clearInterval(T[d.id]);delete T[d.id];}};";
+    var w = new Worker(URL.createObjectURL(new Blob([src], { type:'text/javascript' })));
+    var nst = window.setTimeout.bind(window), nct = window.clearTimeout.bind(window), nsi = window.setInterval.bind(window), nci = window.clearInterval.bind(window);
+    var cbs = {}, seq = 1e9;
+    w.onmessage = function(e){
+      var id = e.data, c = cbs[id]; if(!c) return;
+      if(!c.rep) delete cbs[id];
+      try{ c.fn.apply(window, c.args); }catch(err){ nst(function(){ throw err; }, 0); }
+    };
+    w.onerror = function(){ window.setTimeout = nst; window.setInterval = nsi; };
+    function mk(rep){
+      return function(fn, ms){
+        if(typeof fn !== 'function') return (rep ? nsi : nst).apply(window, arguments);
+        var id = ++seq; cbs[id] = { fn: fn, args: Array.prototype.slice.call(arguments, 2), rep: rep };
+        w.postMessage({ c:'s', id: id, ms: Math.max(0, +ms || 0), rep: rep });
+        return id;
+      };
+    }
+    function cl(nat){ return function(id){ if(typeof id === 'number' && id > 1e9){ if(cbs[id]){ delete cbs[id]; w.postMessage({ c:'c', id: id }); } } else nat(id); }; }
+    window.setTimeout = mk(false); window.setInterval = mk(true);
+    window.clearTimeout = cl(nct); window.clearInterval = cl(nci);
+  }catch(e){}
+})();
+</script>
 </head>
 <body>
 
@@ -7157,6 +7187,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
           <button type="button" class="board-menu-tab" id="rtBestBtn" data-panel="">📚 BESTIÁRIO</button>
           <button type="button" class="board-menu-tab" id="rtAliBtn" data-panel="">🦅 REFORÇOS</button>
           <button type="button" class="board-menu-tab" data-panel="rtPanelGlob">🌐 EFEITOS GLOBAIS</button>
+          <button type="button" class="board-menu-tab" id="rtExpZerar" data-panel="" title="Cobre de novo com névoa tudo o que os jogadores já exploraram">🌫️ REFAZER NÉVOA</button>
           <button type="button" class="board-menu-tab rt-dec-limpar" id="rtDecLimpar" data-panel="" title="Apaga o sangue, as queimaduras e as crateras deixadas no tabuleiro">🧽 LIMPAR MARCAS</button>
           <button type="button" class="board-menu-tab rt-end-combat rt-end-tab" id="rtEndCombatTab" data-panel="" disabled title="Encerrar o combate agora e ver o resumo">🏁 ENCERRAR COMBATE</button>
           <!-- Rodada nova, pedido explícito ("dentro de mesa o botão INSTANCIA NO TABULEIRO pode ser
@@ -13516,6 +13547,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       rt: turnState.rt || null,
       glob: (typeof RT_GLOB !== 'undefined' && RT_GLOB && RT_GLOB.list && RT_GLOB.list.length) ? RT_GLOB : null,
       pausa: (typeof RT_PAUSA !== 'undefined' && RT_PAUSA) ? true : null,
+      fim: (typeof RT_FIM !== 'undefined' && RT_FIM) ? RT_FIM : null,
       ts: firebase.database.ServerValue.TIMESTAMP,
     }).catch(err=> console.error('Não foi possível publicar o turno:', err));
   }
@@ -13701,6 +13733,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       // restaurando a rodada anterior exatamente como estava).
       if(turnState.baseOrder && turnState.baseOrder.length) turnState.order = turnState.baseOrder.slice();
     }
+    if(typeof rtPulaEspera === 'function') try{ rtPulaEspera(); }catch(err){ console.error(err); }
     // PONTOS DE AÇÃO (NOVO, pedido explícito: "ao clicar em encerrar o turno esses pontos de ação
     // que sobrarem não passam para o próximo turno"): sempre um reset completo pra quem assume a
     // vez agora (3 + bônus de DES da PEÇA NOVA, ver apMaxForToken()) -- nunca um "carry-over" do
@@ -14109,7 +14142,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       }
       const ap0 = apMaxForToken(itens[0]);
       turnState = { active:true, round:1, order:itens, baseOrder:itens.slice(), turnIndex:0, moved:false, rolled:false, apMax:ap0, apRemaining:ap0 };
-      if(rtReady){ turnState.rt = null; rtResetCombatFx(); rtTurnRt(); rtTurnStart(itens[0]); }
+      if(rtReady){ turnState.rt = null; RT_FIM = null; rtResetCombatFx(); rtTurnRt(); try{ rtPulaEspera(); }catch(e){} const __e0 = currentTurnEntry() || itens[0]; turnState.apMax = turnState.apRemaining = apMaxForToken(__e0); rtTurnStart(__e0); }
       turnUndoHistory = [];
       pushTurnState();
       renderTurnBars();
@@ -17558,7 +17591,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       if(tok.kind !== 'hero' && tok.kind !== 'aliado_ficha' && tok.kind !== 'inimigo_ficha') return;
       if(!isMestre){
         if(!revealed) return;
-        if(fogActive && fogReachable && !fogReachable.has(key)) return;
+        if(fogActive && fogReachable && !fogReachable.has(key) && !rtVistoPorAtaque(tok)) return;
       }
       const vitals = resolveTokenVitalsForCard(tok);
       if(!vitals) return; // sem Vida/Mana/Escudo disponível ainda (ex: hero sem liveVitalsAll publicado)
@@ -21273,6 +21306,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
     // loop -- a cor vem de fogPlusColorActive, uma das 3 chaves de FOG_PLUS_COLOR_BTN_IDS).
     const fogPlusColorActive = liveBoardState.fogPlusColor && currentRole !== 'mestre' ? liveBoardState.fogPlusColor : null;
     const mistReachable = (revealed && fogPlusColorActive) ? (fogReachable || computeFogReachableKeys()) : null;
+    if(revealed) try{ rtExpRegistra(fogReachable || mistReachable); }catch(err){}
     for(let r = 0; r < rows; r++){
       for(let c = 0; c < cols; c++){
         const cell = document.createElement('div');
@@ -21297,9 +21331,9 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
           if(boardCameraJustPanned) boardCameraJustPanned = false;
         });
         if(!revealed){ liveBoardGridEl.appendChild(cell); continue; }
-        if(mistReachable && !mistReachable.has(cellKey)) cell.classList.add('board-cell-mist', 'mist-' + fogPlusColorActive);
+        if(mistReachable && !mistReachable.has(cellKey) && !rtExplorado(cellKey)) cell.classList.add('board-cell-mist', 'mist-' + fogPlusColorActive);
         const mark = liveBoardState.marks[cellKey];
-        if(mark && (!fogActive || fogReachable.has(cellKey))) cell.classList.add('mark-' + mark);
+        if(mark && (!fogActive || fogReachable.has(cellKey) || rtExplorado(cellKey))) cell.classList.add('mark-' + mark);
         const token = liveBoardState.tokens[liveBoardKey(r,c)];
         // bloco legado (materiais antigos) NUNCA some com o Fog — só ícones de combatente (herói/
         // aliado/inimigo/monstro/boss) ficam escondidos fora do alcance; parede/bloco é geografia
@@ -21308,7 +21342,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
         // ela só é visível no tabuleiro de verdade (renderBoardCell(), aba MESA do mestre); aqui
         // ela continua bloqueando movimento normalmente (ver isBlockKind() em
         // computeLiveBoardReachable()), só o VISUAL some.
-        if(token && !isHiddenBlockKind(token.kind) && token.anchorR === r && token.anchorC === c && (!fogActive || fogReachable.has(cellKey) || isBlockKind(token.kind))){
+        if(token && !isHiddenBlockKind(token.kind) && token.anchorR === r && token.anchorC === c && (!fogActive || fogReachable.has(cellKey) || isBlockKind(token.kind) || rtVistoPorAtaque(token))){
           // Avistamento (ver isSpottableToken()/announceTokenSpotted() e spottedTokenIds, lá em
           // cima): só dispara quando é o alcance de Fog (fogReachable) que está trazendo essa peça
           // à vista agora — bloco nunca conta (não é avistável), com o Fog desligado não existe
@@ -21449,7 +21483,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
         // seletor de 8 direções -- essa peça só é movida pela aba Mesa, nunca por aqui.
         if(!tok || (tok.kind !== 'hero' && tok.kind !== 'inimigo_ficha' && tok.kind !== 'aliado_ficha')) return;
         if(key !== liveBoardKey(tok.anchorR, tok.anchorC)) return; // só a casa-âncora, uma vez por peça
-        if(fogActive && fogReachable && !fogReachable.has(key)) return;
+        if(fogActive && fogReachable && !fogReachable.has(key) && !rtVistoPorAtaque(tok)) return;
         const cellEl = liveBoardGridEl.children[tok.anchorR * cols + tok.anchorC];
         if(!cellEl) return;
         const mine = isMyLiveToken(tok);
@@ -22122,6 +22156,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       } : { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false, apMax:0, apRemaining:0 };
       try{ rtGlobRecebe(val); }catch(err){ console.error(err); }
       try{ rtPausaRecebe(val); }catch(err){ console.error(err); }
+      try{ rtFimRecebe(val); }catch(err){ console.error(err); }
       renderTurnBars();
     });
     // réplica em tempo real da animação de rolagem de dado/moeda -- pedido explícito ("a animação
@@ -25774,8 +25809,11 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
         <li><b>só restam inimigos no mapa</b> (nenhum jogador, aliado ou ficha aliada do mestre com vida);</li>
         <li><b>todos os inimigos do mapa foram eliminados</b> (🏆). Inimigos 💤 que ainda não acordaram contam como vivos, então o combate não acaba enquanto houver algum escondido.</li></ol>
       <p>O fim acontece 2 segundos depois (para dar tempo de uma cura) e só depois que todas as animações terminaram; o resumo abre normalmente. Inimigos nunca atacam quem já está com a Vida zerada.</p>
+      <p><b>Resumo para todos:</b> quando o combate acaba, o resumo abre também para os jogadores, só para ver (sem o XP extra para preencher). Quando o mestre concede XP extra, o valor aparece no resumo deles. Inimigos que não fizeram nada no combate (ficaram 💤 o tempo todo) não aparecem na lista.</p>
       <p>No resumo final aparece <b>"SE ESTA É A VONTADE DO IMPERADOR..."</b> quando todos os jogadores caíram, ou <b>"HEREGES PURGADOS!!!"</b> quando todos os inimigos caíram.</p>
       <p><b>⏸️ Pausa:</b> o último botão da linha em cima do tabuleiro (só o mestre) pausa a mesa. Enquanto pausada, a IA dos inimigos e reforços para e retoma do ponto em que estava, os jogadores não mexem no tabuleiro nem encerram a vez, e todos veem o aviso "MESA PAUSADA". Clique em ▶️ para continuar.</p>
+      <p><b>🚶 Movimento:</b> toda peça que muda de casa (andando sozinha, por habilidade, ou arrastada) desliza até a casa nova com som de passos: botas, passos pesados de armadura e máquinas, metal dos Necrons, zumbido dos drones. A IA anda casa a casa, devagar. A fumaça do "thumf" sai só no fim, na casa final, e só para quem enxerga a peça.</p>
+      <p><b>Aba em segundo plano:</b> a mesa continua rodando (IA, animações, fila) mesmo com a página do mestre ou do jogador minimizada ou em outra aba.</p>
       <p><b>🔍 Zoom:</b> passar o mouse numa peça do tabuleiro mostra a imagem dela grande, um pouco à direita do mouse, com uma caixa ao lado: nome, facção e unidade, vida, defesas, armas, efeitos ativos e (para o mestre) se a peça está 💤 em espera ou ❗ em alerta.</p>
       <p>O mestre também encerra quando quiser: botão 🏁 (ao lado da ampulheta) ou a aba <b>🏁 ENCERRAR COMBATE</b> no gerenciador do tabuleiro. Abre um resumo com dano causado e recebido, abates, críticos, curas, ataques e quem caiu, e os destaques do grupo.</p>
       <p><b>XP por abate</b>: quando o HP de um inimigo zera, <b>cada jogador que causou dano ou aplicou algum efeito nele</b> durante o combate ganha na hora <b>15 × o nível do inimigo</b>; quem deu o <b>golpe final</b> ganha <b>1,5×</b> esse valor (aparece um aviso ⭐ no tabuleiro, no chat e no Discord). Vale para abates por ataque, poder, ataque de oportunidade ou queimadura, uma vez por inimigo. Errar o ataque não conta como contribuição.</p>
@@ -25797,6 +25835,9 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
         <li><b>💤 Aguardando:</b> o inimigo do Bestiário com turno automático que ainda não avistou nem foi avistado continua na fila de iniciativa, mas passa a vez em silêncio: não anda, não ataca e não manda nada para o chat nem para o Discord.</li>
         <li><b>❗ Alerta:</b> ele acorda quando avista alguém, quando é avistado ou quando leva dano. Aí sai o anúncio da vez e o aviso no chat ("👁️ X avista Y!" ou "👁️ X foi avistado por Y e entra no combate!"), e ele age normalmente até o fim do combate, mesmo que perca o alvo de vista.</li>
         <li>Em mapas grandes, só os grupos avistados avançam; os outros ficam no lugar até alguém chegar perto.</li>
+        <li><b>Vez pulada:</b> peça 💤 não tem a vez considerada: quando chega a vez dela, a fila pula na hora para a próxima peça que pode agir (sem esperar). Se naquele momento ela já estiver vendo alguém, acorda e joga normalmente.</li>
+        <li><b>Atacado de longe:</b> quem é atacado por uma peça fora do seu campo de visão passa a ver o atacante até o fim da rodada seguinte.</li>
+        <li><b>Névoa com memória:</b> casa que o jogador já viu fica descoberta: a névoa (cinza, fumaça ou estranheza) não volta quando o personagem se afasta. O chão, as marcações e o sangue continuam visíveis; as peças de lá só aparecem enquanto estão à vista. Cada jogador guarda o que explorou em cada mapa; o mestre cobre tudo de novo com <b>🌫️ REFAZER NÉVOA</b> no gerenciador do tabuleiro.</li>
         <li><b>Fila de iniciativa:</b> enquanto está 💤, a peça (inimigo ou reforço) fica fora da fila que os jogadores veem e do anúncio da iniciativa, para não entregar que ela existe. O mestre a vê com 💤. Ela aparece na fila depois que acorda e age, ou quando leva dano.</li>
         <li><b>Facções rivais:</b> inimigos de facções diferentes do Bestiário (Caos, Drukhari, Orks, Necrons, T'au) também são inimigos entre si: podem se avistar, se atacar e levar ataques de oportunidade um do outro. Mas sempre preferem atacar os jogadores e os aliados; só atacam a outra facção quando não têm nenhum jogador ou aliado para atacar naquele turno, e ao avançar vão primeiro na direção do grupo. Inimigos sem facção (fichas do mestre) não entram nessa briga.</li>
         <li><b>Carregar um tabuleiro salvo:</b> as peças do Bestiário e os reforços voltam com a ficha, os efeitos e o turno automático. Se o combate já estiver rolando, quem chegou com o mapa entra no fim da fila com iniciativa sorteada, e quem saiu do tabuleiro sai da fila.</li>
@@ -29612,6 +29653,10 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       const inim = rtAllTokens().filter(t=> rtIsCombatToken(t) && rtSideOf(t) === 'inimigo');
       D.fim = (js.length && js.every(caido)) ? 'imperador' : (D.inimigos.length && inim.length && inim.every(caido)) ? 'hereges' : '';
     }catch(e){ D.fim = ''; }
+    // inimigos que não fizeram nada no combate (ficaram 💤 o tempo todo) não entram no resumo
+    try{ D.inimigos = D.inimigos.filter(s=>{ if(s.at || s.dc || s.cu || s.ab || s.dr || s.q) return true; const t = rtTokenById(s.id); return !!(t && t.bst && rtAiAlerta(t)); }); }catch(e){}
+    // o resumo vai junto do turno para os jogadores verem (só leitura)
+    try{ RT_FIM = { ts: Date.now(), v: 0, D: JSON.parse(JSON.stringify(D)) }; }catch(e){ RT_FIM = null; }
     // fecha a fila de turnos
     turnState = { active:false, round:1, order:[], baseOrder:[], turnIndex:0, moved:false, rolled:false, apMax:0, apRemaining:0 };
     try{ turnUndoHistory = []; }catch(e){}
@@ -29621,7 +29666,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
     postToDiscord(`🏁 FIM DO COMBATE (${D.rodadas} rodada${D.rodadas > 1 ? 's' : ''})` + (D.fim === 'imperador' ? ' — SE ESTA É A VONTADE DO IMPERADOR...' : D.fim === 'hereges' ? ' — HEREGES PURGADOS!!!' : '') + `\n` + D.grupo.map(linha).join('\n') + (D.inimigos.length ? `\nInimigos abatidos: ${D.inimigos.filter(s=> s.q).length}/${D.inimigos.length}` : ''), null);
     rtShowSummary(D);
   }
-  function rtShowSummary(D){
+  function rtShowSummary(D, soVer){
     const old = document.getElementById('rtCombatSummary'); if(old) old.remove();
     const box = document.createElement('div');
     box.id = 'rtCombatSummary'; box.className = 'rt-summary';
@@ -29629,22 +29674,24 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
     const dest = [['dc', '⚔️ Mais dano'], ['ab', '💀 Mais abates'], ['cu', '🩹 Mais cura'], ['dr', '🛡️ Mais dano aguentado']].map(([k, t])=>{ const m = melhor(k); return m ? `<span><b>${t}:</b> ${rtEsc(m.n)} (${m[k]})</span>` : ''; }).join('');
     const tabela = (lista, xp)=> '<table class="rt-summary-tab"><tr><th>Personagem</th><th>Dano causado</th><th>Dano recebido</th><th>Abates</th><th>Críticos</th><th>Curas</th><th>Ataques</th>' + (xp ? '<th>XP ganho</th><th>XP extra</th>' : '') + '</tr>'
       + lista.map(s=> `<tr class="${s.q ? 'caiu' : ''}"><td>${rtEsc(s.n)}${s.q ? ' 💀' : ''}</td><td>${s.dc}</td><td>${s.dr}</td><td>${s.ab}</td><td>${s.cr}</td><td>${s.cu}</td><td>${s.at}</td>`
-        + (xp ? `<td>⭐ ${s.xp || 0}</td><td>${s.u ? `<input type="number" min="0" step="5" data-xp-uid="${rtEsc(s.u)}" data-xp-nome="${rtEsc(s.n)}" value="0">` : '<small>sem dono</small>'}</td>` : '') + '</tr>').join('') + '</table>';
+        + (xp ? `<td>⭐ ${s.xp || 0}</td><td>${soVer ? ((D.extra || {})[s.u] ? '⭐ +' + (D.extra || {})[s.u] : '—') : s.u ? `<input type="number" min="0" step="5" data-xp-uid="${rtEsc(s.u)}" data-xp-nome="${rtEsc(s.n)}" value="0">` + ((D.extra || {})[s.u] ? ` <small>já: +${(D.extra || {})[s.u]}</small>` : '') : '<small>sem dono</small>'}</td>` : '') + '</tr>').join('') + '</table>';
     box.innerHTML = '<div class="rt-summary-card"><div class="rt-summary-head">🏁 Fim do combate <small>' + D.rodadas + ' rodada(s)</small><button type="button" class="rt-btn" data-x>✕</button></div>'
       + (D.fim === 'imperador' ? '<div class="rt-summary-fim rt-fim-imperador">💀 SE ESTA É A VONTADE DO IMPERADOR... 💀</div>' : D.fim === 'hereges' ? '<div class="rt-summary-fim rt-fim-hereges">🔥 HEREGES PURGADOS!!! 🔥</div>' : '')
       + (dest ? '<div class="rt-summary-dest">' + dest + '</div>' : '')
       + '<h4>Grupo</h4>' + tabela(D.grupo, true)
       + (D.inimigos.length ? '<h4>Inimigos</h4>' + tabela(D.inimigos, false) : '')
-      + '<div class="rt-hint">O XP já foi entregue automaticamente a cada abate: 15 × nível do inimigo para cada jogador que causou dano ou aplicou efeito nele, e 1,5× para quem deu o golpe final. Use "XP extra" para recompensas de missão ou bônus do mestre.</div>'
-      + '<div class="rt-summary-acoes"><button type="button" class="rt-btn" data-dar-xp>⭐ Conceder XP extra</button><button type="button" class="rt-btn" data-x>Fechar</button></div></div>';
+      + '<div class="rt-hint">O XP já foi entregue automaticamente a cada abate: 15 × nível do inimigo para cada jogador que causou dano ou aplicou efeito nele, e 1,5× para quem deu o golpe final. ' + (soVer ? 'O "XP extra" é dado pelo mestre.' : 'Use "XP extra" para recompensas de missão ou bônus do mestre.') + '</div>'
+      + '<div class="rt-summary-acoes">' + (soVer ? '' : '<button type="button" class="rt-btn" data-dar-xp>⭐ Conceder XP extra</button>') + '<button type="button" class="rt-btn" data-x>Fechar</button></div></div>';
     document.body.appendChild(box);
     box.addEventListener('click', (e)=>{
       if(e.target === box || e.target.closest('[data-x]')){ box.remove(); return; }
       const b = e.target.closest('[data-dar-xp]');
-      if(b && !b.disabled){
+      if(b && !b.disabled && currentRole === 'mestre'){
         const dados = [...box.querySelectorAll('[data-xp-uid]')].map(i=> ({ uid: i.dataset.xpUid, nome: i.dataset.xpNome, xp: Math.max(0, parseInt(i.value, 10) || 0) })).filter(x=> x.xp > 0);
         dados.forEach(x=>{ try{ grantXpToPlayer(x.uid, x.xp, x.nome); }catch(err){ console.error(err); } });
         if(dados.length) postToDiscord('⭐ XP extra do combate: ' + dados.map(x=> `${x.nome} +${x.xp}`).join(', '), null);
+        // os jogadores veem no resumo deles o XP extra que o mestre deu
+        try{ if(dados.length && RT_FIM && RT_FIM.D){ RT_FIM.D.extra = RT_FIM.D.extra || {}; dados.forEach(x=>{ RT_FIM.D.extra[x.uid] = (RT_FIM.D.extra[x.uid] || 0) + x.xp; }); RT_FIM.v = (RT_FIM.v || 0) + 1; pushTurnState(); } }catch(err){}
         b.disabled = true; b.textContent = '✓ XP extra concedido';
       }
     });
@@ -33414,7 +33461,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       rtMoveToken(t, para.r, para.c);
       const r = rtTurnRt(); r.mp = Math.max(0, (r.mp || 0) - 1);
       try{ rtOpportunityAttacks(rtTokenById(id) || t, de, para); }catch(err){ console.error(err); }
-      await rtAiEspera(220);
+      await rtAiEspera(560);   // passo a passo, devagar (a peça desliza até a casa nova com som de passos)
     }
     return true;
   }
@@ -35949,6 +35996,48 @@ RTA_IMG.cajado_navis = `
       return o;
   }; }
 
+  // peças em espera (💤: turno automático, ainda não avistaram nem foram avistadas nem levaram dano)
+  // não têm a vez considerada: a fila pula direto para a próxima peça que pode agir, sem esperar.
+  // Se na hora ela já estiver vendo alguém, deixa de estar em espera e joga normalmente.
+  function rtPulaEspera(){
+    if(!turnState.active || !Array.isArray(turnState.order) || !turnState.order.length) return 0;
+    // todo mundo em espera (nenhum jogador na fila): não fica girando rodadas à toa
+    const espera = e=>{ const t = e && rtTokenById(e.id); return !!(t && rtAiDormindo(t)); };
+    if(turnState.order.every(e=> espera(e) || isTurnEntryKnockedOut(e))) return 0;
+    let n = 0;
+    for(let g = 0; g < turnState.order.length; g++){
+      const e = currentTurnEntry(); if(!e) break;
+      const t = rtTokenById(e.id);
+      if(!t || !rtAiDormindo(t)) break;
+      turnState.turnIndex = (turnState.turnIndex || 0) + 1;
+      if(turnState.turnIndex >= turnState.order.length){
+        turnState.turnIndex = 0; turnState.round = (turnState.round || 1) + 1;
+        if(turnState.baseOrder && turnState.baseOrder.length) turnState.order = turnState.baseOrder.slice();
+      }
+      n++;
+    }
+    return n;
+  }
+
+  // ---------- resumo do fim do combate também para os jogadores (só leitura) ----------
+  var RT_FIM = null;
+  let RT_FIM_VISTO = '';
+  function rtFimRecebe(val){
+    const f = (val && val.fim) || null;
+    RT_FIM = f;
+    if(currentRole === 'mestre') return;
+    if(!f || !f.D || !f.ts){ return; }
+    const chave = f.ts + ':' + (f.v || 0);
+    if(chave === RT_FIM_VISTO) return;
+    const primeiraVez = !RT_FIM_VISTO.startsWith(f.ts + ':');
+    RT_FIM_VISTO = chave;
+    const aberto = document.getElementById('rtCombatSummary');
+    // abre quando o combate acaba (até 15 min depois); se já estiver aberto, atualiza o XP extra
+    if(aberto || (primeiraVez && Date.now() - f.ts < 15 * 60 * 1000)){
+      try{ rtShowSummary(Object.assign({ grupo:[], inimigos:[] }, f.D), true); }catch(e){ console.error('resumo', e); }
+    }
+  }
+
 
   // =====================================================================================
   // MARCAS DE COMBATE NO TABULEIRO + CAVEIRA NO FIM DA AÇÃO
@@ -36224,7 +36313,7 @@ RTA_IMG.cajado_navis = `
       const agora = Date.now(); const novas = new Set();
       Object.entries(porCasa).forEach(([key, ds])=>{
         const d0 = ds[0]; const cell = getCellEl(d0.r, d0.c); if(!cell) return;
-        const visivel = revelado && (!fogOk || fogOk.has(liveBoardKey ? liveBoardKey(d0.r, d0.c) : key));
+        const lk = liveBoardKey(d0.r, d0.c); const visivel = revelado && (!fogOk || fogOk.has(lk) || rtExplorado(lk));
         ds.sort((a, b)=> a.ts - b.ts);
         const sig = (visivel ? 'v' : 'h') + ds.map(d=> d.id).join('|');
         novas.add(cell);
@@ -36426,6 +36515,155 @@ RTA_IMG.cajado_navis = `
     RT_ZOOM.el.innerHTML = rtZoomHtml(tok, img && img.backgroundImage ? img.backgroundImage : '');
     rtZoomPosiciona();
   }, 600);
+
+
+  // =====================================================================================
+  // NÉVOA COM MEMÓRIA + QUEM ATACA DE LONGE APARECE
+  // - Casa que o jogador já viu fica descoberta: a névoa (cinza/fumaça/estranheza) não volta quando
+  //   o personagem se afasta. O mapa, as marcações e o sangue continuam visíveis; as PEÇAS de fora do
+  //   alcance continuam escondidas (só aparecem enquanto estão à vista).
+  //   Fica guardado no navegador de cada jogador, por mapa. O mestre pode zerar (🌫️ REFAZER NÉVOA).
+  // - Quem é atacado por uma peça fora do campo de visão passa a ver o atacante até o fim da
+  //   rodada seguinte.
+  // =====================================================================================
+  var RT_EXP = { chave:'', set: new Set(), t: 0 };
+  function rtExpChave(){
+    const s = liveBoardState || {}; const bg = String(s.background || ''); let h = 0;
+    for(let i = 0; i < bg.length; i += 97) h = (h * 31 + bg.charCodeAt(i)) | 0;
+    return 'rtExp:' + (s.rows || 0) + 'x' + (s.cols || 0) + ':' + bg.length + ':' + h + ':' + (((s.marks || {}).__expV) || 0);
+  }
+  function rtExpSync(){
+    const k = rtExpChave(); if(k === RT_EXP.chave) return;
+    RT_EXP.chave = k; RT_EXP.set = new Set();
+    try{ const v = localStorage.getItem(k); if(v) JSON.parse(v).forEach(x=> RT_EXP.set.add(x)); }catch(e){}
+  }
+  function rtExplorado(key){
+    if(currentRole === 'mestre') return true;
+    try{ rtExpSync(); return RT_EXP.set.has(key); }catch(e){ return false; }
+  }
+  function rtExpRegistra(conj){
+    if(!conj || currentRole === 'mestre') return;
+    rtExpSync(); let novo = false;
+    conj.forEach(k=>{ if(!RT_EXP.set.has(k)){ RT_EXP.set.add(k); novo = true; } });
+    if(novo){ clearTimeout(RT_EXP.t); RT_EXP.t = setTimeout(()=>{ try{ localStorage.setItem(RT_EXP.chave, JSON.stringify([...RT_EXP.set])); }catch(e){} }, 600); }
+  }
+  // mestre: 🌫️ REFAZER NÉVOA (todos os jogadores esquecem o que exploraram neste mapa)
+  document.addEventListener('click', (e)=>{
+    const b = e.target.closest && e.target.closest('#rtExpZerar'); if(!b || currentRole !== 'mestre') return;
+    if(!confirm('Cobrir de novo com névoa tudo o que os jogadores já exploraram neste mapa?')) return;
+    boardMarks.__expV = ((+boardMarks.__expV) || 0) + 1;
+    try{ scheduleBoardMarksPush(); }catch(err){}
+    postToDiscord('🌫️ A NÉVOA VOLTA A COBRIR O MAPA.', null);
+  });
+  setInterval(()=>{ const b = document.getElementById('rtExpZerar'); if(b) b.hidden = currentRole !== 'mestre'; }, 1000);
+
+  // ---------- atacado por alguém que não estava à vista ----------
+  var RT_VISTO = {};
+  function rtVistoPorAtaque(tok){
+    if(!tok || currentRole === 'mestre') return false;
+    const ate = RT_VISTO[tok.id]; if(!ate) return false;
+    if(!turnState.active || (turnState.round || 1) > ate){ delete RT_VISTO[tok.id]; return false; }
+    return true;
+  }
+  function rtVistoRegistra(aA, tA, val){
+    if(currentRole === 'mestre' || !aA || !val) return;
+    const pool = rtTokenPool() || {};
+    const att = pool[rtBoardKeyOf(aA.r, aA.c)]; if(!att || isBlockKind(att.kind) || isMyLiveToken(att)) return;
+    const alvos = (val.kind === 'multi' ? (val.multi || []).map(m=> ({ r: m.r, c: m.c })) : []).concat(tA ? [tA] : []);
+    const meu = alvos.some(a=>{ const t = pool[rtBoardKeyOf(a.r, a.c)]; return t && t.id !== att.id && isMyLiveToken(t); });
+    if(!meu) return;
+    const novo = !RT_VISTO[att.id];
+    RT_VISTO[att.id] = (turnState.round || 1) + 1;
+    try{ rtExpRegistra([liveBoardKey(att.anchorR, att.anchorC)]); }catch(e){}
+    if(novo){ try{ renderLiveBoardMini(); }catch(e){} }
+  }
+  { const f = rtSpawnAttackFx; rtSpawnAttackFx = function(aA, tA, val){ try{ rtVistoRegistra(aA, tA, val); }catch(e){} return f.apply(this, arguments); }; }
+
+
+  // =====================================================================================
+  // MOVIMENTO MACIO + SOM DE PASSOS
+  // Toda peça que muda de casa desliza da casa antiga até a nova (em todos os navegadores: vale
+  // para a IA, para o mestre e para os jogadores), com passos no ritmo do deslizamento. O som
+  // muda com a peça: botas, passos pesados de armadura/máquina, metal dos Necrons, zumbido dos drones.
+  // =====================================================================================
+  const RT_MOV_POS = {};
+  function rtMovPasso(tipo, delay){
+    if(document.hidden) return;
+    try{
+      const d = delay || 0;
+      if(tipo === 'drone'){ rtsNoise(0.18, { tipo:'bandpass', f0: 700, f1: 900, q: 2, vol: 0.05, ataque: 0.05, delay: d }); return; }
+      if(tipo === 'metal'){
+        rtsNoise(0.06, { tipo:'bandpass', f0: 2200, q: 4, vol: 0.06, delay: d });
+        playTone(160 + Math.random() * 30, 0.09, { type:'triangle', gain: 0.045, freqEnd: 90, delay: d });
+        return;
+      }
+      if(tipo === 'pesado'){
+        rtsNoise(0.12, { tipo:'lowpass', f0: 260, vol: 0.2, delay: d });
+        playTone(55 + Math.random() * 10, 0.14, { type:'sine', gain: 0.09, freqEnd: 35, delay: d });
+        rtsNoise(0.04, { tipo:'bandpass', f0: 1400, q: 3, vol: 0.03, delay: d + 0.01 });
+        return;
+      }
+      // botas
+      rtsNoise(0.07, { tipo:'lowpass', f0: 420 + Math.random() * 120, vol: 0.13, delay: d });
+      playTone(80 + Math.random() * 20, 0.06, { type:'sine', gain: 0.035, freqEnd: 50, delay: d });
+    }catch(e){}
+  }
+  function rtMovTipo(tok){
+    const b = (tok && tok.bst) || {};
+    if(b.f === 'tau' && b.u === 'drone') return 'drone';
+    if(b.f === 'necrons') return (tok.size || 1) > 1 ? 'pesado' : 'metal';
+    if((tok && tok.size || 1) > 1) return 'pesado';
+    if(['crise', 'riptide', 'furtivo', 'traidor', 'chefe_guerra', 'demonio_maior', 'grotesco', 'tempestus'].includes(b.u)) return 'pesado';
+    return 'botas';
+  }
+  function rtMovVe(el){
+    const id = el.dataset.tokenId; const cell = el.parentElement;
+    if(!id || !cell || !cell.classList || !cell.classList.contains('board-cell')) return;
+    if(el.classList.contains('token-block') || el.classList.contains('rt-cav-fantasma')) return;
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    const a = RT_MOV_POS[id];
+    if(a && a.r === r && a.c === c){ a.x = cell.offsetLeft; a.y = cell.offsetTop; return; }   // redesenho na mesma casa
+    const p = { r, c, x: cell.offsetLeft, y: cell.offsetTop, t: Date.now(), mv: ((a && a.mv) || 0) + 1 };
+    RT_MOV_POS[id] = p;
+    if(!a || isNaN(r)) return;
+    if(Date.now() - a.t > 4000 && document.hidden) return;   // aba estava escondida: sem deslizar atrasado
+    const n = Math.max(Math.abs(a.r - r), Math.abs(a.c - c));
+    if(n > 40) return;
+    const dx = a.x - p.x, dy = a.y - p.y;
+    const dur = Math.min(1100, 160 + 300 * n);
+    try{
+      el.style.zIndex = 15;
+      const an = el.animate([{ transform:`translate(${dx}px, ${dy}px)` }, { transform:'translate(0px, 0px)' }], { duration: dur, easing:'cubic-bezier(.42,.08,.32,1)' });
+      an.onfinish = an.oncancel = ()=>{ el.style.zIndex = ''; };
+    }catch(e){}
+    // fumaça e "thumf" só no fim da movimentação, na casa final (se a peça não continuar andando)
+    setTimeout(()=>{
+      const q = RT_MOV_POS[id]; if(!q || q.mv !== p.mv) return;
+      const atual = [...document.querySelectorAll('#liveBoardGrid .board-token')].find(x=> x.dataset.tokenId === id);
+      if(!atual) return;   // fora da vista (névoa): sem fumaça
+      const rc = atual.getBoundingClientRect(); if(!rc.width) return;
+      try{ if(!document.hidden) playThumfSound(); spawnBoardSmokeBurst(rc.left + rc.width / 2, rc.top + rc.height / 2); }catch(e){}
+    }, dur + 260);
+    let tok = null; try{ tok = rtTokenById(id); }catch(e){}
+    const tipo = rtMovTipo(tok);
+    const passos = Math.max(2, Math.min(8, n * 2));
+    for(let i = 0; i < passos; i++) rtMovPasso(tipo, (i * dur / passos) / 1000);
+  }
+  (function rtMovLiga(){
+    const g = document.getElementById('liveBoardGrid');
+    if(!g){ setTimeout(rtMovLiga, 500); return; }
+    new MutationObserver(lista=>{
+      lista.forEach(m=> m.addedNodes.forEach(nd=>{
+        if(nd.nodeType !== 1) return;
+        if(nd.classList.contains('board-token')) rtMovVe(nd);
+        else if(nd.querySelectorAll) nd.querySelectorAll('.board-token').forEach(rtMovVe);
+      }));
+    }).observe(g, { childList: true, subtree: true });
+  })();
+
+  // a fumaça antiga saía na hora em que a posição chegava pelo Firebase (no meio do caminho, e até
+  // de peças escondidas na névoa); agora ela sai no fim do deslizamento, acima
+  { const f = playBoardMoveFxAt; playBoardMoveFxAt = function(){ if(typeof rtReady !== 'undefined' && rtReady) return; return f.apply(this, arguments); }; }
 
   rtInit();
 
