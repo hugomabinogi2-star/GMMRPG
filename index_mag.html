@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<script src="index_mag_imagens.js?v=f2372d8f7d"></script>
+<script src="index_mag_imagens.js?v=b39a30792d"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rogue Trader — Mesa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4509,24 +4509,26 @@ body.rt-on .mc-rt-hide, body.rt-on .mc-deidade-control{ display:none !important;
 html body{
   background-color:#070405;
   background-image:
+    linear-gradient(180deg, rgba(7,4,5,.10) 0%, rgba(7,4,5,.30) 55%, rgba(7,4,5,.78) 100%),
+    var(--rt-fundo, none),
     radial-gradient(ellipse 80% 55% at 50% 0%, rgba(125,17,22,.38), transparent 65%),
     radial-gradient(ellipse 60% 40% at 50% 100%, rgba(212,172,90,.08), transparent 70%),
-    repeating-linear-gradient(45deg, rgba(255,255,255,.014) 0 1px, transparent 1px 10px),
     linear-gradient(180deg, #0d0708, #050304);
-  background-repeat:no-repeat, no-repeat, repeat, no-repeat;
-  background-size:auto, auto, auto, auto;
-  background-attachment:fixed, fixed, fixed, fixed;
-  background-position:center top, center bottom, 0 0, 0 0;
+  background-repeat:no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  background-size:cover, cover, auto, auto, auto;
+  background-attachment:fixed, fixed, fixed, fixed, fixed;
+  background-position:center, center top, center top, center bottom, 0 0;
 }
 html body .login-gate{
   background-color:#050304;
   background-image:
+    radial-gradient(ellipse 45% 55% at 50% 50%, rgba(5,3,4,.55), transparent 75%),
+    var(--rt-login, none),
     radial-gradient(ellipse 70% 50% at 50% 30%, rgba(125,17,22,.45), transparent 70%),
-    repeating-linear-gradient(45deg, rgba(212,172,90,.025) 0 1px, transparent 1px 12px),
     linear-gradient(180deg, #0d0708, #030202);
-  background-repeat:no-repeat, repeat, no-repeat;
-  background-size:auto, auto, cover;
-  background-position:center, 0 0, center;
+  background-repeat:no-repeat, no-repeat, no-repeat, no-repeat;
+  background-size:cover, cover, auto, cover;
+  background-position:center, center, center, center;
 }
 
 @media (max-width:520px){
@@ -61510,6 +61512,14 @@ if (ty) ty.busca += " tiranideos tyranids enxame sinapse";
 }
 }
 const RT_FORJA_IMG = window.RT_IMG && window.RT_IMG.forja || "";
+const RT_FUNDO_IMG = window.RT_IMG && window.RT_IMG.fundo || "";
+try {
+if (RT_FUNDO_IMG) document.documentElement.style.setProperty("--rt-fundo", 'url("' + RT_FUNDO_IMG + '")');
+} catch (e) {}
+const RT_LOGIN_IMG = window.RT_IMG && window.RT_IMG.login || "";
+try {
+if (RT_LOGIN_IMG) document.documentElement.style.setProperty("--rt-login", 'url("' + RT_LOGIN_IMG + '")');
+} catch (e) {}
 const RT_FZ = {
 aba: "w",
 set: null,
