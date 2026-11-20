@@ -6563,6 +6563,8 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
 .rt-zoom-fx{ border-top:1px solid rgba(224,182,86,.25); padding-top:4px; color:#ffd9a0; }
 .rt-zoom-ia{ font-size:10.5px; color:#8fd3ff; border-top:1px solid rgba(224,182,86,.25); padding-top:4px; }
 .rt-summary-card button, .rt-summary-card input{ text-transform:uppercase; }
+.rt-auto-aviso{ position:fixed; left:50%; bottom:18px; transform:translate(-50%, 20px); z-index:9700; background:rgba(20,16,12,.95); border:1px solid #5fbf4a; color:#cfeec4; font:700 11px Roboto, Arial, sans-serif; letter-spacing:.06em; padding:6px 14px; border-radius:16px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
+.rt-auto-aviso.on{ opacity:1; transform:translate(-50%, 0); }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -19536,6 +19538,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       const result = await githubPutFile(path, state, `Salva ficha de ${state.nome}`, path === loadedFichaPath ? loadedFichaSha : null);
       cloudSaveBtn.textContent = '✓ SALVO!';
       if(rtReady) rtMarkSaved(state.rt);
+      try{ rtAutoDepoisSalvar(state); }catch(err){}
       // fixa essa origem (e o sha novo, retornado pelo GitHub) — salvamentos seguintes nesta mesma
       // sessão continuam indo pro mesmo lugar e já pulam a busca do sha também.
       loadedFichaPath = path;
@@ -25859,6 +25862,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
     add(R, 'ficha', 'Ficha: criação, trava e equipamento', 'Regras da ficha', `
       <ul><li>Criação: Mundo Natal → Origem → Triunfo e Hora mais Sombria → Arquétipo → 6 avanços de +5 (no máximo +10 em cada característica).</li>
       <li>Depois de salva, as escolhas ficam travadas para o jogador; só o mestre altera. Novos níveis continuam liberados.</li>
+      <li><b>💾 Salvamento automático:</b> depois do primeiro Salvar, o que a mesa muda na ficha (XP, vida, escudo, kits gastos, fadiga) se salva sozinho uns segundos depois, com o aviso "FICHA SALVA AUTOMATICAMENTE". Só esses campos: escolhas que o jogador ainda não salvou (talentos, carreira, distribuição) não entram nem travam. O XP dado pelo mestre também vai direto para a ficha salva, mesmo com o jogador desconectado, e nunca conta duas vezes.</li>
       <li>Armas e armaduras vêm de listas fixas; bônus de peça especial só o mestre mexe depois de salvar. "+ adicionar bônus" abre uma janela com cada efeito explicado, o valor (− / +) e a tabela de como a arma ou armadura fica (Hoje → Com o efeito); OK aplica. Clicar num bônus já posto abre a mesma janela para editar (valor 0 remove).</li>
       <li>Os efeitos <b>Característica (+/−)</b> e <b>Perícia (+/−)</b> de armas e armaduras somam (ou tiram) pontos enquanto o item estiver equipado; aparecem na linha "Modificadores" do card e no detalhe da característica. Não há mais modificadores manuais na ficha.</li>
       <li>Talentos marcados ⚙ são aplicados sozinhos na ficha e no tabuleiro.</li></ul>`, 'ficha criacao trava salvar');
@@ -26370,9 +26374,11 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
   function rtApplySaveLocks(){
     const on = rtLockOn();
     document.querySelectorAll('#rtSheet .rt-lock-hint').forEach(el=>{ el.hidden = !on; });
+    // destrava o que a ficha anterior tinha travado (ex.: "Nova ficha" depois de abrir uma ficha salva)
+    document.querySelectorAll('#rtSheet [data-rt-trava]').forEach(el=>{ delete el.dataset.rtTrava; if(el.id !== 'rtA2') el.disabled = !rtCanEdit(); if(el.title === RT_LOCK_TIP) el.title = ''; });
     if(!on) return;
-    Object.keys(RT_LOCK_IDS).forEach(id=>{ const el = rtEl(id); if(el && rtIsLockedField(RT_LOCK_IDS[id])){ el.disabled = true; el.title = RT_LOCK_TIP; } });
-    document.querySelectorAll('#rtSheet .rt-slot-sel').forEach(el=>{ if(rtIsLockedSlot(+el.dataset.rtLv, +el.dataset.rtI)){ el.disabled = true; el.title = RT_LOCK_TIP; } });
+    Object.keys(RT_LOCK_IDS).forEach(id=>{ const el = rtEl(id); if(el && rtIsLockedField(RT_LOCK_IDS[id])){ el.disabled = true; el.title = RT_LOCK_TIP; el.dataset.rtTrava = '1'; } });
+    document.querySelectorAll('#rtSheet .rt-slot-sel').forEach(el=>{ if(rtIsLockedSlot(+el.dataset.rtLv, +el.dataset.rtI)){ el.disabled = true; el.title = RT_LOCK_TIP; el.dataset.rtTrava = '1'; } });
     document.querySelectorAll('#rtSheet [data-rt-mod]').forEach(el=>{ el.disabled = true; el.title = 'Depois que a ficha é salva, só o mestre altera os modificadores.'; });
     document.querySelectorAll('#rtSheet [data-rt-dist][data-d="-1"]').forEach(el=>{ const c = el.dataset.rtDist; if((parseInt(rtState.dist[c], 10) || 0) <= rtDistMin(c)){ el.disabled = true; el.title = RT_LOCK_TIP; } });
   }
@@ -36664,6 +36670,168 @@ RTA_IMG.cajado_navis = `
   // a fumaça antiga saía na hora em que a posição chegava pelo Firebase (no meio do caminho, e até
   // de peças escondidas na névoa); agora ela sai no fim do deslizamento, acima
   { const f = playBoardMoveFxAt; playBoardMoveFxAt = function(){ if(typeof rtReady !== 'undefined' && rtReady) return; return f.apply(this, arguments); }; }
+
+
+  // =====================================================================================
+  // SALVAMENTO AUTOMÁTICO DA FICHA (o que a mesa muda não se perde ao fechar a janela)
+  // 1) Ficha de jogador já salva: quando a mesa mexe nela (XP, vida, escudo, kits, fadiga), uns 3 s
+  //    depois ela se salva sozinha — só esses campos, por cima da última versão salva (escolhas da
+  //    ficha que o jogador ainda não salvou não entram e não travam).
+  // 2) O aviso de XP só sai da fila (mesa40k/xpGrants) depois que a ficha foi gravada com ele; cada
+  //    aviso tem um id guardado na ficha (xpGrantsAplicados), então nunca conta duas vezes.
+  // 3) O mestre, ao dar XP, também soma direto na ficha salva do jogador — vale mesmo com o jogador
+  //    desconectado (a fila só aplica de novo se a ficha ainda não tiver aquele id).
+  // Tudo no mesmo lugar onde as fichas já são salvas (mesa40k/arquivos/fichas): sem regra nova.
+  // =====================================================================================
+  var RT_ASAVE = { base: null, aplicados: new Set(), pendentes: new Set(), sig: '', sigPronta: 0, t: 0, salvando: false, de: 0 };
+  // ---------- o que conta como "mudado pela mesa" ----------
+  function rtAutoSig(){
+    try{
+      const kits = (typeof getLockedItemQty === 'function') ? getLockedItemQty('KIT DE PRIMEIROS SOCORROS') : 0;
+      return [els.xp && els.xp.dataset.total, els.curVida && els.curVida.value, els.curMana && els.curMana.value, els.barreiraCur && els.barreiraCur.value, els.barreiraMax && els.barreiraMax.value, kits, JSON.stringify((rtState && rtState.les) || null), RT_ASAVE.aplicados.size].join('|');
+    }catch(e){ return ''; }
+  }
+  function rtAutoDono(){
+    if(currentRole !== 'jogador' || !currentUser) return false;
+    // ficha nova salva agora há pouco: o dono ainda não foi lido de volta, mas está na versão salva
+    const b = RT_ASAVE.base;
+    if(!loadedFichaOwnerChave && !loadedFichaOwnerUid && b) return (b.donoChave && b.donoChave === currentUserKey) || (!b.donoChave && b.ownerUid === currentUser.uid);
+    if(loadedFichaOwnerChave) return !!currentUserKey && loadedFichaOwnerChave === currentUserKey;
+    return loadedFichaOwnerUid === currentUser.uid;
+  }
+  function rtAutoPode(){ return !!(RT_ASAVE.base && loadedFichaPath && rtAutoDono() && isFichaEditable() && fbReady && fbDb); }
+  // ficha carregada / nova
+  { const f = applyState; applyState = function(s){
+      const o = f.apply(this, arguments);
+      try{
+        RT_ASAVE.base = (s && s.base) ? JSON.parse(JSON.stringify(s)) : null;
+        RT_ASAVE.aplicados = new Set(Array.isArray(s && s.xpGrantsAplicados) ? s.xpGrantsAplicados : []);
+        RT_ASAVE.pendentes = new Set();
+        clearTimeout(RT_ASAVE.t); RT_ASAVE.de = 0;
+        // o recálculo logo depois de abrir não conta como mudança
+        RT_ASAVE.sig = ''; RT_ASAVE.sigPronta = Date.now() + 1500;
+      }catch(e){}
+      return o;
+  }; }
+  // a ficha gravada leva junto os ids de XP já aplicados
+  { const f = collectState; collectState = function(){
+      const st = f.apply(this, arguments);
+      try{ if(st && typeof st === 'object') st.xpGrantsAplicados = [...RT_ASAVE.aplicados].slice(-80); }catch(e){}
+      return st;
+  }; }
+  // salvamento manual (botão Salvar): vira a nova base e libera os avisos de XP
+  function rtAutoDepoisSalvar(state){
+    try{ RT_ASAVE.base = JSON.parse(JSON.stringify(state)); }catch(e){}
+    RT_ASAVE.sig = rtAutoSig(); clearTimeout(RT_ASAVE.t); RT_ASAVE.de = 0;
+    rtAutoLimpaFila();
+  }
+  function rtAutoLimpaFila(){
+    if(!fbDb || !currentUser || !RT_ASAVE.pendentes.size) return;
+    RT_ASAVE.pendentes.forEach(k=>{ try{ fbDb.ref('mesa40k/xpGrants/' + currentUser.uid + '/' + k).remove(); }catch(e){} });
+    RT_ASAVE.pendentes.clear();
+  }
+  // ---------- salva só os campos da mesa por cima da última versão salva ----------
+  const RT_AUTO_CAMPOS = ['xp', 'curVida', 'curMana', 'barreiraMax', 'barreiraCur', 'inventory', 'xpGrantsAplicados'];
+  async function rtAutoSalvar(){
+    if(!rtAutoPode() || RT_ASAVE.salvando){ RT_ASAVE.t = 0; return false; }
+    RT_ASAVE.salvando = true;
+    const sig = rtAutoSig();
+    try{
+      const st = collectState();
+      const m = JSON.parse(JSON.stringify(RT_ASAVE.base));
+      RT_AUTO_CAMPOS.forEach(k=>{ if(st[k] !== undefined) m[k] = st[k]; });
+      if(st.rt && st.rt.les){ m.rt = m.rt || {}; m.rt.les = st.rt.les; }
+      const r = await githubPutFile(loadedFichaPath, m, 'Salvamento automático de ' + (m.nome || 'ficha'), loadedFichaSha);
+      loadedFichaSha = (r && r.content && r.content.sha) ? r.content.sha : loadedFichaSha;
+      RT_ASAVE.base = m; RT_ASAVE.sig = sig; RT_ASAVE.de = 0; RT_ASAVE.t = 0;
+      rtAutoLimpaFila();
+      rtAutoAviso();
+      return true;
+    }catch(e){ console.error('salvamento automático', e); return false; }
+    finally{ RT_ASAVE.salvando = false; }
+  }
+  function rtAutoAviso(){
+    let el = document.getElementById('rtAutoAviso');
+    if(!el){ el = document.createElement('div'); el.id = 'rtAutoAviso'; el.className = 'rt-auto-aviso'; document.body.appendChild(el); }
+    el.textContent = '💾 FICHA SALVA AUTOMATICAMENTE';
+    el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+    clearTimeout(el.__t); el.__t = setTimeout(()=> el.classList.remove('on'), 2200);
+  }
+  // confere de tempos em tempos: mudou algo da mesa → salva 3 s depois (no máximo 10 s depois da 1ª mudança)
+  setInterval(()=>{
+    try{
+      if(!rtAutoPode()) return;
+      const s = rtAutoSig();
+      if(!RT_ASAVE.sig || Date.now() < RT_ASAVE.sigPronta){ RT_ASAVE.sig = s; return; }
+      if(s === RT_ASAVE.sig) return;
+      if(s === RT_ASAVE.visto && RT_ASAVE.t) return;   // nada novo desde a última olhada: deixa o timer correr
+      RT_ASAVE.visto = s;
+      if(!RT_ASAVE.de) RT_ASAVE.de = Date.now();
+      clearTimeout(RT_ASAVE.t);
+      RT_ASAVE.t = setTimeout(rtAutoSalvar, Date.now() - RT_ASAVE.de > 7000 ? 0 : 3000);
+    }catch(e){}
+  }, 1000);
+  // fechando a aba: tenta gravar o que faltou (o navegador não garante, por isso o salvamento acima é rápido)
+  window.addEventListener('pagehide', ()=>{ try{ if(rtAutoPode() && rtAutoSig() !== RT_ASAVE.sig) rtAutoSalvar(); }catch(e){} });
+
+  // ---------- 2) fila de XP: só sai depois de gravado ----------
+  handleXpGrant = function(snap){
+    const key = snap.key; const g = snap.val();
+    const tira = ()=>{ try{ if(xpGrantListenerRef) xpGrantListenerRef.child(key).remove(); }catch(e){} };
+    if(!g || typeof g.delta !== 'number' || !g.delta){ tira(); return; }
+    if(g.fichaId && g.fichaId !== currentFichaId) return;     // é de outra ficha deste jogador: espera ela ser aberta
+    const gid = g.gid || key;
+    if(RT_ASAVE.aplicados.has(gid)){ tira(); return; }        // a ficha já tem esse XP (salvo antes ou dado direto pelo mestre)
+    xpStep(g.delta); try{ playPlim(); }catch(e){}
+    RT_ASAVE.aplicados.add(gid);
+    RT_ASAVE.pendentes.add(key);
+    if(rtAutoPode()){ clearTimeout(RT_ASAVE.t); RT_ASAVE.t = setTimeout(rtAutoSalvar, 1500); }
+  };
+
+  // ---------- 3) mestre: XP também direto na ficha salva ----------
+  function rtXpFichaDe(uid, nome){
+    try{
+      const ts = rtAllTokens().filter(t=> t && t.kind === 'hero' && t.ownerUid === uid);
+      const n = String(nome || '').trim().toUpperCase();
+      const t = ts.find(x=> String(tokenTooltipText(x) || x.name || '').trim().toUpperCase() === n) || (ts.length === 1 ? ts[0] : null);
+      if(t && t.fichaId) return t.fichaId;
+      if(loadedFichaOwnerUid === uid && currentFichaId) return currentFichaId;
+    }catch(e){}
+    return null;
+  }
+  async function rtXpDireto(uid, delta, fichaId, gid){
+    try{
+      const snap = await fbDb.ref(FB_STORE_ROOT + '/fichas').once('value');
+      const todos = snap.val() || {};
+      const cand = Object.keys(todos).map(k=>{ const rec = todos[k]; let j = null; try{ j = JSON.parse(rec.json); }catch(e){} return { k, rec, j }; })
+        .filter(x=> x.j && (x.rec.ownerUid === uid || x.j.ownerUid === uid));
+      const alvo = (fichaId && cand.find(x=> x.j.fichaId === fichaId)) || (cand.length === 1 ? cand[0] : null);
+      if(!alvo) return false;
+      const ref = fbDb.ref(FB_STORE_ROOT + '/fichas/' + alvo.k);
+      const muda = rec=>{
+        if(!rec || !rec.json) return rec;
+        let j; try{ j = JSON.parse(rec.json); }catch(e){ return rec; }
+        const lista = Array.isArray(j.xpGrantsAplicados) ? j.xpGrantsAplicados : [];
+        if(lista.includes(gid)) return rec;
+        j.xp = String((parseFloat(j.xp) || 0) + delta);
+        j.xpGrantsAplicados = lista.concat([gid]).slice(-80);
+        return Object.assign({}, rec, { json: JSON.stringify(j, null, 2), sha: fbStoreNewSha(), porUid: currentUser.uid, ts: Date.now() });
+      };
+      if(typeof ref.transaction === 'function') await ref.transaction(muda);
+      else { const s2 = await ref.once('value'); await ref.set(muda(s2.val())); }
+      // o aviso da fila passa a valer só para esta ficha (não cai em outra ficha nova do jogador)
+      if(!fichaId && alvo.j.fichaId){ try{ const gr = fbDb.ref('mesa40k/xpGrants/' + uid + '/' + gid); const gs = await gr.once('value'); if(gs.exists()) await gr.update({ fichaId: alvo.j.fichaId }); }catch(e){} }
+      return true;
+    }catch(e){ console.error('XP direto na ficha', e); return false; }
+  }
+  { const f = grantXpToPlayer; grantXpToPlayer = function(uid, delta, nome){
+      if(typeof rtReady === 'undefined' || !rtReady || currentRole !== 'mestre' || !fbReady || !fbDb || !uid || !delta) return f.apply(this, arguments);
+      const fichaId = rtXpFichaDe(uid, nome);
+      const ref = fbDb.ref('mesa40k/xpGrants/' + uid).push();
+      const gid = ref.key;
+      ref.set({ delta, nome: nome || '', from: (currentUser && currentUser.uid) || null, ts: firebase.database.ServerValue.TIMESTAMP, gid, fichaId: fichaId || null });
+      rtXpDireto(uid, delta, fichaId, gid);
+  }; }
 
   rtInit();
 
