@@ -52230,7 +52230,7 @@ const m = rtAiMotivo(tok);
 if (!m) return false;
 rtAiMarcaAlerta(tok);
 pushTurnState();
-postToDiscord(m.visto ? `👁️ ${rtNm(tok)} avista ${rtNm(m.visto)}!` : m.quem ? `👁️ ${rtNm(tok)} foi avistado por ${rtNm(m.quem)} e entra no combate!` : `❗ ${rtNm(tok)} foi atacado e entra no combate!`, null);
+postToDiscord(m.por ? `👁️ ${rtNm(tok)} é alertado por ${rtNm(m.por)} (visão compartilhada)!` : m.visto ? `👁️ ${rtNm(tok)} avista ${rtNm(m.visto)}!` : m.quem ? `👁️ ${rtNm(tok)} foi avistado por ${rtNm(m.quem)} e entra no combate!` : `❗ ${rtNm(tok)} foi atacado e entra no combate!`, null);
 try {
 rtPlayAndBroadcast(tok, tok, {
 rt: 1,
@@ -65355,7 +65355,8 @@ p = JSON.parse(localStorage.getItem("rtPrefs") || "{}") || {};
 } catch (e) {}
 return Object.assign({
 vol: 100,
-semAnim: false
+semAnim: false,
+musica: 40
 }, p);
 })();
 function rtPrefsSalva() {
@@ -65419,7 +65420,7 @@ const b = document.getElementById("rtPrefsBtn");
 const el = document.createElement("div");
 el.id = "rtPrefs";
 el.className = "rt-prefs";
-el.innerHTML = "<b>⚙️ AJUSTES (SÓ NESTE NAVEGADOR)</b>" + "<label>🔊 Volume dos sons <span data-pv>" + RT_PREFS.vol + '%</span><input type="range" min="0" max="100" step="5" value="' + RT_PREFS.vol + '" data-p="vol"></label>' + '<label class="rt-prefs-chk"><input type="checkbox" data-p="semAnim"' + (RT_PREFS.semAnim ? " checked" : "") + "> Reduzir animações</label>" + '<button type="button" class="rt-btn" data-p-novo>🆕 O que há de novo</button>';
+el.innerHTML = "<b>⚙️ AJUSTES (SÓ NESTE NAVEGADOR)</b>" + "<label>🔊 Volume dos sons <span data-pv>" + RT_PREFS.vol + '%</span><input type="range" min="0" max="100" step="5" value="' + RT_PREFS.vol + '" data-p="vol"></label>' + "<label>🎵 Volume da música <span data-pm>" + RT_PREFS.musica + '%</span><input type="range" min="0" max="100" step="5" value="' + RT_PREFS.musica + '" data-p="musica"></label>' + '<label class="rt-prefs-chk"><input type="checkbox" data-p="semAnim"' + (RT_PREFS.semAnim ? " checked" : "") + "> Reduzir animações</label>" + '<button type="button" class="rt-btn" data-p-novo>🆕 O que há de novo</button>';
 document.body.appendChild(el);
 if (b) {
 const r = b.getBoundingClientRect();
@@ -65433,6 +65434,14 @@ RT_PREFS.vol = +t.value;
 el.querySelector("[data-pv]").textContent = t.value + "%";
 rtVolAplica();
 rtPrefsSalva();
+}
+if (t.dataset.p === "musica") {
+RT_PREFS.musica = +t.value;
+el.querySelector("[data-pm]").textContent = t.value + "%";
+rtPrefsSalva();
+try {
+rtMusicaVolume();
+} catch (err) {}
 }
 }));
 el.addEventListener("change", (e => {
@@ -65514,7 +65523,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "1.8";
+const RT_VERSAO_APP = "1.9";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -66693,6 +66702,281 @@ localStorage.setItem("rtMmCat", RT_MM_CAT);
 rtMmSync();
 } catch (e) {}
 }), 500);
+function rtVisaoDe(tok) {
+const key = liveBoardKey(tok.anchorR, tok.anchorC);
+const baseLimit = rtReady ? Math.max(8, rtcOrDefault(tok).pm || 6) : computeEffectiveMoveLimit(tok);
+const facing = tok.facing || null, oposta = facing ? oppositeFacingDir(facing) : null;
+const maxLimit = facing ? baseLimit + 3 : baseLimit;
+const vis = new Set([ key ]);
+computeLiveBoardReachable(tok.anchorR, tok.anchorC, maxLimit).forEach(((dist, rk) => {
+if (vis.has(rk)) return;
+const [rr, rc] = rk.split("_").map(Number);
+let lim = baseLimit;
+if (facing) {
+const dir = closestFacingDirection(rr - tok.anchorR, rc - tok.anchorC);
+if (dir === facing) lim = baseLimit + 3; else if (dir === oposta) lim = Math.max(0, baseLimit - 3);
+}
+if (dist > lim) return;
+if (hasLineOfSight(tok.anchorR, tok.anchorC, rr, rc)) vis.add(rk);
+}));
+return vis;
+}
+const rtVisaoCasas = t => {
+const [sr, sc] = tokenFootprintSize(t);
+return footprintCells(t.anchorR, t.anchorC, sr, sc).map((([r, c]) => liveBoardKey(r, c)));
+};
+{
+const f = computeFogReachableKeys;
+computeFogReachableKeys = function() {
+try {
+if (!rtReady) return f.apply(this, arguments);
+const toks = [];
+Object.keys(liveBoardState.tokens || {}).forEach((k => {
+const t = liveBoardState.tokens[k];
+if (t && k === liveBoardKey(t.anchorR, t.anchorC)) toks.push(t);
+}));
+const meus = toks.filter((t => isMyLiveToken(t)));
+if (!meus.length) return f.apply(this, arguments);
+const lado = toks.filter((t => !isBlockKind(t.kind) && boardActionSide(t) === "jogador" && !(rtIsDown && rtIsDown(t))));
+const vis = new Map;
+const visDe = t => {
+if (!vis.has(t.id)) vis.set(t.id, rtVisaoDe(t));
+return vis.get(t.id);
+};
+const seVeem = (a, b) => {
+const va = visDe(a), vb = visDe(b);
+return rtVisaoCasas(b).some((k => va.has(k))) && rtVisaoCasas(a).some((k => vb.has(k)));
+};
+const grupo = new Set(meus.map((t => t.id)));
+const fila = meus.slice();
+while (fila.length) {
+const a = fila.shift();
+lado.forEach((b => {
+if (grupo.has(b.id)) return;
+if (seVeem(a, b)) {
+grupo.add(b.id);
+fila.push(b);
+}
+}));
+}
+const out = new Set;
+toks.forEach((t => {
+if (grupo.has(t.id)) visDe(t).forEach((k => out.add(k)));
+}));
+return out;
+} catch (e) {
+console.error("visão compartilhada", e);
+return f.apply(this, arguments);
+}
+};
+}
+{
+const f = rtAiMotivo;
+rtAiMotivo = function(tok) {
+const m = f.apply(this, arguments);
+if (m) return m;
+try {
+const lado = rtSideOf(tok);
+if (!lado) return null;
+const amigos = rtAllTokens().filter((t => t && t.id !== tok.id && !isBlockKind(t.kind) && rtSideOf(t) === lado && !rtIsDown(t)));
+const foes = rtFoesOf(tok).filter((x => !rtIsDown(x)));
+for (const a of amigos) {
+if (!(rtAiVe(tok, a) && rtAiVe(a, tok))) continue;
+const alerta = a.bst || a.famOf ? rtAiAlerta(a) : true;
+const viu = foes.find((x => rtAiVe(a, x)));
+if (viu && (alerta || a.bst || a.famOf)) return {
+visto: viu,
+por: a
+};
+if (alerta && lado === "inimigo" && a.bst && rtAiAlerta(a)) {
+const alvo = foes[0];
+if (alvo) return {
+visto: alvo,
+por: a
+};
+}
+}
+} catch (e) {}
+return null;
+};
+}
+const RT_MUS_DIR = "audio/";
+const RT_MUS_EXT = [ "mp3", "ogg", "m4a", "wav", "opus", "webm", "aac", "flac" ];
+const RT_MUS_ARQ = {
+imperio: "imperium",
+orks: "orks",
+necrons: "Necrons",
+tau: "T'au",
+tiranideos: "Tyranids",
+drukhari: "Drukhari",
+caos: "Chaos Wastes",
+"caos:khorne": "Chaos Khorne",
+"caos:slaanesh": "Chaos Slaanesh",
+"caos:tzeentch": "Chaos Tzeentch"
+};
+const RT_MUS = {
+lado: null,
+desde: 0,
+atual: null,
+el: null,
+ext: {},
+falhou: {},
+fades: new Set,
+destravado: false
+};
+const rtMusVol = () => Math.max(0, Math.min(1, ((typeof RT_PREFS !== "undefined" ? RT_PREFS.musica : 40) || 0) / 100));
+function rtMusicaVolume() {
+if (RT_MUS.el && !RT_MUS.el.__saindo) RT_MUS.el.volume = rtMusVol();
+}
+function rtMusFaccao() {
+const cont = {};
+rtAllTokens().forEach((t => {
+if (!t || !t.bst || isBlockKind(t.kind) || rtIsDown(t) || rtSideOf(t) !== "inimigo") return;
+const f = t.bst.f;
+if (!f) return;
+const k = f === "caos" && RT_MUS_ARQ["caos:" + t.bst.v] ? "caos:" + t.bst.v : f;
+cont[f] = (cont[f] || 0) + 1;
+cont[">" + k] = (cont[">" + k] || 0) + 1;
+}));
+const f = Object.keys(cont).filter((k => k[0] !== ">")).sort(((a, b) => cont[b] - cont[a]))[0];
+if (!f) return "caos";
+if (f !== "caos") return RT_MUS_ARQ[f] ? f : "caos";
+const v = Object.keys(cont).filter((k => k.startsWith(">caos"))).sort(((a, b) => cont[b] - cont[a]))[0];
+return v ? v.slice(1) : "caos";
+}
+function rtMusAlvo() {
+if (!turnState.active || typeof RT_MORAL_EST === "undefined" || !RT_MORAL_EST) {
+RT_MUS.lado = null;
+return null;
+}
+const m = RT_MORAL_EST;
+const tot = m.g + m.v;
+if (!tot) return null;
+const pct = m.g / tot, agora = Date.now();
+if (!RT_MUS.lado) {
+RT_MUS.lado = pct >= .5 ? "j" : "i";
+RT_MUS.desde = agora;
+} else if (agora - RT_MUS.desde > 6e3) {
+if (RT_MUS.lado === "j" && pct < .45) {
+RT_MUS.lado = "i";
+RT_MUS.desde = agora;
+} else if (RT_MUS.lado === "i" && pct > .55) {
+RT_MUS.lado = "j";
+RT_MUS.desde = agora;
+}
+}
+if (RT_MUS.lado === "j" || !m.v) return "imperio";
+return rtMusFaccao();
+}
+function rtMusFade(el, para, ms, fim) {
+const de = el.volume, t0 = performance.now();
+RT_MUS.fades.add(el);
+const passo = () => {
+if (!RT_MUS.fades.has(el)) return;
+const k = Math.min(1, (performance.now() - t0) / ms);
+try {
+el.volume = Math.max(0, Math.min(1, de + (para - de) * k));
+} catch (e) {}
+if (k < 1) requestAnimationFrame(passo); else {
+RT_MUS.fades.delete(el);
+if (fim) fim();
+}
+};
+requestAnimationFrame(passo);
+}
+function rtMusPara() {
+const el = RT_MUS.el;
+RT_MUS.el = null;
+RT_MUS.atual = null;
+if (!el) return;
+el.__saindo = true;
+RT_MUS.fades.delete(el);
+rtMusFade(el, 0, 2500, (() => {
+try {
+el.pause();
+el.removeAttribute("src");
+el.load();
+} catch (e) {}
+}));
+}
+function rtMusAbre(chave, ok) {
+const nome = RT_MUS_ARQ[chave];
+if (!nome) return;
+const exts = RT_MUS.ext[chave] ? [ RT_MUS.ext[chave] ] : RT_MUS_EXT.slice();
+const el = new Audio;
+el.loop = true;
+el.preload = "auto";
+el.volume = 0;
+let i = 0;
+const tenta = () => {
+if (i >= exts.length) {
+RT_MUS.falhou[chave] = Date.now();
+if (RT_MUS.atual === chave) RT_MUS.atual = null;
+console.warn("música não encontrada: " + RT_MUS_DIR + nome + ".(" + RT_MUS_EXT.join("|") + ")");
+return;
+}
+el.src = RT_MUS_DIR + encodeURIComponent(nome) + "." + exts[i];
+};
+el.addEventListener("error", (() => {
+if (el.__saindo) return;
+i++;
+delete RT_MUS.ext[chave];
+tenta();
+}));
+el.addEventListener("canplay", (() => {
+RT_MUS.ext[chave] = exts[i];
+if (!el.__aberto) {
+el.__aberto = true;
+ok(el);
+}
+}), {
+once: false
+});
+tenta();
+}
+function rtMusToca(chave) {
+if (RT_MUS.atual === chave) {
+if (RT_MUS.el && RT_MUS.el.paused && RT_MUS.destravado) {
+RT_MUS.el.play().catch((() => {}));
+}
+return;
+}
+if (RT_MUS.falhou[chave] && Date.now() - RT_MUS.falhou[chave] < 6e4) return;
+rtMusPara();
+RT_MUS.atual = chave;
+rtMusAbre(chave, (el => {
+if (RT_MUS.atual !== chave) {
+try {
+el.pause();
+} catch (e) {}
+return;
+}
+RT_MUS.el = el;
+el.play().then((() => rtMusFade(el, rtMusVol(), 2500))).catch((() => {}));
+}));
+}
+[ "pointerdown", "keydown" ].forEach((ev => document.addEventListener(ev, (() => {
+RT_MUS.destravado = true;
+const el = RT_MUS.el;
+if (el && el.paused) {
+el.play().then((() => rtMusFade(el, rtMusVol(), 2e3))).catch((() => {}));
+}
+}), {
+capture: true,
+passive: true
+})));
+setInterval((() => {
+try {
+if (!rtReady) return;
+const alvo = rtMusVol() > 0 ? rtMusAlvo() : null;
+if (!alvo) {
+if (RT_MUS.atual) rtMusPara();
+return;
+}
+rtMusToca(alvo);
+if (RT_MUS.el && !RT_MUS.el.__saindo && !RT_MUS.fades.has(RT_MUS.el) && Math.abs(RT_MUS.el.volume - rtMusVol()) > .01) RT_MUS.el.volume = rtMusVol();
+} catch (e) {}
+}), 1e3);
 rtInit();
 recalc();
 })();
