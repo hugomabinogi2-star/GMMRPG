@@ -38986,12 +38986,13 @@ PER: 40 + L,
 WP: 30 + L,
 FEL: 30
 };
-let fer = 15 + 3 * L, arma = {
-nome: "Mordida",
+let fer, arma, pm, esq, arm, defl = 0, apa = 30, ac = 50 + L, crit = 10;
+const golpe = (nome, min, max, pen, extra) => Object.assign({
+nome: nome,
 tipo: "cac",
-min: 4 + Math.floor(L / 2),
-max: 8 + L,
-pen: 10,
+min: min,
+max: max,
+pen: pen,
 alc: 1,
 maos: 1,
 pa: 1,
@@ -38999,47 +39000,55 @@ modos: [ {
 id: "golpe",
 pa: 1
 } ]
-}, pm = 8, esq = 30, arm = 15;
+}, extra || {});
 if (tipo === "raven") {
 ch.WP = O.ch.WP || 40;
-ch.AGI += 10;
-fer = 8 + 2 * L;
-arma = Object.assign({}, arma, {
-nome: "Bicada",
-min: 2 + Math.floor(L / 3),
-max: 5 + Math.floor(L / 2),
-pen: 0
+ch.AGI += 15;
+ch.WS += 5;
+fer = 7 + 2 * L;
+arma = golpe("Bicada", 3 + Math.floor(L / 3), 7 + Math.floor(L / 2), 10, {
+redEsq: 15
 });
 pm = 10;
-esq = 50;
+esq = 60;
 arm = 0;
-}
-if (tipo === "swarm") {
+apa = 10;
+ac = 60 + L;
+crit = 20;
+} else if (tipo === "swarm") {
 ch.INT = 40 + L;
 ch.FEL = 40 + L;
-fer = 10 + 2 * L;
-arma = Object.assign({}, arma, {
-nome: "Choque",
-min: 2 + Math.floor(L / 3),
-max: 5 + Math.floor(L / 2),
-pen: 5
-});
+ch.TGH += 5;
+fer = 14 + 3 * L;
+arma = golpe("Choque", 2 + Math.floor(L / 3), 5 + Math.floor(L / 2), 5);
 pm = 6;
-esq = 40;
-arm = 10;
-}
-if (tipo === "eagle") {
-ch.AGI = 50 + L;
-fer = 10 + 2 * L;
-arma = Object.assign({}, arma, {
-nome: "Garras",
-min: 4 + Math.floor(L / 2),
-max: 9 + L,
-pen: 5
-});
+esq = 45;
+arm = 20;
+defl = 1 + Math.floor(L / 12);
+apa = 10;
+} else if (tipo === "eagle") {
+ch.AGI = 55 + L;
+ch.WS += 10;
+ch.STR += 5;
+fer = 9 + 2 * L;
+arma = golpe("Garras", 6 + Math.floor(L / 2), 12 + L, 20);
 pm = 10;
-esq = 50;
+esq = 55;
 arm = 0;
+apa = 15;
+ac = 60 + L;
+crit = 25;
+} else {
+ch.TGH = 45 + L;
+ch.WS += 5;
+ch.STR += 5;
+fer = 22 + 4 * L;
+arma = golpe("Mordida", 4 + Math.floor(L / 2), 8 + L, 10);
+pm = 8;
+esq = 25;
+arm = 25;
+defl = 1 + Math.floor(L / 10);
+apa = 40;
 }
 const B = {};
 Object.keys(ch).forEach((k => B[k] = Math.floor(ch[k] / 10)));
@@ -39052,12 +39061,12 @@ B: B,
 pa: 2,
 pm: pm,
 esq: esq,
-apa: 30,
-ac: 50 + L,
-crit: 10,
+apa: apa,
+ac: ac,
+crit: crit,
 ini: 0,
 arm: arm,
-defl: 0,
+defl: defl,
 res: 0,
 psy: 0,
 danoCac1: 0,
@@ -41580,12 +41589,15 @@ if (gs.length) {
 gs.forEach((e => {
 ord.splice(ord.indexOf(e), 1);
 }));
-ord.unshift(...gs);
+const iM = ord.findIndex((e => e && (e.mesa || e.id === "__mesa")));
+ord.splice(iM >= 0 ? iM + 1 : 0, 0, ...gs);
 turnState.baseOrder = ord.slice();
+if (iM < 0) {
 try {
 turnState.apMax = apMaxForToken(ord[0]);
 turnState.apRemaining = turnState.apMax;
 } catch (e) {}
+}
 }
 try {
 rtOrigCombatStart();
@@ -61644,7 +61656,7 @@ add(R, "turno-mesa", "🕯️ Turno do tabuleiro", "O primeiro turno de cada rod
 poeDepois(R, "turnos", "turno-mesa");
 const BZ2 = C("bestiario");
 if (BZ2) {
-add(BZ2, "patrulha-spawn", "🧭 Patrulha e 🌀 SpawnWarp", "Papel Patrulha e o portal de todas as facções", `<h5>🧭 Papel Patrulha</h5>\n        <ul><li>Escolha "Patrulha" em <b>Papel</b> no Bestiário. Vale como Tropa nos valores.</li>\n          <li>Sempre ativa: mesmo sem ver ninguém, anda um número aleatório de casas numa direção aleatória, vira para um lado qualquer e passa a vez.</li>\n          <li>Se alguém do lado dos jogadores (jogador, aliado ou reforço) atacou nas últimas 2 rodadas, ela vai na direção de quem atacou por último.</li>\n          <li>Quando avista alguém, entra no combate com o turno automático normal. Até ser vista, os jogadores não a veem na fila nem no chat.</li></ul>\n        <h5>🌀 SpawnWarp</h5>\n        <ul><li>Existe em todas as facções, com a mesma aparência: um portal roxo girando.</li>\n          <li>Sempre <b>100 de vida</b>, não ataca e está sempre ativo.</li>\n          <li>Em cada vez dele surge, ao lado, um inimigo <b>patrulha do mesmo nível e da mesma vertente</b>. Quanto menos vida o portal tem, mais forte é o que sai: 100–80, 79–50, 49–30 e abaixo de 30. Ex.: Caos = Fanático → Demônio Menor → Fuzileiro Traidor → Feiticeiro.</li>\n          <li>Nunca invoca peça 2×2 nem chefe.</li></ul>\n        <h5>👑 Chefe</h5><p>Abater um chefe dá o <b>triplo de XP</b> e 45 tronos de base (em vez de 30).</p>`, "patrulha spawnwarp portal invocar chefe xp tronos");
+add(BZ2, "patrulha-spawn", "🧭 Patrulha e 🌀 SpawnWarp", "Papel Patrulha e o portal de todas as facções", `<h5>🧭 Papel Patrulha</h5>\n        <ul><li>Escolha "Patrulha" em <b>Papel</b> no Bestiário. Vale como Tropa nos valores.</li>\n          <li>Sempre ativa: mesmo sem ver ninguém, anda um número aleatório de casas numa direção aleatória, vira para um lado qualquer e passa a vez.</li>\n          <li>Se alguém do lado dos jogadores (jogador, aliado ou reforço) atacou nas últimas 2 rodadas, ela vai na direção de quem atacou por último.</li>\n          <li>Quando avista alguém, entra no combate com o turno automático normal. Até ser vista, os jogadores não a veem na fila nem no chat.</li></ul>\n        <h5>🌀 SpawnWarp</h5>\n        <ul><li>Existe em todas as facções, com a mesma aparência: um portal roxo girando.</li>\n          <li><b>50 de vida + 2 por nível</b> (nível 10 = 70), não ataca e está sempre ativo.</li>\n          <li>Em cada vez dele surge, ao lado, um inimigo <b>patrulha do mesmo nível e da mesma vertente</b>. Quanto menos vida o portal tem, mais forte é o que sai: 100–80, 79–50, 49–30 e abaixo de 30. Ex.: Caos = Fanático → Demônio Menor → Fuzileiro Traidor → Feiticeiro.</li>\n          <li>A patrulha que sai nunca é 2×2 nem chefe. Mas em cada vez há <b>8% de chance</b> de o portal cuspir um <b>CHEFE</b> da facção (pode ser 2×2, se houver espaço), já em alerta — no máximo um chefe por portal.</li></ul>\n        <h5>🐾 Pets (familiares)</h5>\n        <ul><li>Entram no combate ao lado do dono e jogam sozinhos (como os reforços); o mestre pode desligar o turno automático na roda de ações.</li>\n          <li><b>Mastim</b> (defensivo): muita vida (22 + 4/nível), 25% de armadura, deflexão, aparar 40.</li>\n          <li><b>Enxame de servo-crânios</b> (defensivo/suporte): 14 + 3/nível de vida, 20% de armadura, deflexão, esquiva 45.</li>\n          <li><b>Águia</b> (agressiva): frágil (9 + 2/nível), esquiva 55, garras fortes com 20% de penetração e 25% de crítico.</li>\n          <li><b>Corvo</b> (agressivo): o mais frágil (7 + 2/nível), esquiva 60, bicadas certeiras que reduzem a esquiva do alvo e 20% de crítico.</li></ul>\n        <h5>👑 Chefe</h5><p>Abater um chefe dá o <b>triplo de XP</b> e 45 tronos de base (em vez de 30).</p>`, "patrulha spawnwarp portal invocar chefe xp tronos pet familiar mastim aguia corvo enxame");
 }
 add(R, "glossario", "Glossário de termos", "Cada termo de regra usado nas habilidades", "<p>Estes termos aparecem nas descrições de talentos, habilidades e poderes. Em cada uma delas, a caixa <b>📘 Como funciona na mesa</b> explica os termos usados.</p>" + rtWikiTab([ "Termo", "Como funciona" ], RT_GLOSS.map((g => [ "<b>" + E(g.t) + "</b>", E(g.d) + (g.go.includes("/") ? " " + rtWikiLink(g.go.split("/")[0], g.go.split("/")[1], "ver regra") : "") ]))), "glossario termos regras significado");
 poeDepois(R, null, "glossario");
@@ -63526,6 +63538,43 @@ rtMesaContador();
 rtMesaBanner();
 } catch (e) {}
 }), 300);
+function rtMesaPrimeiro() {
+try {
+const ord = turnState.order;
+if (!Array.isArray(ord)) return false;
+let mudou = false;
+const i = ord.findIndex(rtEhMesa);
+if (i > 0) {
+const atual = ord[turnState.turnIndex || 0];
+const [m] = ord.splice(i, 1);
+ord.unshift(m);
+const j = ord.indexOf(atual);
+if (j >= 0) turnState.turnIndex = j;
+mudou = true;
+}
+const b = turnState.baseOrder;
+if (Array.isArray(b)) {
+const k = b.findIndex(rtEhMesa);
+if (k > 0) {
+const [m] = b.splice(k, 1);
+b.unshift(m);
+mudou = true;
+}
+}
+return mudou;
+} catch (e) {
+return false;
+}
+}
+{
+const f = pushTurnState;
+pushTurnState = function() {
+try {
+if (currentRole === "mestre" && turnState.active) rtMesaPrimeiro();
+} catch (e) {}
+return f.apply(this, arguments);
+};
+}
 RT_PAPEL.patrulha = {
 pt: "Patrulha",
 anel: "#3fa9d6",
@@ -63534,7 +63583,7 @@ ch: 0,
 desc: "Sempre ativa: anda pelo mapa mesmo sem ver ninguém e vai na direção de quem atacar."
 };
 RT_TRACOS.patrulha = [ "🧭", "Patrulha", "Sempre ativa: sem ver ninguém, anda em direção aleatória (ou atrás de quem atacou por último), vira para um lado e passa a vez." ];
-RT_TRACOS.portal = [ "🌀", "Portal Disforme", "100 de vida, não ataca. Em cada vez dele surge um inimigo patrulha do mesmo nível; quanto menos vida, mais forte o que sai." ];
+RT_TRACOS.portal = [ "🌀", "Portal Disforme", "50 de vida + 2 por nível, não ataca. Em cada vez dele surge um inimigo patrulha do mesmo nível; quanto menos vida, mais forte o que sai. Às vezes (8%) cospe um CHEFE da facção (no máximo um por portal)." ];
 const RT_SPAWN_ORDEM = {
 caos: [ "fanatico", "demonio_menor", "traidor", "feiticeiro" ],
 drukhari: [ "guerreiro", "bruxa", "incubo", "grotesco" ],
@@ -63579,7 +63628,7 @@ const f = rtBestSpec;
 rtBestSpec = function(fac, v, u) {
 const sp = f.apply(this, arguments);
 if (sp && u === "spawnwarp") {
-sp.fer = 100;
+sp.fer = 50 + 2 * Math.max(1, sp.nivel || 1);
 sp.armas = [];
 sp.papel = "elite";
 sp.size = 1;
@@ -63758,6 +63807,77 @@ lista = Object.keys(F.uni).filter(pode).sort(((x, y) => (ordem[F.uni[x].papel] |
 if (!lista.length) return null;
 return lista[Math.min(faixa, lista.length - 1)];
 }
+const RT_SPAWN_CHEFE_CHANCE = .08;
+function rtSpawnCelulaTam(portal, s) {
+const d = rtBoardDims(), p = rtPosOf(portal);
+if (!p) return null;
+const livre = (r, c) => {
+for (let i = 0; i < s; i++) for (let j = 0; j < s; j++) {
+if (!rtCellFree(r + i, c + j)) return false;
+}
+return true;
+};
+let melhor = null, md = 1e9;
+for (let r = 0; r + s <= d.rows; r++) for (let c = 0; c + s <= d.cols; c++) {
+const dist = Math.max(Math.abs(r - p.r), Math.abs(c - p.c));
+if (dist < 1 || dist > 4 || dist >= md) continue;
+if (livre(r, c)) {
+melhor = {
+r: r,
+c: c
+};
+md = dist;
+}
+}
+return melhor;
+}
+async function rtSpawnChefe(tok, b, N, visivel) {
+if (Math.random() >= RT_SPAWN_CHEFE_CHANCE) return false;
+const r = rtTurnRt();
+r.spawnChefe = r.spawnChefe || {};
+const k = rtCdKey(tok.id, "sc");
+if (r.spawnChefe[k]) return false;
+const F = RT_BFAC[b.f];
+if (!F) return false;
+const chefes = Object.keys(F.uni).filter((u => u !== "spawnwarp" && F.uni[u].papel === "chefe")).sort((() => Math.random() - .5));
+for (const u of chefes) {
+const sp = rtBestSpec(b.f, b.v || Object.keys(F.vert)[0], u, N, "chefe");
+if (!sp) continue;
+const cel = rtSpawnCelulaTam(tok, sp.size || 1);
+if (!cel) continue;
+const nt = rtBestToken(sp, 0);
+if (currentRole === "mestre") nt.portrait = rtBestPortrait(nt);
+rtSpawnToken(nt, cel.r, cel.c);
+for (let i = 0; i < (sp.size || 1); i++) for (let j = 0; j < (sp.size || 1); j++) try {
+renderBoardCell(cel.r + i, cel.c + j);
+} catch (e) {}
+rtBestAddToOrder(nt);
+r.spawnChefe[k] = 1;
+try {
+rtAiMarcaAlerta(nt);
+} catch (e) {}
+try {
+rtPlayAndBroadcast(tok, nt, {
+rt: 1,
+kind: "buff",
+icon: "👑",
+vfx: "tele_escuro",
+txt: "CHEFE!",
+deidade: ""
+});
+} catch (e) {}
+RT_POST_LIVRE = true;
+try {
+postToDiscord(`🌀👑 O SPAWNWARP SE ESCANCARA E DELE SAI UM CHEFE: ${String(nt.name).toUpperCase()} (NÍVEL ${N})!`, null);
+} finally {
+RT_POST_LIVRE = false;
+}
+pushTurnState();
+await rtAiEspera(800);
+return true;
+}
+return false;
+}
 async function rtSpawnTurno(id) {
 await rtAiEspera(500);
 const tok = rtTokenById(id);
@@ -63768,10 +63888,15 @@ try {
 rtAiChecaAlerta(tok);
 } catch (e) {}
 }
-const u = rtSpawnEscolhe(tok);
-if (!u) return;
 const b = tok.bst || {};
 const N = Math.max(1, parseInt(rtcOrDefault(tok).nivel, 10) || 1);
+try {
+if (await rtSpawnChefe(tok, b, N, visivel)) return;
+} catch (e) {
+console.error("spawnwarp chefe", e);
+}
+const u = rtSpawnEscolhe(tok);
+if (!u) return;
 const sp = rtBestSpec(b.f, b.v || Object.keys(RT_BFAC[b.f].vert)[0], u, N, "patrulha");
 if (!sp) return;
 const cel = rtBestCellNear(tok, null, tok);
@@ -65523,7 +65648,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "2.0";
+const RT_VERSAO_APP = "2.1";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
