@@ -6677,6 +6677,22 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
 .rt-wbonus-add{ display:none !important; }
 @media (max-width:820px){ .rt-fz-corpo{ grid-template-columns:1fr; } .rt-fz-dir{ border-left:none; border-top:1px solid rgba(181,101,29,.45); } .rt-fz-retrato img{ height:200px; } }
 .rt-fz-item-box p{ font-size:12px; line-height:1.4; }
+/* ---------- turno do tabuleiro ---------- */
+.rt-mesa-banner{ position:fixed; left:50%; top:38%; transform:translate(-50%,-50%) scale(.85); z-index:9800; pointer-events:none; text-align:center; padding:22px 48px 20px; min-width:min(640px, 92vw);
+  background:radial-gradient(ellipse at center, rgba(40,6,6,.94), rgba(8,4,3,.9) 70%); border-top:2px solid #c9a24a; border-bottom:2px solid #c9a24a; box-shadow:0 0 60px rgba(180,20,20,.45), 0 0 0 1px rgba(201,162,74,.25) inset; opacity:0; transition:opacity .5s, transform .5s; }
+.rt-mesa-banner.on{ opacity:1; transform:translate(-50%,-50%) scale(1); }
+.rt-mesa-banner.sai{ opacity:0; transform:translate(-50%,-50%) scale(1.06); }
+.rt-mesa-orn{ color:#8a1b1b; letter-spacing:.6em; font:700 14px Cinzel, Georgia, serif; }
+.rt-mesa-turno{ font:900 64px Cinzel, Georgia, serif; letter-spacing:.14em; color:#ffd36b; text-shadow:0 0 18px rgba(255,170,40,.7), 0 3px 0 #5a2a00; line-height:1.05; margin:4px 0 8px; }
+.rt-mesa-frase{ font:italic 600 17px Georgia, serif; color:#f0dcc0; letter-spacing:.05em; text-transform:uppercase; max-width:620px; margin:0 auto; }
+.rt-turno-n{ display:inline-flex; align-items:center; margin-right:8px; padding:3px 10px; border:1px solid #c9a24a; border-radius:12px; background:linear-gradient(#5a1414,#2a0909); color:#ffd36b; font:800 12px Cinzel, Georgia, serif; letter-spacing:.12em; white-space:nowrap; box-shadow:0 0 8px rgba(255,140,40,.3); }
+.rt-turno-n.pulsa{ animation:rtTurnoPulsa 1.2s ease-out; }
+.rt-turno-n.mesa{ background:linear-gradient(#8a1b1b,#3a0b0b); box-shadow:0 0 14px rgba(255,120,40,.7); }
+@keyframes rtTurnoPulsa{ 0%{ transform:scale(1.35); } 100%{ transform:scale(1); } }
+@media (max-width:600px){ .rt-mesa-turno{ font-size:42px; } .rt-mesa-frase{ font-size:13px; } }
+.rt-fz-fala.rt-fz-insulto{ color:#ffd0c0; border-color:#ff3b2f; background:rgba(60,6,4,.88); font-size:15px; letter-spacing:.08em; animation:rtFzTreme .45s ease-out; }
+@keyframes rtFzTreme{ 0%,100%{ transform:translateX(0); } 20%{ transform:translateX(-6px); } 40%{ transform:translateX(6px); } 60%{ transform:translateX(-4px); } 80%{ transform:translateX(3px); } }
+.rt-fz-comprar[data-fz-falta]{ filter:saturate(.6) brightness(.85); }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -14251,6 +14267,8 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
         // Rogue Trader: iniciativa = 1d10 + Agilidade + metade da Percepção, maior primeiro
         itens.forEach(it=>{ const t = rtTokenById(it.id); const ini = rtRollInitiative(t); it.ini = ini.total; it.iniD10 = ini.d10; });
         itens.sort((a, b)=> (b.ini - a.ini) || (Math.random() - 0.5));
+        // o TURNO DO TABULEIRO abre cada rodada
+        if(typeof rtMesaEntrada === 'function') itens.unshift(rtMesaEntrada());
       } else {
         for(let i = itens.length - 1; i > 0; i--){
           const j = Math.floor(Math.random() * (i + 1));
@@ -14264,9 +14282,9 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       pushTurnState();
       renderTurnBars();
       // quem ainda não avistou ninguém (inimigos/aliados do Bestiário em espera) fica fora da lista que os jogadores leem
-      const __vis = itens.filter(it=> !(typeof rtIniOculto === 'function' && rtIniOculto(it)));
+      const __vis = itens.filter(it=> !it.mesa && !(typeof rtIniOculto === 'function' && rtIniOculto(it)));
       const linhas = __vis.map((it, idx) => `${idx+1}. **${it.nome}**` + (it.ini != null ? ` — iniciativa ${it.ini} (1d10: ${it.iniD10})` : '')).join('\n');
-      const __vez = (itens[0] && !(typeof rtIniOculto === 'function' && rtIniOculto(itens[0]))) ? itens[0].nome : '';
+      const __vez = (itens[0] && !itens[0].mesa && !(typeof rtIniOculto === 'function' && rtIniOculto(itens[0]))) ? itens[0].nome : '';
       if(typeof RT_POST_LIVRE !== 'undefined') RT_POST_LIVRE = true;
       const __anuncio = postToDiscord(`⚔️ **O MESTRE** sorteou a **ORDEM DE INICIATIVA pelo tabuleiro!** Rodada 1${__vez ? ` — vez de **${__vez}**` : ''}!\n${linhas}`.toUpperCase());
       if(typeof RT_POST_LIVRE !== 'undefined') RT_POST_LIVRE = false;
@@ -26844,7 +26862,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
         rtWeaponsSoftRender = false;
         return;
       }
-      if(t.dataset.rtAug){ const set = new Set(st.eq.aug || []); if(t.checked) set.add(t.dataset.rtAug); else if(currentRole === 'mestre') set.delete(t.dataset.rtAug); else { t.checked = true; return; } st.eq.aug = [...set]; rtCommit(); return; }
+      if(t.dataset.rtAug){ t.checked = (st.eq.aug || []).includes(t.dataset.rtAug); return; const set = new Set(st.eq.aug || []); st.eq.aug = [...set]; rtCommit(); return; }
       if(t.dataset.rtPsysel != null){ st.psy = t.value || null; rtCommit(); return; }
       if(t.dataset.rtPod){
         const id = t.dataset.rtPod;
@@ -27652,6 +27670,8 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
     const c = (r.contrib[k] && typeof r.contrib[k] === 'object') ? r.contrib[k] : (r.contrib[k] = {});
     c[rtCdKey(by.ownerUid, 'u')] = by.id;
   }
+  // chefe vale o triplo de XP
+  function rtXpPapelMult(t){ const p = (t && t.bst && t.bst.p) || (rtcOrDefault(t) || {}).papel || ''; return p === 'chefe' ? 3 : 1; }
   function rtXpPorAbate(tgt, killer){
     if(!tgt || !turnState.active || rtIsParty(tgt) || !rtSideOf(tgt)) return;
     const r = rtTurnRt();
@@ -27660,7 +27680,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
     const kd = rtCdKey(tgt.id || 'x', 'xp');
     if(r.xpDone[kd]) return;
     r.xpDone[kd] = 1;
-    const xp = 15 * Math.max(1, parseInt(rtcOrDefault(tgt).nivel, 10) || 1);
+    const xp = 15 * Math.max(1, parseInt(rtcOrDefault(tgt).nivel, 10) || 1) * rtXpPapelMult(tgt);
     const vistos = new Set(), quem = [];
     const contrib = (r.contrib && r.contrib[rtCdKey(tgt.id || 'x', 'c')]) || {};
     const ids = new Set(Object.values(contrib));
@@ -29815,7 +29835,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       + (dest ? '<div class="rt-summary-dest">' + dest + '</div>' : '')
       + '<h4>Grupo</h4>' + tabela(D.grupo, true)
       + (D.inimigos.length ? '<h4>Inimigos</h4>' + tabela(D.inimigos, false) : '')
-      + '<div class="rt-hint">🪙 Tronos: cada inimigo abatido rende tronos só para quem deu o golpe final (conforme o nível e o papel dele; demônios não deixam tronos). O XP já foi entregue automaticamente a cada abate: 15 × nível do inimigo para cada jogador que causou dano ou aplicou efeito nele, e 1,5× para quem deu o golpe final. ' + (soVer ? 'O "XP extra" é dado pelo mestre.' : 'Use "XP extra" para recompensas de missão ou bônus do mestre.') + '</div>'
+      + '<div class="rt-hint">🪙 Tronos: cada inimigo abatido rende tronos só para quem deu o golpe final (conforme o nível e o papel dele; demônios não deixam tronos). O XP já foi entregue automaticamente a cada abate: 15 × nível do inimigo (chefe: ×3) para cada jogador que causou dano ou aplicou efeito nele, e 1,5× para quem deu o golpe final. ' + (soVer ? 'O "XP extra" é dado pelo mestre.' : 'Use "XP extra" para recompensas de missão ou bônus do mestre.') + '</div>'
       + '<div class="rt-summary-acoes">' + (soVer ? '' : '<button type="button" class="rt-btn" data-dar-xp>⭐ Conceder XP extra</button><button type="button" class="rt-btn" data-dar-tr>🪙 Conceder tronos extras</button>') + '<button type="button" class="rt-btn" data-x>Fechar</button></div></div>';
     document.body.appendChild(box);
     box.addEventListener('click', (e)=>{
@@ -31395,7 +31415,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
   }
   function rtBestStats(sp){
     const ch = RT_CH.map(c=> '<span><small>' + rtEsc((RT_CH_BY[c] || {}).sig || c) + '</small><b>' + (sp.ch[c] || 0) + '</b></span>').join('');
-    const der = [['Ferimentos', sp.fer], ['Armadura', sp.arm + '%'], ['Deflexão', sp.defl], ['Esquiva', sp.esq + '%'], ['Aparar', sp.apa + '%'], ['PA / PM', (sp.pa || 3) + ' / ' + (sp.pm || 6)], ['Acerto', Math.min(95, 30 + (sp.ch.BS || 0)) + '%'], rtBestAli() ? ['XP por abate', 'não dá'] : ['XP por abate', 15 * sp.nivel]];
+    const der = [['Ferimentos', sp.fer], ['Armadura', sp.arm + '%'], ['Deflexão', sp.defl], ['Esquiva', sp.esq + '%'], ['Aparar', sp.apa + '%'], ['PA / PM', (sp.pa || 3) + ' / ' + (sp.pm || 6)], ['Acerto', Math.min(95, 30 + (sp.ch.BS || 0)) + '%'], rtBestAli() ? ['XP por abate', 'não dá'] : ['XP por abate', 15 * sp.nivel * (sp.papel === 'chefe' ? 3 : 1)]];
     return '<div class="rt-best-ch">' + ch + '</div><div class="rt-best-der">' + der.map(d=> '<span><small>' + d[0] + '</small><b>' + d[1] + '</b></span>').join('') + '</div>';
   }
   function rtBestDetalhes(sp){
@@ -35853,12 +35873,13 @@ RTA_IMG.cajado_navis = `
   // leem e gravam, então não precisa de regra nova no Firebase. Sobrevive ao fim do combate.
   // =====================================================================================
   var RT_GLOB = { list: [] };
-  const RT_GLOB_QUEM = { jogadores:'Jogadores', aliados:'Aliados', lado:'Jogadores e aliados', inimigos:'Inimigos', todos:'Todas as fichas' };
+  const RT_GLOB_QUEM = { jogadores:'Jogadores', aliados:'Aliados', lado:'Jogadores e aliados', inimigos:'Inimigos', todos:'Todas as fichas', ficha:'Uma ficha específica' };
   const rtGlobLista = ()=> (RT_GLOB && Array.isArray(RT_GLOB.list)) ? RT_GLOB.list.filter(Boolean) : [];
   function rtGlobRecebe(val){ RT_GLOB = (val && val.glob && typeof val.glob === 'object') ? { list: Array.isArray(val.glob.list) ? val.glob.list.filter(Boolean) : [] } : { list: [] }; try{ rtGlobRender(); }catch(e){} }
   // a peça faz parte do grupo do efeito?
-  function rtGlobPega(tok, quem){
+  function rtGlobPega(tok, quem, g){
     if(!tok) return false;
+    if(quem === 'ficha') return !!(g && g.tok && tok.id === g.tok);
     const lado = boardActionSide(tok); if(!lado) return false;
     const heroi = tok.kind === 'hero';
     if(quem === 'todos') return true;
@@ -35869,11 +35890,11 @@ RTA_IMG.cajado_navis = `
     return false;
   }
   const rtGlobAlvoNome = g=> g.tipo === 'ch' ? (RT_CH_BY[g.alvo] || {}).pt || g.alvo : g.tipo === 'sk' ? (RT_SK_BY[g.alvo] || {}).pt || g.alvo : 'dano por turno';
-  const rtGlobTxt = g=> (g.tipo === 'dano' ? g.v + ' de dano por turno' : (g.v > 0 ? '+' : '') + g.v + ' ' + rtGlobAlvoNome(g)) + ' · ' + (RT_GLOB_QUEM[g.quem] || g.quem);
+  const rtGlobTxt = g=> (g.tipo === 'dano' ? g.v + ' de dano por turno' : (g.v > 0 ? '+' : '') + g.v + ' ' + rtGlobAlvoNome(g)) + ' · ' + (g.quem === 'ficha' ? (g.tokNome || 'uma ficha') : (RT_GLOB_QUEM[g.quem] || g.quem));
   // características no tabuleiro: entram como efeito estático (mesmo caminho dos talentos)
   { const f = rtTalStatic; rtTalStatic = function(token, base, fx){
       const out = f.apply(this, arguments);
-      try{ rtGlobLista().forEach(g=>{ if(g.tipo === 'ch' && g.alvo && rtGlobPega(token, g.quem)) out.push({ t:'__glob', st:{ ch:{ [g.alvo]: +g.v || 0 } } }); }); }catch(e){}
+      try{ rtGlobLista().forEach(g=>{ if(g.tipo === 'ch' && g.alvo && rtGlobPega(token, g.quem, g)) out.push({ t:'__glob', st:{ ch:{ [g.alvo]: +g.v || 0 } } }); }); }catch(e){}
       return out;
   }; }
   // testes da ficha: o jogador está no grupo "jogadores" (e "jogadores e aliados" / "todas")
@@ -35884,27 +35905,26 @@ RTA_IMG.cajado_navis = `
         const [kind, id] = String(key).split(':');
         const meu = currentRole === 'jogador' ? ['jogadores', 'lado', 'todos'] : ['todos'];
         let soma = 0; const nomes = [];
-        rtGlobLista().forEach(g=>{ if(g.tipo === kind && g.alvo === id && meu.includes(g.quem)){ soma += +g.v || 0; nomes.push(g.nome || 'Efeito global'); } });
+        const minhaPeca = g=>{ if(g.quem !== 'ficha' || currentRole !== 'jogador') return false; const t = rtTokenById(g.tok); const nome = ((els.nome && els.nome.value) || '').trim().toUpperCase(); return !!(t && t.kind === 'hero' && currentUser && t.ownerUid === currentUser.uid && String(t.name || '').trim().toUpperCase() === nome); };
+        rtGlobLista().forEach(g=>{ if(g.tipo === kind && g.alvo === id && (meu.includes(g.quem) || minhaPeca(g))){ soma += +g.v || 0; nomes.push(g.nome || 'Efeito global'); } });
         if(soma){ info.alvo = Math.max(0, info.alvo + soma); info.label += ' (' + nomes.join(', ') + ' ' + (soma > 0 ? '+' : '') + soma + ')'; }
       }catch(e){}
       return info;
   }; }
-  // dano por turno: no começo da vez de cada peça do grupo
-  { const f = rtTurnStart; rtTurnStart = function(entry){
-      const o = f.apply(this, arguments);
-      try{
-        const tok = entry && rtTokenById(entry.id);
-        if(tok && turnState.active && !rtIsDown(tok)){
-          rtGlobLista().forEach(g=>{
-            if(g.tipo !== 'dano' || !(+g.v > 0) || !rtGlobPega(tok, g.quem)) return;
-            rtApplyDamage(tok, +g.v);
-            postToDiscord(`🌐 ${rtNm(tok)} sofre ${+g.v} de dano (${g.nome || 'efeito global'}).`, null);
-            try{ rtPlayAndBroadcast(tok, tok, { rt:1, kind:'buff', icon: g.icon || '🌐', vfx:'buff', txt:'−' + (+g.v), deidade:'' }); }catch(e){}
-          });
-        }
-      }catch(e){ console.error('efeito global', e); }
-      return o;
-  }; }
+  // dano por turno: aplicado no TURNO DO TABULEIRO (primeiro da iniciativa, ver rt_mesa.js), em todas as peças do grupo de uma vez
+  function rtGlobDanoMesa(){
+    const linhas = [];
+    rtAllTokens().forEach(tok=>{
+      if(!tok || !rtIsCombatToken(tok) || rtIsDown(tok)) return;
+      rtGlobLista().forEach(g=>{
+        if(g.tipo !== 'dano' || !(+g.v > 0) || !rtGlobPega(tok, g.quem, g)) return;
+        rtApplyDamage(tok, +g.v);
+        linhas.push(`${rtNm(tok)} −${+g.v} (${g.icon || '🌐'} ${g.nome || 'efeito global'})`);
+        try{ rtPlayAndBroadcast(tok, tok, { rt:1, kind:'buff', icon: g.icon || '🌐', vfx:'buff', txt:'−' + (+g.v), deidade:'' }); }catch(e){}
+      });
+    });
+    return linhas;
+  }
   // ---------- faixa "efeitos globais" em cima do tabuleiro (todos veem) ----------
   function rtGlobRender(){
     const l = rtGlobLista();
@@ -35930,8 +35950,10 @@ RTA_IMG.cajado_navis = `
     const ops = U.tipo === 'ch' ? RT_CH.map(c=> [c, RT_CH_BY[c].pt]) : U.tipo === 'sk' ? RT.skills.map(k=> [k.id, k.pt]) : [];
     if(ops.length && !ops.some(o=> o[0] === U.alvo)) U.alvo = ops[0][0];
     const lista = rtGlobLista();
+    const pecas = rtAllTokens().filter(t=> t && rtIsCombatToken(t)).sort((a, b)=> rtNm(a).localeCompare(rtNm(b), 'pt'));
+    if(U.quem === 'ficha' && pecas.length && !pecas.some(t=> t.id === U.tok)) U.tok = pecas[0].id;
     const html = '<div class="board-tray-title">EFEITOS GLOBAIS DO MAPA</div>'
-      + '<p class="board-tray-hint">Valem para todas as peças do grupo escolhido enquanto estiverem ativos (também fora do combate). O dano por turno acontece no começo da vez de cada peça. Todos veem os efeitos numa faixa em cima do tabuleiro.</p>'
+      + '<p class="board-tray-hint">Valem para todas as peças do grupo escolhido enquanto estiverem ativos (também fora do combate). O dano por turno acontece no TURNO DO TABULEIRO (o primeiro de cada rodada), em todas as peças do grupo de uma vez. Em "Quem", escolha "Uma ficha específica" para mirar uma peça só. Todos veem os efeitos numa faixa em cima do tabuleiro.</p>'
       + '<div class="rt-glob-form">'
       + '<label>Nome<input type="text" data-g="nome" maxlength="40" placeholder="Ex.: Tempestade de areia" value="' + rtEsc(U.nome) + '"></label>'
       + '<label>Ícone<select data-g="icon">' + ['🌐', '🌪️', '🔥', '❄️', '☣️', '🌫️', '⚡', '🌑', '✨', '🩸', '🕯️', '📣'].map(i=> '<option' + (i === U.icon ? ' selected' : '') + '>' + i + '</option>').join('') + '</select></label>'
@@ -35939,14 +35961,15 @@ RTA_IMG.cajado_navis = `
       + (ops.length ? '<label>Qual<select data-g="alvo">' + ops.map(([id, nm])=> '<option value="' + id + '"' + (id === U.alvo ? ' selected' : '') + '>' + rtEsc(nm) + '</option>').join('') + '</select></label>' : '')
       + '<label>' + (U.tipo === 'dano' ? 'Dano por turno' : 'Valor (+ ou −)') + '<input type="number" data-g="v" value="' + U.v + '"' + (U.tipo === 'dano' ? ' min="1"' : '') + '></label>'
       + '<label>Quem<select data-g="quem">' + Object.keys(RT_GLOB_QUEM).map(k=> '<option value="' + k + '"' + (k === U.quem ? ' selected' : '') + '>' + RT_GLOB_QUEM[k] + '</option>').join('') + '</select></label>'
+      + (U.quem === 'ficha' ? '<label>Ficha<select data-g="tok">' + (pecas.length ? pecas.map(t=> '<option value="' + rtEsc(t.id) + '"' + (t.id === U.tok ? ' selected' : '') + '>' + rtEsc(rtNm(t)) + '</option>').join('') : '<option value="">— nenhuma peça no tabuleiro —</option>') + '</select></label>' : '')
       + '<button type="button" class="rt-btn rt-glob-add" data-gadd>➕ Adicionar efeito</button></div>'
       + '<div class="rt-glob-lista">' + (lista.length ? lista.map(g=> '<div class="rt-glob-item"><span>' + rtEsc((g.icon || '🌐') + ' ' + (g.nome || 'Efeito global')) + '</span><small>' + rtEsc(rtGlobTxt(g)) + '</small><button type="button" class="rt-btn" data-gdel="' + rtEsc(g.id) + '" title="Remover este efeito">✕</button></div>').join('') : '<p class="board-tray-hint">Nenhum efeito global ativo.</p>') + '</div>';
     // só redesenha quando muda a estrutura (tipo do efeito ou a lista); digitar não apaga nada
-    const chave = U.tipo + '|' + JSON.stringify(lista);
+    const chave = U.tipo + '|' + U.quem + '|' + pecas.map(t=> t.id + rtNm(t)).join(',') + '|' + JSON.stringify(lista);
     if(p.__k !== chave){ p.innerHTML = html; p.__k = chave; }
   }
   document.addEventListener('input', (e)=>{ const el = e.target.closest && e.target.closest('#rtPanelGlob [data-g]'); if(!el || el.tagName !== 'INPUT') return; RT_GLOB_UI[el.dataset.g] = el.dataset.g === 'v' ? (parseFloat(el.value) || 0) : el.value; }, true);
-  document.addEventListener('change', (e)=>{ const el = e.target.closest && e.target.closest('#rtPanelGlob [data-g]'); if(!el) return; rtGlobLeForm(); if(el.dataset.g === 'tipo'){ if(el.value === 'dano' && !(RT_GLOB_UI.v > 0)) RT_GLOB_UI.v = 5; rtGlobPainel(); } }, true);
+  document.addEventListener('change', (e)=>{ const el = e.target.closest && e.target.closest('#rtPanelGlob [data-g]'); if(!el) return; rtGlobLeForm(); if(el.dataset.g === 'tipo'){ if(el.value === 'dano' && !(RT_GLOB_UI.v > 0)) RT_GLOB_UI.v = 5; rtGlobPainel(); } if(el.dataset.g === 'quem') rtGlobPainel(); }, true);
   document.addEventListener('click', (e)=>{
     if(currentRole !== 'mestre') return;
     if(e.target.closest && e.target.closest('#rtPanelGlob [data-gadd]')){
@@ -35954,7 +35977,9 @@ RTA_IMG.cajado_navis = `
       rtGlobLeForm();
       const v = parseFloat(U.v) || 0;
       if(!v || (U.tipo === 'dano' && v <= 0)){ alert(U.tipo === 'dano' ? 'Coloque um dano maior que zero.' : 'Coloque um valor diferente de zero.'); return; }
+      if(U.quem === 'ficha' && !(U.tok && rtTokenById(U.tok))){ alert('Escolha a ficha que vai receber o efeito.'); return; }
       const g = { id: 'g' + Date.now().toString(36), nome: (U.nome || '').trim() || 'Efeito global', icon: U.icon || '🌐', tipo: U.tipo, alvo: U.tipo === 'dano' ? null : U.alvo, v, quem: U.quem };
+      if(U.quem === 'ficha'){ g.tok = U.tok; g.tokNome = rtNm(rtTokenById(U.tok)); }
       RT_GLOB = { list: rtGlobLista().concat([g]) };
       pushTurnState(); rtGlobRender();
       postToDiscord(`🌐 EFEITO GLOBAL: ${g.icon} ${g.nome} — ${rtGlobTxt(g)}.`, null);
@@ -36283,8 +36308,8 @@ RTA_IMG.cajado_navis = `
           const existe = new Set(toks.map(t=> t.id));
           // quem não está mais no tabuleiro sai da fila (senão a vez trava numa peça que não existe)
           const atual = currentTurnEntry();
-          const tira = (arr)=> (arr || []).filter(e=> e && existe.has(e.id));
-          let idx = 0; turnState.order.forEach((e, i)=>{ if(i < turnState.turnIndex && e && existe.has(e.id)) idx++; });
+          const tira = (arr)=> (arr || []).filter(e=> e && (existe.has(e.id) || e.mesa));
+          let idx = 0; turnState.order.forEach((e, i)=>{ if(i < turnState.turnIndex && e && (existe.has(e.id) || e.mesa)) idx++; });
           turnState.order = tira(turnState.order); turnState.baseOrder = tira(turnState.baseOrder);
           turnState.turnIndex = Math.min(idx, Math.max(0, turnState.order.length - 1));
           // quem chegou com o mapa entra no fim da rodada, com iniciativa sorteada
@@ -37766,10 +37791,10 @@ RTA_IMG.cajado_navis = `
     poeDepois(R, 'maos', 'sets');
     // aumentos: são permanentes e liberam talentos
     const au = R.itens.find(x=> x.id === 'aumentos');
-    if(au) au.html = `<p class="rt-wk-aviso">🔒 <b>Aumento instalado é permanente:</b> depois de confirmar com OK, ele não pode ser removido (só o mestre corrige um engano). Os talentos de aumento só aparecem para escolha se o personagem tiver o aumento: <b>Determinação Calculada</b> exige a Inserção cortical, <b>Precisão Letal</b> exige a Inserção óptica e os demais exigem pelo menos um aumento instalado.</p>` + au.html;
+    if(au) au.html = `<p class="rt-wk-aviso">🔒 <b>Aumento instalado é permanente:</b> só é instalado pela ⚒️ A Forja e nunca mais sai. Os talentos de aumento só aparecem para escolha se o personagem tiver o aumento: <b>Determinação Calculada</b> exige a Inserção cortical, <b>Precisão Letal</b> exige a Inserção óptica e os demais exigem pelo menos um aumento instalado.</p>` + au.html;
     // A Forja
     add(R, 'forja', '⚒️ A Forja (loja) e os Tronos', 'Comprar armas, armaduras, efeitos, granadas, consumíveis e aumentos',
-      `<p>Botão <b>⚒️ A FORJA</b> no topo. A lista fica à esquerda e o item escolhido aparece à direita, com o preço. Tudo é pago em <b>🪙 Tronos</b> (o mestre usa de graça, para dar recompensas). A Forja fecha durante o combate.</p>
+      `<p>Botão <b>⚒️ A FORJA</b> no topo. A lista fica à esquerda e o item escolhido aparece à direita, com o preço. Tudo é pago em <b>🪙 Tronos</b> e o valor é debitado da ficha na hora, inclusive quando o mestre usa a Forja; sem Tronos suficientes, nada é gerado e nada é debitado (e a Forja xinga quem tentou). A Forja fecha durante o combate.</p>
       <h5>Armas e armaduras</h5>
       <ol><li>Escolha a <b>guia</b> (set) onde o item vai ficar, ou <b>＋ NOVA GUIA</b>.</li>
         <li>Armas: escolha a <b>mão</b> (principal ou secundária).</li>
@@ -37777,19 +37802,47 @@ RTA_IMG.cajado_navis = `
         <li>Coloque <b>efeitos especiais</b>: cada nível custa <b>+10</b> e soma 1 no nível do item.</li></ol>
       <ul><li><b>Preço da arma:</b> começa em 10 (uma mão) ou 20 (duas mãos) e sobe +10 a cada posição dentro do grupo da lista. Ex.: Faca 10, Espada 20, Machado 30, Espada-Serra 40.</li>
         <li><b>Preço da armadura:</b> leve 10, média 20, pesada 30, energizada 30, e +10 a cada posição dentro da classe.</li>
-        <li>Efeitos especiais só entram pela Forja (clicar num efeito na ficha abre a Forja naquele item). Depois de salva a ficha, arma e armadura novas também só vêm da Forja.</li></ul>
+        <li>Efeitos especiais só entram pela Forja (clicar num efeito na ficha abre a Forja naquele item). Arma e armadura novas só vêm da Forja: a ficha não escolhe mais da lista, nem na criação, nem pelo mestre. Tronos nunca ficam negativos.</li></ul>
       <h5>Granadas e consumíveis</h5>
       <ul><li>Granada <b>10</b>; kit de primeiros socorros e estimulante de combate <b>5</b>.</li>
-        <li>Na ficha não dá mais para mudar a quantidade: ela sobe com a compra e cai sozinha quando o item é usado no tabuleiro.</li></ul>
+        <li>Na ficha ninguém (nem o mestre) muda a quantidade: ela sobe com a compra e cai sozinha quando o item é usado no tabuleiro.</li></ul>
       <h5>Aumentos cibernéticos</h5>
       <ul><li>Cada aumento custa <b>30</b> (<b>10</b> para quem vem de <b>Mundo Forja</b>). Instalado, é permanente.</li></ul>
       <h5>Como ganhar Tronos</h5>
-      <ul><li>Cada inimigo abatido rende Tronos <b>só para quem deu o golpe final</b>: Tropa 4, Horda 6, Elite 10, Chefe 30, × (1 + nível ÷ 10). Ex.: Chefe nível 10 = 60. <b>Demônios não deixam Tronos.</b></li>
+      <ul><li>Toda ficha nova começa com <b>100 Tronos</b>.</li>
+        <li>Cada inimigo abatido rende Tronos <b>só para quem deu o golpe final</b>: Tropa 4, Patrulha 4, Horda 6, Elite 10, Chefe 45, × (1 + nível ÷ 10). Ex.: Chefe nível 10 = 90. O chefe também dá o triplo de XP. <b>Demônios não deixam Tronos.</b></li>
         <li>No resumo do fim do combate, o mestre pode dar <b>Tronos extras</b> (como o XP extra).</li>
         <li>Os Tronos entram na ficha sozinhos (mesmo com o jogador desconectado) e aparecem na guia Granadas e consumíveis.</li></ul>`,
       'forja loja comprar tronos dinheiro preco efeito especial nivel granada kit estimulante aumento');
     poeDepois(R, 'sets', 'forja');
     { const gr = R.itens.find(x=> x.id === 'granadas'); if(gr) gr.html = '<p class="rt-wk-aviso">⚒️ Granadas e consumíveis são comprados na ' + rtWikiLink('regras', 'forja', 'A Forja') + ' (granada 10 tronos, kit e estimulante 5); a quantidade cai sozinha ao usar.</p>' + gr.html; }
+    // turno do tabuleiro
+    add(R, 'turno-mesa', '🕯️ Turno do tabuleiro', 'O primeiro turno de cada rodada',
+      `<p>A fila de iniciativa sempre começa com <b>🕯️ TABULEIRO</b>. Nesse turno:</p>
+      <ul><li>Todos veem em destaque <b>TURNO N</b> (o número da rodada do combate) com um lema do Imperium sorteado embaixo. O número também fica fixo ao lado da barra do turno.</li>
+        <li>Os <b>efeitos globais de dano por turno</b> são aplicados de uma vez em todas as peças do grupo (antes, era no começo da vez de cada peça). Efeitos de característica e perícia valem o tempo todo.</li>
+        <li>Depois de alguns segundos a vez passa sozinha para a primeira peça. Com a mesa pausada, espera.</li>
+        <li>Se só houver inimigos em espera, o turno do tabuleiro passa direto, sem faixa nem chat.</li></ul>
+      <p>Na aba <b>🌐 EFEITOS GLOBAIS</b>, em "Quem", a opção <b>Uma ficha específica</b> cria o efeito para uma peça só (escolha a peça na lista).</p>`,
+      'turno tabuleiro rodada contador lema frase efeitos globais ficha especifica');
+    poeDepois(R, 'turnos', 'turno-mesa');
+    // patrulha e SpawnWarp
+    const BZ2 = C('bestiario');
+    if(BZ2){
+      add(BZ2, 'patrulha-spawn', '🧭 Patrulha e 🌀 SpawnWarp', 'Papel Patrulha e o portal de todas as facções',
+        `<h5>🧭 Papel Patrulha</h5>
+        <ul><li>Escolha "Patrulha" em <b>Papel</b> no Bestiário. Vale como Tropa nos valores.</li>
+          <li>Sempre ativa: mesmo sem ver ninguém, anda um número aleatório de casas numa direção aleatória, vira para um lado qualquer e passa a vez.</li>
+          <li>Se alguém do lado dos jogadores (jogador, aliado ou reforço) atacou nas últimas 2 rodadas, ela vai na direção de quem atacou por último.</li>
+          <li>Quando avista alguém, entra no combate com o turno automático normal. Até ser vista, os jogadores não a veem na fila nem no chat.</li></ul>
+        <h5>🌀 SpawnWarp</h5>
+        <ul><li>Existe em todas as facções, com a mesma aparência: um portal roxo girando.</li>
+          <li>Sempre <b>100 de vida</b>, não ataca e está sempre ativo.</li>
+          <li>Em cada vez dele surge, ao lado, um inimigo <b>patrulha do mesmo nível e da mesma vertente</b>. Quanto menos vida o portal tem, mais forte é o que sai: 100–80, 79–50, 49–30 e abaixo de 30. Ex.: Caos = Fanático → Demônio Menor → Fuzileiro Traidor → Feiticeiro.</li>
+          <li>Nunca invoca peça 2×2 nem chefe.</li></ul>
+        <h5>👑 Chefe</h5><p>Abater um chefe dá o <b>triplo de XP</b> e 45 tronos de base (em vez de 30).</p>`,
+        'patrulha spawnwarp portal invocar chefe xp tronos');
+    }
     // glossário
     add(R, 'glossario', 'Glossário de termos', 'Cada termo de regra usado nas habilidades',
       '<p>Estes termos aparecem nas descrições de talentos, habilidades e poderes. Em cada uma delas, a caixa <b>📘 Como funciona na mesa</b> explica os termos usados.</p>'
@@ -37849,7 +37902,7 @@ RTA_IMG.cajado_navis = `
   }
   const rtFzPrecoCons = id=> id === '__kit' || (RT_CONS_BY[id] || {}).tipo !== 'granada' ? 5 : 10;
   const rtFzPrecoAug = ()=> rtState.hw === 'forge_world' ? 10 : 30;
-  const rtFzMestre = ()=> currentRole === 'mestre';
+  const rtFzMestre = ()=> false;   // ninguém usa de graça: toda compra debita os tronos da ficha
   // ---------- tronos e kits (guardados no inventário da ficha) ----------
   function rtTronos(){ return typeof getLockedItemQty === 'function' ? getLockedItemQty('TRONOS') : 0; }
   function rtInvMuda(nome, d){
@@ -37883,11 +37936,27 @@ RTA_IMG.cajado_navis = `
     }catch(e){ console.error('forja: salvar', e); }
   }
   function rtFzNome(){ return ((els.nome && els.nome.value) || '').trim() || 'O personagem'; }
+  const RT_FZ_INSULTOS = ['Saco de carne', 'Carne fraca', 'Carne bruta', 'Protoplasma', 'Biomassa', 'Anomalia estatística', 'Erro de cálculo', 'Herege', 'Mutante', 'Escória de colmeia', 'Sangue-sujo', 'Grox', 'Cabeça de Grox', 'Frak', 'Feth', 'Gak'];
+  const RT_FZ_INSULTOS_FORJA = ['Cabeça de engrenagem', 'Chave de fenda', 'Chave inglesa', 'Lata-velha', 'Torradeira', 'Meio-servidor', 'Abominação de ferro'];
+  function rtFzInsulto(){
+    const lista = RT_FZ_INSULTOS.concat(rtState.hw === 'forge_world' ? RT_FZ_INSULTOS_FORJA : ['Não-aumentado']);
+    let x; do { x = lista[Math.floor(Math.random() * lista.length)]; } while(lista.length > 1 && x === RT_FZ.insulto);
+    return x;
+  }
+  // transação recusada: a fala da imagem vira um xingamento por alguns segundos
+  function rtFzRecusa(motivo){
+    RT_FZ.insulto = rtFzInsulto(); RT_FZ.insultoAte = Date.now() + 6000;
+    if(motivo) rtFzAviso(motivo);
+    const f = document.querySelector('#rtForja .rt-fz-fala');
+    if(f){ f.textContent = '“' + RT_FZ.insulto.toUpperCase() + '!”'; f.classList.remove('rt-fz-insulto'); void f.offsetWidth; f.classList.add('rt-fz-insulto'); }
+    clearTimeout(RT_FZ.__ti); RT_FZ.__ti = setTimeout(()=>{ RT_FZ.insulto = null; const f2 = document.querySelector('#rtForja .rt-fz-fala'); if(f2){ f2.classList.remove('rt-fz-insulto'); f2.textContent = rtFzFalaPadrao(); } }, 6000);
+  }
+  function rtFzFalaPadrao(){ const k = RT_FZ.aba; return k === 'aug' ? '“A CARNE É FRACA. O METAL, NÃO.”' : k === 'c' ? '“MUNIÇÃO ABENÇOADA. NÃO DESPERDICE.”' : '“O OMNISSIAS ABENÇOA QUEM PAGA.”'; }
   function rtFzPaga(preco, oque){
-    if(!rtFzMestre()){
-      if(rtTronos() < preco){ rtFzAviso('🪙 TRONOS INSUFICIENTES: FALTAM ' + (preco - rtTronos()) + '.'); return false; }
-      if(!rtTronosMuda(-preco)){ rtFzAviso('A FICHA NÃO TEM A LINHA DE TRONOS NO INVENTÁRIO.'); return false; }
-    }
+    // sem tronos suficientes: nada é gerado e nada é debitado
+    const saldo = rtTronos();
+    if(!(preco > 0) || saldo < preco){ rtFzRecusa('🪙 TRONOS INSUFICIENTES: FALTAM ' + Math.max(0, preco - saldo) + '.'); return false; }
+    if(!rtTronosMuda(-preco)){ rtFzRecusa('A FICHA NÃO TEM A LINHA DE TRONOS NO INVENTÁRIO.'); return false; }
     try{ postToDiscord(`⚒️ ${rtFzNome()} ${oque} NA FORJA` + (rtFzMestre() ? ' (PRESENTE DO MESTRE)' : ` POR ${preco} TRONOS`) + '.', null); }catch(e){}
     return true;
   }
@@ -37937,7 +38006,7 @@ RTA_IMG.cajado_navis = `
     return { base, ch: RT_CH.map(c=> ['ch:' + c, (RT_CH_BY[c] || {}).pt || c]), sk: RT.skills.map(s=> ['sk:' + s.id, s.pt]) };
   }
   function rtFzComprarItem(){
-    const why = rtFzBloqueio(); if(why){ rtFzAviso('⚒️ ' + why); return; }
+    const why = rtFzBloqueio(); if(why){ rtFzRecusa('⚒️ ' + why); return; }
     const k = RT_FZ.aba, st = rtState; rtSetsEnsure(st);
     const id = rtFzItemId(); if(!id){ rtFzAviso('ESCOLHA ' + (k === 'w' ? 'UMA ARMA' : 'UMA ARMADURA') + ' PRIMEIRO.'); return; }
     const p = rtFzPreco(); if(!p.total){ rtFzAviso('NADA MUDOU: ESCOLHA UM ITEM NOVO OU SUBA O NÍVEL DE UM EFEITO.'); return; }
@@ -37964,7 +38033,7 @@ RTA_IMG.cajado_navis = `
     rtFzReset(); rtFzDesenha();
   }
   function rtFzComprarCons(id){
-    const why = rtFzBloqueio(); if(why){ rtFzAviso('⚒️ ' + why); return; }
+    const why = rtFzBloqueio(); if(why){ rtFzRecusa('⚒️ ' + why); return; }
     const q = Math.max(1, Math.min(20, parseInt(RT_FZ.qtd[id], 10) || 1));
     const preco = q * rtFzPrecoCons(id);
     const nome = id === '__kit' ? RT_FZ_KIT.pt : RT_CONS_BY[id].pt;
@@ -37976,7 +38045,7 @@ RTA_IMG.cajado_navis = `
     rtFzDesenha();
   }
   function rtFzComprarAug(id){
-    const why = rtFzBloqueio(); if(why){ rtFzAviso('⚒️ ' + why); return; }
+    const why = rtFzBloqueio(); if(why){ rtFzRecusa('⚒️ ' + why); return; }
     const a = RT_AUGS.find(x=> x.id === id); if(!a) return;
     if((rtState.eq.aug || []).includes(id)) return;
     if(!rtFzPaga(rtFzPrecoAug(), 'INSTALOU O AUMENTO ' + a.pt.toUpperCase())) return;
@@ -38062,7 +38131,7 @@ RTA_IMG.cajado_navis = `
   }
   function rtFzDirHtml(){
     const k = RT_FZ.aba, E = rtEsc;
-    let h = '<div class="rt-fz-retrato"><img src="' + RT_FORJA_IMG + '" alt="A Forja"><div class="rt-fz-fala">' + (k === 'aug' ? '“A CARNE É FRACA. O METAL, NÃO.”' : k === 'c' ? '“MUNIÇÃO ABENÇOADA. NÃO DESPERDICE.”' : '“O OMNISSIAS ABENÇOA QUEM PAGA.”') + '</div></div>';
+    let h = '<div class="rt-fz-retrato"><img src="' + RT_FORJA_IMG + '" alt="A Forja"><div class="rt-fz-fala' + (RT_FZ.insulto && Date.now() < (RT_FZ.insultoAte || 0) ? ' rt-fz-insulto' : '') + '">' + (RT_FZ.insulto && Date.now() < (RT_FZ.insultoAte || 0) ? '“' + rtEsc(RT_FZ.insulto.toUpperCase()) + '!”' : rtFzFalaPadrao()) + '</div></div>';
     h += '<div class="rt-fz-item-box">';
     if(k === 'w' || k === 'a'){
       const id = rtFzItemId();
@@ -38076,7 +38145,7 @@ RTA_IMG.cajado_navis = `
         const p = rtFzPreco(), atual = rtFzSlotAtual();
         h += '<div class="rt-fz-conta">' + (RT_FZ.novo ? '<span>' + (k === 'w' ? 'ARMA' : 'ARMADURA') + '</span><b>' + p.base + '</b>' : '') + '<span>EFEITOS (' + rtFzCustoEfeitos() + ' NÍVEL(IS))</span><b>' + p.efeitos + '</b><span>TOTAL</span><b class="rt-fz-total">' + (rtFzMestre() ? 'GRÁTIS (MESTRE)' : p.total + ' 🪙') + '</b></div>'
           + (RT_FZ.novo && atual && atual.id ? '<div class="rt-hint">⚠️ A peça que está hoje neste lugar (' + E((k === 'w' ? RT_WEAPON_BY[atual.id] : RT_ARMOR_BY[atual.id]).pt) + ') é descartada.</div>' : '')
-          + '<button type="button" class="rt-btn rt-fz-comprar" data-fz-comprar' + (!p.total || (!rtFzMestre() && p.total > rtTronos()) ? ' disabled' : '') + '>⚒️ ' + (RT_FZ.novo ? 'FORJAR' : 'APRIMORAR') + (rtFzMestre() ? '' : ' — ' + p.total + ' 🪙') + '</button>';
+          + '<button type="button" class="rt-btn rt-fz-comprar" data-fz-comprar' + (!p.total ? ' disabled' : '') + (p.total > rtTronos() ? ' data-fz-falta' : '') + '>⚒️ ' + (RT_FZ.novo ? 'FORJAR' : 'APRIMORAR') + (rtFzMestre() ? '' : ' — ' + p.total + ' 🪙') + '</button>';
       } else h += '<div class="rt-hint">Escolha a guia, ' + (k === 'w' ? 'a mão e a arma' : 'e a armadura') + ' à esquerda.</div>';
     } else {
       const sel = RT_FZ.sel;
@@ -38152,17 +38221,18 @@ RTA_IMG.cajado_navis = `
   // efeitos especiais: clicar no efeito da arma/armadura abre a Forja naquele item
   rtBonusAbrir = function(kind, idx){ rtForjaAbrir({ aba: kind === 'a' ? 'a' : 'w', mao: kind === 'a' ? 0 : (idx || 0) }); };
   // aumentos: só pela Forja (o mestre ainda corrige pela janela antiga)
-  { const f = rtAugAbrir; rtAugAbrir = function(){ if(currentRole === 'mestre') return f.apply(this, arguments); rtForjaAbrir({ aba:'aug' }); }; }
+  rtAugAbrir = function(){ rtForjaAbrir({ aba:'aug' }); };
   // ficha salva: arma/armadura nova só pela Forja; quantidade de consumíveis e tronos só muda pela Forja e pelo uso
-  const RT_FZ_TIP = 'Depois de salva a ficha, armas e armaduras novas vêm da ⚒️ A FORJA.';
+  const RT_FZ_TIP = 'Armas e armaduras novas só vêm da ⚒️ A FORJA.';
   function rtFzTravaFicha(){
     const mestre = currentRole === 'mestre';
-    const trava = !mestre && typeof rtLockOn === 'function' && rtLockOn();
+    const trava = true;
     document.querySelectorAll('#rtSheet select[data-wk="id"], #rtSheet select[data-ak="id"]').forEach(el=>{
       if(trava && !el.disabled){ el.disabled = true; el.dataset.rtFz = '1'; el.title = RT_FZ_TIP; }
       else if(!trava && el.dataset.rtFz && !el.dataset.rtCb){ el.disabled = false; delete el.dataset.rtFz; if(el.title === RT_FZ_TIP) el.title = ''; }
     });
-    document.querySelectorAll('#rtSheet #rtCons [data-rt-cons], #rtSheet #rtCons [data-rt-inv]').forEach(el=>{ el.hidden = !mestre; });
+    // só os Tronos ainda podem ser ajustados pelo mestre (recompensa); granadas, kit e estimulante, ninguém
+    document.querySelectorAll('#rtSheet #rtCons [data-rt-cons], #rtSheet #rtCons [data-rt-inv]').forEach(el=>{ el.hidden = !(mestre && el.dataset.rtInv === 'TRONOS'); });
     const cons = rtEl('rtCons');
     if(cons && !cons.querySelector('.rt-fz-dica')){ const d = document.createElement('div'); d.className = 'rt-hint rt-fz-dica'; d.innerHTML = '⚒️ Granadas, consumíveis e aumentos são comprados na <b>A FORJA</b> (botão no topo). A quantidade cai sozinha quando o item é usado no tabuleiro.'; cons.prepend(d); }
   }
@@ -38176,7 +38246,7 @@ RTA_IMG.cajado_navis = `
   // =====================================================================================
   // TRONOS POR ABATE (só para quem deu o golpe final) e TRONOS EXTRAS do mestre
   // =====================================================================================
-  const RT_TR_PAPEL = { horda:6, tropa:4, elite:10, chefe:30 };
+  const RT_TR_PAPEL = { horda:6, tropa:4, patrulha:4, elite:10, chefe:45 };
   function rtTronosDoInimigo(t){
     const c = rtcOrDefault(t);
     if(rtTrait(t, 'demoniaco') || (t.bst && /demonio/.test(t.bst.u || ''))) return 0;
@@ -38258,6 +38328,268 @@ RTA_IMG.cajado_navis = `
       RT_ASAVE.aplicados.add(gid); RT_ASAVE.pendentes.add(key);
       rtFzAviso('🪙 +' + g.tronos + ' TRONOS' + (g.nome ? ' — ' + String(g.nome).toUpperCase() : ''));
       if(rtAutoPode()){ clearTimeout(RT_ASAVE.t); RT_ASAVE.t = setTimeout(rtAutoSalvar, 1500); }
+  }; }
+  // toda ficha nova começa com 100 tronos
+  const RT_TRONOS_INICIAIS = 100;
+  { const f = startNewFicha; startNewFicha = function(){
+      const o = f.apply(this, arguments);
+      const poe = ()=>{ try{ const el = getLockedItemQtyInput('TRONOS'); if(el && !(parseFloat(el.value) > 0)){ el.value = RT_TRONOS_INICIAIS; el.dispatchEvent(new Event('input', { bubbles:true })); } }catch(e){} };
+      poe(); setTimeout(poe, 0); setTimeout(poe, 400);
+      return o;
+  }; }
+
+  // tronos nunca ficam negativos (campo do inventário, compra, recompensa)
+  setInterval(()=>{ try{ const el = getLockedItemQtyInput('TRONOS'); if(el && (parseFloat(el.value) || 0) < 0){ el.value = 0; el.dispatchEvent(new Event('input', { bubbles:true })); } }catch(e){} }, 500);
+
+
+  // frases do TURNO DO TABULEIRO (lemas do Imperium, traduzidos)
+  const RT_FRASES = ["Dez mil anos de traição já bastam.", "A única recompensa do covarde é viver com medo mais um dia.", "Uma adaga no escuro vale mais que mil espadas ao amanhecer.", "Uma morte gloriosa a serviço vale mais que dez vidas na ignomínia.", "Pena que só podemos morrer uma vez a serviço do Imperador.", "Um único ato de clemência equivale a uma vida inteira de traição.", "Mente pequena é mente arrumada.", "Mente desconfiada é mente sadia.", "Uma execução rápida vale mais que cem interrogatórios.", "Abomine a Noite: é a Luz que perdura!", "Abomine o mutante.", "Abomine o xenos.", "A repulsa é uma dádiva; use-a bem.", "Mire certo e golpeie fundo.", "Mire sem piedade.", "Salve o Imperador da Humanidade.", "Toda vida mortal que não alimenta o espírito é tolice.", "Uma opinião bem informada deve ser descartada com a certeza inabalável da fé!", "Erga-se para a vingança.", "Assim como o Imperador protege, também devemos proteger.", "Vingue a Humanidade.", "Seja um baluarte da Humanidade.", "Seja firme e sem piedade.", "Não tenha misericórdia.", "Seja expurgado e conheça a salvação.", "Seja inabalável na defesa.", "Seja o ceifador do Imperador.", "Sê tu o flagelo dos traidores.", "Nunca durma na vigília, seja rápido na justiça e implacável no ódio.", "Torne-se a retidão feita carne.", "Torne-se o punho do Imperador.", "Torne-se a vingança.", "Antes morrer com honra que viver como traidor.", "Cuidado com a corrupção da alma dos homens.", "Além da luz do Imperador só existe desespero.", "Benditos sejam os intolerantes.", "Benditos sejam os impiedosos.", "Benditos aqueles cuja mira é certeira.", "Benditos aqueles que não olham para dentro de si.", "Bendito seja o subjugador.", "Benditos sejam os vingativos.", "Bendita seja a tua mira.", "Bendita seja a tua fúria.", "Bendita a mente pequena demais para a dúvida.", "Bravos são os que sabem de tudo e nada temem.", "Queime o herege! Mate o mutante! Expurgue o impuro!", "Pela forma como morrem os conheceremos.", "Por tuas cicatrizes e feitos serás julgado.", "Por tuas cicatrizes te conheceremos.", "Leve a Vontade do Imperador através das estrelas.", "Leve a Vontade do Imperador como uma tocha na escuridão.", "Carregue tuas cicatrizes com honra.", "Purifique o mutante; queime o herege; expurgue o xenos.", "Purifique com fogo o que é impuro.", "Agarre-se à luz do Imperador.", "Reclamar da própria sorte é o primeiro passo na Estrada da Danação.", "Entregue os condenados à sua recompensa.", "A coragem é uma dádiva do Imperador.", "Amaldiçoe o traidor, condene o fraco.", "A danação é eterna.", "Antes a morte que a profanação.", "A morte traz paz aos infiéis.", "A morte vem para todos nós.", "A morte é um ofício: pratique-o bem.", "A morte é preferível ao fracasso.", "Despreze os fracos, pois eles atenderão ao chamado do renegado.", "Destrua a corrupção onde quer que ela esteja.", "Destruam o herege!", "Morra agora e amaldiçoe em vão.", "Não fuja da luta sem esperança, pois o esforço é sua própria recompensa.", "Faça a sua parte pelo Senhor da Humanidade.", "Não duvide da ira do Imperador.", "Não duvides da tua força enquanto a fé prevalecer.", "Tire forças da vontade do Imperador.", "O dever exige sacrifício.", "O dever primeiro, o dever por último.", "O dever é sua própria recompensa.", "O dever é vital; compreender, não.", "Que o Imperador guie a tua mira.", "Suporte o presente, para que os que vierem depois continuem a tua obra.", "Até o maior dos heróis é só uma ondulação na superfície do vazio.", "Exista para o Imperador.", "A existência é o maior crime do xenos.", "Os fatos são correntes que prendem a percepção e acorrentam a verdade.", "Fé e fúria servem aos justos.", "Fé e zelo derrotam qualquer inimigo.", "A fé vence tudo.", "A fé não deixa espaço para a dúvida.", "A fé não precisa de desculpa.", "Fé. Honra. Vigilância.", "Infiéis são os que abandonam suas tarefas.", "Não tema a aniquilação, pois ela espera por todos nós.", "Tema a ira dos justos.", "Tolos são os que nada temem, mas dizem saber de tudo.", "Pela Sagrada Terra Eterna.", "Para cada inimigo lá fora, há cem aqui dentro.", "Não esqueça; não perdoe nada.", "O perdão é um crime punido com a morte.", "A sorte favorece os fiéis.", "A liberdade se compra com suor, lágrimas e sangue.", "Do dever e da morte não há descanso.", "Do Trono Dourado Ele vigia tudo.", "Do Trono Dourado, Ele vê tudo...", "Cinja-te com a luz do Imperador.", "Proteja a Humanidade; tema o Inimigo do Além.", "Proteja tua alma contra a desordem.", "A felicidade é uma ilusão dos fracos.", "Apresse os condenados à sua recompensa.", "O ódio é uma força irresistível.", "O ódio deve ser temperado como o aço de uma lâmina.", "O ódio fortalece a nossa determinação.", "Ele sabe o que se esconde na escuridão, e não a teme.", "Não dê ouvidos às súplicas dos fracos.", "Não dê ouvidos aos sussurros dos infiéis.", "Ouça a Palavra do Imperador.", "Aqui jaz a ruína dos mutantes.", "Aqui termina a tua lição.", "A heresia nasce da ociosidade.", "D'Ele é a luz que não se apaga.", "Honre o nome d'Ele derramando sangue.", "Honre o ofício da morte.", "Honre o teu Imperador.", "Honre teus juramentos, honre teu Imperador.", "Honre teu regimento.", "Honre tua arma.", "Honre teu dever.", "Honre teu equipamento como honrarias o Imperador.", "Honra, dever e obediência.", "A esperança é supérflua.", "A esperança é o primeiro passo no caminho da decepção.", "Cace o mutante, mate o mutante.", "Eu trago a morte.", "Eu falo com línguas de fogo.", "Se você não vê sinais de sedição, não está procurando direito.", "A ignorância é a tua melhor defesa.", "Imperialis Dominatus.", "Impureza de ato ou pensamento é traição.", "Na luz da Terra nós servimos.", "Em todas as coisas, sirva ao Imperador.", "Na derrota, Malícia. Na vitória, Vingança.", "A inocência não prova nada.", "O intelecto é a máscara do traidor.", "A intolerância é uma bênção.", "É uma honra sangrar pelo Imperador.", "A justiça não admite dúvida.", "Mantenha a fé, mate o inimigo.", "Mate o herege com fervor.", "Mate, em nome do Imperador.", "O conhecimento nos aproxima da aniquilação.", "Conhecimento é poder: guarde-o bem.", "Conhecimento é poder; o poder corrompe.", "A falta de fé equivale à traição.", "Que a luz da Terra seja o teu farol.", "Que a fé esmague a razão.", "Que nenhuma traição fique sem punição.", "Que nenhum inimigo fique de pé diante de ti.", "Não deixe o traidor viver.", "Não deixe o medo vencer o teu ódio.", "Que a chama do ódio nunca se apague.", "Que tua mente seja pura e tua mira, certeira.", "Que tua arma seja o zelo e tua armadura, o desprezo.", "A vida é passageira; o dever é eterno.", "A vida não se mede em anos, mas pelos feitos dos fiéis.", "A vida é a moeda do Imperador: gaste-a bem.", "O propósito da vida é servir ao Imperador.", "Faça da tua morte uma morte digna.", "Faça teus inimigos sofrerem.", "A Humanidade se ergue sobre os ombros dos mártires.", "Marque o traidor, mate o traidor.", "A misericórdia é uma doença; a intolerância é a cura.", "A misericórdia é um luxo que a Humanidade não pode pagar.", "Mentes estreitas são mentes fiéis.", "A noite desce, mas a luz do Imperador ainda mostra o caminho.", "Nenhum homem que morreu a serviço do Imperador morreu em vão.", "Nenhum preço é alto demais pela vitória.", "Só um tolo recusa a bênção do Imperador.", "Só na morte termina o dever.", "Só o covarde busca acordo.", "Ordem e obediência são pão e vinho para os fiéis.", "Pinte a Galáxia com a luz do Imperador.", "Julgue sem piedade.", "Persiga, puna, persista.", "Louvado seja o Imperador, que nos ensina os caminhos da guerra.", "Louvado seja o Trono Dourado.", "Não louve ninguém além do Imperador.", "Louvado seja o Imperador.", "Louvado seja o Imperador. Malditos sejam Seus inimigos.", "Expurguem o impuro!", "Reconquiste a Galáxia em nome do Imperador.", "Rejeite o conhecimento; abrace a fé.", "Rejeite a paz pela mentira que ela é.", "Alegre-se no arrependimento.", "Alegre-se no teu serviço.", "Não descanse enquanto as abominações se agitam.", "Não descanses enquanto as abominações despertam.", "A retribuição é o teu direito de nascença.", "Deleite-se na destruição dos inimigos do Imperador.", "Despreze o inimigo.", "Sacrifique tudo no altar da batalha.", "Flagele as estrelas em nome do Imperador.", "A sedição começa com a falta de fé.", "Busque para ti uma morte digna de ser lembrada.", "Não busque justiça, busque vingança.", "Não busque conhecimento, busque vingança.", "Afie tua mente para o ódio.", "Abata todos que se opõem ao Imperador.", "Abata todos que mancharem o nome do Imperador.", "Não gaste um pensamento com a dor.", "Fale apenas em louvor ao teu Senhor.", "Não pronuncie o nome dos traidores.", "Não tolere impureza.", "Não permita que o impuro viva.", "Não permita que o traidor viva.", "Sobreviver não basta; é preciso também banir a dúvida.", "Não busque conforto; não há nenhum.", "O Imperador carrega o peso dos males da Humanidade.", "O Imperador nos concede a dádiva da intolerância.", "O Imperador ordena, o Astra Militarum obedece.", "O Imperador é tudo.", "O Imperador sabe, o Imperador está vigiando.", "O Imperador protege.", "A justiça do Imperador é uma coisa bela.", "O Imperium foi fundado sobre o sangue dos mártires.", "O Imperium da Humanidade jamais cederá.", "O mutante carrega sua heresia por fora; o traidor a esconde por dentro.", "A Vontade do Imperador é a força do Imperium.", "A Palavra do Imperador é a lei do Imperium.", "A bênção do Imperador é a luz do Imperium.", "Os devotos vencerão.", "A diferença entre heresia e traição é a ignorância.", "Quem duvida fracassa; quem é firme prevalece.", "O tolo confia na sorte; o sábio confia no Imperador.", "A culpa da heresia pesa sobre a alma.", "O laborioso pode escapar da morte.", "O homem que nada tem ainda pode ter fé.", "Quanto mais se aprende sobre o xenos, mais se passa a odiá-lo.", "O fardo mortal carregado com dever até o fim é o maior louvor ao Imperador.", "O mutante é ardiloso: não confie nele.", "O caminho da vitória começa com o ódio.", "A recompensa da bravura é o martírio.", "Os justos nada temem.", "O mesmo martelo que estilhaça o vidro forja o aço.", "As sementes da heresia são plantadas na mente dos esclarecidos.", "O escudo da fé é a tua melhor proteção.", "A força da Humanidade é o Imperador.", "O túmulo do mártir é a pedra angular do Imperium.", "O traidor vai queimar.", "O traidor colherá uma safra amarga de vingança e morte.", "A mão do traidor está mais perto do que você pensa.", "A verdade é terrível de suportar.", "O vencedor vive com honra; o vencido morre na vergonha.", "O salário da negligência é a destruição total.", "Os sábios têm muito a temer; os ignorantes são abençoados com coragem.", "Os sábios aprendem com a morte dos outros.", "Não há muralha forte o bastante para proteger os inimigos da Humanidade.", "Não há expiação para a traição.", "Não pode haver paz entre as estrelas.", "Não pode haver rendição.", "Não há vitória sem convicção.", "Não existe ser tão vil quanto o traidor.", "Não há medo na convicção.", "Não há futuro sem a bênção do Imperador.", "Não há salvação para os condenados.", "Só existe o Imperador.", "Só existe o Imperador, e Ele é nosso escudo e protetor.", "Há pureza de propósito na fé dos justos.", "Tu és o martelo do Imperador.", "Serás lembrado por teus feitos.", "Matarás.", "Não cederás.", "Por todos os nossos meios seguimos as ordens do Imperador.", "Tua mão é a justiça.", "Teu propósito é a morte.", "A timidez gera indecisão; a indecisão gera traição.", "Errar é convidar a retribuição.", "Questionar é duvidar.", "Questionar teu mestre é trair o Imperador.", "Abrir mão do desprezo é capitular.", "Poupar o traidor é convidar a corrupção.", "Recuar com nojo não é apatia.", "A tolerância gera heresia.", "A verdadeira felicidade nasce apenas do dever.", "A verdadeira fé é cega e justificada.", "Confie apenas no Imperador.", "A verdade gera ódio.", "Compreender enfraquece a vontade de agir.", "A vingança nunca dorme.", "A vitória pertence ao Imperador.", "A vitória não precisa de explicação; a derrota não admite nenhuma.", "A vigilância é a ruína do mutante.", "A guerra chama: você vai responder?", "A guerra é a única diplomacia.", "Não recuamos diante da morte.", "Pese o punho que derruba homens e saúda a batalha vencida.", "Receba o julgamento do Imperador.", "Quando tudo for trevas, lembre-se do Imperador.", "Quando as sombras ameaçam, o Imperador está conosco.", "Quem treina tuas mãos para a guerra?", "Sem medo e sem vacilar, cumpre o teu dever.", "Você não precisa pensar; apenas agir.", "Você é o escudo da Humanidade.", "Você não precisa entender nada para cumprir o seu dever.", "Você vai cair. Mas não cairá sozinho.", "Tua honra é tua vida. Que ninguém a conteste.", "Tua arma é tua única salvação.", "Zelo e fervor te guiarão.", "O zelo é sua própria desculpa.", "O zelo triunfa onde o conhecimento falha."];
+
+
+  // =====================================================================================
+  // TURNO DO TABULEIRO — sempre o primeiro da iniciativa
+  // Uma entrada fixa "🕯️ TABULEIRO" abre cada rodada. Nela: todos veem em destaque "TURNO N" com
+  // uma frase sorteada (lemas do Imperium), e os efeitos globais de dano por turno são aplicados de
+  // uma vez em todas as peças. Depois de alguns segundos a vez passa sozinha para a primeira peça.
+  // =====================================================================================
+  const RT_MESA_ID = '__mesa';
+  const RT_MESA_NOME = '🕯️ TABULEIRO';
+  const RT_MESA_MS = 4500;
+  function rtMesaEntrada(){ return { id: RT_MESA_ID, kind:'mesa', mesa:true, nome: RT_MESA_NOME, baseNome: RT_MESA_NOME, bonusDes:0, ini: 999 }; }
+  const rtEhMesa = e=> !!(e && (e.mesa || e.id === RT_MESA_ID));
+  const rtMesaAgora = ()=>{ try{ return !!(turnState.active && rtEhMesa(currentTurnEntry())); }catch(e){ return false; } };
+  // há alguém acordado para jogar? (só inimigos em espera: o tabuleiro não fica girando rodadas com faixa e chat)
+  function rtMesaAlguemAcordado(){
+    return (turnState.order || []).some(e=>{ if(rtEhMesa(e)) return false; const t = rtTokenById(e.id); return t && !isTurnEntryKnockedOut(e) && !rtAiDormindo(t); });
+  }
+  function rtMesaTurno(){
+    const r = rtTurnRt();
+    r.attacks = 0; r.mp = 0; r.mpMax = 0;
+    turnState.apMax = 0; turnState.apRemaining = 0;
+    const round = turnState.round || 1;
+    if(r.mesa && r.mesa.round === round) return;            // já rodou nesta rodada
+    const acordado = rtMesaAlguemAcordado();
+    const f = Math.floor(Math.random() * RT_FRASES.length);
+    r.mesa = { round, f, ts: Date.now(), q: acordado ? 1 : 0 };
+    if(acordado){
+      let linhas = [];
+      try{ linhas = rtGlobDanoMesa(); }catch(e){ console.error('efeitos do tabuleiro', e); }
+      // um instante depois, para o anúncio da iniciativa (rodada 1) chegar antes no chat
+      const msg = `🕯️ TURNO ${round} — “${RT_FRASES[f]}”`.toUpperCase() + (linhas.length ? '\n🌐 EFEITOS DO TABULEIRO: ' + linhas.join(' · ').toUpperCase() : '');
+      setTimeout(()=>{ RT_POST_LIVRE = true; try{ postToDiscord(msg, null); }finally{ RT_POST_LIVRE = false; } }, 900);
+    }
+    setTimeout(()=> rtMesaPassa(round), acordado ? RT_MESA_MS : 300);
+  }
+  function rtMesaPassa(round){
+    try{
+      if(!turnState.active || !rtMesaAgora() || (turnState.round || 1) !== round) return;
+      if(typeof RT_PAUSA !== 'undefined' && RT_PAUSA){ setTimeout(()=> rtMesaPassa(round), 1000); return; }
+      advanceTurn();
+    }catch(e){ console.error('turno do tabuleiro', e); }
+  }
+  // a entrada do tabuleiro não tem peça: começa o turno dela sem passar pela regra das peças
+  { const f = rtTurnStart; rtTurnStart = function(entry){ if(rtEhMesa(entry)) return rtMesaTurno(entry); return f.apply(this, arguments); }; }
+  // rede de segurança (só o mestre): quem abriu o turno do tabuleiro fechou a página
+  setInterval(()=>{
+    try{
+      if(currentRole !== 'mestre' || !turnState.active || !rtMesaAgora()) return;
+      if(typeof RT_PAUSA !== 'undefined' && RT_PAUSA) return;
+      const r = rtTurnRt(), round = turnState.round || 1;
+      if(!r.mesa || r.mesa.round !== round){ rtMesaTurno(); pushTurnState(); return; }
+      if(!r.mesa.__visto) r.mesa.__visto = Date.now();
+      if(Date.now() - r.mesa.__visto > RT_MESA_MS + 4000){ r.mesa.__visto = Date.now(); advanceTurn(); }
+    }catch(e){}
+  }, 1000);
+  // o aviso "agora é a vez de TABULEIRO" sai do chat (o turno do tabuleiro já anuncia o TURNO N)
+  { const f = postToDiscord; postToDiscord = function(content){
+      try{ if(typeof content === 'string' && content.toUpperCase().includes('VEZ DE **' + RT_MESA_NOME)) return Promise.resolve('mesa'); }catch(e){}
+      return f.apply(this, arguments);
+  }; }
+  // barra de status, fase e PA durante o turno do tabuleiro
+  { const f = turnStatusText; turnStatusText = function(){ if(rtMesaAgora()) return '🕯️ O TABULEIRO AGE — EFEITOS DO MAPA'; return f.apply(this, arguments); }; }
+  { const f = renderTurnPhaseBanner; renderTurnPhaseBanner = function(){ f.apply(this, arguments); const el = $('turnPhaseBanner'); if(el && rtMesaAgora()){ el.hidden = true; el.textContent = ''; } }; }
+  { const f = renderApDots; renderApDots = function(){ f.apply(this, arguments); const el = $('apDotsBar'); if(el && rtMesaAgora()){ el.hidden = true; el.innerHTML = ''; } }; }
+  // ---------- destaque "TURNO N" para todo mundo ----------
+  let RT_MESA_VISTO = '';
+  function rtMesaBanner(){
+    if(!turnState.active || !rtMesaAgora()) return;
+    const r = turnState.rt || {}; const m = r.mesa; if(!m || !m.q) return;
+    const chave = (turnState.round || 1) + ':' + m.f;
+    if(RT_MESA_VISTO === chave) return;
+    RT_MESA_VISTO = chave;
+    const old = document.getElementById('rtMesaBanner'); if(old) old.remove();
+    const el = document.createElement('div'); el.id = 'rtMesaBanner'; el.className = 'rt-mesa-banner';
+    el.innerHTML = '<div class="rt-mesa-orn">✠ ✠ ✠</div><div class="rt-mesa-turno">TURNO ' + (turnState.round || 1) + '</div><div class="rt-mesa-frase">“' + rtEsc(RT_FRASES[m.f] || '') + '”</div>';
+    document.body.appendChild(el);
+    requestAnimationFrame(()=> el.classList.add('on'));
+    setTimeout(()=>{ el.classList.remove('on'); el.classList.add('sai'); }, RT_MESA_MS - 600);
+    setTimeout(()=> el.remove(), RT_MESA_MS + 400);
+    try{ playFlipSound(); }catch(e){}
+  }
+  // contador fixo "TURNO N" ao lado da barra do turno (todos veem durante o combate)
+  function rtMesaContador(){
+    ['liveTurnStatus', 'boardTurnStatus'].forEach(id=>{
+      const st = document.getElementById(id); if(!st) return;
+      let b = st.previousElementSibling && st.previousElementSibling.classList.contains('rt-turno-n') ? st.previousElementSibling : null;
+      if(!turnState.active){ if(b) b.remove(); return; }
+      if(!b){ b = document.createElement('span'); b.className = 'rt-turno-n'; st.before(b); }
+      const txt = 'TURNO ' + (turnState.round || 1);
+      if(b.textContent !== txt){ b.textContent = txt; b.classList.remove('pulsa'); void b.offsetWidth; b.classList.add('pulsa'); }
+      b.classList.toggle('mesa', rtMesaAgora());
+    });
+  }
+  setInterval(()=>{ try{ rtMesaContador(); rtMesaBanner(); }catch(e){} }, 300);
+
+
+  // =====================================================================================
+  // PAPEL "PATRULHA" e o SPAWNWARP (portal) em todas as facções
+  // Patrulha: sempre ativa. Sem ver ninguém, anda um número aleatório de casas numa direção
+  // aleatória (ou na direção de quem atacou por último, do lado dos jogadores), vira para um lado
+  // aleatório e passa a vez. Ao avistar alguém, entra no combate com o turno automático normal.
+  // SpawnWarp: portal roxo de 100 de vida, sempre ativo, sem ataques. Em cada vez dele surge um
+  // inimigo patrulha do mesmo nível e da mesma vertente; quanto menos vida o portal tem, mais forte
+  // é o que sai (nunca peça 2×2 nem chefe).
+  // =====================================================================================
+  RT_PAPEL.patrulha = { pt:'Patrulha', anel:'#3fa9d6', fer:1, ch:0, desc:'Sempre ativa: anda pelo mapa mesmo sem ver ninguém e vai na direção de quem atacar.' };
+  RT_TRACOS.patrulha = ['🧭', 'Patrulha', 'Sempre ativa: sem ver ninguém, anda em direção aleatória (ou atrás de quem atacou por último), vira para um lado e passa a vez.'];
+  RT_TRACOS.portal = ['🌀', 'Portal Disforme', '100 de vida, não ataca. Em cada vez dele surge um inimigo patrulha do mesmo nível; quanto menos vida, mais forte o que sai.'];
+  // o que cada portal invoca, da faixa de vida mais alta para a mais baixa (100–80, 79–50, 49–30, abaixo de 30)
+  const RT_SPAWN_ORDEM = {
+    caos: ['fanatico', 'demonio_menor', 'traidor', 'feiticeiro'],
+    drukhari: ['guerreiro', 'bruxa', 'incubo', 'grotesco'],
+    orks: ['grot', 'garoto', 'mekaniko', 'nobre'],
+    necrons: ['escaravelho', 'guerreiro', 'imortal', 'destruidor'],
+    tau: ['drone', 'guerreiro', 'furtivo', 'crise'],
+    tiranideos: ['termagante', 'hormagante', 'guerreiro', 'lictor'],
+  };
+  function rtSpawnUnidades(){
+    Object.keys(RT_BFAC).forEach(f=>{
+      const F = RT_BFAC[f]; if(!F || !F.uni || F.uni.spawnwarp) return;
+      F.uni.spawnwarp = { pt:'SpawnWarp', emoji:'🌀', papel:'elite', ch:{ WS:0, BS:0, STR:30, TGH:40, AGI:0, INT:30, PER:40, WP:50, FEL:0 }, fer:100, arm:0, esq:0, apa:0, armas:[], tr:['portal'] };
+    });
+  }
+  rtSpawnUnidades();
+  const rtEhPortal = t=> !!(t && ((t.bst && t.bst.u === 'spawnwarp') || rtTrait(t, 'portal')));
+  const rtEhPatrulha = t=> !!(t && ((t.bst && t.bst.p === 'patrulha') || (rtcOf(t) || {}).papel === 'patrulha'));
+  // o portal tem sempre 100 de vida, nenhuma arma e nunca é chefe
+  { const f = rtBestSpec; rtBestSpec = function(fac, v, u){
+      const sp = f.apply(this, arguments);
+      if(sp && u === 'spawnwarp'){ sp.fer = 100; sp.armas = []; sp.papel = 'elite'; sp.size = 1; sp.tr = ['portal']; sp.eab = []; sp.arm = 0; sp.defl = 0; sp.esq = 0; sp.apa = 0; sp.nome = 'SpawnWarp'; }
+      if(sp && sp.papel === 'patrulha' && !(sp.tr || []).includes('patrulha')) sp.tr = (sp.tr || []).concat(['patrulha']);
+      return sp;
+  }; }
+  // aparência: o mesmo portal roxo em todas as facções (girando)
+  const RT_PORTAL_SVG = (()=>{
+    const espiral = [0, 90, 180, 270].map(a=> '<path d="M50 50 m-34 0 a34 34 0 0 1 34 -34 a26 26 0 0 1 22 12" transform="rotate(' + a + ' 50 50)"/>').join('')
+      + [45, 135, 225, 315].map(a=> '<path d="M50 50 m-20 0 a20 20 0 0 1 20 -20" transform="rotate(' + a + ' 50 50)"/>').join('');
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><radialGradient id="p" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ffe9ff"/><stop offset=".18" stop-color="#d47bff"/><stop offset=".5" stop-color="#7a1fc4"/><stop offset=".85" stop-color="#2a0748"/><stop offset="1" stop-color="#0e0218"/></radialGradient>'
+      + '<filter id="b"><feGaussianBlur stdDeviation="1.2"/></filter></defs><circle cx="50" cy="50" r="48" fill="url(#p)"/>'
+      + '<g fill="none" stroke="#f0c6ff" stroke-width="3.2" stroke-linecap="round" opacity=".85" filter="url(#b)">' + espiral + '<animateTransform attributeName="transform" type="rotate" from="0 50 50" to="360 50 50" dur="5s" repeatCount="indefinite"/></g>'
+      + '<g fill="none" stroke="#b25cff" stroke-width="1.6" stroke-linecap="round" opacity=".7">' + espiral + '<animateTransform attributeName="transform" type="rotate" from="360 50 50" to="0 50 50" dur="9s" repeatCount="indefinite"/></g>'
+      + '<circle cx="50" cy="50" r="9" fill="#fff" opacity=".85" filter="url(#b)"><animate attributeName="r" values="7;11;7" dur="2.4s" repeatCount="indefinite"/></circle>'
+      + '<circle cx="50" cy="50" r="46" fill="none" stroke="#c77dff" stroke-width="4"/></svg>';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  })();
+  { const f = rtBestRetrato; rtBestRetrato = function(b){ if(b && b.u === 'spawnwarp') return RT_PORTAL_SVG; return f.apply(this, arguments); }; }
+  { const f = rtBestSvg; rtBestSvg = function(b){ if(b && b.u === 'spawnwarp') return RT_PORTAL_SVG; return f.apply(this, arguments); }; }
+
+  // patrulha e portal nunca ficam "em espera": jogam todo turno (mas continuam fora da fila dos jogadores até serem vistos)
+  { const f = rtAiDormindo; rtAiDormindo = function(tok){ if(tok && (rtEhPatrulha(tok) || rtEhPortal(tok)) && rtAiLigado(tok) && !rtIsDown(tok)) return false; return f.apply(this, arguments); }; }
+  // ainda não vista pelos jogadores: nada da vez dela vai para o chat (nem o nome)
+  const rtOcultaAgindo = t=>{ try{ return !!(t && (rtEhPatrulha(t) || rtEhPortal(t)) && rtAiLigado(t) && !rtAiAlerta(t) && !rtAiMotivo(t)); }catch(e){ return false; } };
+  { const f = postToDiscord; postToDiscord = function(content){
+      try{ const e = turnState && turnState.active && currentTurnEntry(); const t = e && rtTokenById(e.id);
+        if(t && !RT_POST_LIVRE && rtOcultaAgindo(t)) return Promise.resolve('oculta');
+      }catch(err){}
+      return f.apply(this, arguments);
+  }; }
+  // quem do lado dos jogadores atacou por último (a patrulha vai atrás)
+  { const f = rtStat; rtStat = function(tok, campo){
+      try{ if(campo === 'at' && tok && turnState.active && rtIsParty(tok)){ const r = rtTurnRt(); r.patAtk = { id: tok.id, round: turnState.round || 1 }; } }catch(e){}
+      return f.apply(this, arguments);
+  }; }
+  const RT_DIRS8 = [['N', -1, 0], ['NE', -1, 1], ['E', 0, 1], ['SE', 1, 1], ['S', 1, 0], ['SW', 1, -1], ['W', 0, -1], ['NW', -1, -1]];
+  function rtVezAi(id, fn){
+    const k = rtAiVezKey(id); RT_AI_VEZ[k] = { ini: Date.now() };
+    RT_AI_RODANDO = id;
+    return (async ()=>{
+      try{ await fn(); }
+      catch(err){ console.error('IA (patrulha/portal)', err); }
+      finally {
+        if(RT_AI_VEZ[k]) RT_AI_VEZ[k].fim = Date.now();
+        if(RT_AI_RODANDO === id){ RT_AI_RODANDO = null; try{ rtAiBotao(false); }catch(e){} }
+      }
+      try{ if(rtAiDaVez(id)) advanceTurn(); }catch(e){}
+    })();
+  }
+  async function rtPatrulhaTurno(id){
+    await rtAiEspera(400);
+    let tok = rtTokenById(id); if(!tok || !rtAiDaVez(id)) return;
+    const r = rtTurnRt(); const mp = Math.max(0, r.mp || 0);
+    if(mp > 0 && !rtHasEffect(tok, 'immob')){
+      const atk = r.patAtk && rtTokenById(r.patAtk.id);
+      let caminho = null;
+      if(atk && !rtIsDown(atk) && (turnState.round || 1) - (r.patAtk.round || 0) <= 2){
+        // vai atrás de quem atacou
+        const casas = rtAiAlcance(tok, mp);
+        const melhor = casas.map(no=> ({ no, d: rtDistRect(rtFp(tok, no.r, no.c), rtFp(atk)) })).sort((a, b)=> a.d - b.d || a.no.d - b.no.d)[0];
+        if(melhor && melhor.no.d > 0) caminho = rtAiCaminho(melhor.no);
+      }
+      if(!caminho){
+        // direção e distância aleatórias (para antes de bater em parede ou peça)
+        const dirs = RT_DIRS8.slice().sort(()=> Math.random() - 0.5);
+        const passos = 1 + Math.floor(Math.random() * mp);
+        for(const [, dr, dc] of dirs){
+          const p0 = rtPosOf(tok); const cam = [{ r: p0.r, c: p0.c }];
+          for(let i = 1; i <= passos; i++){ const nr = p0.r + dr * i, nc = p0.c + dc * i; if(!rtAiLivre(tok, nr, nc)) break; cam.push({ r: nr, c: nc }); }
+          if(cam.length > 1){ caminho = cam; break; }
+        }
+      }
+      if(caminho) await rtAiAndar(tok, caminho, id);
+    }
+    tok = rtTokenById(id); if(!tok) return;
+    // olha para um lado qualquer no fim do movimento
+    try{ if(currentRole === 'mestre') chooseBoardFacing(tok, RT_DIRS8[Math.floor(Math.random() * 8)][0]); }catch(e){}
+    try{ rtAiChecaAlerta(rtTokenById(id) || tok); }catch(e){}
+    await rtAiEspera(350);
+  }
+  function rtSpawnEscolhe(tok){
+    const b = tok.bst || {}; const F = RT_BFAC[b.f]; if(!F) return null;
+    const pode = u=> u && F.uni[u] && u !== 'spawnwarp' && !(F.uni[u].size > 1) && F.uni[u].papel !== 'chefe';
+    const hp = rtHpInfo(tok); const pct = Math.round(100 * (hp.vida / Math.max(1, hp.max)));
+    const faixa = pct >= 80 ? 0 : pct >= 50 ? 1 : pct >= 30 ? 2 : 3;
+    let lista = (RT_SPAWN_ORDEM[b.f] || []).filter(pode);
+    if(!lista.length){
+      const ordem = { horda:0, tropa:1, elite:2 };
+      lista = Object.keys(F.uni).filter(pode).sort((x, y)=> ((ordem[F.uni[x].papel] || 1) - (ordem[F.uni[y].papel] || 1)) || ((F.uni[x].fer || 0) - (F.uni[y].fer || 0)));
+    }
+    if(!lista.length) return null;
+    return lista[Math.min(faixa, lista.length - 1)];
+  }
+  async function rtSpawnTurno(id){
+    await rtAiEspera(500);
+    const tok = rtTokenById(id); if(!tok || !rtAiDaVez(id) || rtIsDown(tok)) return;
+    const visivel = !!rtAiMotivo(tok);
+    if(visivel){ try{ rtAiChecaAlerta(tok); }catch(e){} }
+    const u = rtSpawnEscolhe(tok); if(!u) return;
+    const b = tok.bst || {}; const N = Math.max(1, parseInt(rtcOrDefault(tok).nivel, 10) || 1);
+    const sp = rtBestSpec(b.f, b.v || Object.keys(RT_BFAC[b.f].vert)[0], u, N, 'patrulha'); if(!sp) return;
+    const cel = rtBestCellNear(tok, null, tok); if(!cel) return;
+    const iguais = rtAllTokens().filter(t=> t.bst && t.bst.f === b.f && t.bst.u === u).length;
+    const nt = rtBestToken(sp, iguais + 1);
+    if(currentRole === 'mestre') nt.portrait = rtBestPortrait(nt);
+    rtSpawnToken(nt, cel.r, cel.c);
+    rtBestAddToOrder(nt);
+    try{ rtPlayAndBroadcast(tok, nt, { rt:1, kind:'buff', icon:'🌀', vfx:'tele_escuro', txt:'PORTAL', deidade:'' }); }catch(e){}
+    if(visivel){ RT_POST_LIVRE = true; try{ postToDiscord(`🌀 O SPAWNWARP SE RASGA E VOMITA ${String(nt.name).toUpperCase()} (PATRULHA, NÍVEL ${N})!`, null); }finally{ RT_POST_LIVRE = false; } }
+    pushTurnState();
+    await rtAiEspera(600);
+  }
+  { const f = rtAiTurno; rtAiTurno = function(id){
+      const tok = rtTokenById(id);
+      if(tok && rtEhPortal(tok)) return rtVezAi(id, ()=> rtSpawnTurno(id));
+      if(tok && rtEhPatrulha(tok) && !rtAiAlerta(tok) && !rtAiMotivo(tok)) return rtVezAi(id, ()=> rtPatrulhaTurno(id));
+      return f.apply(this, arguments);
   }; }
 
   rtInit();
