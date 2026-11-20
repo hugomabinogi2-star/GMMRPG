@@ -5512,6 +5512,33 @@ html.rt-arrastando, html.rt-arrastando *{ cursor:grabbing !important; user-selec
 .rt-fz-pg-nv span b{ color:#ffd27a; font-size:13px; }
 .rt-fz-pg-nv .rt-btn{ min-width:30px; font-weight:900; }
 .rt-fz-pg-ja{ color:#9fc98a; font:600 9.5px Roboto, Arial, sans-serif; }
+
+.rt-fz-escolha{ display:flex; flex-direction:column; gap:5px; }
+.rt-fz-nova-esc{ cursor:default; }
+.rt-fz-cat-abre{ width:100%; padding:9px; font-weight:800; letter-spacing:.06em; }
+.rt-fz-cat-guias{ display:flex; flex-wrap:wrap; gap:4px; margin:0 0 10px; border-bottom:1px solid rgba(201,162,74,.3); padding-bottom:8px; }
+.rt-fz-cat-guia{ background:rgba(30,21,14,.9); border:1px solid rgba(201,162,74,.3); color:#cdb994; border-radius:6px 6px 0 0; padding:6px 10px; font:800 10.5px Roboto, Arial, sans-serif; letter-spacing:.06em; cursor:pointer; }
+.rt-fz-cat-guia small{ opacity:.7; margin-left:3px; }
+.rt-fz-cat-guia:hover{ color:#ffe6b0; border-color:rgba(224,182,86,.6); }
+.rt-fz-cat-guia.on{ background:linear-gradient(#5a3d18, #3a2610); color:#ffe6a6; border-color:#e0b656; box-shadow:0 0 10px rgba(255,190,80,.25); }
+.rt-fz-cat-grade{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px; padding-bottom:64px; }
+.rt-fz-cat-card{ display:flex; flex-direction:column; align-items:center; gap:2px; text-align:center; background:rgba(34,24,16,.88); border:1px solid rgba(201,162,74,.25); border-radius:8px; padding:8px 7px 9px; color:#ecd9b4; cursor:pointer; transition:transform .12s, border-color .12s, box-shadow .12s; }
+.rt-fz-cat-card:hover{ transform:translateY(-2px); border-color:rgba(224,182,86,.6); }
+.rt-fz-cat-card.on{ border-color:#ffd36b; background:rgba(60,42,18,.95); box-shadow:0 0 0 1px rgba(255,211,107,.5), 0 0 16px rgba(255,190,80,.3); }
+.rt-fz-cat-img{ width:100%; height:74px; display:flex; align-items:center; justify-content:center; margin-bottom:3px; }
+.rt-fz-cat-img img{ max-width:100%; max-height:74px; object-fit:contain; filter:drop-shadow(0 3px 5px rgba(0,0,0,.7)); }
+.rt-fz-cat-img i{ font-style:normal; font-size:34px; opacity:.6; }
+.rt-fz-cat-nm{ font:800 11px Roboto, Arial, sans-serif; letter-spacing:.03em; color:#ffe6b0; min-height:26px; display:flex; align-items:center; }
+.rt-fz-cat-card small{ font:600 9.5px Roboto, Arial, sans-serif; color:#c9b28a; letter-spacing:.02em; }
+.rt-fz-cat-pr{ margin-top:4px; font:900 12px Roboto, Arial, sans-serif; color:#ffd27a; }
+.rt-fz-cat-pe{ position:sticky; bottom:-16px; display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 -14px; padding:10px 14px; background:linear-gradient(#1c130df0, #1c130d); border-top:1px solid rgba(201,162,74,.4); font:600 11px Roboto, Arial, sans-serif; color:#cdb994; }
+.rt-fz-cat-pe b{ color:#ffe6b0; }
+.rt-fz-cat-pe .rt-btn{ padding:8px 14px; font-weight:900; }
+.rt-fz-cat-pe .rt-btn:disabled{ opacity:.45; cursor:not-allowed; }
+
+
+.rt-termo{ font-weight:800; color:inherit; cursor:help; border-bottom:1px dotted currentColor; }
+.rt-termo:hover{ color:#8a1f1f; border-bottom-style:solid; }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -61601,7 +61628,13 @@ add: "",
 addNv: 1,
 qtd: {},
 pag: false,
-busca: ""
+busca: "",
+cat: false,
+catGrp: null,
+catSel: null,
+falaK: null,
+falaTxt: "",
+comprouAte: 0
 };
 const RT_FZ_ABAS = [ [ "w", "⚔️ ARMAS" ], [ "a", "🛡️ ARMADURAS" ], [ "c", "💣 GRANADAS E CONSUMÍVEIS" ], [ "aug", "🦾 AUMENTOS" ] ];
 const RT_FZ_ARM_BASE = {
@@ -61719,13 +61752,42 @@ RT_FZ.insulto = null;
 const f2 = document.querySelector("#rtForja .rt-fz-fala");
 if (f2) {
 f2.classList.remove("rt-fz-insulto");
-f2.textContent = rtFzFalaPadrao();
+f2.innerHTML = rtFzFalaPadrao();
 }
 }), 6e3);
 }
-function rtFzFalaPadrao() {
+const RT_FZ_FALAS = {
+w: [ "O Omnissiah abençoa quem paga.", "Toda arma tem um espírito-máquina. Trate o seu melhor do que trata a si mesmo.", "Escolha logo. O espírito da forja não espera carne indecisa.", "Lâmina ou cano? A pergunta é simples até para um servidor.", "Bênção do Omnissiah inclusa. Garantia, não.", "Não toque no metal sagrado com esses dedos engordurados.", "Mais uma arma para você perder no primeiro tiroteio. Excelente.", "Cada disparo é uma oração. Tente não errar tanto.", "A forja trabalha. Você paga. Esse é o rito.", "Calibrado, consagrado e cobrado. Nessa ordem.", "Respire mais baixo. Está embaçando as lentes do arsenal." ],
+a: [ "Armadura. Porque sua carne é... decepcionante.", "Ceramite não se ofende. Eu, sim. Ande logo.", "Proteção abençoada. Sobreviver continua sendo problema seu.", "Escolha uma que caiba nessa carcaça mole.", "Placas ungidas com três óleos sagrados. Você não merece nenhum deles.", "Mais pesada, mais lenta, mais viva. Talvez.", "Na guerra a armadura volta. O dono, nem sempre.", "Nenhuma placa protege contra a burrice. Mas tente." ],
+c: [ "Munição abençoada. Não desperdice.", "Granadas: para quando falta pontaria. No seu caso, sempre.", "Kit de primeiros socorros. A carne vaza; isto tampa.", "Estimulantes. Seu coração vai agradecer. Ou parar.", "Pegue logo e saia da fila. Há servidores esperando.", "Cada granada guarda um pequeno espírito furioso. Combina com você.", "Consumíveis acabam. Minha paciência também." ],
+aug: [ "A carne é fraca. O metal, não.", "Finalmente uma escolha sensata: menos carne.", "Cada parafuso é um passo para mais perto do Omnissiah.", "Não chore. A dor é só a carne indo embora.", "Implante instalado não sai. Assim como meu arrependimento de atender você.", "Um olho biônico? Ao menos um deles vai funcionar direito.", "Seu corpo é um rascunho. Eu sou a revisão." ],
+catW: [ "Arsenal aberto. Não aponte nada para mim.", "Escolha pela guia, não pela cor. Você não é um ork.", "Toque só no que vai comprar.", "Pistola, fuzil, lâmina... tudo abençoado, tudo caro.", "Leia os números. Eu sei que é difícil.", "Cada uma dessas armas já matou alguém mais competente que você.", "Dê OK quando decidir. Antes do fim da cruzada, de preferência." ],
+catA: [ "Placas, malhas, ceramite. Escolha a sua lata.", "Leve, média, pesada. Como as suas desculpas.", "Cuidado com essa. Ela vale mais que você.", "Escolha, dê OK e pare de embaçar o meu visor.", "Experimente com os olhos. Só com os olhos." ],
+ef: [ "Efeitos especiais. Vamos ver se a arma fica mais esperta que você.", "Cada nível exige um rito. E dez tronos.", "Gravar runas no metal leva tempo. Escolha antes que eu enferruje.", "Mais níveis, mais bênçãos, menos tronos. Matemática sagrada.", "Não exagere. O espírito-máquina tem limites. Você também.", "Ajuste fino. Algo que sua carne nunca terá." ],
+item: [ "Boa escolha. Quase digna de um tecnoadepto.", "Hm. Aceitável. Para um não-aumentado.", "Agora os efeitos. Ou só pague. Prefiro que pague.", "Confira o total. Não aceito choro depois.", "O espírito-máquina dessa é rabugento. Vocês vão se dar bem." ],
+ok: [ "Pago e consagrado. Agora saia da minha frente.", "Transação aceita. O Omnissiah registra tudo.", "Feito. Tente trazer de volta inteira.", "Mais tronos para a forja. A ordem do universo está satisfeita.", "Use com respeito. Ou ao menos pela ponta certa.", "Rito concluído. Próximo!" ]
+};
+function rtFzFalaChave() {
+if (Date.now() < (RT_FZ.comprouAte || 0)) return "ok:" + RT_FZ.comprouAte;
 const k = RT_FZ.aba;
-return k === "aug" ? "“A CARNE É FRACA. O METAL, NÃO.”" : k === "c" ? "“MUNIÇÃO ABENÇOADA. NÃO DESPERDICE.”" : "“O OMNISSIAS ABENÇOA QUEM PAGA.”";
+if (RT_FZ.cat) return k === "a" ? "catA" : "catW";
+if (RT_FZ.pag) return "ef";
+if ((k === "w" || k === "a") && RT_FZ.novo) return "item:" + RT_FZ.novo;
+return k + ":" + (RT_FZ.set == null ? "" : RT_FZ.set) + ":" + (RT_FZ.mao || 0);
+}
+function rtFzFalaPadrao() {
+const ch = rtFzFalaChave();
+if (ch !== RT_FZ.falaK || !RT_FZ.falaTxt) {
+const L = RT_FZ_FALAS[ch.split(":")[0]] || RT_FZ_FALAS.w;
+let x;
+let n = 0;
+do {
+x = L[Math.floor(Math.random() * L.length)];
+} while (L.length > 1 && x === RT_FZ.falaTxt && ++n < 8);
+RT_FZ.falaK = ch;
+RT_FZ.falaTxt = x;
+}
+return "“" + rtEsc(RT_FZ.falaTxt.toUpperCase()) + "”";
 }
 function rtFzPaga(preco, oque) {
 const saldo = rtTronos();
@@ -61741,6 +61803,13 @@ return false;
 try {
 postToDiscord(`⚒️ ${rtFzNome()} ${oque} NA FORJA` + (rtFzMestre() ? " (PRESENTE DO MESTRE)" : ` POR ${preco} TRONOS`) + ".", null);
 } catch (e) {}
+RT_FZ.comprouAte = Date.now() + 5e3;
+setTimeout((() => {
+try {
+const f = document.querySelector("#rtForja .rt-fz-fala");
+if (f && !f.classList.contains("rt-fz-insulto")) f.innerHTML = rtFzFalaPadrao();
+} catch (e) {}
+}), 5100);
 return true;
 }
 function rtFzSets(k) {
@@ -61773,6 +61842,8 @@ RT_FZ.orig = RT_FZ.bonus.map((b => Math.round(rtBonusNivel(b.s, b.v))));
 RT_FZ.add = "";
 RT_FZ.pag = false;
 RT_FZ.busca = "";
+RT_FZ.cat = false;
+RT_FZ.catSel = null;
 }
 function rtFzItemId() {
 const s = rtFzSlotAtual();
@@ -61948,7 +62019,45 @@ box.querySelectorAll(".rt-fz-pg-sec").forEach((sec => {
 sec.hidden = ![ ...sec.querySelectorAll(".rt-fz-pg-card") ].some((c => !c.hidden));
 }));
 }
+function rtFzCatalogo(k) {
+const st = rtState, comp = rtLastComputed || rtCompute(st, rtCurrentLevel);
+if (k === "w") {
+const fake = Object.assign({}, st, {
+eq: Object.assign({}, st.eq, {
+armas: rtFzArmasDoSet()
+})
+});
+const grps = [];
+RT_WEAPONS.forEach((w => {
+if (!grps.includes(w.grp)) grps.push(w.grp);
+}));
+return grps.map((g => ({
+g: g,
+itens: RT_WEAPONS.filter((w => w.grp === g && rtWeaponCabe(w, RT_FZ.mao, fake, comp)))
+}))).filter((x => x.itens.length));
+}
+return Object.keys(RT_ARM_CLS).map((c => ({
+g: "Armadura " + ((RT_ARM_CLS[c] || {}).pt || c),
+itens: RT_ARMORS.filter((x => x.cls === c && !rtArmorProfFalta(x, comp)))
+}))).filter((x => x.itens.length));
+}
+function rtFzCatCard(k, x) {
+const E = rtEsc, sel = RT_FZ.catSel === x.id;
+const img = k === "w" ? typeof rtArmaUrl === "function" ? rtArmaUrl(x.id) : "" : typeof rtArmaduraUrl === "function" ? rtArmaduraUrl(x.id) : "";
+const linhas = k === "w" ? [ x.tipo === "cac" ? "CORPO A CORPO" : "DISTÂNCIA" + (x.alc ? " · " + x.alc + " CASAS" : ""), "DANO " + x.min + "–" + x.max + (x.pen ? " · PEN " + x.pen + "%" : ""), (+x.maos === 2 ? "DUAS MÃOS" : "UMA MÃO") + (x.cad > 1 ? " · RAJADA " + x.cad : "") ] : [ "ARMADURA " + (x.pct || 0) + "%" + (x.defl ? " · DEFLEXÃO " + x.defl : ""), "CLASSE " + String((RT_ARM_CLS[x.cls] || {}).pt || x.cls).toUpperCase() ];
+const pr = k === "w" ? rtFzPrecoArma(x.id) : rtFzPrecoArmadura(x.id);
+return '<button type="button" class="rt-fz-cat-card' + (sel ? " on" : "") + '" data-fz-cat-sel="' + x.id + '">' + '<span class="rt-fz-cat-img">' + (img ? '<img src="' + img + '" alt="" draggable="false" decoding="async">' : "<i>" + (k === "w" ? "⚔️" : "🛡️") + "</i>") + "</span>" + '<b class="rt-fz-cat-nm">' + E(String(x.pt).toUpperCase()) + "</b>" + linhas.map((l => "<small>" + E(l) + "</small>")).join("") + '<span class="rt-fz-cat-pr">' + pr + " 🪙</span></button>";
+}
+function rtFzCatalogoHtml() {
+const k = RT_FZ.aba, E = rtEsc;
+const grupos = rtFzCatalogo(k);
+if (!grupos.some((x => x.g === RT_FZ.catGrp))) RT_FZ.catGrp = grupos.length ? grupos[0].g : null;
+const gr = grupos.find((x => x.g === RT_FZ.catGrp));
+const selIt = RT_FZ.catSel ? k === "w" ? RT_WEAPON_BY[RT_FZ.catSel] : RT_ARMOR_BY[RT_FZ.catSel] : null;
+return '<div class="rt-fz-cat">' + '<div class="rt-fz-pg-topo"><button type="button" class="rt-btn" data-fz-cat-volta>← VOLTAR</button><div><b>' + (k === "w" ? "NOVA ARMA" : "NOVA ARMADURA") + "</b><small>" + (k === "w" ? (RT_FZ.mao === 0 ? "MÃO PRINCIPAL" : "MÃO SECUNDÁRIA") + " · " : "") + "SÓ O QUE ESTE PERSONAGEM PODE USAR</small></div></div>" + '<div class="rt-fz-cat-guias">' + grupos.map((x => '<button type="button" class="rt-fz-cat-guia' + (x.g === RT_FZ.catGrp ? " on" : "") + '" data-fz-cat-grp="' + E(x.g) + '">' + E(String(x.g).toUpperCase()) + " <small>" + x.itens.length + "</small></button>")).join("") + "</div>" + '<div class="rt-fz-cat-grade">' + (gr ? gr.itens.map((x => rtFzCatCard(k, x))).join("") : "") + "</div>" + '<div class="rt-fz-cat-pe"><span>' + (selIt ? "SELECIONADA: <b>" + E(String(selIt.pt).toUpperCase()) + "</b>" : "Clique num item para selecionar.") + "</span>" + '<button type="button" class="rt-btn rt-pick-ok" data-fz-cat-ok' + (selIt ? "" : " disabled") + ">OK — LEVAR PARA A FORJA</button></div>" + "</div>";
+}
 function rtFzEsqHtml() {
+if (RT_FZ.cat && (RT_FZ.aba === "w" || RT_FZ.aba === "a") && RT_FZ.set != null) return rtFzCatalogoHtml();
 if (RT_FZ.pag && (RT_FZ.aba === "w" || RT_FZ.aba === "a") && rtFzItemId()) return rtFzPaginaHtml();
 const k = RT_FZ.aba, st = rtState, E = rtEsc;
 if (k === "c") {
@@ -61975,34 +62084,14 @@ const nm = w => w && w.id ? w.nome || (RT_WEAPON_BY[w.id] || {}).pt : "vazia";
 h += '<div class="rt-fz-tit">2. MÃO</div><div class="rt-fz-chips">' + [ 0, 1 ].map((i => '<button type="button" class="rt-fz-chip' + (RT_FZ.mao === i ? " on" : "") + '" data-fz-mao="' + i + '">' + (i === 0 ? "PRINCIPAL (DIREITA)" : "SECUNDÁRIA (ESQUERDA)") + "<small>" + E(String(nm(arr[i])).toUpperCase()) + "</small></button>")).join("") + "</div>";
 }
 const atual = rtFzSlotAtual();
-h += '<div class="rt-fz-tit">' + (k === "w" ? "3. ARMA" : "2. ARMADURA") + '</div><div class="rt-fz-lista">';
+h += '<div class="rt-fz-tit">' + (k === "w" ? "3. ARMA" : "2. ARMADURA") + '</div><div class="rt-fz-escolha">';
 if (atual && atual.id) h += '<button type="button" class="rt-fz-item rt-fz-melhorar' + (!RT_FZ.novo ? " on" : "") + '" data-fz-novo="">🔧 MELHORAR A ATUAL: ' + E(String(atual.nome || (k === "w" ? RT_WEAPON_BY[atual.id] : RT_ARMOR_BY[atual.id]).pt).toUpperCase()) + " <small>NÍVEL " + rtItemNivel(atual) + "</small></button>";
-const comp = rtLastComputed || rtCompute(st, rtCurrentLevel);
-if (k === "w") {
-const fake = Object.assign({}, st, {
-eq: Object.assign({}, st.eq, {
-armas: rtFzArmasDoSet()
-})
-});
-const grps = [];
-RT_WEAPONS.forEach((w => {
-if (!grps.includes(w.grp)) grps.push(w.grp);
-}));
-let algum = false;
-grps.forEach((g => {
-const ws = RT_WEAPONS.filter((w => w.grp === g && rtWeaponCabe(w, RT_FZ.mao, fake, comp)));
-if (!ws.length) return;
-algum = true;
-h += '<div class="rt-fz-grupo">' + E(g.toUpperCase()) + "</div>" + ws.map((w => '<button type="button" class="rt-fz-item' + (RT_FZ.novo === w.id ? " on" : "") + '" data-fz-novo="' + w.id + '"><span>' + E(w.pt.toUpperCase()) + (+w.maos === 2 ? " <small>DUAS MÃOS</small>" : "") + "</span><b>" + rtFzPrecoArma(w.id) + " 🪙</b></button>")).join("");
-}));
-if (!algum) h += '<div class="rt-hint">' + (RT_FZ.mao === 1 ? "A mão secundária está ocupada pela arma de duas mãos desta guia." : "Nenhuma arma que este personagem possa usar.") + "</div>";
-} else {
-Object.keys(RT_ARM_CLS).forEach((c => {
-const as = RT_ARMORS.filter((x => x.cls === c && !rtArmorProfFalta(x, comp)));
-if (!as.length) return;
-h += '<div class="rt-fz-grupo">ARMADURA ' + E(String((RT_ARM_CLS[c] || {}).pt || c).toUpperCase()) + "</div>" + as.map((x => '<button type="button" class="rt-fz-item' + (RT_FZ.novo === x.id ? " on" : "") + '" data-fz-novo="' + x.id + '"><span>' + E(x.pt.toUpperCase()) + "</span><b>" + rtFzPrecoArmadura(x.id) + " 🪙</b></button>")).join("");
-}));
+if (RT_FZ.novo) {
+const it = k === "w" ? RT_WEAPON_BY[RT_FZ.novo] : RT_ARMOR_BY[RT_FZ.novo];
+h += '<div class="rt-fz-item on rt-fz-nova-esc"><span>🆕 ' + (k === "w" ? "NOVA ARMA" : "NOVA ARMADURA") + ": <b>" + E(String(it ? it.pt : RT_FZ.novo).toUpperCase()) + "</b></span><b>" + (k === "w" ? rtFzPrecoArma(RT_FZ.novo) : rtFzPrecoArmadura(RT_FZ.novo)) + " 🪙</b></div>";
 }
+const temOpcao = rtFzCatalogo(k).length > 0;
+h += temOpcao ? '<button type="button" class="rt-btn rt-fz-cat-abre" data-fz-cat-abre>＋ ' + (RT_FZ.novo ? "TROCAR A " : "") + (k === "w" ? "NOVA ARMA" : "NOVA ARMADURA") + "…</button>" : '<div class="rt-hint">' + (k === "w" ? RT_FZ.mao === 1 ? "A mão secundária está ocupada pela arma de duas mãos desta guia." : "Nenhuma arma que este personagem possa usar." : "Nenhuma armadura que este personagem possa usar.") + "</div>";
 h += "</div>";
 const id = rtFzItemId();
 if (id) {
@@ -62019,6 +62108,22 @@ function rtFzDirHtml() {
 const k = RT_FZ.aba, E = rtEsc;
 let h = '<div class="rt-fz-retrato"><img src="' + RT_FORJA_IMG + '" alt="A Forja"><div class="rt-fz-fala' + (RT_FZ.insulto && Date.now() < (RT_FZ.insultoAte || 0) ? " rt-fz-insulto" : "") + '">' + (RT_FZ.insulto && Date.now() < (RT_FZ.insultoAte || 0) ? "“" + rtEsc(RT_FZ.insulto.toUpperCase()) + "!”" : rtFzFalaPadrao()) + "</div></div>";
 h += '<div class="rt-fz-item-box">';
+if ((k === "w" || k === "a") && RT_FZ.cat) {
+const sid = RT_FZ.catSel;
+if (sid) {
+const comp = rtLastComputed || rtCompute(rtState, rtCurrentLevel);
+h += (k === "w" ? rtArmaQuadro(sid, [], "rt-arma-det") : rtArmaduraQuadro(sid, [], "rt-arma-det")) + '<b class="rt-fz-nome">' + E(String((k === "w" ? RT_WEAPON_BY[sid] : RT_ARMOR_BY[sid]).pt).toUpperCase()) + "</b>" + (k === "w" ? rtWeaponStatsHtml(rtResolveWeapon({
+id: sid,
+nome: "",
+bonus: []
+}, comp), comp) : '<div class="rt-astats">' + rtArmorStatsHtml(rtResolveArmor({
+id: sid,
+nome: "",
+bonus: []
+})) + "</div>") + '<div class="rt-fz-conta"><span>PREÇO</span><b class="rt-fz-total">' + (k === "w" ? rtFzPrecoArma(sid) : rtFzPrecoArmadura(sid)) + " 🪙</b></div>" + '<div class="rt-hint">Dê OK para levar à Forja; lá você escolhe os efeitos e paga.</div>';
+} else h += '<div class="rt-hint">Escolha uma guia e clique ' + (k === "w" ? "na arma" : "na armadura") + " para ver os detalhes aqui.</div>";
+return h + "</div>";
+}
 if (k === "w" || k === "a") {
 const id = rtFzItemId();
 if (id) {
@@ -62085,6 +62190,7 @@ if (t === box || t.closest("[data-fz-x]")) {
 box.remove();
 return;
 }
+if (t.closest("button") && !t.closest("[data-fz-comprar], [data-fz-cons], [data-fz-aug], [data-fz-q]")) RT_FZ.comprouAte = 0;
 let b;
 if (b = t.closest("[data-fz-aba]")) {
 RT_FZ.aba = b.dataset.fzAba;
@@ -62145,6 +62251,48 @@ x.v = rtBonusNvLim(s, Math.round(rtBonusNivel(s, x.v)) + 1) * rtBonusPasso(s);
 s: s,
 v: rtBonusPasso(s)
 });
+rtFzDesenha();
+return;
+}
+if (t.closest("[data-fz-cat-abre]")) {
+RT_FZ.cat = true;
+RT_FZ.pag = false;
+RT_FZ.catSel = RT_FZ.novo || null;
+rtFzDesenha();
+const e2 = box.querySelector("[data-fz-esq]");
+if (e2) e2.scrollTop = 0;
+return;
+}
+if (t.closest("[data-fz-cat-volta]")) {
+RT_FZ.cat = false;
+RT_FZ.catSel = null;
+rtFzDesenha();
+return;
+}
+if (b = t.closest("[data-fz-cat-grp]")) {
+RT_FZ.catGrp = b.dataset.fzCatGrp;
+rtFzDesenha();
+const e2 = box.querySelector("[data-fz-esq]");
+if (e2) e2.scrollTop = 0;
+return;
+}
+if (b = t.closest("[data-fz-cat-sel]")) {
+RT_FZ.catSel = b.dataset.fzCatSel;
+if (e.detail >= 2) {
+const v = RT_FZ.catSel;
+rtFzReset();
+RT_FZ.novo = v;
+RT_FZ.bonus = [];
+}
+rtFzDesenha();
+return;
+}
+if (b = t.closest("[data-fz-cat-ok]")) {
+if (b.disabled || !RT_FZ.catSel) return;
+const v = RT_FZ.catSel;
+rtFzReset();
+RT_FZ.novo = v;
+RT_FZ.bonus = [];
 rtFzDesenha();
 return;
 }
@@ -62223,16 +62371,30 @@ RT_FZ.busca = e.target.value;
 rtFzPgFiltra(box);
 }
 }));
-box.addEventListener("keydown", (e => {
+}
+document.addEventListener("keydown", (e => {
+const box = document.getElementById("rtForja");
+if (!box) return;
+if (e.target && e.target.matches && e.target.matches("input, textarea, select") && e.key !== "Escape") return;
 if (e.key === "Escape") {
 e.preventDefault();
-if (RT_FZ.pag) {
+if (RT_FZ.cat) {
+RT_FZ.cat = false;
+RT_FZ.catSel = null;
+rtFzDesenha();
+} else if (RT_FZ.pag) {
 RT_FZ.pag = false;
 rtFzDesenha();
 } else box.remove();
+} else if (e.key === "Enter" && RT_FZ.cat && RT_FZ.catSel) {
+e.preventDefault();
+const v = RT_FZ.catSel;
+rtFzReset();
+RT_FZ.novo = v;
+RT_FZ.bonus = [];
+rtFzDesenha();
 }
 }));
-}
 document.addEventListener("click", (e => {
 const b = e.target.closest && e.target.closest("#forjaBtn");
 if (!b) return;
@@ -65279,7 +65441,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "1.5";
+const RT_VERSAO_APP = "1.6";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -65837,6 +65999,173 @@ return r;
 };
 }
 setInterval(rtGradeCorMestre, 1e3);
+const rtTermoNorm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+let RT_TERMOS = null;
+const RT_TERMO_EXTRA = [];
+function rtTermoAdd(mapa, nome, chave) {
+const n = rtTermoNorm(nome).replace(/[!?.…:]+$/g, "").replace(/\s+/g, " ").trim();
+if (!n || mapa[n]) return;
+if (!/\s/.test(n) && n.length < 5) return;
+mapa[n] = chave;
+}
+function rtTermoExtra(t, d, tipo) {
+RT_TERMO_EXTRA.push([ t, d, tipo ]);
+return "termo:" + (RT_TERMO_EXTRA.length - 1);
+}
+function rtTermosMonta() {
+if (RT_TERMOS) return RT_TERMOS;
+const mapa = {};
+try {
+Object.keys(RT.arch || {}).forEach((a => {
+const A = RT.arch[a];
+if (!A) return;
+(A.ab || []).forEach((x => rtTermoAdd(mapa, x.pt, "ab:" + a + "/" + x.id)));
+if (A.ult && A.ult.pt) rtTermoAdd(mapa, A.ult.pt, "ult:" + a);
+}));
+Object.keys(RT.tal || {}).forEach((id => rtTermoAdd(mapa, RT.tal[id].pt, "tal:" + id)));
+Object.keys(RT.arch || {}).forEach((a => ((RT.arch[a] || {}).upg || []).forEach((x => rtTermoAdd(mapa, x.pt, "upg:" + a + "/" + x.id)))));
+} catch (e) {}
+try {
+Object.keys(RT_PSY).forEach((k => {
+const p = RT_PSY[k];
+if (p && p.pt) rtTermoAdd(mapa, p.pt, rtTermoExtra(p.pt, p.d || "", "Poder psíquico" + (p.tier ? " · grau " + p.tier : "")));
+}));
+} catch (e) {}
+try {
+Object.keys(RT_FX_INFO).forEach((k => {
+const f = RT_FX_INFO[k];
+if (!f || !f[1]) return;
+let d = "";
+try {
+d = typeof f[2] === "function" ? f[2]({
+v: "X",
+n: "X"
+}) : f[2] || "";
+} catch (e) {}
+rtTermoAdd(mapa, f[1], rtTermoExtra((f[0] ? f[0] + " " : "") + f[1], d ? d.charAt(0).toUpperCase() + d.slice(1) + "." : "", "Efeito no tabuleiro"));
+}));
+} catch (e) {}
+try {
+Object.keys(RT_EAB).forEach((k => {
+const x = RT_EAB[k];
+if (x && x.pt) rtTermoAdd(mapa, x.pt, rtTermoExtra((x.icon ? x.icon + " " : "") + x.pt, x.d || "", "Habilidade de inimigo"));
+}));
+} catch (e) {}
+try {
+Object.keys(RT_TRACOS).forEach((k => {
+const x = RT_TRACOS[k];
+if (x && x[1]) rtTermoAdd(mapa, x[1], rtTermoExtra(x[0] + " " + x[1], x[2] || "", "Traço de inimigo"));
+}));
+} catch (e) {}
+const nomes = Object.keys(mapa).sort(((a, b) => b.length - a.length)).map((n => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+")));
+RT_TERMOS = {
+mapa: mapa,
+re: nomes.length ? new RegExp("(?<![a-z0-9])(" + nomes.join("|") + ")(?![a-z0-9])", "g") : null
+};
+return RT_TERMOS;
+}
+function rtTermoGlossChave(i) {
+const g = RT_GLOSS[i];
+return "termo:" + (g.__k != null ? g.__k : g.__k = RT_TERMO_EXTRA.push([ g.t, g.d, "Regra da mesa" ]) - 1);
+}
+function rtTermosMarca(html, semChave) {
+const T = rtTermosMonta();
+const box = document.createElement("div");
+box.innerHTML = html;
+const pula = el => el.closest("b, strong, a, button, h1, h2, h3, h4, .rt-termo, .rt-gloss-tit, select, input, svg, .rt-tip-parts");
+const walker = document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+const nos = [];
+let n;
+while (n = walker.nextNode()) if (n.nodeValue.trim() && !pula(n.parentElement)) nos.push(n);
+nos.forEach((no => {
+const orig = no.nodeValue, norm = rtTermoNorm(orig);
+if (norm.length !== orig.length) return;
+const achados = [];
+if (T.re) {
+T.re.lastIndex = 0;
+let m;
+while (m = T.re.exec(norm)) {
+const k = T.mapa[m[1].replace(/\s+/g, " ")];
+if (k && k !== semChave) achados.push([ m.index, m.index + m[1].length, k ]);
+}
+}
+try {
+RT_GLOSS.forEach(((g, i) => {
+if (g.t === "Teste") return;
+const re = new RegExp(g.re.source, "g");
+let m;
+while (m = re.exec(norm)) {
+if (!m[0]) {
+re.lastIndex++;
+continue;
+}
+achados.push([ m.index, m.index + m[0].length, rtTermoGlossChave(i), true ]);
+}
+}));
+} catch (e) {}
+if (!achados.length) return;
+achados.sort(((a, b) => a[0] - b[0] || b[1] - b[0] - (a[1] - a[0]) || (a[3] ? 1 : 0) - (b[3] ? 1 : 0)));
+const usa = [];
+let fim = -1;
+achados.forEach((x => {
+if (x[0] >= fim) {
+usa.push(x);
+fim = x[1];
+}
+}));
+usa.forEach((x => {
+if (x[3]) {
+while (x[1] < norm.length && /[a-z]/.test(norm[x[1]])) x[1]++;
+while (x[0] > 0 && /[a-z]/.test(norm[x[0] - 1])) x[0]--;
+}
+}));
+const frag = document.createDocumentFragment();
+let p = 0;
+usa.forEach((([a, b, k]) => {
+if (a < p) return;
+if (a > p) frag.appendChild(document.createTextNode(orig.slice(p, a)));
+const el = document.createElement("b");
+el.className = "rt-termo";
+el.dataset.rtTip = k;
+el.textContent = orig.slice(a, b);
+frag.appendChild(el);
+p = b;
+}));
+if (p < orig.length) frag.appendChild(document.createTextNode(orig.slice(p)));
+no.parentNode.replaceChild(frag, no);
+}));
+return box.innerHTML;
+}
+{
+const f = rtTipHtml;
+rtTipHtml = function(key) {
+if (/^termo:\d+$/.test(String(key || ""))) {
+const t = RT_TERMO_EXTRA[+String(key).slice(6)];
+if (!t) return "";
+return "<b>" + rtEsc(t[0]) + "</b>" + (t[2] ? "<p><i>" + rtEsc(t[2]) + "</i></p>" : "") + (t[1] ? "<p>" + rtEsc(t[1]) + "</p>" : "");
+}
+return f.apply(this, arguments);
+};
+}
+{
+const f = rtPickDetail;
+rtPickDetail = function(sel, v) {
+const h = f.apply(this, arguments);
+if (!h || !v) return h;
+try {
+let propria = null;
+if (sel && sel.dataset && sel.dataset.rtSl) {
+try {
+propria = rtSlotTipKey(sel.dataset.rtSl, v);
+} catch (e) {}
+}
+return rtTermosMarca(h, propria);
+} catch (e) {
+console.error("termos", e);
+return h;
+}
+};
+}
 rtInit();
 recalc();
 })();
