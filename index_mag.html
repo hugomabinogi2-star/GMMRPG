@@ -65523,7 +65523,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "1.9";
+const RT_VERSAO_APP = "2.0";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -66800,7 +66800,7 @@ por: a
 return null;
 };
 }
-const RT_MUS_DIR = "audio/";
+const RT_MUS_DIRS = [ "", "audio/" ];
 const RT_MUS_EXT = [ "mp3", "ogg", "m4a", "wav", "opus", "webm", "aac", "flac" ];
 const RT_MUS_ARQ = {
 imperio: "imperium",
@@ -66902,7 +66902,7 @@ el.load();
 function rtMusAbre(chave, ok) {
 const nome = RT_MUS_ARQ[chave];
 if (!nome) return;
-const exts = RT_MUS.ext[chave] ? [ RT_MUS.ext[chave] ] : RT_MUS_EXT.slice();
+const exts = RT_MUS.ext[chave] ? [ RT_MUS.ext[chave] ] : [].concat(...RT_MUS_EXT.map((x => RT_MUS_DIRS.map((d => [ d, x ])))));
 const el = new Audio;
 el.loop = true;
 el.preload = "auto";
@@ -66912,10 +66912,10 @@ const tenta = () => {
 if (i >= exts.length) {
 RT_MUS.falhou[chave] = Date.now();
 if (RT_MUS.atual === chave) RT_MUS.atual = null;
-console.warn("música não encontrada: " + RT_MUS_DIR + nome + ".(" + RT_MUS_EXT.join("|") + ")");
+console.warn("música não encontrada: " + nome + ".(" + RT_MUS_EXT.join("|") + ") na pasta da página ou em audio/");
 return;
 }
-el.src = RT_MUS_DIR + encodeURIComponent(nome) + "." + exts[i];
+el.src = exts[i][0] + encodeURIComponent(nome) + "." + exts[i][1];
 };
 el.addEventListener("error", (() => {
 if (el.__saindo) return;
