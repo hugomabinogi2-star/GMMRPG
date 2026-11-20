@@ -5491,6 +5491,27 @@ html.rt-arrastando, html.rt-arrastando *{ cursor:grabbing !important; user-selec
 .rt-moral-meio{ z-index:2; width:5px; margin-left:-2.5px; background:#fff8dc; box-shadow:0 0 10px 3px rgba(255,235,170,.95), 0 0 18px 6px rgba(255,200,90,.45); animation:rtMoralEspuma 1.4s ease-in-out infinite; }
 @keyframes rtMoralEspuma{ 0%,100%{ transform:scaleY(1); opacity:1; } 50%{ transform:scaleY(1.15); opacity:.8; } }
 .rt-sem-anim .rt-liq-onda, .rt-sem-anim .rt-liq-bolhas, .rt-sem-anim .rt-moral-brilho::after{ animation:none !important; }
+.cursor-star{ display:none !important; }
+
+
+.rt-fz-pg-abre{ width:100%; margin-top:6px; padding:9px; font-weight:800; letter-spacing:.06em; }
+.rt-fz-pg-topo{ display:flex; align-items:center; gap:10px; position:sticky; top:-10px; z-index:2; background:linear-gradient(#1c130d, #1c130df0); padding:8px 0; border-bottom:1px solid rgba(201,162,74,.35); margin-bottom:8px; }
+.rt-fz-pg-topo b{ display:block; font:900 14px Cinzel, Georgia, serif; letter-spacing:.12em; color:#ffd27a; }
+.rt-fz-pg-topo small{ color:#c9b28a; font:600 10.5px Roboto, Arial, sans-serif; letter-spacing:.04em; }
+.rt-fz-pg-busca{ width:100%; box-sizing:border-box; margin:0 0 8px; padding:7px 10px; background:#140d08; color:#ecd9b4; border:1px solid rgba(201,162,74,.4); border-radius:6px; font:600 12px Roboto, Arial, sans-serif; }
+.rt-fz-pg-sec[hidden], .rt-fz-pg-card[hidden]{ display:none !important; }
+.rt-fz-pg-sectit{ font:900 12px Cinzel, Georgia, serif; letter-spacing:.14em; color:#e0b656; margin:10px 0 4px; border-bottom:1px solid rgba(201,162,74,.25); padding-bottom:3px; }
+.rt-fz-pg-grade{ display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:8px; }
+.rt-fz-pg-card{ display:flex; flex-direction:column; gap:5px; background:rgba(34,24,16,.88); border:1px solid rgba(201,162,74,.25); border-radius:8px; padding:8px 9px; color:#ecd9b4; }
+.rt-fz-pg-card.on{ border-color:#e0b656; box-shadow:0 0 0 1px rgba(224,182,86,.35), 0 0 12px rgba(255,190,80,.18); background:rgba(52,36,18,.92); }
+.rt-fz-pg-cab b{ display:block; font:800 11.5px Roboto, Arial, sans-serif; letter-spacing:.04em; color:#ffe6b0; }
+.rt-fz-pg-cab small{ color:#c9a24a; font:700 10px Roboto, Arial, sans-serif; }
+.rt-fz-pg-card p{ margin:0; font:500 11px/1.35 Roboto, Arial, sans-serif; color:#cdb994; flex:1; }
+.rt-fz-pg-nv{ display:flex; align-items:center; gap:6px; margin-top:auto; }
+.rt-fz-pg-nv span{ flex:1; text-align:center; font:700 11px Roboto, Arial, sans-serif; color:#ecd9b4; }
+.rt-fz-pg-nv span b{ color:#ffd27a; font-size:13px; }
+.rt-fz-pg-nv .rt-btn{ min-width:30px; font-weight:900; }
+.rt-fz-pg-ja{ color:#9fc98a; font:600 9.5px Roboto, Arial, sans-serif; }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -61578,7 +61599,9 @@ orig: [],
 sel: null,
 add: "",
 addNv: 1,
-qtd: {}
+qtd: {},
+pag: false,
+busca: ""
 };
 const RT_FZ_ABAS = [ [ "w", "⚔️ ARMAS" ], [ "a", "🛡️ ARMADURAS" ], [ "c", "💣 GRANADAS E CONSUMÍVEIS" ], [ "aug", "🦾 AUMENTOS" ] ];
 const RT_FZ_ARM_BASE = {
@@ -61748,6 +61771,8 @@ RT_FZ.novo = null;
 RT_FZ.bonus = s && s.id ? JSON.parse(JSON.stringify(s.bonus || [])) : [];
 RT_FZ.orig = RT_FZ.bonus.map((b => Math.round(rtBonusNivel(b.s, b.v))));
 RT_FZ.add = "";
+RT_FZ.pag = false;
+RT_FZ.busca = "";
 }
 function rtFzItemId() {
 const s = rtFzSlotAtual();
@@ -61892,7 +61917,39 @@ rtFzSalva();
 rtFzAviso("🦾 INSTALADO: " + a.pt.toUpperCase());
 rtFzDesenha();
 }
+function rtFzPassoTxt(s) {
+const p = rtBonusPasso(s), g = rtBonusGrupo(s);
+const pct = [ "pen", "acerto", "crit", "redEsq", "aparar", "bloq", "pct", "esq" ].includes(s);
+const un = g === "__ch" || g === "__sk" ? " pontos" : pct ? "%" : s === "alc" ? " casa(s)" : s === "cad" || s === "mun" ? " tiro(s)" : s === "w" ? " ferimentos" : "";
+return "+" + p + un + " por nível";
+}
+function rtFzPaginaHtml() {
+const k = RT_FZ.aba, E = rtEsc, id = rtFzItemId();
+const lb = rtFzListaBonus();
+const nomeItem = String((k === "w" ? RT_WEAPON_BY[id] : RT_ARMOR_BY[id]).pt).toUpperCase();
+const card = ([sid, nome]) => {
+const j = RT_FZ.bonus.findIndex((x => x.s === sid));
+const x = j >= 0 ? RT_FZ.bonus[j] : null;
+const nv = x ? Math.round(rtBonusNivel(sid, x.v)) : 0;
+const o = x && !RT_FZ.novo ? RT_FZ.orig[j] || 0 : 0;
+const desc = RT_BONUS_DESC[rtBonusGrupo(sid)] || "";
+return '<div class="rt-fz-pg-card' + (nv ? " on" : "") + '" data-fz-pg-nome="' + E(String(nome).toLowerCase()) + '">' + '<div class="rt-fz-pg-cab"><b>' + E(String(nome).toUpperCase()) + "</b><small>" + E(rtFzPassoTxt(sid)) + "</small></div>" + (rtBonusGrupo(sid) === sid ? "<p>" + E(desc) + "</p>" : "") + '<div class="rt-fz-pg-nv"><button type="button" class="rt-btn" data-fz-pg="' + sid + '" data-d="-1"' + (nv <= o ? " disabled" : "") + ">−</button>" + "<span>NÍVEL <b>" + nv + "</b>" + (nv ? " <small>(" + rtBonusTxtValor(sid, x.v) + ")</small>" : "") + "</span>" + '<button type="button" class="rt-btn" data-fz-pg="' + sid + '" data-d="1"' + (nv >= RT_BONUS_NV_MAX ? " disabled" : "") + ">+</button></div>" + (o ? '<small class="rt-fz-pg-ja">JÁ TINHA NÍVEL ' + o + " (PAGA SÓ O QUE SUBIR)</small>" : "") + "</div>";
+};
+const secao = (tit, txt, lista) => lista.length ? '<div class="rt-fz-pg-sec"><div class="rt-fz-pg-sectit">' + tit + "</div>" + (txt ? '<p class="rt-hint">' + E(txt) + "</p>" : "") + '<div class="rt-fz-pg-grade">' + lista.map(card).join("") + "</div></div>" : "";
+return '<div class="rt-fz-pg">' + '<div class="rt-fz-pg-topo"><button type="button" class="rt-btn" data-fz-pg-volta>← VOLTAR</button><div><b>EFEITOS ESPECIAIS</b><small>' + E(nomeItem) + " · +10 🪙 POR NÍVEL</small></div></div>" + '<input type="search" class="rt-fz-pg-busca" data-fz-pg-busca placeholder="🔎 Procurar efeito..." value="' + E(RT_FZ.busca || "") + '">' + secao(k === "w" ? "EFEITOS DA ARMA" : "EFEITOS DA ARMADURA", "", lb.base) + secao("CARACTERÍSTICAS", RT_BONUS_DESC.__ch, lb.ch) + secao("PERÍCIAS", RT_BONUS_DESC.__sk, lb.sk) + "</div>";
+}
+function rtFzPgFiltra(box) {
+const q = (RT_FZ.busca || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+box.querySelectorAll(".rt-fz-pg-card").forEach((c => {
+const n = (c.dataset.fzPgNome || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+c.hidden = !!q && !n.includes(q);
+}));
+box.querySelectorAll(".rt-fz-pg-sec").forEach((sec => {
+sec.hidden = ![ ...sec.querySelectorAll(".rt-fz-pg-card") ].some((c => !c.hidden));
+}));
+}
 function rtFzEsqHtml() {
+if (RT_FZ.pag && (RT_FZ.aba === "w" || RT_FZ.aba === "a") && rtFzItemId()) return rtFzPaginaHtml();
 const k = RT_FZ.aba, st = rtState, E = rtEsc;
 if (k === "c") {
 const itens = [ RT_FZ_KIT ].concat(RT_CONS);
@@ -61954,7 +62011,7 @@ h += '<div class="rt-fz-tit">' + (k === "w" ? "4." : "3.") + " EFEITOS ESPECIAIS
 const nv = Math.round(rtBonusNivel(b.s, b.v));
 const o = RT_FZ.novo ? 0 : RT_FZ.orig[j] || 0;
 return '<div class="rt-fz-ef"><span>' + E(rtBonusNome(k === "a" ? "a" : "w", b.s)) + " <small>(" + rtBonusTxtValor(b.s, b.v) + ")</small></span>" + '<button type="button" class="rt-btn" data-fz-ef="' + j + '" data-d="-1"' + (nv <= o && !(rtFzMestre() && nv > -RT_BONUS_NV_MAX) ? " disabled" : "") + ">−</button><b>NÍVEL " + nv + "</b>" + '<button type="button" class="rt-btn" data-fz-ef="' + j + '" data-d="1"' + (nv >= RT_BONUS_NV_MAX ? " disabled" : "") + ">+</button></div>";
-})).join("") : '<div class="rt-hint">Nenhum efeito ainda.</div>') + '<div class="rt-fz-ef rt-fz-ef-novo"><select data-fz-addsel><option value="">— novo efeito —</option><optgroup label="Efeitos">' + lb.base.map((o => '<option value="' + o[0] + '"' + (RT_FZ.add === o[0] ? " selected" : "") + ">" + E(o[1]) + "</option>")).join("") + "</optgroup>" + '<optgroup label="Característica (+)">' + lb.ch.map((o => '<option value="' + o[0] + '"' + (RT_FZ.add === o[0] ? " selected" : "") + ">" + E(o[1]) + "</option>")).join("") + "</optgroup>" + '<optgroup label="Perícia (+)">' + lb.sk.map((o => '<option value="' + o[0] + '"' + (RT_FZ.add === o[0] ? " selected" : "") + ">" + E(o[1]) + "</option>")).join("") + "</optgroup></select>" + '<button type="button" class="rt-btn" data-fz-add>＋ ADICIONAR (NÍVEL 1)</button></div>' + (RT_FZ.add ? '<p class="rt-hint">' + E(RT_BONUS_DESC[rtBonusGrupo(RT_FZ.add)] || "") + "</p>" : "");
+})).join("") : '<div class="rt-hint">Nenhum efeito ainda.</div>') + '<button type="button" class="rt-btn rt-fz-pg-abre" data-fz-pg-abre>📜 ESCOLHER EFEITOS…</button>';
 }
 return h;
 }
@@ -61999,6 +62056,7 @@ box.querySelector("[data-fz-bloq]").textContent = why ? "🔒 " + why : "";
 box.querySelector("[data-fz-bloq]").hidden = !why;
 esq.innerHTML = rtFzEsqHtml();
 esq.scrollTop = sc;
+if (RT_FZ.pag) rtFzPgFiltra(esq);
 dir.innerHTML = rtFzDirHtml();
 }
 function rtForjaAbrir(o) {
@@ -62090,6 +62148,41 @@ v: rtBonusPasso(s)
 rtFzDesenha();
 return;
 }
+if (t.closest("[data-fz-pg-abre]")) {
+RT_FZ.pag = true;
+RT_FZ.busca = "";
+rtFzDesenha();
+const e2 = box.querySelector("[data-fz-esq]");
+if (e2) e2.scrollTop = 0;
+return;
+}
+if (t.closest("[data-fz-pg-volta]")) {
+RT_FZ.pag = false;
+rtFzDesenha();
+return;
+}
+if (b = t.closest("[data-fz-pg]")) {
+if (b.disabled) return;
+const sid = b.dataset.fzPg, d = +b.dataset.d;
+let j = RT_FZ.bonus.findIndex((x => x.s === sid));
+if (j < 0) {
+if (d < 0) return;
+RT_FZ.bonus.push({
+s: sid,
+v: rtBonusPasso(sid)
+});
+rtFzDesenha();
+return;
+}
+const x = RT_FZ.bonus[j];
+const o = RT_FZ.novo ? 0 : RT_FZ.orig[j] || 0;
+const nv = rtBonusNvLim(sid, Math.round(rtBonusNivel(sid, x.v)) + d);
+if (nv < Math.max(0, o)) return;
+x.v = nv * rtBonusPasso(sid);
+if (!nv && (RT_FZ.novo || j >= RT_FZ.orig.length)) RT_FZ.bonus.splice(j, 1);
+rtFzDesenha();
+return;
+}
 if (t.closest("[data-fz-comprar]")) {
 if (!t.closest("[data-fz-comprar]").disabled) rtFzComprarItem();
 return;
@@ -62124,10 +62217,19 @@ RT_FZ.add = e.target.value;
 rtFzDesenha();
 }
 }));
+box.addEventListener("input", (e => {
+if (e.target.matches("[data-fz-pg-busca]")) {
+RT_FZ.busca = e.target.value;
+rtFzPgFiltra(box);
+}
+}));
 box.addEventListener("keydown", (e => {
 if (e.key === "Escape") {
 e.preventDefault();
-box.remove();
+if (RT_FZ.pag) {
+RT_FZ.pag = false;
+rtFzDesenha();
+} else box.remove();
 }
 }));
 }
@@ -64020,6 +64122,7 @@ if (rtSimParticula(typeof chatBgFxEl !== "undefined" ? chatBgFxEl : null)) retur
 return f.apply(this, arguments);
 };
 }
+spawnCursorStar = function() {};
 const RT_CONE = 67.5, RT_COSTAS = 112.5, RT_PERTO = 2, RT_BARULHO = 8;
 function rtCentro(t) {
 const F = rtFp(t);
@@ -65176,7 +65279,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "1.3";
+const RT_VERSAO_APP = "1.5";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
