@@ -37364,8 +37364,21 @@ const dest = [ [ "dc", "⚔️ Mais dano" ], [ "ab", "💀 Mais abates" ], [ "cu
 const m = melhor(k);
 return m ? `<span><b>${t}:</b> ${rtEsc(m.n)} (${m[k]})</span>` : "";
 })).join("");
-const tabela = (lista, xp) => '<table class="rt-summary-tab"><tr><th>Personagem</th><th>Dano causado</th><th>Dano recebido</th><th>Abates</th><th>Críticos</th><th>Curas</th><th>Ataques</th>' + (xp ? "<th>XP ganho</th><th>XP extra</th><th>Tronos ganhos</th><th>Tronos extras</th>" : "") + "</tr>" + lista.map((s => `<tr class="${s.q ? "caiu" : ""}"><td>${rtEsc(s.n)}${s.q ? " 💀" : ""}</td><td>${s.dc}</td><td>${s.dr}</td><td>${s.ab}</td><td>${s.cr}</td><td>${s.cu}</td><td>${s.at}</td>` + (xp ? `<td>⭐ ${s.xp || 0}</td><td>${soVer ? (D.extra || {})[s.u] ? "⭐ +" + (D.extra || {})[s.u] : "—" : s.u ? `<input type="number" min="0" step="5" data-xp-uid="${rtEsc(s.u)}" data-xp-nome="${rtEsc(s.n)}" value="0">` + ((D.extra || {})[s.u] ? ` <small>já: +${(D.extra || {})[s.u]}</small>` : "") : "<small>sem dono</small>"}</td>` + `<td>🪙 ${s.tr || 0}</td><td>${soVer ? (D.extraTr || {})[s.u] ? "🪙 +" + (D.extraTr || {})[s.u] : "—" : s.u ? `<input type="number" min="0" step="5" data-tr-uid="${rtEsc(s.u)}" data-tr-nome="${rtEsc(s.n)}" value="0">` + ((D.extraTr || {})[s.u] ? ` <small>já: +${(D.extraTr || {})[s.u]}</small>` : "") : "<small>sem dono</small>"}</td>` : "") + "</tr>")).join("") + "</table>";
-box.innerHTML = '<div class="rt-summary-card"><div class="rt-summary-head">🏁 Fim do combate <small>' + D.rodadas + ' rodada(s)</small><button type="button" class="rt-btn" data-x>✕</button></div>' + (D.fim === "imperador" ? '<div class="rt-summary-fim rt-fim-imperador">💀 SE ESTA É A VONTADE DO IMPERADOR... 💀</div>' : D.fim === "hereges" ? '<div class="rt-summary-fim rt-fim-hereges">🔥 HEREGES PURGADOS!!! 🔥</div>' : "") + (dest ? '<div class="rt-summary-dest">' + dest + "</div>" : "") + "<h4>Grupo</h4>" + tabela(D.grupo, true) + (D.inimigos.length ? "<h4>Inimigos</h4>" + tabela(D.inimigos, false) : "") + '<div class="rt-hint">🪙 Tronos: cada inimigo abatido rende tronos só para quem deu o golpe final (conforme o nível e o papel dele; demônios não deixam tronos). O XP já foi entregue automaticamente a cada abate: 15 × nível do inimigo (chefe: ×3) para cada jogador que causou dano ou aplicou efeito nele, e 1,5× para quem deu o golpe final. ' + (soVer ? 'O "XP extra" é dado pelo mestre.' : 'Use "XP extra" para recompensas de missão ou bônus do mestre.') + "</div>" + '<div class="rt-summary-acoes">' + (soVer ? "" : '<button type="button" class="rt-btn" data-dar-xp>⭐ Conceder XP extra</button><button type="button" class="rt-btn" data-dar-tr>🪙 Conceder tronos extras</button>') + '<button type="button" class="rt-btn" data-x>Fechar</button></div></div>';
+const fm = s => {
+if (s.u) return "";
+const t = rtTokenById(s.id);
+if (!t || t.bst || t.famOf) return s.fm || "";
+const h = t.kind === "hero" ? t.id : t.heroId;
+return typeof h === "string" && h.indexOf("mestre:") === 0 ? h : s.fm || "";
+};
+D.grupo.concat(D.inimigos).forEach((s => {
+const k = fm(s);
+if (k) s.fm = k;
+}));
+const inpXp = s => s.u ? `<input type="number" min="0" step="5" data-xp-uid="${rtEsc(s.u)}" data-xp-nome="${rtEsc(s.n)}" value="0">` + ((D.extra || {})[s.u] ? ` <small>já: +${(D.extra || {})[s.u]}</small>` : "") : s.fm ? `<input type="number" min="0" step="5" data-xp-fm="${rtEsc(s.fm)}" data-xp-nome="${rtEsc(s.n)}" value="0">` + ((D.extra || {})[s.fm] ? ` <small>já: +${(D.extra || {})[s.fm]}</small>` : "") : "<small>sem ficha</small>";
+const inpTr = s => s.u ? `<input type="number" min="0" step="5" data-tr-uid="${rtEsc(s.u)}" data-tr-nome="${rtEsc(s.n)}" value="0">` + ((D.extraTr || {})[s.u] ? ` <small>já: +${(D.extraTr || {})[s.u]}</small>` : "") : s.fm ? `<input type="number" min="0" step="5" data-tr-fm="${rtEsc(s.fm)}" data-tr-nome="${rtEsc(s.n)}" value="0">` + ((D.extraTr || {})[s.fm] ? ` <small>já: +${(D.extraTr || {})[s.fm]}</small>` : "") : "<small>sem ficha</small>";
+const tabela = (lista, xp) => '<table class="rt-summary-tab"><tr><th>Personagem</th><th>Dano causado</th><th>Dano recebido</th><th>Abates</th><th>Críticos</th><th>Curas</th><th>Ataques</th>' + (xp ? "<th>XP ganho</th><th>XP extra</th><th>Tronos ganhos</th><th>Tronos extras</th>" : "") + "</tr>" + lista.map((s => `<tr class="${s.q ? "caiu" : ""}"><td>${rtEsc(s.n)}${s.q ? " 💀" : ""}</td><td>${s.dc}</td><td>${s.dr}</td><td>${s.ab}</td><td>${s.cr}</td><td>${s.cu}</td><td>${s.at}</td>` + (xp ? `<td>⭐ ${s.xp || 0}</td><td>${soVer ? (D.extra || {})[s.u || s.fm] ? "⭐ +" + (D.extra || {})[s.u || s.fm] : "—" : inpXp(s)}</td>` + `<td>🪙 ${s.tr || 0}</td><td>${soVer ? (D.extraTr || {})[s.u || s.fm] ? "🪙 +" + (D.extraTr || {})[s.u || s.fm] : "—" : inpTr(s)}</td>` : "") + "</tr>")).join("") + "</table>";
+box.innerHTML = '<div class="rt-summary-card"><div class="rt-summary-head">🏁 Fim do combate <small>' + D.rodadas + ' rodada(s)</small><button type="button" class="rt-btn" data-x>✕</button></div>' + (D.fim === "imperador" ? '<div class="rt-summary-fim rt-fim-imperador">💀 SE ESTA É A VONTADE DO IMPERADOR... 💀</div>' : D.fim === "hereges" ? '<div class="rt-summary-fim rt-fim-hereges">🔥 HEREGES PURGADOS!!! 🔥</div>' : "") + (dest ? '<div class="rt-summary-dest">' + dest + "</div>" : "") + "<h4>Grupo</h4>" + tabela(D.grupo, true) + (D.inimigos.length ? "<h4>Inimigos</h4>" + tabela(D.inimigos, D.inimigos.some((s => s.fm))) : "") + '<div class="rt-hint">🪙 Tronos: cada inimigo abatido rende tronos só para quem deu o golpe final (conforme o nível e o papel dele; demônios não deixam tronos). O XP já foi entregue automaticamente a cada abate: 15 × nível do inimigo (chefe: ×3) para cada jogador que causou dano ou aplicou efeito nele, e 1,5× para quem deu o golpe final. ' + (soVer ? 'O "XP extra" é dado pelo mestre.' : 'Use "XP extra" para recompensas de missão ou bônus do mestre.') + "</div>" + '<div class="rt-summary-acoes">' + (soVer ? "" : '<button type="button" class="rt-btn" data-dar-xp>⭐ Conceder XP extra</button><button type="button" class="rt-btn" data-dar-tr>🪙 Conceder tronos extras</button>') + '<button type="button" class="rt-btn" data-x>Fechar</button></div></div>';
 document.body.appendChild(box);
 box.addEventListener("click", (e => {
 if (e.target === box || e.target.closest("[data-x]")) {
@@ -37374,14 +37387,15 @@ return;
 }
 const b = e.target.closest("[data-dar-xp]");
 if (b && !b.disabled && currentRole === "mestre") {
-const dados = [ ...box.querySelectorAll("[data-xp-uid]") ].map((i => ({
-uid: i.dataset.xpUid,
+const dados = [ ...box.querySelectorAll("[data-xp-uid], [data-xp-fm]") ].map((i => ({
+uid: i.dataset.xpUid || i.dataset.xpFm,
+fm: !!i.dataset.xpFm,
 nome: i.dataset.xpNome,
 xp: Math.max(0, parseInt(i.value, 10) || 0)
 }))).filter((x => x.xp > 0));
 dados.forEach((x => {
 try {
-grantXpToPlayer(x.uid, x.xp, x.nome);
+if (x.fm) rtFichaMestreDar(x.uid, x.xp, 0, x.nome); else grantXpToPlayer(x.uid, x.xp, x.nome);
 } catch (err) {
 console.error(err);
 }
@@ -37402,14 +37416,15 @@ b.textContent = "✓ XP extra concedido";
 }
 const bt = e.target.closest("[data-dar-tr]");
 if (bt && !bt.disabled && currentRole === "mestre") {
-const dados = [ ...box.querySelectorAll("[data-tr-uid]") ].map((i => ({
-uid: i.dataset.trUid,
+const dados = [ ...box.querySelectorAll("[data-tr-uid], [data-tr-fm]") ].map((i => ({
+uid: i.dataset.trUid || i.dataset.trFm,
+fm: !!i.dataset.trFm,
 nome: i.dataset.trNome,
 tr: Math.max(0, parseInt(i.value, 10) || 0)
 }))).filter((x => x.tr > 0));
 dados.forEach((x => {
 try {
-rtTronosDar(x.uid, x.tr, x.nome, "Tronos extras do fim do combate");
+if (x.fm) rtFichaMestreDar(x.uid, 0, x.tr, x.nome); else rtTronosDar(x.uid, x.tr, x.nome, "Tronos extras do fim do combate");
 } catch (err) {
 console.error(err);
 }
@@ -60270,7 +60285,9 @@ return [ els.xp && els.xp.dataset.total, els.curVida && els.curVida.value, els.c
 return "";
 }
 }
+const rtAutoFichaMestre = () => !!(loadedFichaPath && String(loadedFichaPath).indexOf(FICHAS_MESTRE_PATH + "/") === 0);
 function rtAutoDono() {
+if (currentRole === "mestre") return !!currentUser && rtAutoFichaMestre();
 if (currentRole !== "jogador" || !currentUser) return false;
 const b = RT_ASAVE.base;
 if (!loadedFichaOwnerChave && !loadedFichaOwnerUid && b) return b.donoChave && b.donoChave === currentUserKey || !b.donoChave && b.ownerUid === currentUser.uid;
@@ -61127,7 +61144,7 @@ const sets = Array.isArray(c.wsets) ? c.wsets : [];
 if (sets.length < 2) return;
 const why = rtTrocaPorque(tok);
 const rect = tokenEl.getBoundingClientRect();
-const y = Math.round(rect.height / 2 + 14);
+const y = Math.round(Math.max(rect.height / 2 + 14, (RT_RODA_RAIO || 0) + 30));
 const b = document.createElement("button");
 b.type = "button";
 b.className = "rt-troca-btn" + (why ? " bloq" : "");
@@ -65441,7 +65458,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "1.6";
+const RT_VERSAO_APP = "1.7";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -66046,6 +66063,11 @@ rtTermoAdd(mapa, f[1], rtTermoExtra((f[0] ? f[0] + " " : "") + f[1], d ? d.charA
 }));
 } catch (e) {}
 try {
+RT_FX_EXTRA.forEach((x => {
+if (x && x.nm) rtTermoAdd(mapa, x.nm, rtTermoExtra((x.ic ? x.ic + " " : "") + x.nm, x.d && x.d[0] ? x.d[0].charAt(0).toUpperCase() + x.d[0].slice(1) + "." : "", "Efeito no tabuleiro"));
+}));
+} catch (e) {}
+try {
 Object.keys(RT_EAB).forEach((k => {
 const x = RT_EAB[k];
 if (x && x.pt) rtTermoAdd(mapa, x.pt, rtTermoExtra((x.icon ? x.icon + " " : "") + x.pt, x.d || "", "Habilidade de inimigo"));
@@ -66165,6 +66187,254 @@ console.error("termos", e);
 return h;
 }
 };
+}
+const RT_PET_SVG = {};
+function rtPetSvg(tipo) {
+if (RT_PET_SVG[tipo]) return RT_PET_SVG[tipo];
+const inf = typeof RT_FAM_INFO !== "undefined" && RT_FAM_INFO[tipo] || [ "🐾", "Pet" ];
+const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><radialGradient id="g" cx="50%" cy="38%" r="65%"><stop offset="0" stop-color="#3a5a2c"/><stop offset="1" stop-color="#0f1a0c"/></radialGradient></defs>' + '<circle cx="50" cy="50" r="48" fill="url(#g)"/><text x="50" y="66" font-size="48" text-anchor="middle">' + inf[0] + "</text></svg>";
+return RT_PET_SVG[tipo] = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+function rtPetImgDoDono(owner) {
+if (!owner) return null;
+try {
+if (typeof RT_PET_IMG !== "undefined" && RT_PET_IMG && isMyLiveToken(owner)) return RT_PET_IMG;
+} catch (e) {}
+try {
+const ros = owner.kind === "hero" ? heroRoster.find((h => h.id === owner.id)) || mestreRoster.find((h => h.id === owner.id)) || heroRoster.find((h => owner.fichaId && h.fichaId === owner.fichaId)) : mestreRoster.find((h => h.id === owner.heroId));
+const img = ros && ros.raw && ros.raw.petImg;
+if (typeof img === "string" && img) return img;
+} catch (e) {}
+return null;
+}
+function rtPetRetrato(tok) {
+if (!tok || !tok.famOf) return null;
+let owner = null;
+try {
+owner = rtFamOwner(tok);
+} catch (e) {}
+return rtPetImgDoDono(owner) || rtPetSvg((tok.rtc || {}).famTipo || "mastiff");
+}
+{
+const f = resolveTokenPortrait;
+resolveTokenPortrait = function(tok) {
+if (tok && tok.famOf) {
+const p = rtPetRetrato(tok);
+if (p) return p;
+}
+return f.apply(this, arguments);
+};
+}
+{
+const f = renderBoardCell;
+renderBoardCell = function(r, c) {
+try {
+const t = boardTokens[boardKey(r, c)];
+if (t && t.famOf) {
+const p = rtPetRetrato(t);
+if (p && t.portrait !== p) t.portrait = p;
+}
+} catch (e) {}
+return f.apply(this, arguments);
+};
+}
+setInterval((() => {
+try {
+if (currentRole !== "mestre") return;
+Object.keys(boardTokens).forEach((k => {
+const t = boardTokens[k];
+if (!t || !t.famOf || t.anchorR + "_" + t.anchorC !== k) return;
+const p = rtPetRetrato(t);
+if (p && t.portrait !== p) {
+t.portrait = p;
+renderBoardCell(t.anchorR, t.anchorC);
+}
+}));
+} catch (e) {}
+}), 1500);
+var RT_RODA_RAIO = 0;
+boardAbilityWheelOffset = function(i, n, radius) {
+const r = Math.max(radius, n * 50 / (2 * Math.PI));
+RT_RODA_RAIO = r;
+if (n <= 1) return {
+dx: 0,
+dy: -r
+};
+const rad = (-90 + 360 / n * i) * Math.PI / 180;
+return {
+dx: Math.cos(rad) * r,
+dy: Math.sin(rad) * r
+};
+};
+{
+const f = rtAiLigado;
+rtAiLigado = function(tok) {
+if (tok && tok.famOf && !tok.bst) return !(rtTurnRt().aiOff || {})[rtCdKey(tok.id, "ai")];
+return f.apply(this, arguments);
+};
+}
+{
+const f = rtWheelAi;
+rtWheelAi = function(att, tgt, category, same, circles) {
+if (att && att.famOf && !att.bst) {
+const p = Object.create(att);
+p.bst = {
+f: null
+};
+return f.call(this, p, tgt, category, same, circles);
+}
+return f.apply(this, arguments);
+};
+}
+let RT_ENC_ESPALHA = false;
+{
+const f = rtEncColoca;
+rtEncColoca = function() {
+RT_ENC_ESPALHA = true;
+try {
+return f.apply(this, arguments);
+} finally {
+RT_ENC_ESPALHA = false;
+}
+};
+}
+{
+const f = rtBestFreeCells;
+rtBestFreeCells = function(n, size) {
+if (!RT_ENC_ESPALHA) return f.apply(this, arguments);
+const d = rtBoardDims();
+const out = [];
+const usado = new Set;
+const livre = (r, c) => {
+for (let i = 0; i < size; i++) for (let j = 0; j < size; j++) {
+if (!rtCellFree(r + i, c + j) || usado.has(r + i + "_" + (c + j))) return false;
+}
+return true;
+};
+const grupo = rtAllTokens().filter((t => t && !isBlockKind(t.kind) && rtIsParty(t))).map((t => rtPosOf(t))).filter(Boolean);
+const longe = (r, c, min) => grupo.every((p => Math.max(Math.abs(p.r - r), Math.abs(p.c - c)) >= min));
+const todas = [];
+for (let r = 0; r + size <= d.rows; r++) for (let c = 0; c + size <= d.cols; c++) todas.push({
+r: r,
+c: c
+});
+for (let i = todas.length - 1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+const x = todas[i];
+todas[i] = todas[j];
+todas[j] = x;
+}
+const marca = cel => {
+out.push(cel);
+for (let i = 0; i < size; i++) for (let j = 0; j < size; j++) usado.add(cel.r + i + "_" + (cel.c + j));
+};
+const outros = rtAllTokens().filter((t => t && !isBlockKind(t.kind) && !rtIsParty(t))).map((t => rtPosOf(t))).filter(Boolean);
+const perto = (r, c, min) => out.concat(outros).some((o => Math.max(Math.abs(o.r - r), Math.abs(o.c - c)) < min));
+for (const [dg, de] of [ [ 5, 2 ], [ 4, 2 ], [ 3, 1 ], [ 2, 1 ], [ 0, 0 ] ]) {
+for (const cel of todas) {
+if (out.length >= n) break;
+if (livre(cel.r, cel.c) && longe(cel.r, cel.c, dg) && !perto(cel.r, cel.c, de)) marca(cel);
+}
+if (out.length >= n) break;
+}
+return out;
+};
+}
+const rtFmChave = j => "mestre:" + (j && j.fichaId || slugify(j && j.nome || ""));
+let RT_FM_FILA = Promise.resolve();
+function rtFichaMestreDar(fm, xp, tr, nome) {
+const p = RT_FM_FILA.then((() => rtFichaMestreDar1(fm, xp, tr, nome)));
+RT_FM_FILA = p.catch((() => {}));
+return p;
+}
+async function rtFichaMestreDar1(fm, xp, tr, nome) {
+if (currentRole !== "mestre" || !fm || !(xp > 0 || tr > 0)) return false;
+try {
+const aberta = loadedFichaPath && String(loadedFichaPath).indexOf(FICHAS_MESTRE_PATH + "/") === 0 && rtFmChave({
+fichaId: currentFichaId,
+nome: els.nome && els.nome.value || ""
+}) === fm;
+if (aberta) {
+if (xp > 0) xpStep(xp);
+if (tr > 0) {
+RT_TR_MOTIVO = "Tronos extras do fim do combate";
+try {
+rtTronosMuda(tr);
+} finally {
+RT_TR_MOTIVO = "";
+}
+}
+setTimeout((() => {
+try {
+rtAutoSalvar();
+} catch (e) {}
+}), 400);
+return true;
+}
+if (!fbReady || !fbDb) return false;
+const snap = await fbDb.ref(FB_STORE_ROOT + "/fichas_mestre").once("value");
+const todos = snap.val() || {};
+const k = Object.keys(todos).find((k => {
+try {
+return rtFmChave(JSON.parse(todos[k].json)) === fm;
+} catch (e) {
+return false;
+}
+}));
+if (!k) {
+console.warn("ficha do mestre não encontrada para", fm);
+return false;
+}
+const gid = "fim" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const ref = fbDb.ref(FB_STORE_ROOT + "/fichas_mestre/" + k);
+const muda = rec => {
+if (!rec || !rec.json) return rec;
+let j;
+try {
+j = JSON.parse(rec.json);
+} catch (e) {
+return rec;
+}
+const lista = Array.isArray(j.xpGrantsAplicados) ? j.xpGrantsAplicados : [];
+if (lista.includes(gid)) return rec;
+if (xp > 0) j.xp = String((parseFloat(j.xp) || 0) + xp);
+if (tr > 0) {
+j.inventory = Array.isArray(j.inventory) ? j.inventory : [];
+const it = j.inventory.find((x => x && String(x.nome || "").trim().toUpperCase() === "TRONOS"));
+if (it) it.qtd = String((parseFloat(it.qtd) || 0) + tr); else j.inventory.unshift({
+nome: "TRONOS",
+qtd: String(tr),
+desc: ""
+});
+try {
+j.rt = j.rt || {};
+const L = Array.isArray(j.rt.trLog) ? j.rt.trLog : [];
+L.push({
+ts: Date.now(),
+d: tr,
+s: parseFloat((it || j.inventory[0]).qtd) || tr,
+m: "Tronos extras do fim do combate"
+});
+j.rt.trLog = L.slice(-120);
+} catch (e) {}
+}
+j.xpGrantsAplicados = lista.concat([ gid ]).slice(-80);
+return Object.assign({}, rec, {
+json: JSON.stringify(j, null, 2),
+sha: fbStoreNewSha(),
+porUid: currentUser && currentUser.uid,
+ts: Date.now()
+});
+};
+if (typeof ref.transaction === "function") await ref.transaction(muda); else {
+const s2 = await ref.once("value");
+await ref.set(muda(s2.val()));
+}
+return true;
+} catch (e) {
+console.error("XP/tronos na ficha do mestre", e);
+return false;
+}
 }
 rtInit();
 recalc();
