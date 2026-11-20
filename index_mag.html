@@ -5539,6 +5539,33 @@ html.rt-arrastando, html.rt-arrastando *{ cursor:grabbing !important; user-selec
 
 .rt-termo{ font-weight:800; color:inherit; cursor:help; border-bottom:1px dotted currentColor; }
 .rt-termo:hover{ color:#8a1f1f; border-bottom-style:solid; }
+
+.rt-mm-topo{ margin:-2px 0 10px; }
+.rt-mm-tit{ font:900 13px Cinzel, Georgia, serif; letter-spacing:.16em; color:#e0b656; text-shadow:0 0 8px rgba(255,170,60,.3); padding-bottom:6px; border-bottom:1px solid rgba(201,162,74,.35); margin-bottom:8px; }
+.rt-mm-tit small{ display:block; font:600 9.5px Roboto, Arial, sans-serif; letter-spacing:.06em; color:#a89170; margin-top:2px; text-shadow:none; }
+.rt-mm-cats{ display:grid; grid-template-columns:repeat(5, 1fr); gap:5px; }
+.rt-mm-cat{ display:flex; flex-direction:column; align-items:center; gap:2px; padding:7px 2px 6px; background:linear-gradient(#22180f, #140e09); border:1px solid rgba(201,162,74,.28); border-radius:8px; color:#bfa784; cursor:pointer; transition:transform .12s, border-color .12s, box-shadow .12s; }
+.rt-mm-cat i{ font-style:normal; font-size:19px; line-height:1; filter:grayscale(.4); }
+.rt-mm-cat b{ font:800 9.5px Roboto, Arial, sans-serif; letter-spacing:.08em; }
+.rt-mm-cat:hover{ border-color:rgba(224,182,86,.7); color:#ffe6b0; transform:translateY(-1px); }
+.rt-mm-cat.on{ background:linear-gradient(#5a3d18, #2e1f0d); border-color:#e0b656; color:#ffe6a6; box-shadow:0 0 0 1px rgba(224,182,86,.35), 0 0 14px rgba(255,180,70,.25); }
+.rt-mm-cat.on i{ filter:none; }
+.rt-mm-ds{ margin:7px 2px 0; font:italic 600 10.5px Roboto, Arial, sans-serif; color:#a89170; }
+.board-menu-tabs .board-menu-tab.rt-mm-fora{ display:none !important; }
+.board-menu.rt-mm-sem-painel .board-menu-panel{ display:none !important; }
+.board-menu:not(.rt-mm-cartoes) .board-menu-tabs .board-menu-tab .rt-mm-bds{ display:none; }
+
+.board-menu:not(.rt-mm-cartoes) .board-menu-tabs{ gap:4px; border-bottom:1px solid rgba(201,162,74,.25); padding-bottom:8px; }
+
+.board-menu.rt-mm-cartoes .board-menu-tabs{ display:grid !important; grid-template-columns:1fr; gap:6px; }
+.board-menu.rt-mm-cartoes .board-menu-tab{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; text-align:left; padding:10px 12px; font-weight:800; letter-spacing:.06em; border-radius:8px; }
+.board-menu.rt-mm-cartoes .board-menu-tab .rt-mm-bds{ font:500 10.5px/1.35 Roboto, Arial, sans-serif; letter-spacing:.02em; text-transform:none; opacity:.85; }
+.board-menu.rt-mm-cartoes .board-menu-tab:disabled .rt-mm-bds{ opacity:.6; }
+.board-menu.rt-mm-cartoes .board-menu-tab{ background:linear-gradient(#24190f, #150f0a) !important; color:#ffe6b0 !important; border:1px solid rgba(201,162,74,.35) !important; box-shadow:inset 0 1px 0 rgba(255,220,150,.06); }
+.board-menu.rt-mm-cartoes .board-menu-tab:not(:disabled):hover{ border-color:#e0b656 !important; box-shadow:0 0 12px rgba(255,180,70,.2); transform:translateY(-1px); }
+.board-menu.rt-mm-cartoes .board-menu-tab .rt-mm-bds{ color:#c9b28a; }
+.board-menu.rt-mm-cartoes .board-menu-tab.rt-end-tab{ border-color:rgba(160,40,30,.6) !important; color:#ff9a8a !important; }
+.board-menu.rt-mm-cartoes .board-menu-tab:disabled{ opacity:.5; }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -28871,7 +28898,21 @@ dis: n >= 2 && s.id !== val
 } else if (/Tal$/.test(sl)) {
 const seen = new Set;
 const ids = rtTalentPoolFor(st, L, sl).filter((id => RT.tal[id] && !seen.has(id) && seen.add(id)));
-ids.sort(((a, b) => RT.tal[a].pt.localeCompare(RT.tal[b].pt, "pt")));
+const hw = st.hw ? RT_HW_BY[st.hw] : null, og = st.og ? RT_OG_BY[st.og] : null, sub = rtSubOf(st);
+const fontes = [];
+if (hw && hw.tal) fontes.push([ "TALENTOS DE " + String(hw.pt).toUpperCase(), hw.tal ]);
+if (og && og.tal) fontes.push([ "TALENTOS DE " + String(og.pt).toUpperCase(), og.tal ]);
+if (sub && sub.tal) fontes.push([ "TALENTOS DE " + String(sub.pt).toUpperCase(), sub.tal ]);
+if (og && og.psy && st.psy === "navigator") fontes.push([ "TALENTOS DE NAVEGADOR", RT_NAV_TALS ]);
+const arqs = [ st.a1, st.a2 ].map((k => k && RT.arch[k])).filter(Boolean);
+const misturaArq = sl === "t12Tal" && arqs.length > 1;
+if (misturaArq) arqs.forEach((a => fontes.push([ "TALENTOS DE " + String(a.pt).toUpperCase(), a.tal || [] ])));
+const grupoDe = id => {
+const f = fontes.find((([, L2]) => (L2 || []).includes(id)));
+return f ? f[0] : "GERAL";
+};
+const ordem = fontes.map((f => f[0])).concat([ "GERAL" ]);
+ids.sort(((a, b) => ordem.indexOf(grupoDe(a)) - ordem.indexOf(grupoDe(b)) || RT.tal[a].pt.localeCompare(RT.tal[b].pt, "pt")));
 opts = ids.map((id => {
 const t = RT.tal[id];
 const taken = chosen.has(id) && id !== val;
@@ -28880,7 +28921,8 @@ return {
 v: id,
 t: t.pt + (why ? " — " + why : ""),
 dis: !!why && id !== val,
-title: t.d || RT_SEM_DESC
+title: t.d || RT_SEM_DESC,
+g: grupoDe(id)
 };
 }));
 } else if (/Abil$/.test(sl) || sl === "abil") {
@@ -28909,7 +28951,21 @@ title: u.d
 }));
 }
 opts = opts.filter((o => !o.dis || o.v === val));
-const optHtml = '<option value="">— escolha —</option>' + opts.map((o => '<option value="' + rtEsc(o.v) + '"' + (o.v === val ? " selected" : "") + (o.dis ? " disabled" : "") + (o.title ? ' title="' + rtEsc(o.title) + '"' : "") + ">" + rtEsc(o.t) + "</option>")).join("");
+const optUm = o => '<option value="' + rtEsc(o.v) + '"' + (o.v === val ? " selected" : "") + (o.dis ? " disabled" : "") + (o.title ? ' title="' + rtEsc(o.title) + '"' : "") + ">" + rtEsc(o.t) + "</option>";
+let optHtml = '<option value="">— escolha —</option>';
+if (opts.some((o => o.g))) {
+let g = null, aberto = false;
+opts.forEach((o => {
+if (o.g !== g) {
+if (aberto) optHtml += "</optgroup>";
+g = o.g;
+optHtml += '<optgroup label="' + rtEsc(g || "GERAL") + '">';
+aberto = true;
+}
+optHtml += optUm(o);
+}));
+if (aberto) optHtml += "</optgroup>";
+} else optHtml += opts.map(optUm).join("");
 let desc = "";
 if (val && /Tal$/.test(sl) && RT.tal[val]) desc = RT.tal[val].d || RT_SEM_DESC; else if (val && sl === "fam") {
 const f = RT.fam.find((x => x.id === val));
@@ -64155,7 +64211,7 @@ try {
 if (!turnState.active) return;
 const e = currentTurnEntry();
 const t = e && rtTokenById(e.id);
-if (!t || !t.bst || !rtAiLigado(t) || rtIsDown(t) || rtAiDormindo(t)) return;
+if (!t || isBlockKind(t.kind) || rtIsDown(t) || rtAiDormindo(t)) return;
 if (currentRole !== "mestre" && rtIniOculto(e)) return;
 const p = rtPosOf(t);
 const chave = e.id + "|" + (p ? p.r + "," + p.c : "");
@@ -65458,7 +65514,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "1.7";
+const RT_VERSAO_APP = "1.8";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -66436,6 +66492,207 @@ console.error("XP/tronos na ficha do mestre", e);
 return false;
 }
 }
+const RT_MM_CATS = [ {
+k: "fichas",
+ic: "👥",
+nm: "FICHAS",
+ds: "Personagens prontos para pôr no tabuleiro.",
+tabs: [ "boardPanelJogadores", "boardPanelAliados", "boardPanelInimigos", "boardPanelPvp" ]
+}, {
+k: "inimigos",
+ic: "👹",
+nm: "INIMIGOS",
+ds: "Criaturas do Bestiário, reforços do Império e encontros prontos.",
+tabs: [ "#rtBestBtn", "#rtAliBtn", "#rtEncBtn" ]
+}, {
+k: "cenario",
+ic: "🧱",
+nm: "CENÁRIO",
+ds: "Barreiras, portas, rochas, baús e armadilhas.",
+tabs: [ "boardPanelBlocos" ]
+}, {
+k: "efeitos",
+ic: "🌐",
+nm: "EFEITOS",
+ds: "Efeitos do tabuleiro, eventos e objetivos de mapa.",
+tabs: [ "rtPanelGlob" ]
+}, {
+k: "mesa",
+ic: "🛠️",
+nm: "MESA",
+ds: "Arrumação e controle do combate.",
+tabs: [ "#rtExpZerar", "#rtDecLimpar", "#rtLimparFichas", "#rtEndCombatTab" ]
+} ];
+const RT_MM_DESC = {
+rtBestBtn: "Monte inimigos por facção, vertente, papel e nível.",
+rtAliBtn: "Aliados do Império que entram pela esquerda e jogam sozinhos.",
+rtEncBtn: "Gera um grupo de inimigos pela dificuldade e pelo nível do grupo, espalhado pelo mapa.",
+rtExpZerar: "Cobre de novo com névoa tudo o que os jogadores já exploraram.",
+rtDecLimpar: "Apaga o sangue, as queimaduras e as crateras deixadas no tabuleiro.",
+rtLimparFichas: "Tira do tabuleiro todas as peças de personagens, inimigos, reforços e pets. Barreiras, portas, rochas e baús ficam.",
+rtEndCombatTab: "Encerra o combate agora e mostra o resumo."
+};
+const RT_MM_NOMES = {
+boardPanelJogadores: "🎖️ JOGADORES",
+boardPanelBlocos: "🧱 BARREIRAS E OBJETOS"
+};
+let RT_MM_CAT = (() => {
+try {
+return localStorage.getItem("rtMmCat") || "fichas";
+} catch (e) {
+return "fichas";
+}
+})();
+const RT_MM_ULT = {};
+function rtMmMenu() {
+const t = document.querySelector("#mesaContent .board-menu-tabs");
+return t ? t.closest(".board-menu") : null;
+}
+function rtMmChave(b) {
+return b.dataset.panel || (b.id ? "#" + b.id : "");
+}
+function rtMmCatDe(b) {
+const k = rtMmChave(b);
+const c = RT_MM_CATS.find((x => x.tabs.includes(k)));
+return c ? c.k : b.dataset.panel ? "fichas" : "mesa";
+}
+function rtMmMonta() {
+const menu = rtMmMenu();
+if (!menu) return false;
+const tabs = menu.querySelector(".board-menu-tabs");
+const env = document.getElementById("boardSendBtn");
+if (env) env.remove();
+if (!document.getElementById("rtLimparFichas")) {
+const b = document.createElement("button");
+b.type = "button";
+b.className = "board-menu-tab";
+b.id = "rtLimparFichas";
+b.dataset.panel = "";
+b.textContent = "🧹 LIMPAR FICHAS";
+b.title = RT_MM_DESC.rtLimparFichas;
+const fim = document.getElementById("rtEndCombatTab");
+tabs.insertBefore(b, fim || null);
+b.addEventListener("click", rtLimparFichas);
+}
+if (!menu.querySelector(":scope > .rt-mm-topo")) {
+const topo = document.createElement("div");
+topo.className = "rt-mm-topo";
+topo.innerHTML = '<div class="rt-mm-tit">🗡️ ARSENAL DO MESTRE<small>Tudo o que entra no tabuleiro, separado por tipo.</small></div>' + '<div class="rt-mm-cats">' + RT_MM_CATS.map((c => '<button type="button" class="rt-mm-cat" data-mm-cat="' + c.k + '"><i>' + c.ic + "</i><b>" + c.nm + "</b></button>")).join("") + "</div>" + '<div class="rt-mm-ds"></div>';
+menu.insertBefore(topo, tabs);
+topo.addEventListener("click", (e => {
+const b = e.target.closest("[data-mm-cat]");
+if (b) rtMmVai(b.dataset.mmCat, true);
+}));
+tabs.addEventListener("click", (e => {
+const b = e.target.closest(".board-menu-tab");
+if (b && b.dataset.panel) RT_MM_ULT[rtMmCatDe(b)] = b.dataset.panel;
+}));
+}
+tabs.querySelectorAll(".board-menu-tab").forEach((b => {
+const k = rtMmChave(b);
+b.dataset.mmCat = rtMmCatDe(b);
+if (RT_MM_NOMES[k] && !b.dataset.mmNome) {
+b.dataset.mmNome = "1";
+b.textContent = RT_MM_NOMES[k];
+}
+const ds = b.id && RT_MM_DESC[b.id];
+if (ds && !b.querySelector(".rt-mm-bds")) {
+const s = document.createElement("small");
+s.className = "rt-mm-bds";
+s.textContent = ds;
+b.appendChild(s);
+}
+}));
+return true;
+}
+function rtMmSync() {
+const menu = rtMmMenu();
+if (!menu) return [];
+const c = RT_MM_CATS.find((x => x.k === RT_MM_CAT)) || RT_MM_CATS[0];
+menu.querySelectorAll(".rt-mm-cat").forEach((b => b.classList.toggle("on", b.dataset.mmCat === c.k)));
+const ds = menu.querySelector(".rt-mm-ds");
+if (ds && ds.textContent !== c.ds) ds.textContent = c.ds;
+const tabs = [ ...menu.querySelectorAll(".board-menu-tabs .board-menu-tab") ];
+tabs.forEach((b => b.classList.toggle("rt-mm-fora", b.dataset.mmCat !== c.k)));
+const comPainel = tabs.filter((b => b.dataset.mmCat === c.k && b.dataset.panel));
+menu.classList.toggle("rt-mm-sem-painel", !comPainel.length);
+menu.classList.toggle("rt-mm-cartoes", !comPainel.length);
+return comPainel;
+}
+function rtMmVai(cat, clicou) {
+const c = RT_MM_CATS.find((x => x.k === cat)) || RT_MM_CATS[0];
+RT_MM_CAT = c.k;
+try {
+localStorage.setItem("rtMmCat", c.k);
+} catch (e) {}
+const comPainel = rtMmSync();
+if (comPainel.length) {
+const ativa = comPainel.find((b => b.classList.contains("active")));
+if (!ativa || clicou) {
+const alvo = comPainel.find((b => b.dataset.panel === RT_MM_ULT[c.k])) || ativa || comPainel[0];
+if (!alvo.classList.contains("active")) alvo.click();
+}
+}
+}
+function rtLimparFichas() {
+if (currentRole !== "mestre") return;
+if (turnState.active) {
+alert("Encerre o combate antes de limpar as fichas do tabuleiro.");
+return;
+}
+const objetos = new Set([].concat((typeof CHEST_KINDS !== "undefined" ? CHEST_KINDS : []).map((k => k.kind)), (typeof OBSTACLE_KINDS !== "undefined" ? OBSTACLE_KINDS : []).map((k => k.kind))));
+const ehFicha = t => t && !isBlockKind(t.kind) && !objetos.has(t.kind);
+const vistos = new Set;
+const pecas = [];
+Object.values(boardTokens).forEach((t => {
+if (ehFicha(t) && !vistos.has(t.id)) {
+vistos.add(t.id);
+pecas.push(t);
+}
+}));
+if (!pecas.length) {
+rtDropAviso("NÃO HÁ FICHAS NO TABULEIRO.");
+return;
+}
+if (!confirm("Tirar " + pecas.length + " peça(s) de personagens e inimigos do tabuleiro? Barreiras, portas e baús ficam onde estão.")) return;
+const casas = [];
+pecas.forEach((t => {
+const [sr, sc] = tokenFootprintSize(t);
+footprintCells(t.anchorR, t.anchorC, sr, sc).forEach((x => casas.push(x)));
+clearTokenFootprint(t);
+}));
+casas.forEach((([r, c]) => renderBoardCell(r, c)));
+try {
+renderHeroTray();
+renderMestreTray();
+renderBoardInstancesPanel();
+} catch (e) {}
+scheduleBoardTokensPush();
+postToDiscord("🧹 O MESTRE TIROU AS FICHAS DO TABULEIRO.", null);
+}
+let RT_MM_ATIVA = null, RT_MM_PRONTO = false;
+setInterval((() => {
+try {
+if (!rtMmMonta()) return;
+const menu = rtMmMenu();
+if (!RT_MM_PRONTO) {
+RT_MM_PRONTO = true;
+rtMmVai(RT_MM_CAT, false);
+}
+const ativa = menu.querySelector(".board-menu-tabs .board-menu-tab.active");
+if (ativa !== RT_MM_ATIVA) {
+const antes = RT_MM_ATIVA;
+RT_MM_ATIVA = ativa;
+if (antes && ativa && ativa.dataset.mmCat && ativa.dataset.mmCat !== RT_MM_CAT) {
+RT_MM_CAT = ativa.dataset.mmCat;
+try {
+localStorage.setItem("rtMmCat", RT_MM_CAT);
+} catch (e) {}
+}
+}
+rtMmSync();
+} catch (e) {}
+}), 500);
 rtInit();
 recalc();
 })();
