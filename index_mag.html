@@ -65057,6 +65057,15 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
+const RT_VERSAO_APP = "1.0";
+setInterval((() => {
+try {
+const b = document.getElementById("logoutBtn");
+if (!b) return;
+const t = "VERSÃO " + RT_VERSAO_APP + "\nSair da mesa (encerra a sua sessão neste navegador).";
+if (b.getAttribute("title") !== t && b.dataset.rtTitle !== t) b.setAttribute("title", t);
+} catch (e) {}
+}), 1e3);
 function rtDropAviso(txt) {
 let el = document.getElementById("rtDropAviso");
 if (!el) {
