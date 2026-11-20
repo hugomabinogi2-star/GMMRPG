@@ -5444,6 +5444,8 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
 .rt-moral.so-verde .rt-moral-meio, .rt-moral.so-vermelho .rt-moral-meio{ display:none; }
 
 .rt-drop-aviso{ border-color:#c9a24a; color:#ffe6a6; bottom:54px; max-width:min(680px, 92vw); text-align:center; }
+.rt-drop-aviso{ z-index:2147483000 !important; }
+#liveBoardGrid .board-cell.rt-drop-alvo{ box-shadow:inset 0 0 0 3px #ffd36b, inset 0 0 14px rgba(255,200,80,.6) !important; z-index:4; }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -65057,7 +65059,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "1.0";
+const RT_VERSAO_APP = "1.1";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -65296,6 +65298,108 @@ return pr;
 console.error("rede de segurança do Firebase", e);
 }
 }), 1e3);
+let RT_ARRASTO_BANDEJA = false, RT_DROP_ALVO = null;
+document.addEventListener("dragstart", (e => {
+try {
+RT_ARRASTO_BANDEJA = !!(e.target && e.target.closest && e.target.closest(".tray-coin"));
+} catch (x) {}
+}), true);
+const rtDropLimpaAlvo = () => {
+if (RT_DROP_ALVO) {
+RT_DROP_ALVO.classList.remove("rt-drop-alvo");
+RT_DROP_ALVO = null;
+}
+};
+document.addEventListener("dragend", (() => {
+RT_ARRASTO_BANDEJA = false;
+rtDropLimpaAlvo();
+}), true);
+window.addEventListener("dragover", (e => {
+try {
+if (!RT_ARRASTO_BANDEJA || currentRole !== "mestre") return;
+const cel = rtDropCelula(e.clientX, e.clientY);
+if (cel !== RT_DROP_ALVO) {
+rtDropLimpaAlvo();
+if (cel) {
+RT_DROP_ALVO = cel;
+cel.classList.add("rt-drop-alvo");
+}
+}
+if (cel) e.preventDefault();
+} catch (x) {}
+}), true);
+{
+const f = getCellEl;
+getCellEl = function(r, c) {
+const el = f.apply(this, arguments);
+if (el && el.dataset && +el.dataset.r === +r && +el.dataset.c === +c) return el;
+try {
+return (typeof boardGrid !== "undefined" && boardGrid ? boardGrid : document.getElementById("liveBoardGrid")).querySelector('.board-cell[data-r="' + r + '"][data-c="' + c + '"]') || el;
+} catch (x) {
+return el;
+}
+};
+}
+window.addEventListener("drop", (e => {
+try {
+if (currentRole !== "mestre") return;
+let raw = "";
+try {
+raw = e.dataTransfer.getData("text/plain");
+} catch (x) {}
+let p = null;
+try {
+p = JSON.parse(raw);
+} catch (x) {}
+rtDropLimpaAlvo();
+RT_ARRASTO_BANDEJA = false;
+if (!p || p.source !== "tray") return;
+const cel = rtDropCelula(e.clientX, e.clientY);
+if (!cel) return;
+e.preventDefault();
+e.stopPropagation();
+e.stopImmediatePropagation();
+const r = +cel.dataset.r, c = +cel.dataset.c;
+const antes = new Set(Object.values(boardTokens).map((t => t && t.id)));
+handleBoardDrop(r, c, {
+dataTransfer: {
+getData: () => raw
+},
+preventDefault() {},
+stopPropagation() {},
+clientX: e.clientX,
+clientY: e.clientY
+});
+const novas = Object.values(boardTokens).filter((t => t && !antes.has(t.id)));
+const vistas = new Set(novas.map((t => t.id)));
+novas.forEach((t => {
+const ok = [ ...document.querySelectorAll("#liveBoardGrid .board-token") ].some((el => el.dataset.tokenId === t.id && el.closest(".board-cell") && +el.closest(".board-cell").dataset.r === t.anchorR && +el.closest(".board-cell").dataset.c === t.anchorC));
+if (!ok) {
+try {
+renderBoardCell(t.anchorR, t.anchorC);
+} catch (x) {}
+}
+}));
+const faltando = novas.filter((t => ![ ...document.querySelectorAll("#liveBoardGrid .board-token") ].some((el => el.dataset.tokenId === t.id))));
+if (faltando.length) {
+try {
+buildBoardGrid();
+for (let rr = 0; rr < BOARD_ROWS; rr++) for (let cc = 0; cc < BOARD_COLS; cc++) renderBoardCell(rr, cc);
+} catch (x) {
+console.error(x);
+}
+}
+console.info("[soltar no tabuleiro]", {
+tipo: p.kind,
+casa: [ r, c ],
+colocadas: [ ...vistas ],
+redesenhou: faltando.length > 0
+});
+} catch (err) {
+console.error("soltar no tabuleiro (bandeja)", err);
+rtDropAviso("⚠️ ERRO AO SOLTAR NO TABULEIRO: " + (err && err.message || err));
+}
+}), true);
 rtInit();
 recalc();
 })();
