@@ -6565,6 +6565,17 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
 .rt-summary-card button, .rt-summary-card input{ text-transform:uppercase; }
 .rt-auto-aviso{ position:fixed; left:50%; bottom:18px; transform:translate(-50%, 20px); z-index:9700; background:rgba(20,16,12,.95); border:1px solid #5fbf4a; color:#cfeec4; font:700 11px Roboto, Arial, sans-serif; letter-spacing:.06em; padding:6px 14px; border-radius:16px; opacity:0; pointer-events:none; transition:opacity .25s, transform .25s; }
 .rt-auto-aviso.on{ opacity:1; transform:translate(-50%, 0); }
+.rt-bonus-eq{ margin-left:6px; font-weight:700; color:#8a2a1a; font-size:12px; }
+.rt-bonus-max{ font-weight:700; color:#6b4a1a; font-size:12px; }
+.rt-wstats > .rt-nv-item{ color:#e0b656; font-weight:700; } .rt-wstats > b.rt-nv-val{ color:#ffd27a; }
+/* Tronos e Kit na guia de consumíveis; aumentos em janela */
+.rt-cons-inv{ border-style:solid; border-color:rgba(224,182,86,.45); background:rgba(224,182,86,.06); }
+.rt-cons-inv .rt-cons-qty b{ min-width:34px; text-align:center; }
+.rt-aug-btn{ width:100%; margin-top:4px; }
+.rt-aug-item .rt-aug-check{ display:inline-block; width:18px; color:#e0b656; }
+.rt-aug-item.marcado{ color:#ffd27a; }
+.rt-aug-ico{ font-size:46px; text-align:center; margin:4px 0 8px; }
+.rt-aug-toggle{ margin:8px 0; }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -25586,7 +25597,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
     if(rtWeaponsSoftRender){ const box = aEl.querySelector('.rt-astats'); if(box) box.innerHTML = rtArmorStatsHtml(rtResolveArmor(st.eq.arm)); }
     else rtSetHtml(aEl, rtRenderArmor(comp));
     rtWeaponsSoftRender = false;
-    rtSetHtml(rtEl('rtCons'), rtRenderCons() + '<div class="rt-lbl" style="margin-top:8px">Aumentos cibernéticos (Ferrum Sanctum)</div>' + RT_AUGS.map(a=> '<label class="rt-psy-pow' + ((st.eq.aug || []).includes(a.id) ? ' on' : '') + '"><input type="checkbox" data-rt-aug="' + a.id + '"' + ((st.eq.aug || []).includes(a.id) ? ' checked' : '') + (rtCanEdit() ? '' : ' disabled') + '><span><b>🦾 ' + rtEsc(a.pt) + '</b><br>' + rtEsc(a.d) + '</span></label>').join('') + '<div class="rt-hint">No tabuleiro: ação Galvanizar Aumento (1 PA, 1×/rodada) dá 1 acúmulo de Ferrum Sanctum (máx. = aumentos instalados): +5% de dano por acúmulo, mas +15% de dano recebido por acúmulo.</div>');
+    rtSetHtml(rtEl('rtCons'), rtRenderCons() + '<div class="rt-lbl" style="margin-top:8px">Aumentos cibernéticos (Ferrum Sanctum)</div>' + rtAugBotaoHtml(st) + '<div class="rt-hint">No tabuleiro: ação Galvanizar Aumento (1 PA, 1×/rodada) dá 1 acúmulo de Ferrum Sanctum (máx. = aumentos instalados): +5% de dano por acúmulo, mas +15% de dano recebido por acúmulo.</div>');
     const M = [['w','Ferimentos'],['esq','Esquiva %'],['apa','Aparar'],['ac','Acerto %'],['crit','Crítico %'],['ini','Iniciativa'],['pa','Pontos de Ação'],['pm','Pontos de Movimento'],['res','Determinação'],['arm','Armadura %'],['defl','Deflexão'],['psy','Nível Psíquico']];
     let h = '<div class="rt-mods-grid">';
     RT_CH.forEach(c=>{ h += '<label>' + rtEsc(RT_CH_BY[c].pt) + '<input type="number" data-rt-mod="ch:' + c + '" value="' + (st.mods.ch[c] || 0) + '"></label>'; });
@@ -25797,6 +25808,8 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       <h5>Fenômenos (1d6)</h5>` + rtWikiTab(['Resultado', 'Efeito'], RT_FENOMENOS.map(f=> [E(f[0]), E(f[1])])) + `<h5>Perigos da Disformidade (1d6)</h5>` + rtWikiTab(['Resultado', 'Efeito'], RT_PERIGOS.map(f=> [E(f[0]), E(f[1])])), 'veu fenomeno perigos disformidade psiquico');
     add(R, 'granadas', 'Granadas e consumíveis', 'Arremesso e área', `
       <ul><li>Ficam no painel <b>Granadas e consumíveis</b> da aba Equipamento; só a ficha aberta usa os próprios itens, e a quantidade cai sozinha.</li>
+      <li>As duas primeiras linhas do painel são os <b>🪙 Tronos</b> (o dinheiro, com −10/−1/+1/+10) e o <b>🩹 Kit de primeiros socorros</b>; eles saíram do Inventário e ficam só aqui.</li>
+      <li><b>Aumentos cibernéticos</b>: o botão 🦾 embaixo das granadas abre uma janela; clique em cada aumento para instalar ou tirar (os detalhes aparecem à direita) e confirme com OK.</li>
       <li>Arremesso até 8 casas, sem teste de acerto; a área de 3×3 atinge <b>todos</b>, inclusive aliados; quem está na área esquiva com metade da chance.</li>
       <li>Barreira 100% no caminho bloqueia o arremesso. Granadas não contam no limite de ataques.</li>
       <li>Granadeiro: a 1ª granada do combate custa 0 PA. Custo-Benefício: granadas e kit −1 PA.</li></ul>`, 'granada consumivel estimulante');
@@ -25841,7 +25854,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
         <li><b>Vez pulada:</b> peça 💤 não tem a vez considerada: quando chega a vez dela, a fila pula na hora para a próxima peça que pode agir (sem esperar). Se naquele momento ela já estiver vendo alguém, acorda e joga normalmente.</li>
         <li><b>Atacado de longe:</b> quem é atacado por uma peça fora do seu campo de visão passa a ver o atacante até o fim da rodada seguinte.</li>
         <li><b>Névoa com memória:</b> casa que o jogador já viu fica descoberta: a névoa (cinza, fumaça ou estranheza) não volta quando o personagem se afasta. O chão, as marcações e o sangue continuam visíveis; as peças de lá só aparecem enquanto estão à vista. Cada jogador guarda o que explorou em cada mapa; o mestre cobre tudo de novo com <b>🌫️ REFAZER NÉVOA</b> no gerenciador do tabuleiro.</li>
-        <li><b>Fila de iniciativa:</b> enquanto está 💤, a peça (inimigo ou reforço) fica fora da fila que os jogadores veem e do anúncio da iniciativa, para não entregar que ela existe. O mestre a vê com 💤. Ela aparece na fila depois que acorda e age, ou quando leva dano.</li>
+        <li><b>Fila de iniciativa:</b> enquanto está 💤, a peça (inimigo ou reforço) fica fora da fila de iniciativa (para todos, inclusive o mestre) e do anúncio da iniciativa, para não entregar que ela existe. O mestre vê o estado dela na própria peça (zoom e roda de ações). Ela aparece na fila depois que acorda e age, ou quando leva dano.</li>
         <li><b>Facções rivais:</b> inimigos de facções diferentes do Bestiário (Caos, Drukhari, Orks, Necrons, T'au) também são inimigos entre si: podem se avistar, se atacar e levar ataques de oportunidade um do outro. Mas sempre preferem atacar os jogadores e os aliados; só atacam a outra facção quando não têm nenhum jogador ou aliado para atacar naquele turno, e ao avançar vão primeiro na direção do grupo. Inimigos sem facção (fichas do mestre) não entram nessa briga.</li>
         <li><b>Carregar um tabuleiro salvo:</b> as peças do Bestiário e os reforços voltam com a ficha, os efeitos e o turno automático. Se o combate já estiver rolando, quem chegou com o mapa entra no fim da fila com iniciativa sorteada, e quem saiu do tabuleiro sai da fila.</li>
         <li>O mestre vê o estado de cada peça na roda de ações dela (aba defensiva → 🤖): 💤 ou ❗ e o alcance da visão.</li>
@@ -25863,7 +25876,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       <ul><li>Criação: Mundo Natal → Origem → Triunfo e Hora mais Sombria → Arquétipo → 6 avanços de +5 (no máximo +10 em cada característica).</li>
       <li>Depois de salva, as escolhas ficam travadas para o jogador; só o mestre altera. Novos níveis continuam liberados.</li>
       <li><b>💾 Salvamento automático:</b> depois do primeiro Salvar, o que a mesa muda na ficha (XP, vida, escudo, kits gastos, fadiga) se salva sozinho uns segundos depois, com o aviso "FICHA SALVA AUTOMATICAMENTE". Só esses campos: escolhas que o jogador ainda não salvou (talentos, carreira, distribuição) não entram nem travam. O XP dado pelo mestre também vai direto para a ficha salva, mesmo com o jogador desconectado, e nunca conta duas vezes.</li>
-      <li>Armas e armaduras vêm de listas fixas; bônus de peça especial só o mestre mexe depois de salvar. "+ adicionar bônus" abre uma janela com cada efeito explicado, o valor (− / +) e a tabela de como a arma ou armadura fica (Hoje → Com o efeito); OK aplica. Clicar num bônus já posto abre a mesma janela para editar (valor 0 remove).</li>
+      <li>Armas e armaduras vêm de listas fixas; bônus de peça especial só o mestre mexe depois de salvar. "+ adicionar bônus" abre uma janela com cada efeito explicado, o <b>nível</b> do efeito (− / +, de −10 a 10; cada nível vale um passo do efeito, por exemplo Acerto % nível 2 = +10%, Dano máximo nível 2 = +2; nível negativo vira penalidade) e a tabela de como a arma ou armadura fica (Hoje → Com o efeito); OK aplica. Clicar num bônus já posto abre a mesma janela para editar (nível 0 remove). O <b>nível da arma</b> e o <b>nível da armadura</b>, no resumo de cada uma, são a soma dos níveis dos efeitos postos nela.</li>
       <li>Os efeitos <b>Característica (+/−)</b> e <b>Perícia (+/−)</b> de armas e armaduras somam (ou tiram) pontos enquanto o item estiver equipado; aparecem na linha "Modificadores" do card e no detalhe da característica. Não há mais modificadores manuais na ficha.</li>
       <li>Talentos marcados ⚙ são aplicados sozinhos na ficha e no tabuleiro.</li></ul>`, 'ficha criacao trava salvar');
 
@@ -26481,7 +26494,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
     const units = Math.floor(Math.random() * 10);
     const roll = (tens === 0 && units === 0) ? 100 : tens * 10 + units;
     const j = rtJudge(roll, alvo);
-    const val = { tens, units, roll, alvo, mod: m, label: info.label, ok: j.ok, graus: j.graus, nome: (els.nome.value || '').trim() || '(sem nome)', deidade: els.deidade.value, verdict: j.ok ? 'acerto' : 'erro', key, denovo: !!denovo };
+    const val = { tens, units, roll, alvo, mod: m, label: info.label + (j.fortuna ? ' — 🍀 Fortuna' : ''), ok: j.ok, graus: j.graus, nome: (els.nome.value || '').trim() || '(sem nome)', deidade: els.deidade.value, verdict: j.ok ? 'acerto' : 'erro', key, denovo: !!denovo };
     if(denovo) val.label += ' (nova tentativa)';
     rollingInterval = true;
     diceVerdict.textContent = ''; diceVerdict.className = 'dice-verdict';
@@ -27136,7 +27149,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       // Analisar Inimigos (passivo): todo inimigo ganha +1 Vulnerabilidade no início do turno do Agente
       if(tok && rtHasAbility(tok, 'operative/analyse_enemies')){
         rtAllTokens().forEach(t=>{
-          if(t !== tok && rtSideOf(t) && rtSideOf(t) !== rtSideOf(tok) && !rtIsDown(t)){ const fx = rtFxOf(t); fx.vuln = (fx.vuln || 0) + 1; rtSetFx(t, fx); }
+          if(t !== tok && rtSideOf(t) && rtSideOf(t) !== rtSideOf(tok) && !rtIsDown(t) && (rtTal(tok, 'uncanny_sight') || !rtCoverFor(tok, t).bloqueada)){ const fx = rtFxOf(t); fx.vuln = (fx.vuln || 0) + 1; rtSetFx(t, fx); }
         });
       }
     }
@@ -27412,9 +27425,9 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       if(M.killzone){ aparar = Math.round(aparar * Math.max(0, aparar - (M.kzPen || 0)) / 100); esq = Math.round(esq * Math.max(0, esq - (M.kzPen || 0)) / 100); }
       if(M.dodgeRe) esq = Math.round(100 - (100 - esq) * (100 - esq) / 100);
       res.chances = { aparar, esq };
-      if(aparar > 0){ const r1 = rtD100(); res.rolls.push({ k:'Aparar', v:r1, alvo:aparar }); if(r1 <= aparar){ res.outcome = 'aparou'; return res; } }
+      if(aparar > 0){ const r1 = rtD100(); res.rolls.push({ k:'Aparar', v:r1, alvo:aparar }); if((r1 <= aparar && !rtFortunaContra(att, res)) || (r1 > aparar && rtFortuna(tgt, aparar, res, 'aparar'))){ res.outcome = 'aparou'; return res; } }
       const r2 = rtD100(); res.rolls.push({ k:'Esquiva', v:r2, alvo:esq });
-      if(r2 <= esq){ res.outcome = 'esquivou'; return res; }
+      if((r2 <= esq && !rtFortunaContra(att, res)) || (r2 > esq && rtFortuna(tgt, esq, res, 'esquiva'))){ res.outcome = 'esquivou'; return res; }
       critCh = Math.max(0, A.ch.WS - T.ch.WS) + (A.crit - 10 > 0 ? A.crit - 10 : 0) + (w.crit || 0);
     } else {
       res.chances = {};
@@ -27426,7 +27439,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
         if(longe) acerto = Math.floor(acerto / 2);
         const r1 = rtD100(); res.rolls.push({ k:'Acerto', v:r1, alvo:acerto });
         res.chances.acerto = acerto;
-        if(r1 > acerto){ res.outcome = 'errou'; return res; }
+        if(r1 > acerto && !rtFortuna(att, acerto, res, 'acerto')){ res.outcome = 'errou'; return res; }
       }
       const cob = Math.max(0, (opts.cover || 0) - (M.coverRed || 0));
       if(cob > 0){ const rc = rtD100(); res.rolls.push({ k:'Cobertura', v:rc, alvo:cob }); res.chances.cob = cob; if(rc <= cob){ res.outcome = 'cobertura'; return res; } }
@@ -27437,7 +27450,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       if(M.killzone) esq = Math.round(esq * Math.max(0, esq - (M.kzPen || 0)) / 100);
       if(M.dodgeRe) esq = Math.round(100 - (100 - esq) * (100 - esq) / 100);
       res.chances.esq = esq;
-      if(esq > 0){ const r2 = rtD100(); res.rolls.push({ k:'Esquiva', v:r2, alvo:esq }); if(r2 <= esq){ res.outcome = 'esquivou'; return res; } }
+      if(esq > 0){ const r2 = rtD100(); res.rolls.push({ k:'Esquiva', v:r2, alvo:esq }); if((r2 <= esq && !rtFortunaContra(att, res)) || (r2 > esq && rtFortuna(tgt, esq, res, 'esquiva'))){ res.outcome = 'esquivou'; return res; } }
       critCh = A.crit + Math.max(0, A.acRaw - 95) + (w.crit || 0);
     }
     critCh += M.crit || 0;
@@ -27671,7 +27684,13 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       rtAliveFoesNear(att, tgt, 1, rtSideOf(tgt)).forEach(t=>{ if(!rtCoverFor(att, t).bloqueada) plano.push({ tgt: t, o: Object.assign({}, base, { semAcerto: true, esqMult: 0.5, cover: 0, area: true }) }); });
     } else if(modo.id === 'arco'){
       plano.push({ tgt, o: Object.assign({}, base, { cover: cov(tgt) }) });
-      rtAliveFoesNear(att, tgt, 2 + (rtTal(att, 'overclocking_module') ? Math.max(1, Math.floor(rtEffective(att).B.INT / 5)) : 0), rtSideOf(tgt)).slice(0, 2).forEach(t=> plano.push({ tgt: t, o: Object.assign({}, base, { mult: (base.mult || 1) * 0.5, cover: 0, semAcerto: true }) }));
+      { const __raio = 2 + (rtTal(att, 'overclocking_module') ? Math.max(1, Math.floor(rtEffective(att).B.INT / 5)) : 0);
+        const __al = rtAllTokens().filter(t=> t !== tgt && t.id !== att.id && rtIsCombatToken(t) && !rtIsDown(t) && rtSideOf(t) === rtSideOf(att) && !rtRival(att, t) && rtDistTok(tgt, t) <= __raio);
+        const __in = rtAliveFoesNear(att, tgt, __raio, rtSideOf(tgt));
+        // a descarga pega os 2 mais perto do alvo; aliados atingidos sofrem dano, a não ser com Liturgia do Isolamento
+        const __pula = __in.concat(__al).sort((a, b)=> rtDistTok(tgt, a) - rtDistTok(tgt, b)).slice(0, 2);
+        if(rtTal(att, 'liturgy_of_insulation')) __pula.splice(0, __pula.length, ...__pula.filter(t=> !__al.includes(t)));
+        __pula.forEach(t=> plano.push({ tgt: t, o: Object.assign({}, base, { mult: (base.mult || 1) * 0.5, cover: 0, semAcerto: true }) })); }
     } else if(modo.id === 'varredura'){
       plano.push({ tgt, o: Object.assign({}, base) });
       const lado = rtSideOf(tgt);
@@ -28627,6 +28646,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
   function rtVfxMelee0(v){ return ['corte','corte_pesado','serra','energia','energia_impacto','impacto','forca','varredura'].includes(v); }
   // rajada: vários disparos seguidos; `tiros` = 'AXCE…' (acerto/erro/cobertura/esquiva por tiro)
   function rtVfxBurst(vfx, A, T, tiros){
+    if(!A || !T) return Promise.resolve();   // casa do atirador ou do alvo fora da tela (ex.: peça já saiu do tabuleiro)
     const seq = String(tiros || 'AAA').split('');
     const passo = vfx === 'laser' ? 110 : 95;
     const proms = seq.map((ch, i)=> rtVfxStrike(vfx, A, { x: T.x + rtvRand(-0.18, 0.18) * T.s, y: T.y + rtvRand(-0.18, 0.18) * T.s, s: T.s },
@@ -28948,8 +28968,9 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
     const v = Math.max(1, Math.min(99, (rtEffective(tok).ch[c] || 0) + (mod || 0) + __om));
     let r = rtD100();
     if(r > v && rtHasEffect(tok, 'luckGood') && Math.random() < 0.2) r = rtD100();
-    try{ rtTalTestFalhou(tok, c, r <= v); }catch(err){}
-    return { ok: r <= v, r, v };
+    let __fort = false; if(r > v && rtFortuna(tok, v, null, c)) __fort = true;
+    try{ rtTalTestFalhou(tok, c, r <= v || __fort); }catch(err){}
+    return { ok: r <= v || __fort, r, v, fortuna: __fort };
   }
   function rtTestTxt(nome, t, c){ return `${nome} testa ${RT_CH_BY[c] ? RT_CH_BY[c].pt : c} ${t.r}/${t.v} → ${t.ok ? 'resistiu' : 'falhou'}`; }
   // ---------- peças grandes: a distância conta todas as casas que a peça ocupa ----------
@@ -33550,7 +33571,14 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
             const perf = rtAiPerfil(tok); const foes = rtFoesOf(tok).filter(f=> !rtHasEffect(f, 'voando') && !rtAiCaido(f));
             const alvo = foes.sort((a, b)=> (rtRival(tok, a) - rtRival(tok, b)) || (rtDistTok(tok, a) - rtDistTok(tok, b)))[0];   // jogadores e aliados primeiro; outra facção só se não houver
             if(alvo){ const casas = rtAiAlcance(tok, rtTurnRt().mp || 0); const pa = rtPosOf(alvo); const atira = !rtMeleeWeaponOf(tok) || perf.cac < 1;
-              const melhor = casas.map(no=> ({ no, nota: -rtDistRect(rtFp(tok, no.r, no.c), rtFp(alvo)) * (atira ? 0.6 : 1) + (atira ? 2 * rtAiProtecao(tok, no.r, no.c) * perf.cobertura : 0) - 3 * rtAiRiscoAoo(tok, rtAiCaminho(no), perf) })).sort((a, b)=> b.nota - a.nota)[0];
+              // quem prefere atirar avança até ficar ao alcance (arma ou habilidade) e só então procura cobertura;
+              // antes ficava parado atrás da cobertura, longe de todo mundo, e nunca fazia nada
+              const alc = Math.max(1, ...rtWeaponsOf(tok).filter(w=> w.tipo !== 'cac').map(w=> rtWeaponRange(w)), ...(rtcOrDefault(tok).eab || []).map(k=> (RT_EAB[k] && RT_EAB[k].alvo === 'inimigo' && RT_EAB[k].alc) || 0));
+              const melhor = casas.map(no=>{
+                const d = rtDistRect(rtFp(tok, no.r, no.c), rtFp(alvo));
+                const nota = atira ? (d <= alc ? 30 - d * 0.3 + 2 * rtAiProtecao(tok, no.r, no.c) * perf.cobertura : -d * 2) : -d;
+                return { no, nota: nota - 3 * rtAiRiscoAoo(tok, rtAiCaminho(no), perf) };
+              }).sort((a, b)=> b.nota - a.nota)[0];
               if(melhor && melhor.no.d > 0){ await rtAiAndar(tok, rtAiCaminho(melhor.no), id); postToDiscord(`🤖 ${rtNm(rtTokenById(id) || tok)} avança em direção a ${rtNm(alvo)}.`, null); }
             }
           }
@@ -33558,7 +33586,7 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       }
       await rtAiEspera(600);
       if(rtAiDaVez(id) && RT_AI_RODANDO === id){ advanceTurn(); }
-    } catch(err){ console.error('IA do inimigo', err); }
+    } catch(err){ console.error('IA do inimigo', err); try{ if(rtAiDaVez(id)) advanceTurn(); }catch(e2){} }
     finally { if(RT_AI_RODANDO === id){ RT_AI_RODANDO = null; rtAiBotao(false); } }
   }
   // nada vai para o chat/Discord durante a vez de uma peça dormindo (nem o anúncio da vez)
@@ -34427,6 +34455,13 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
   const RT_BONUS_MOD = [['__ch', 'Característica (+/−)'], ['__sk', 'Perícia (+/−)']];
   const rtBonusGrupo = s=> /^ch:/.test(s || '') ? '__ch' : /^sk:/.test(s || '') ? '__sk' : s;
   const rtBonusPasso = s=> rtBonusGrupo(s) !== s ? 5 : (RT_BONUS_PASSO[s] || 1);
+  // o efeito aparece como NÍVEL: cada nível vale um "passo" do valor (ex.: Acerto % nível 2 = +10%)
+  const rtBonusNivel = (s, v)=>{ const n = (parseFloat(v) || 0) / rtBonusPasso(s); return Math.round(n * 10) / 10; };
+  // nível de −10 a 10 (negativo vira penalidade; nível 0 tira o efeito)
+  const RT_BONUS_NV_MAX = 10;
+  const rtBonusNvMin = s=> -RT_BONUS_NV_MAX;
+  const rtBonusNvLim = (s, n)=> Math.max(rtBonusNvMin(s), Math.min(RT_BONUS_NV_MAX, Math.round(n) || 0));
+  const rtBonusTxtValor = (s, v)=>{ const n = parseFloat(v) || 0; return (n > 0 ? '+' : '') + n; };
   const RT_BONUS_PASSO = { pen:5, acerto:5, crit:5, redEsq:5, aparar:5, bloq:5, pct:5, esq:5, apa:5, w:2 };
   function rtBonusAlvo(kind, idx){ return kind === 'a' ? rtState.eq.arm : rtState.eq.armas[idx]; }
   function rtBonusLista(kind, slot){
@@ -34492,10 +34527,10 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
     const img = ()=> kind === 'w' ? rtArmaQuadro(slot.id, depois(), 'rt-arma-det') : rtArmaduraQuadro(slot.id, depois(), 'rt-arma-det');
     const det = ()=>{
       D.innerHTML = '<div data-bv-img>' + img() + '</div><b>' + rtEsc(rtBonusNome(kind, s)) + '</b><p>' + rtEsc(RT_BONUS_DESC[rtBonusGrupo(s)] || '') + '</p>' + alvoSel()
-        + '<div class="rt-bonus-valor"><span>Valor</span><button type="button" class="rt-btn" data-bv="-1">−</button><input type="number" data-bv-in value="' + v + '"><button type="button" class="rt-btn" data-bv="1">+</button></div>'
+        + '<div class="rt-bonus-valor"><span>Nível</span><button type="button" class="rt-btn" data-bv="-1">−</button><input type="number" step="1" min="' + rtBonusNvMin(s) + '" max="' + RT_BONUS_NV_MAX + '" data-bv-in value="' + rtBonusNivel(s, v) + '"><small class="rt-bonus-max">(−' + RT_BONUS_NV_MAX + ' a ' + RT_BONUS_NV_MAX + ')</small><button type="button" class="rt-btn" data-bv="1">+</button><small class="rt-bonus-eq" data-bv-eq>' + rtBonusTxtValor(s, v) + '</small></div>'
         + '<p><i>Como fica:</i></p><div data-bv-res>' + rtBonusResumo(kind, slot, j, s, v) + '</div>';
     };
-    const redesenhaResumo = ()=>{ const el = D.querySelector('[data-bv-res]'); if(el) el.innerHTML = rtBonusResumo(kind, slot, j, s, v); const im = D.querySelector('[data-bv-img]'); if(im) im.innerHTML = img(); };
+    const redesenhaResumo = ()=>{ const el = D.querySelector('[data-bv-res]'); if(el) el.innerHTML = rtBonusResumo(kind, slot, j, s, v); const eq = D.querySelector('[data-bv-eq]'); if(eq) eq.textContent = rtBonusTxtValor(s, v); const im = D.querySelector('[data-bv-img]'); if(im) im.innerHTML = img(); };
     lista_(); det();
     const fecha = ()=> box.remove();
     const ok = ()=>{
@@ -34509,11 +34544,11 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       if(e.target === box || e.target.closest('[data-pk-x]')){ fecha(); return; }
       if(e.target.closest('[data-pk-ok]')){ ok(); return; }
       const it = e.target.closest('[data-pk-v]');
-      if(it){ const k = it.dataset.pkV; s = k === '__ch' ? (/^ch:/.test(s) ? s : 'ch:' + RT_CH[0]) : k === '__sk' ? (/^sk:/.test(s) ? s : 'sk:' + RT.skills[0].id) : k; if(j == null && !v) v = rtBonusPasso(s); lista_(); det(); return; }
+      if(it){ const nAnt = Math.round(rtBonusNivel(s, v)) || 1; const k = it.dataset.pkV; s = k === '__ch' ? (/^ch:/.test(s) ? s : 'ch:' + RT_CH[0]) : k === '__sk' ? (/^sk:/.test(s) ? s : 'sk:' + RT.skills[0].id) : k; v = rtBonusNvLim(s, nAnt) * rtBonusPasso(s); lista_(); det(); return; }   // trocar o tipo mantém o nível
       const b = e.target.closest('[data-bv]');
-      if(b){ v = (parseFloat(v) || 0) + (+b.dataset.bv) * rtBonusPasso(s); D.querySelector('[data-bv-in]').value = v; redesenhaResumo(); }
+      if(b){ const n = rtBonusNvLim(s, rtBonusNivel(s, v) + (+b.dataset.bv)); v = n * rtBonusPasso(s); D.querySelector('[data-bv-in]').value = n; redesenhaResumo(); }
     });
-    box.addEventListener('input', (e)=>{ if(e.target.matches('[data-bv-in]')){ v = parseFloat(e.target.value) || 0; redesenhaResumo(); } });
+    box.addEventListener('input', (e)=>{ if(e.target.matches('[data-bv-in]')){ const n = rtBonusNvLim(s, parseFloat(e.target.value) || 0); if(String(n) !== e.target.value && e.target.value !== '' && e.target.value !== '-') e.target.value = n; v = n * rtBonusPasso(s); redesenhaResumo(); } });
     box.addEventListener('change', (e)=>{ if(e.target.matches('[data-bv-alvo]')){ s = s.slice(0, 3) + e.target.value; det(); } });
     box.addEventListener('dblclick', (e)=>{ if(e.target.closest('[data-pk-v]')) ok(); });
     box.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ e.preventDefault(); fecha(); } else if(e.key === 'Enter'){ e.preventDefault(); ok(); } });
@@ -34538,12 +34573,29 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
       if(!b){ b = document.createElement('button'); b.type = 'button'; b.className = 'rt-pick-btn rt-bonus-btn'; row.insertBefore(b, row.firstChild); sel.classList.add('rt-bonus-oculto'); inp.classList.add('rt-bonus-oculto'); sel.tabIndex = -1; inp.tabIndex = -1; }
       b.dataset.k = k; b.dataset.i = i; b.dataset.j = j;
       const v = parseFloat(bb.v) || 0;
-      const html = '<span>' + rtEsc(rtBonusNome(k, bb.s)) + ' ' + (v > 0 ? '+' : '') + v + '</span><i>▸</i>';
+      const html = '<span>' + rtEsc(rtBonusNome(k, bb.s)) + ' · Nível ' + String(rtBonusNivel(bb.s, v)).replace('.', ',') + '</span><i>▸</i>';
       if(b.__h !== html){ b.innerHTML = html; b.__h = html; }
       b.disabled = sel.disabled;
     });
   }
   setInterval(rtBonusSync, 300);
+
+  // NÍVEL DA ARMA / DA ARMADURA: soma dos níveis dos modificadores postos nela (aparece no resumo do item)
+  function rtItemNivel(slot){ return ((slot && slot.bonus) || []).reduce((t, b)=> t + Math.round(rtBonusNivel(b.s, b.v)), 0); }
+  function rtItemNivelSync(){
+    const poe = (box, n)=>{
+      if(!box) return;
+      let sp = box.querySelector(':scope > .rt-nv-item');
+      const txt = String(n);
+      if(!sp){ sp = document.createElement('span'); sp.className = 'rt-nv-item'; const b = document.createElement('b'); b.className = 'rt-nv-item rt-nv-val'; box.insertBefore(b, box.firstChild); box.insertBefore(sp, b); sp.textContent = 'Nível'; }
+      const b = box.querySelector(':scope > b.rt-nv-val'); if(b && b.textContent !== txt){ b.textContent = txt; b.title = 'Soma dos níveis dos modificadores desta peça'; }
+    };
+    try{
+      document.querySelectorAll('#rtSheet [data-rt-w]').forEach(w=>{ const i = +w.dataset.rtW; const slot = (rtState.eq.armas || [])[i]; if(!slot || !slot.id) return; poe(w.querySelector('.rt-wstats'), rtItemNivel(slot)); });
+      const a = rtState.eq.arm; if(a && a.id) poe(document.querySelector('#rtSheet .rt-astats .rt-wstats'), rtItemNivel(a));
+    }catch(e){}
+  }
+  setInterval(rtItemNivelSync, 300);
 
 
   // efeitos de habilidades e talentos (gerado por rt/gera_fx_extra.py a partir do código; usado pela wiki)
@@ -35953,7 +36005,7 @@ RTA_IMG.cajado_navis = `
     roundEl.textContent = `RODADA ${turnState.round}`;
     const mestre = currentRole === 'mestre';
     const lista = turnState.order.slice(turnState.turnIndex).filter(it=> !isTurnEntryKnockedOut(it))
-      .map((it, i)=> ({ it, atual: i === 0, oc: rtIniOculto(it) })).filter(x=> mestre || !x.oc);
+      .map((it, i)=> ({ it, atual: i === 0, oc: rtIniOculto(it) })).filter(x=> !x.oc);   // o mestre vê a mesma fila que os jogadores
     listEl.innerHTML = lista.map(x=> `<li class="turn-queue-item${x.atual ? ' turn-queue-current' : ''}${x.oc ? ' rt-fila-oculto' : ''}"${x.oc ? ' title="Em espera: ainda não avistou ninguém. Os jogadores não veem esta peça na fila."' : ''}>${x.oc ? '💤 ' : ''}${escapeHtml(x.it.nome)}</li>`).join('');
   };
   { const f = turnStatusText; turnStatusText = function(){
@@ -36043,6 +36095,29 @@ RTA_IMG.cajado_navis = `
       try{ rtShowSummary(Object.assign({ grupo:[], inimigos:[] }, f.D), true); }catch(e){ console.error('resumo', e); }
     }
   }
+
+  // ---------- vez de inimigo/reforço automático nunca fica parada ----------
+  // Se a peça da vez joga sozinha e não tem nada para fazer, ela encerra a vez. Rede de segurança:
+  // se a IA terminou e a vez ainda é dela (ou a IA nem começou, ex.: o mestre recarregou a página),
+  // o mestre encerra a vez / começa a jogada sozinho.
+  const RT_AI_VEZ = {};
+  const rtAiVezKey = id=> (turnState.round || 1) + '|' + (turnState.turnIndex || 0) + '|' + id;
+  { const f = rtAiTurno; rtAiTurno = async function(id){
+      const k = rtAiVezKey(id); RT_AI_VEZ[k] = { ini: Date.now() };
+      try{ return await f.apply(this, arguments); }
+      finally { if(RT_AI_VEZ[k]) RT_AI_VEZ[k].fim = Date.now(); }
+  }; }
+  setInterval(()=>{
+    try{
+      if(currentRole !== 'mestre' || !turnState.active || (typeof RT_PAUSA !== 'undefined' && RT_PAUSA)) return;
+      const e = currentTurnEntry(); if(!e) return;
+      const t = rtTokenById(e.id); if(!t || !rtAiLigado(t) || rtIsDown(t)) return;
+      if(RT_AI_RODANDO) return;
+      const k = rtAiVezKey(e.id); const v = RT_AI_VEZ[k] || (RT_AI_VEZ[k] = { visto: Date.now() });
+      if(v.fim){ if(Date.now() - v.fim > 2500 && !v.passou){ v.passou = 1; advanceTurn(); } return; }
+      if(!v.ini && Date.now() - (v.visto || Date.now()) > 2500 && isBoardRevealedForFicha()){ v.visto = Date.now(); rtAiMaybe(e); }
+    }catch(err){}
+  }, 1000);
 
 
   // =====================================================================================
@@ -36585,6 +36660,15 @@ RTA_IMG.cajado_navis = `
   }
   { const f = rtSpawnAttackFx; rtSpawnAttackFx = function(aA, tA, val){ try{ rtVistoRegistra(aA, tA, val); }catch(e){} return f.apply(this, arguments); }; }
 
+  // cada "corrida" num mapa começa com a névoa cheia: carregar um tabuleiro salvo (ou resetar/criar um
+  // tabuleiro novo) gera uma marca de exploração nova, e os jogadores esquecem o que tinham explorado
+  { const f = applyBoardData; applyBoardData = function(){
+      const o = f.apply(this, arguments);
+      try{ if(currentRole === 'mestre'){ boardMarks.__expV = Date.now(); scheduleBoardMarksPush(); } }catch(e){}
+      return o;
+  }; }
+  setInterval(()=>{ try{ if(currentRole === 'mestre' && boardMarks && !boardMarks.__expV){ boardMarks.__expV = Date.now(); scheduleBoardMarksPush(); } }catch(e){} }, 2000);
+
 
   // =====================================================================================
   // MOVIMENTO MACIO + SOM DE PASSOS
@@ -36832,6 +36916,188 @@ RTA_IMG.cajado_navis = `
       ref.set({ delta, nome: nome || '', from: (currentUser && currentUser.uid) || null, ts: firebase.database.ServerValue.TIMESTAMP, gid, fichaId: fichaId || null });
       rtXpDireto(uid, delta, fichaId, gid);
   }; }
+
+
+  // =====================================================================================
+  // HABILIDADES QUE TINHAM DESCRIÇÃO MAS NÃO FAZIAM NADA NA MESA (auditoria)
+  // - Mundo da Morte: Instinto de Sobrevivência · Nascido no Vazio: Fortuna · Mundo-Colmeia: Força nos Números
+  // - Talentos: Defesa de Perímetro (mastim), Liturgia do Isolamento (no combate), Visão Sobrenatural (no combate)
+  // - Sutileza: o requisito apontava para um talento que não existe (nunca liberava)
+  // =====================================================================================
+  const rtHwDe = tok=>{ try{ return (rtcOrDefault(tok) || {}).hw || null; }catch(e){ return null; } };
+  // ---------- Nascido no Vazio: Fortuna ----------
+  // teste falho: 20% de chance de virar sucesso, limitada à chance original do teste
+  function rtFortuna(tok, chance, res, qual){
+    if(!tok || rtHwDe(tok) !== 'voidborn') return false;
+    const p = Math.max(0, Math.min(20, chance || 0));
+    if(!(Math.random() * 100 < p)) return false;
+    if(res) res.fortuna = (res.fortuna || []).concat([rtNm(tok) + ' (' + qual + ')']);
+    try{ rtPlayAndBroadcast(tok, tok, { rt:1, kind:'buff', icon:'🍀', vfx:'buff', txt:'FORTUNA', deidade:'' }); }catch(e){}
+    return true;
+  }
+  // esquiva/aparar de um inimigo contra o Nascido no Vazio: 20% de chance de falhar
+  function rtFortunaContra(att, res){
+    if(!att || rtHwDe(att) !== 'voidborn' || Math.random() >= 0.2) return false;
+    if(res) res.fortuna = (res.fortuna || []).concat(['defesa do alvo falhou']);
+    return true;
+  }
+  // o texto do ataque avisa quando a Fortuna mudou o resultado
+  { const f = rtOutcomeTxt; rtOutcomeTxt = function(res){ const t = f.apply(this, arguments); try{ if(res && res.fortuna && res.fortuna.length) return t + ' 🍀 Fortuna: ' + res.fortuna.join(', '); }catch(e){} return t; }; }
+  // testes da ficha (característica e perícia)
+  { const f = rtJudge; rtJudge = function(roll, alvo){
+      const j = f.apply(this, arguments);
+      try{ if(!j.ok && rtState && rtState.hw === 'voidborn' && RT_FORT_FICHA && Math.random() * 100 < Math.min(20, alvo || 0)){ j.ok = true; j.graus = 0; j.fortuna = true; } }catch(e){}
+      return j;
+  }; }
+  var RT_FORT_FICHA = false;
+  { const f = rtRollTest; rtRollTest = function(){ RT_FORT_FICHA = true; try{ return f.apply(this, arguments); } finally { RT_FORT_FICHA = false; } }; }
+  // ---------- Mundo da Morte: Instinto de Sobrevivência ----------
+  // 1×/combate, ao cair abaixo de 30% dos ferimentos: ganha 20% do máximo em ferimentos temporários
+  { const f = rtApplyDamage; rtApplyDamage = function(token){
+      const o = f.apply(this, arguments);
+      try{
+        if(token && turnState.active && rtHwDe(token) === 'death_world' && !rtIsDown(token)){
+          const hp = rtHpInfo(token);
+          const r = rtTurnRt(); r.dwUsado = r.dwUsado || {}; const k = rtCdKey(token.id, 'dw');
+          if(hp.frac < 0.3 && !r.dwUsado[k]){
+            r.dwUsado[k] = 1;
+            const v = Math.max(1, Math.round(hp.max * 0.2));
+            rtGrantTemp(token, v);
+            postToDiscord(`🌿 INSTINTO DE SOBREVIVÊNCIA: ${rtNm(token)} ganha ${v} ferimentos temporários.`, null);
+            try{ rtPlayAndBroadcast(token, token, { rt:1, kind:'buff', icon:'🌿', vfx:'buff', txt:'+' + v, deidade:'' }); }catch(e){}
+          }
+        }
+      }catch(e){ console.error('instinto de sobrevivência', e); }
+      return o;
+  }; }
+  // efeitos que valem enquanto a condição dura (entram como os efeitos estáticos dos talentos)
+  { const f = rtTalStatic; rtTalStatic = function(token, base, fx){
+      const out = f.apply(this, arguments);
+      try{
+        const hw = base && base.hw;
+        // Mundo da Morte: com pelo menos 1 ferimento temporário, +20% de esquiva e de armadura
+        if(hw === 'death_world' && rtTempOf(token) >= 1) out.push({ t:'__hw', st:{ esq: 20, arm: 20 } });
+        // Mundo-Colmeia: 3+ criaturas a até 3 casas → +((1 + bônus de CAR)/2) de Determinação; ninguém perto → −2
+        if(hw === 'hive_world' && turnState.active && rtPosOf(token)){
+          const n = rtAllTokens().filter(t=> t && t.id !== token.id && rtIsCombatToken(t) && !rtIsDown(t) && rtDistTok(token, t) <= 3).length;
+          const B = (base.B && base.B.FEL != null) ? base.B.FEL : Math.floor(((base.ch || {}).FEL || 0) / 10);
+          if(n >= 3) out.push({ t:'__hw', st:{ res: Math.floor((1 + B) / 2) } });
+          else if(n === 0) out.push({ t:'__hw', st:{ res: -2 } });
+        }
+      }catch(e){}
+      return out;
+  }; }
+  // ---------- Defesa de Perímetro: o mastim corre até o alvo do Proteger! (dobra os PM se for você) ----------
+  { const f = rtFamMoveNear; rtFamMoveNear = function(fam, alvo){
+      try{
+        if(!fam || !alvo || rtDistTok(fam, alvo) <= 1) return;
+        const dono = rtFamOwner(fam);
+        let pm = (rtcOrDefault(fam).pm || 10);
+        if(dono && alvo.id === dono.id && rtTal(dono, 'perimeter_defence')) pm *= 2;
+        const destino = rtBestCellNear(alvo, null, fam);
+        if(destino && Math.max(Math.abs(destino.r - fam.anchorR), Math.abs(destino.c - fam.anchorC)) <= pm){ rtMoveToken(fam, destino.r, destino.c); return; }
+        // longe demais: chega o mais perto que os PM deixam
+        const casas = rtAiAlcance(fam, pm).filter(no=> no.d > 0);
+        const melhor = casas.sort((a, b)=> rtDistRect(rtFp(fam, a.r, a.c), rtFp(alvo)) - rtDistRect(rtFp(fam, b.r, b.c), rtFp(alvo)))[0];
+        if(melhor) rtMoveToken(fam, melhor.r, melhor.c);
+        return;
+      }catch(e){ return f.apply(this, arguments); }
+  }; }
+  // ---------- Sutileza: requisito corrigido (Proficiência Aeldari OU Drukhari) ----------
+  try{ const t = RT.tal.finesse; if(t && t.req && Array.isArray(t.req.tal) && t.req.tal.some(x=> /_ou_/.test(x))) t.req.tal = ['aeldari_weapon_proficiency', 'drukhari_weapon_proficiency']; }catch(e){}
+
+
+  // =====================================================================================
+  // GUIA "GRANADAS E CONSUMÍVEIS"
+  // - Tronos e Kit de primeiros socorros saem do Inventário e viram as duas primeiras linhas daqui
+  //   (Tronos primeiro). Continuam guardados no inventário da ficha (por baixo, escondidos), então
+  //   o kit usado no tabuleiro, as lesões e as fichas antigas seguem funcionando igual.
+  // - Aumentos cibernéticos: um botão abre a janela de seleção (marca/desmarca e OK).
+  // =====================================================================================
+  const RT_INV_CONS = [
+    { nome:'TRONOS', icon:'🪙', pt:'Tronos', d:'Moeda imperial: o dinheiro do personagem.', passos:[-10, -1, 1, 10] },
+    { nome:'KIT DE PRIMEIROS SOCORROS', icon:'🩹', pt:'Kit de primeiros socorros', d:'1 PA (pela roda de ações): cura 1d10 + Medicina/10 em você ou num aliado ao lado. Fora de combate, trata uma lesão antiga.', passos:[-1, 1] },
+  ];
+  function rtInvEntrada(nome){
+    const rows = document.querySelectorAll('#inventoryRows .item-row.locked');
+    for(const row of rows){ const n = row.querySelector('.item-name'); if(n && n.value.trim().toUpperCase() === nome) return row.closest('.item-entry') || row; }
+    return null;
+  }
+  function rtConsInvHtml(){
+    const pode = rtCanEdit();
+    return RT_INV_CONS.map(c=> '<div class="rt-cons-row rt-cons-inv" title="' + rtEsc(c.d) + '"><span class="rt-cons-ico">' + c.icon + '</span><span class="rt-cons-name"><b>' + rtEsc(c.pt) + '</b><small>' + rtEsc(c.d) + '</small></span>'
+      + '<span class="rt-cons-qty">' + c.passos.filter(d=> d < 0).map(d=> '<button type="button" class="rt-btn" data-rt-inv="' + c.nome + '" data-d="' + d + '"' + (pode ? '' : ' disabled') + '>' + (d === -1 ? '−' : '−' + Math.abs(d)) + '</button>').join('')
+      + '<b data-rt-inv-q="' + c.nome + '">' + (typeof getLockedItemQty === 'function' ? getLockedItemQty(c.nome) : 0) + '</b>'
+      + c.passos.filter(d=> d > 0).map(d=> '<button type="button" class="rt-btn" data-rt-inv="' + c.nome + '" data-d="' + d + '"' + (pode ? '' : ' disabled') + '>' + (d === 1 ? '+' : '+' + d) + '</button>').join('') + '</span></div>').join('');
+  }
+  { const f = rtRenderCons; rtRenderCons = function(){ return rtConsInvHtml() + f.apply(this, arguments); }; }
+  // os botões daqui apertam os do inventário (mesmo som, mesmo salvamento)
+  document.addEventListener('click', (e)=>{
+    const b = e.target.closest && e.target.closest('#rtSheet [data-rt-inv]'); if(!b || b.disabled) return;
+    e.preventDefault(); e.stopPropagation();
+    const ent = rtInvEntrada(b.dataset.rtInv); if(!ent) return;
+    const d = +b.dataset.d;
+    const direto = ent.querySelector('.item-qty-btn[data-dir="' + d + '"]');
+    if(direto) direto.click();
+    else { const um = ent.querySelector('.item-qty-btn[data-dir="' + (d > 0 ? 1 : -1) + '"]'); for(let i = 0; i < Math.abs(d) && um; i++) um.click(); }
+    rtConsInvSync();
+  }, true);
+  function rtConsInvSync(){
+    RT_INV_CONS.forEach(c=>{
+      const ent = rtInvEntrada(c.nome); if(ent && !ent.classList.contains('rt-hidden-row')) ent.classList.add('rt-hidden-row');
+      const q = document.querySelector('#rtSheet [data-rt-inv-q="' + c.nome + '"]'); const v = String(typeof getLockedItemQty === 'function' ? getLockedItemQty(c.nome) : 0);
+      if(q && q.textContent !== v) q.textContent = v;
+    });
+  }
+  setInterval(rtConsInvSync, 400);
+
+  // ---------- aumentos cibernéticos: janela de seleção ----------
+  const RT_AUG_EXTRA = {
+    cortical:'Com o talento Determinação Calculada: críticos dão acúmulos de Determinação.',
+    optica:'Com o talento Precisão Letal: o primeiro tiro único ou golpe da rodada fica mais forte.',
+    somatico:'Conta como 2 aumentos para Casco de Metal (+2 de deflexão por aumento).',
+    braco:'Conta como aumento para Galvanizar Aumento e Casco de Metal.',
+    locomotor:'Conta como aumento para Galvanizar Aumento e Casco de Metal.',
+  };
+  function rtAugBotaoHtml(st){
+    const sel = (st.eq.aug || []).map(id=> RT_AUGS.find(a=> a.id === id)).filter(Boolean);
+    return '<button type="button" class="rt-pick-btn rt-aug-btn' + (sel.length ? '' : ' vazio') + '" data-rt-augsel' + (rtCanEdit() ? '' : ' disabled') + '><span>🦾 ' + (sel.length ? rtEsc(sel.map(a=> a.pt).join(', ')) + ' (' + sel.length + ')' : '— nenhum aumento instalado —') + '</span><i>▸</i></button>';
+  }
+  function rtAugAbrir(){
+    if(!rtCanEdit()) return;
+    const escolhidos = new Set(rtState.eq.aug || []);
+    let foco = RT_AUGS[0].id;
+    const old = document.getElementById('rtPick'); if(old) old.remove();
+    const box = document.createElement('div'); box.id = 'rtPick'; box.className = 'rt-pick';
+    box.innerHTML = '<div class="rt-pick-card" role="dialog" aria-modal="true">'
+      + '<div class="rt-pick-head"><b>Aumentos cibernéticos (Ferrum Sanctum)</b><button type="button" class="rt-btn" data-pk-x title="Fechar">✕</button></div>'
+      + '<div class="rt-pick-corpo"><div class="rt-pick-lista" data-pk-lista></div><div class="rt-pick-det" data-pk-det></div></div>'
+      + '<div class="rt-pick-pe"><button type="button" class="rt-btn" data-pk-x>Cancelar</button><button type="button" class="rt-btn rt-pick-ok" data-pk-ok>OK</button></div></div>';
+    document.body.appendChild(box);
+    const L = box.querySelector('[data-pk-lista]'), D = box.querySelector('[data-pk-det]');
+    const desenha = ()=>{
+      L.innerHTML = RT_AUGS.map(a=> '<button type="button" class="rt-pick-item rt-aug-item' + (a.id === foco ? ' on' : '') + (escolhidos.has(a.id) ? ' marcado' : '') + '" data-aug="' + a.id + '"><span class="rt-aug-check">' + (escolhidos.has(a.id) ? '☑' : '☐') + '</span> ' + rtEsc(a.pt) + '</button>').join('');
+      const a = RT_AUGS.find(x=> x.id === foco) || RT_AUGS[0];
+      D.innerHTML = '<div class="rt-aug-ico">🦾</div><b>' + rtEsc(a.pt) + '</b><p>' + rtEsc(a.d) + '</p>' + (RT_AUG_EXTRA[a.id] ? '<p><i>' + rtEsc(RT_AUG_EXTRA[a.id]) + '</i></p>' : '')
+        + '<p class="rt-hint">No tabuleiro: Galvanizar Aumento (1 PA, 1×/rodada) dá 1 acúmulo de Ferrum Sanctum (máx. = aumentos instalados): +5% de dano por acúmulo, mas +15% de dano recebido por acúmulo.</p>'
+        + '<button type="button" class="rt-btn rt-aug-toggle" data-aug-tg="' + a.id + '">' + (escolhidos.has(a.id) ? '✕ Remover este aumento' : '✚ Instalar este aumento') + '</button>'
+        + '<p class="rt-hint">Instalados: ' + (escolhidos.size ? rtEsc(RT_AUGS.filter(x=> escolhidos.has(x.id)).map(x=> x.pt).join(', ')) : 'nenhum') + '.</p>';
+    };
+    desenha();
+    const fecha = ()=> box.remove();
+    const ok = ()=>{ fecha(); rtState.eq.aug = RT_AUGS.filter(a=> escolhidos.has(a.id)).map(a=> a.id); rtCommit(); };
+    box.addEventListener('click', (e)=>{
+      if(e.target === box || e.target.closest('[data-pk-x]')){ fecha(); return; }
+      if(e.target.closest('[data-pk-ok]')){ ok(); return; }
+      const tg = e.target.closest('[data-aug-tg]');
+      if(tg){ const id = tg.dataset.augTg; if(escolhidos.has(id)) escolhidos.delete(id); else escolhidos.add(id); desenha(); return; }
+      const it = e.target.closest('[data-aug]');
+      if(it){ const id = it.dataset.aug; if(escolhidos.has(id)) escolhidos.delete(id); else escolhidos.add(id); foco = id; desenha(); }   // clicar marca/desmarca e mostra os detalhes
+    });
+    box.addEventListener('keydown', (e)=>{ if(e.key === 'Escape'){ e.preventDefault(); fecha(); } else if(e.key === 'Enter'){ e.preventDefault(); ok(); } });
+    box.querySelector('[data-pk-ok]').focus();
+  }
+  document.addEventListener('click', (e)=>{ const b = e.target.closest && e.target.closest('#rtSheet [data-rt-augsel]'); if(!b || b.disabled) return; e.preventDefault(); e.stopPropagation(); rtAugAbrir(); }, true);
 
   rtInit();
 
