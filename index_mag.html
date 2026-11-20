@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<script src="index_mag_imagens.js?v=b39a30792d"></script>
+<script src="index_mag_imagens.js?v=2d23fa7421"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rogue Trader — Mesa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -4508,27 +4508,18 @@ body.rt-on .mc-rt-hide, body.rt-on .mc-deidade-control{ display:none !important;
 
 html body{
   background-color:#070405;
-  background-image:
-    linear-gradient(180deg, rgba(7,4,5,.10) 0%, rgba(7,4,5,.30) 55%, rgba(7,4,5,.78) 100%),
-    var(--rt-fundo, none),
-    radial-gradient(ellipse 80% 55% at 50% 0%, rgba(125,17,22,.38), transparent 65%),
-    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(212,172,90,.08), transparent 70%),
-    linear-gradient(180deg, #0d0708, #050304);
-  background-repeat:no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
-  background-size:cover, cover, auto, auto, auto;
-  background-attachment:fixed, fixed, fixed, fixed, fixed;
-  background-position:center, center top, center top, center bottom, 0 0;
+  background-image: var(--rt-fundo, linear-gradient(180deg, #0d0708, #050304));
+  background-repeat:no-repeat;
+  background-size:cover;
+  background-attachment:fixed;
+  background-position:center top;
 }
 html body .login-gate{
   background-color:#050304;
-  background-image:
-    radial-gradient(ellipse 45% 55% at 50% 50%, rgba(5,3,4,.55), transparent 75%),
-    var(--rt-login, none),
-    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(125,17,22,.45), transparent 70%),
-    linear-gradient(180deg, #0d0708, #030202);
-  background-repeat:no-repeat, no-repeat, no-repeat, no-repeat;
-  background-size:cover, cover, auto, cover;
-  background-position:center, center, center, center;
+  background-image: var(--rt-login, linear-gradient(180deg, #0d0708, #030202));
+  background-repeat:no-repeat;
+  background-size:cover;
+  background-position:center;
 }
 
 @media (max-width:520px){
@@ -5446,6 +5437,60 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
 .rt-drop-aviso{ border-color:#c9a24a; color:#ffe6a6; bottom:54px; max-width:min(680px, 92vw); text-align:center; }
 .rt-drop-aviso{ z-index:2147483000 !important; }
 #liveBoardGrid .board-cell.rt-drop-alvo{ box-shadow:inset 0 0 0 3px #ffd36b, inset 0 0 14px rgba(255,200,80,.6) !important; z-index:4; }
+.rt-arr-fantasma{ position:fixed !important; z-index:2147483001 !important; pointer-events:none !important; margin:0 !important; transform:none !important; opacity:.85; border-radius:50%; background-size:cover; background-position:center; box-shadow:0 0 0 2px #ffd36b, 0 6px 18px rgba(0,0,0,.7); transition:opacity .12s; }
+.rt-arr-fantasma.rt-arr-fora{ opacity:.45; box-shadow:0 0 0 2px #8a1f1f, 0 6px 18px rgba(0,0,0,.7); }
+.rt-arr-origem{ opacity:.45 !important; }
+html.rt-arrastando, html.rt-arrastando *{ cursor:grabbing !important; user-select:none !important; }
+
+
+.binary-bg, body.rt-on .login-flames{ display:none !important; }
+
+
+.chat-bg-star.rt-sim-part{ display:block; background-size:contain; background-repeat:no-repeat; background-position:center; font-size:0; animation-name:rtSimSobe; filter:drop-shadow(0 0 4px var(--rt-sim-cor)) drop-shadow(0 0 9px var(--rt-sim-cor)); }
+@keyframes rtSimSobe{
+  0%{ opacity:0; transform:translateY(0) rotate(0deg) scale(.85); }
+  12%{ opacity:.9; }
+  80%{ opacity:.8; }
+  100%{ opacity:0; transform:translateY(calc(-1 * var(--rise-dist, 260px))) rotate(var(--rt-sim-giro, 0deg)) scale(1.05); }
+}
+
+
+.rt-moral-barra{ height:20px; border-radius:11px; transition:box-shadow .8s; box-shadow:inset 0 2px 6px rgba(0,0,0,.75), 0 0 8px rgba(224,182,86,.35); animation:rtMoralPulsa 2.6s ease-in-out infinite; }
+.rt-moral.ganha-verde .rt-moral-barra{ --rt-moral-glow:rgba(95,211,90,.55); }
+.rt-moral.ganha-vermelho .rt-moral-barra{ --rt-moral-glow:rgba(226,71,61,.6); }
+@keyframes rtMoralPulsa{
+  0%,100%{ box-shadow:inset 0 2px 6px rgba(0,0,0,.75), 0 0 6px var(--rt-moral-glow, rgba(224,182,86,.35)); }
+  50%{ box-shadow:inset 0 2px 6px rgba(0,0,0,.75), 0 0 16px 2px var(--rt-moral-glow, rgba(224,182,86,.5)); }
+}
+.rt-moral-verde, .rt-moral-vermelho{ position:relative; overflow:hidden; }
+.rt-moral-verde{ background:linear-gradient(180deg, #8af27f 0%, #3fb83a 35%, #1f7a24 75%, #12501a 100%); }
+.rt-moral-vermelho{ background:linear-gradient(180deg, #ff7a6b 0%, #d93a2f 35%, #8e1a12 75%, #5a0d08 100%); }
+
+.rt-liq-onda{ position:absolute; left:-40px; right:-40px; top:-3px; height:9px; text-decoration:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='9' viewBox='0 0 40 9'%3E%3Cpath d='M0 5 Q10 0 20 5 T40 5 V9 H0Z' fill='rgba(255,255,255,0.32)'/%3E%3C/svg%3E") repeat-x 0 0 / 40px 9px;
+  animation:rtLiqOnda 2.2s linear infinite; opacity:.9; }
+.rt-moral-vermelho .rt-liq-onda{ animation-direction:reverse; animation-duration:2.6s; }
+@keyframes rtLiqOnda{ from{ transform:translateX(0); } to{ transform:translateX(40px); } }
+
+.rt-liq-bolhas{ position:absolute; inset:0; text-decoration:none; opacity:.5;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.8) 0 1.3px, transparent 1.9px),
+    radial-gradient(circle, rgba(255,255,255,.65) 0 .9px, transparent 1.5px),
+    radial-gradient(circle, rgba(255,255,255,.7) 0 1.6px, transparent 2.2px);
+  background-size:73px 41px, 51px 29px, 97px 53px;
+  background-position:11px 30px, 37px 9px, 64px 44px;
+  animation:rtLiqBolhas 4s linear infinite; }
+.rt-moral-vermelho .rt-liq-bolhas{ animation-duration:4.8s; }
+@keyframes rtLiqBolhas{ from{ background-position:11px 30px, 37px 9px, 64px 44px; } to{ background-position:11px -11px, 37px -20px, 64px -9px; } }
+
+.rt-moral-brilho{ position:absolute; inset:0; pointer-events:none; text-decoration:none; border-radius:inherit;
+  background:linear-gradient(180deg, rgba(255,255,255,.38) 0%, rgba(255,255,255,.08) 38%, transparent 55%, rgba(0,0,0,.18) 100%); }
+.rt-moral-brilho::after{ content:""; position:absolute; top:0; bottom:0; width:30%; left:-35%;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,.28), transparent); animation:rtMoralCorre 3.8s ease-in-out infinite; }
+@keyframes rtMoralCorre{ 0%{ left:-35%; } 60%,100%{ left:110%; } }
+.rt-moral-meio{ z-index:2; width:5px; margin-left:-2.5px; background:#fff8dc; box-shadow:0 0 10px 3px rgba(255,235,170,.95), 0 0 18px 6px rgba(255,200,90,.45); animation:rtMoralEspuma 1.4s ease-in-out infinite; }
+@keyframes rtMoralEspuma{ 0%,100%{ transform:scaleY(1); opacity:1; } 50%{ transform:scaleY(1.15); opacity:.8; } }
+.rt-sem-anim .rt-liq-onda, .rt-sem-anim .rt-liq-bolhas, .rt-sem-anim .rt-moral-brilho::after{ animation:none !important; }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -52010,7 +52055,7 @@ rtOpportunityAttacks(rtTokenById(id) || t, de, para);
 } catch (err) {
 console.error(err);
 }
-await rtAiEspera(560);
+await rtAiEspera(270);
 }
 return true;
 }
@@ -60100,7 +60145,8 @@ if (Date.now() - a.t > 4e3 && document.hidden) return;
 const n = Math.max(Math.abs(a.r - r), Math.abs(a.c - c));
 if (n > 40) return;
 const dx = a.x - p.x, dy = a.y - p.y;
-const dur = Math.min(1100, 160 + 300 * n);
+const andando = Date.now() - a.t < 450;
+const dur = Math.min(700, (andando ? 90 : 130) + 170 * n);
 try {
 el.style.zIndex = 15;
 const an = el.animate([ {
@@ -60109,7 +60155,7 @@ transform: `translate(${dx}px, ${dy}px)`
 transform: "translate(0px, 0px)"
 } ], {
 duration: dur,
-easing: "cubic-bezier(.42,.08,.32,1)"
+easing: andando ? "linear" : "cubic-bezier(.3,.08,.3,1)"
 });
 an.onfinish = an.oncancel = () => {
 el.style.zIndex = "";
@@ -63710,12 +63756,12 @@ y: y0,
 t: Date.now(),
 mv: (a && a.mv || 0) + 1
 };
-const passo = 280, dur = passo * (kf.length - 1);
+const passo = 150, dur = Math.max(260, passo * (kf.length - 1));
 RT_MOV_FIM = Math.max(RT_MOV_FIM, Date.now() + dur + 150);
 el.style.zIndex = 15;
 const an = el.animate(kf, {
 duration: dur,
-easing: "linear"
+easing: "cubic-bezier(.4,.05,.35,1)"
 });
 an.onfinish = an.oncancel = () => {
 el.style.zIndex = "";
@@ -63744,7 +63790,7 @@ spawnBoardSmokeBurst(rc.left + rc.width / 2, rc.top + rc.height / 2);
 }), dur + 200);
 return;
 }
-if (a && !(a.r === r && a.c === c)) RT_MOV_FIM = Math.max(RT_MOV_FIM, Date.now() + Math.min(1100, 160 + 300 * Math.max(Math.abs(a.r - r), Math.abs(a.c - c))) + 150);
+if (a && !(a.r === r && a.c === c)) RT_MOV_FIM = Math.max(RT_MOV_FIM, Date.now() + Math.min(700, 130 + 170 * Math.max(Math.abs(a.r - r), Math.abs(a.c - c))) + 120);
 }
 } catch (e) {}
 return f.apply(this, arguments);
@@ -63765,7 +63811,7 @@ ts: Date.now()
 pushTurnState();
 } catch (e) {}
 rtSetaMostra(caminho, "#ff6a4d");
-await rtAiEspera(900);
+await rtAiEspera(550);
 }
 try {
 return await f.apply(this, arguments);
@@ -63860,11 +63906,13 @@ d.appendChild(t);
 return o;
 };
 }
+var RT_MORAL_EST = null;
 function rtMoral() {
 const corpo = document.getElementById("liveBoardWrap");
 if (!corpo) return;
 let bar = document.getElementById("rtMoral");
 let g = 0, v = 0;
+const fac = {};
 try {
 rtAllTokens().forEach((t => {
 if (!t || isBlockKind(t.kind)) return;
@@ -63872,9 +63920,19 @@ const lado = boardActionSide(t);
 if (!lado) return;
 const hp = rtHpInfo(t);
 const vida = Math.max(0, hp.vida || 0);
-if (lado === "inimigo") v += vida; else g += vida;
+if (lado === "inimigo") {
+v += vida;
+const f = t.bst && t.bst.f;
+if (f && vida > 0) fac[f] = (fac[f] || 0) + 1;
+} else g += vida;
 }));
 } catch (e) {}
+const facTop = Object.keys(fac).sort(((x, y) => fac[y] - fac[x]))[0] || null;
+RT_MORAL_EST = g + v ? {
+g: g,
+v: v,
+fac: facTop
+} : null;
 if (!(g + v)) {
 if (bar) bar.hidden = true;
 return;
@@ -63883,7 +63941,7 @@ if (!bar) {
 bar = document.createElement("div");
 bar.id = "rtMoral";
 bar.className = "rt-moral";
-bar.innerHTML = '<span class="rt-moral-nome">MORAL</span><div class="rt-moral-barra"><i class="rt-moral-verde"></i><i class="rt-moral-vermelho"></i><b class="rt-moral-meio"></b></div>';
+bar.innerHTML = '<span class="rt-moral-nome">MORAL</span><div class="rt-moral-barra"><i class="rt-moral-verde"><s class="rt-liq-onda"></s><s class="rt-liq-bolhas"></s></i><i class="rt-moral-vermelho"><s class="rt-liq-onda"></s><s class="rt-liq-bolhas"></s></i><b class="rt-moral-meio"></b><u class="rt-moral-brilho"></u></div>';
 corpo.after(bar);
 }
 if (bar.previousElementSibling !== corpo) corpo.after(bar);
@@ -63897,12 +63955,71 @@ mi.style.left = pct + "%";
 }
 bar.classList.toggle("so-verde", v === 0);
 bar.classList.toggle("so-vermelho", g === 0);
+bar.classList.toggle("ganha-verde", g > v);
+bar.classList.toggle("ganha-vermelho", v > g);
 }
 setInterval((() => {
 try {
 if (rtReady) rtMoral();
 } catch (e) {}
 }), 600);
+const RT_SIMBOLOS = Object.assign({}, window.RT_IMG && window.RT_IMG.simbolos || {});
+const RT_SIM_COR = {
+imperio: "#f0c25a",
+caos: "#ff4a3d",
+drukhari: "#b07cff",
+orks: "#7be03f",
+necrons: "#3fe08a",
+tau: "#7fd8ff",
+tiranideos: "#c36cff"
+};
+function rtMoralSimbolo() {
+const m = typeof RT_MORAL_EST !== "undefined" ? RT_MORAL_EST : null;
+if (!m) return null;
+const k = m.v > m.g ? m.fac && RT_SIMBOLOS[m.fac] ? m.fac : "caos" : "imperio";
+return RT_SIMBOLOS[k] ? k : null;
+}
+function rtSimParticula(caixa) {
+if (!caixa) return false;
+const k = rtMoralSimbolo();
+if (!k) return false;
+const rect = caixa.getBoundingClientRect();
+if (rect.height < 10) return true;
+const el = document.createElement("span");
+el.className = "chat-bg-star rt-sim-part rt-sim-" + k;
+const lado = 16 + Math.random() * 20;
+el.style.width = lado.toFixed(1) + "px";
+el.style.height = lado.toFixed(1) + "px";
+el.style.backgroundImage = 'url("' + RT_SIMBOLOS[k] + '")';
+el.style.left = 2 + Math.random() * 94 + "%";
+el.style.setProperty("--rise-dist", Math.round(rect.height + 50) + "px");
+el.style.setProperty("--rt-sim-cor", RT_SIM_COR[k] || "#ffd36b");
+el.style.setProperty("--rt-sim-giro", (Math.random() * 30 - 15).toFixed(1) + "deg");
+const dur = 5 + Math.random() * 5;
+el.style.animationDuration = dur.toFixed(2) + "s";
+caixa.appendChild(el);
+el.addEventListener("animationend", (() => el.remove()));
+setTimeout((() => el.remove()), (dur + 1) * 1e3);
+return true;
+}
+{
+const f = spawnLiveBoardBgParticle;
+spawnLiveBoardBgParticle = function() {
+try {
+if (rtSimParticula(typeof liveBoardBgFxEl !== "undefined" ? liveBoardBgFxEl : null)) return;
+} catch (e) {}
+return f.apply(this, arguments);
+};
+}
+{
+const f = spawnChatBgParticle;
+spawnChatBgParticle = function() {
+try {
+if (rtSimParticula(typeof chatBgFxEl !== "undefined" ? chatBgFxEl : null)) return;
+} catch (e) {}
+return f.apply(this, arguments);
+};
+}
 const RT_CONE = 67.5, RT_COSTAS = 112.5, RT_PERTO = 2, RT_BARULHO = 8;
 function rtCentro(t) {
 const F = rtFp(t);
@@ -65059,7 +65176,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "1.1";
+const RT_VERSAO_APP = "1.3";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -65340,25 +65457,7 @@ return el;
 }
 };
 }
-window.addEventListener("drop", (e => {
-try {
-if (currentRole !== "mestre") return;
-let raw = "";
-try {
-raw = e.dataTransfer.getData("text/plain");
-} catch (x) {}
-let p = null;
-try {
-p = JSON.parse(raw);
-} catch (x) {}
-rtDropLimpaAlvo();
-RT_ARRASTO_BANDEJA = false;
-if (!p || p.source !== "tray") return;
-const cel = rtDropCelula(e.clientX, e.clientY);
-if (!cel) return;
-e.preventDefault();
-e.stopPropagation();
-e.stopImmediatePropagation();
+function rtSoltarBandeja(raw, p, cel, x, y) {
 const r = +cel.dataset.r, c = +cel.dataset.c;
 const antes = new Set(Object.values(boardTokens).map((t => t && t.id)));
 handleBoardDrop(r, c, {
@@ -65367,8 +65466,8 @@ getData: () => raw
 },
 preventDefault() {},
 stopPropagation() {},
-clientX: e.clientX,
-clientY: e.clientY
+clientX: x,
+clientY: y
 });
 const novas = Object.values(boardTokens).filter((t => t && !antes.has(t.id)));
 const vistas = new Set(novas.map((t => t.id)));
@@ -65395,11 +65494,246 @@ casa: [ r, c ],
 colocadas: [ ...vistas ],
 redesenhou: faltando.length > 0
 });
+}
+window.addEventListener("drop", (e => {
+try {
+if (currentRole !== "mestre") return;
+let raw = "";
+try {
+raw = e.dataTransfer.getData("text/plain");
+} catch (x) {}
+let p = null;
+try {
+p = JSON.parse(raw);
+} catch (x) {}
+rtDropLimpaAlvo();
+RT_ARRASTO_BANDEJA = false;
+if (!p || p.source !== "tray") return;
+const cel = rtDropCelula(e.clientX, e.clientY);
+if (!cel) return;
+e.preventDefault();
+e.stopPropagation();
+e.stopImmediatePropagation();
+rtSoltarBandeja(raw, p, cel, e.clientX, e.clientY);
 } catch (err) {
 console.error("soltar no tabuleiro (bandeja)", err);
 rtDropAviso("⚠️ ERRO AO SOLTAR NO TABULEIRO: " + (err && err.message || err));
 }
 }), true);
+const RT_ARR = {
+on: false,
+raw: "",
+p: null,
+fonte: null,
+fantasma: null,
+alvo: null,
+x: 0,
+y: 0
+};
+function rtArrFonte(t) {
+if (!t || !t.closest) return null;
+const coin = t.closest(".tray-coin");
+if (coin) return currentRole === "mestre" ? coin : null;
+const tok = t.closest("#liveBoardGrid .board-token");
+return tok || null;
+}
+function rtArrDados(el) {
+let dt = null;
+try {
+dt = new DataTransfer;
+} catch (e) {}
+const guarda = {};
+const caixa = dt || {
+setData(k, v) {
+guarda[k] = v;
+},
+getData(k) {
+return guarda[k] || "";
+},
+setDragImage() {},
+effectAllowed: "all",
+dropEffect: "move"
+};
+let ev = null;
+try {
+ev = new DragEvent("dragstart", {
+bubbles: true,
+cancelable: true,
+dataTransfer: dt || undefined
+});
+} catch (e) {}
+if (!ev || !ev.dataTransfer) {
+ev = new Event("dragstart", {
+bubbles: true,
+cancelable: true
+});
+try {
+Object.defineProperty(ev, "dataTransfer", {
+value: caixa
+});
+} catch (e) {}
+}
+ev.__rtSint = true;
+el.dispatchEvent(ev);
+if (ev.defaultPrevented) return "";
+try {
+return (ev.dataTransfer || caixa).getData("text/plain") || "";
+} catch (e) {
+return "";
+}
+}
+function rtArrFantasma(el, x, y) {
+const r = el.getBoundingClientRect();
+const g = el.cloneNode(true);
+g.removeAttribute("id");
+g.removeAttribute("draggable");
+g.classList.add("rt-arr-fantasma");
+const lado = Math.max(28, Math.min(72, Math.max(r.width, r.height) || 48));
+g.style.width = lado + "px";
+g.style.height = lado + "px";
+g.style.left = x - lado / 2 + "px";
+g.style.top = y - lado / 2 + "px";
+document.body.appendChild(g);
+return g;
+}
+function rtArrLimpa() {
+if (RT_ARR.fantasma) RT_ARR.fantasma.remove();
+if (RT_ARR.alvo) RT_ARR.alvo.classList.remove("rt-drop-alvo");
+if (RT_ARR.fonte) {
+try {
+const ev = new Event("dragend", {
+bubbles: true
+});
+ev.__rtSint = true;
+RT_ARR.fonte.dispatchEvent(ev);
+} catch (e) {}
+RT_ARR.fonte.classList.remove("rt-arr-origem");
+}
+document.documentElement.classList.remove("rt-arrastando");
+Object.assign(RT_ARR, {
+on: false,
+raw: "",
+p: null,
+fonte: null,
+fantasma: null,
+alvo: null
+});
+}
+window.addEventListener("dragstart", (e => {
+try {
+if (e.__rtSint) return;
+const el = rtArrFonte(e.target);
+if (!el) return;
+e.preventDefault();
+e.stopImmediatePropagation();
+const raw = rtArrDados(el);
+if (!raw) return;
+let p = null;
+try {
+p = JSON.parse(raw);
+} catch (x) {
+return;
+}
+Object.assign(RT_ARR, {
+on: true,
+raw: raw,
+p: p,
+fonte: el,
+x: e.clientX,
+y: e.clientY
+});
+el.classList.add("rt-arr-origem");
+document.documentElement.classList.add("rt-arrastando");
+RT_ARR.fantasma = rtArrFantasma(el, e.clientX || RT_ARR.x, e.clientY || RT_ARR.y);
+try {
+rtZoomEsconde();
+} catch (x) {}
+} catch (err) {
+console.error("arrastar", err);
+rtArrLimpa();
+}
+}), true);
+window.addEventListener("mousemove", (e => {
+if (!RT_ARR.on) return;
+RT_ARR.x = e.clientX;
+RT_ARR.y = e.clientY;
+const g = RT_ARR.fantasma;
+if (g) {
+const l = parseFloat(g.style.width) || 48;
+g.style.left = e.clientX - l / 2 + "px";
+g.style.top = e.clientY - l / 2 + "px";
+}
+const cel = rtDropCelula(e.clientX, e.clientY);
+if (cel !== RT_ARR.alvo) {
+if (RT_ARR.alvo) RT_ARR.alvo.classList.remove("rt-drop-alvo");
+RT_ARR.alvo = cel;
+if (cel) cel.classList.add("rt-drop-alvo");
+}
+if (g) g.classList.toggle("rt-arr-fora", !cel);
+e.preventDefault();
+}), true);
+window.addEventListener("mouseup", (e => {
+if (!RT_ARR.on) return;
+const {raw: raw, p: p} = RT_ARR;
+const cel = rtDropCelula(e.clientX, e.clientY);
+rtArrLimpa();
+const engole = ev => {
+ev.stopPropagation();
+ev.preventDefault();
+};
+window.addEventListener("click", engole, true);
+setTimeout((() => window.removeEventListener("click", engole, true)), 60);
+if (!cel) return;
+try {
+const r = +cel.dataset.r, c = +cel.dataset.c;
+const ev = {
+__rtArr: true,
+dataTransfer: {
+getData: () => raw
+},
+preventDefault() {},
+stopPropagation() {},
+clientX: e.clientX,
+clientY: e.clientY,
+target: cel
+};
+if (p.source === "tray") {
+rtSoltarBandeja(raw, p, cel, e.clientX, e.clientY);
+return;
+}
+if (currentRole === "mestre") handleBoardDrop(r, c, ev); else handleLiveBoardDrop(r, c, ev);
+} catch (err) {
+console.error("soltar no tabuleiro", err);
+rtDropAviso("⚠️ ERRO AO SOLTAR NO TABULEIRO: " + (err && err.message || err));
+}
+}), true);
+window.addEventListener("keydown", (e => {
+if (RT_ARR.on && e.key === "Escape") {
+e.preventDefault();
+rtArrLimpa();
+}
+}), true);
+window.addEventListener("blur", (() => {
+if (RT_ARR.on) rtArrLimpa();
+}));
+function rtGradeCorMestre() {
+try {
+if (currentRole !== "mestre") return;
+const o = document.getElementById("liveBoardOuter");
+if (!o) return;
+const v = hexToRgba(boardGridColor || "#ffffff", .35);
+if (o.style.getPropertyValue("--grid-line-color") !== v) o.style.setProperty("--grid-line-color", v);
+} catch (e) {}
+}
+{
+const f = applyBoardGridColor;
+applyBoardGridColor = function() {
+const r = f.apply(this, arguments);
+rtGradeCorMestre();
+return r;
+};
+}
+setInterval(rtGradeCorMestre, 1e3);
 rtInit();
 recalc();
 })();
