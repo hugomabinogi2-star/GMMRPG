@@ -5440,6 +5440,8 @@ body.rt-on .board-token-tip-float, body.rt-on .board-cell .board-token-vitalscar
 .rt-moral-vermelho{ display:block; height:100%; background:linear-gradient(#e2473d,#7a1410); transition:width .9s cubic-bezier(.4,.1,.3,1); }
 .rt-moral-meio{ position:absolute; top:-2px; bottom:-2px; width:4px; margin-left:-2px; background:#fff3c4; box-shadow:0 0 8px 2px rgba(255,230,150,.9); transition:left .9s cubic-bezier(.4,.1,.3,1); }
 .rt-moral.so-verde .rt-moral-meio, .rt-moral.so-vermelho .rt-moral-meio{ display:none; }
+
+.rt-drop-aviso{ border-color:#c9a24a; color:#ffe6a6; bottom:54px; max-width:min(680px, 92vw); text-align:center; }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -65045,6 +65047,236 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
+function rtDropAviso(txt) {
+let el = document.getElementById("rtDropAviso");
+if (!el) {
+el = document.createElement("div");
+el.id = "rtDropAviso";
+el.className = "rt-auto-aviso rt-drop-aviso";
+document.body.appendChild(el);
+}
+el.textContent = String(txt || "").toUpperCase();
+el.classList.add("on");
+clearTimeout(el.__t);
+el.__t = setTimeout((() => el.classList.remove("on")), 4200);
+}
+function rtDropCelula(x, y) {
+let els = [];
+try {
+els = document.elementsFromPoint(x, y);
+} catch (e) {}
+for (const el of els) {
+const c = el.closest && el.closest("#liveBoardGrid .board-cell");
+if (c) return c;
+}
+return null;
+}
+document.addEventListener("dragover", (e => {
+try {
+const t = e.target;
+if (!t || !t.closest) return;
+if (t.closest("#liveBoardGrid .board-cell")) return;
+if (!t.closest("#liveBoardWrap")) return;
+if (rtDropCelula(e.clientX, e.clientY)) e.preventDefault();
+} catch (err) {}
+}));
+document.addEventListener("drop", (e => {
+try {
+const t = e.target;
+if (!t || !t.closest || e.__rtRepasse) return;
+if (t.closest("#liveBoardGrid .board-cell")) return;
+if (!t.closest("#liveBoardWrap")) return;
+const cel = rtDropCelula(e.clientX, e.clientY);
+if (!cel) return;
+e.preventDefault();
+let ev = null;
+try {
+ev = new DragEvent("drop", {
+bubbles: true,
+cancelable: true,
+dataTransfer: e.dataTransfer,
+clientX: e.clientX,
+clientY: e.clientY
+});
+} catch (x) {}
+if (!ev) {
+ev = new Event("drop", {
+bubbles: true,
+cancelable: true
+});
+try {
+Object.defineProperty(ev, "dataTransfer", {
+value: e.dataTransfer
+});
+} catch (x) {}
+}
+ev.__rtRepasse = true;
+cel.dispatchEvent(ev);
+} catch (err) {
+console.error("soltar no tabuleiro (repasse)", err);
+}
+}));
+function rtDropAssin() {
+try {
+return Object.keys(boardTokens).map((k => {
+const t = boardTokens[k];
+return k + ":" + (t && t.id);
+})).sort().join("|");
+} catch (e) {
+return "";
+}
+}
+function rtDropMotivo(p, r, c) {
+try {
+if (!p) return "⚠️ NÃO RECONHECI O QUE FOI ARRASTADO. TENTE DE NOVO.";
+if (r < 0 || c < 0 || r >= BOARD_ROWS || c >= BOARD_COLS) return "⚠️ FORA DO TABULEIRO.";
+const oc = boardTokens[boardKey(r, c)];
+if (oc) return "⚠️ ESSA CASA JÁ ESTÁ OCUPADA" + (oc.name ? " (" + oc.name + ")" : "") + ".";
+const sR = parseInt(p.sizeR, 10) || 1, sC = parseInt(p.sizeC, 10) || 1;
+if (r + sR > BOARD_ROWS || c + sC > BOARD_COLS) return "⚠️ NÃO CABE AQUI: A PEÇA OCUPA " + sR + "X" + sC + " CASAS E PASSA DA BORDA.";
+if (sR > 1 || sC > 1) return "⚠️ NÃO CABE AQUI: ALGUMA DAS " + sR + "X" + sC + " CASAS JÁ ESTÁ OCUPADA.";
+if (p.kind === "hero" && p.heroId && typeof findHeroCell === "function" && findHeroCell(p.heroId)) return "⚠️ ESSA FICHA JÁ ESTÁ NO TABULEIRO.";
+if (p.kind === "hero" || p.kind === "inimigo_ficha" || p.kind === "aliado_ficha") return "⚠️ NÃO ACHEI ESSA FICHA NA LISTA. ABRA DE NOVO A ABA 📂 PARA RECARREGAR AS FICHAS.";
+return "⚠️ NÃO FOI POSSÍVEL COLOCAR A PEÇA AQUI.";
+} catch (e) {
+return "⚠️ NÃO FOI POSSÍVEL COLOCAR A PEÇA AQUI.";
+}
+}
+{
+const f = handleBoardDrop;
+handleBoardDrop = function(r, c, e) {
+let p = null;
+try {
+p = JSON.parse(e.dataTransfer.getData("text/plain"));
+} catch (x) {}
+const daBandeja = !!(p && p.source === "tray") && !(e && e.__rtOk);
+const antes = daBandeja ? rtDropAssin() : "";
+try {
+return f.apply(this, arguments);
+} catch (err) {
+console.error("soltar no tabuleiro", err);
+rtDropAviso("⚠️ ERRO AO SOLTAR NO TABULEIRO: " + (err && err.message || err));
+} finally {
+if (daBandeja && rtDropAssin() === antes) rtDropAviso(rtDropMotivo(p, r, c));
+}
+};
+}
+{
+const f = handleLiveBoardDrop;
+handleLiveBoardDrop = function() {
+try {
+return f.apply(this, arguments);
+} catch (err) {
+console.error("soltar no tabuleiro", err);
+rtDropAviso("⚠️ ERRO AO MOVER A PEÇA: " + (err && err.message || err));
+}
+};
+}
+const RT_FB_ESPECIAIS = {
+".sv": 1,
+".value": 1,
+".priority": 1
+};
+function rtFbLimpa(v, onde, probs, topo) {
+if (v === undefined || typeof v === "function" || typeof v === "symbol") {
+probs.push(onde + " (vazio)");
+return undefined;
+}
+if (typeof v === "number" && !isFinite(v)) {
+probs.push(onde + " (número inválido)");
+return null;
+}
+if (v === null || typeof v !== "object") return v;
+if (Array.isArray(v)) {
+return v.map(((x, i) => {
+const y = rtFbLimpa(x, onde + "[" + i + "]", probs, false);
+return y === undefined ? null : y;
+}));
+}
+const o = {};
+Object.keys(v).forEach((k => {
+let k2 = k;
+if (!RT_FB_ESPECIAIS[k]) {
+k2 = topo ? k.replace(/[.#$\[\]]/g, "_") : k.replace(/[.#$\/\[\]]/g, "_");
+if (k2 === "") k2 = "_";
+if (k2 !== k) probs.push(onde + ' (chave "' + k + '")');
+}
+const y = rtFbLimpa(v[k], onde + "." + k2, probs, false);
+if (y !== undefined) o[k2] = y;
+}));
+return o;
+}
+function rtFbPrepara(path, val, ehUpdate) {
+if (val === undefined || val === null || typeof val !== "object") return val;
+const probs = [];
+let out = val;
+try {
+out = rtFbLimpa(val, path || "/", probs, !!ehUpdate);
+} catch (e) {
+return val;
+}
+if (probs.length) console.warn("Firebase: dados corrigidos antes de gravar em " + path + ":", probs.slice(0, 12));
+return out;
+}
+let RT_FB_AVISO_T = 0;
+function rtFbFalhou(path, err) {
+try {
+if (currentRole !== "mestre" || !/liveBoard\/tokens/.test(path || "")) return;
+if (Date.now() - RT_FB_AVISO_T < 8e3) return;
+RT_FB_AVISO_T = Date.now();
+rtDropAviso("⚠️ O TABULEIRO NÃO FOI SALVO NO SERVIDOR (" + (err && (err.code || err.message) || "ERRO") + "). OS JOGADORES NÃO VÃO VER AS MUDANÇAS.");
+} catch (e) {}
+}
+let rtFbEmbrulhado = false;
+setInterval((() => {
+if (rtFbEmbrulhado) return;
+try {
+if (typeof fbDb === "undefined" || !fbDb || typeof fbDb.ref !== "function") return;
+const ref0 = fbDb.ref("mesa40k");
+const P = ref0 && Object.getPrototypeOf(ref0);
+rtFbEmbrulhado = true;
+if (!P || P === Object.prototype || typeof P.set !== "function" || P.__rtLimpo) return;
+P.__rtLimpo = true;
+const caminho = ref => {
+try {
+return ref.toString().replace(/^https?:\/\/[^/]+/, "");
+} catch (e) {
+return "";
+}
+};
+const set0 = P.set, upd0 = P.update;
+P.set = function(v) {
+const path = caminho(this);
+const args = [ ...arguments ];
+args[0] = rtFbPrepara(path, v, false);
+let pr;
+try {
+pr = set0.apply(this, args);
+} catch (err) {
+rtFbFalhou(path, err);
+throw err;
+}
+if (pr && typeof pr.catch === "function") pr.catch((err => rtFbFalhou(path, err)));
+return pr;
+};
+P.update = function(v) {
+const path = caminho(this);
+const args = [ ...arguments ];
+args[0] = rtFbPrepara(path, v, true);
+let pr;
+try {
+pr = upd0.apply(this, args);
+} catch (err) {
+rtFbFalhou(path, err);
+throw err;
+}
+if (pr && typeof pr.catch === "function") pr.catch((err => rtFbFalhou(path, err)));
+return pr;
+};
+} catch (e) {
+console.error("rede de segurança do Firebase", e);
+}
+}), 1e3);
 rtInit();
 recalc();
 })();
