@@ -65692,7 +65692,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "2.3";
+const RT_VERSAO_APP = "2.4";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -66979,6 +66979,7 @@ tau: "T'au",
 tiranideos: "Tyranids",
 drukhari: "Drukhari",
 caos: "Chaos Wastes",
+fim: "O FIM",
 "caos:khorne": "Chaos Khorne",
 "caos:slaanesh": "Chaos Slaanesh",
 "caos:tzeentch": "Chaos Tzeentch"
@@ -67034,6 +67035,11 @@ RT_MUS.lado = "j";
 RT_MUS.desde = agora;
 }
 }
+if (m.v && (pct <= .2 || RT_MUS.fim && pct <= .25)) {
+RT_MUS.fim = true;
+return "fim";
+}
+RT_MUS.fim = false;
 if (RT_MUS.lado === "j" || !m.v) return "imperio";
 return rtMusFaccao();
 }
