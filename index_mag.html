@@ -5566,6 +5566,48 @@ html.rt-arrastando, html.rt-arrastando *{ cursor:grabbing !important; user-selec
 .board-menu.rt-mm-cartoes .board-menu-tab .rt-mm-bds{ color:#c9b28a; }
 .board-menu.rt-mm-cartoes .board-menu-tab.rt-end-tab{ border-color:rgba(160,40,30,.6) !important; color:#ff9a8a !important; }
 .board-menu.rt-mm-cartoes .board-menu-tab:disabled{ opacity:.5; }
+
+.corner-hero-wrap, .corner-hero, .corner-hero-eye-glow{ display:none !important; }
+
+
+.rt-pend-caixa{ position:fixed; z-index:9000; width:250px; max-height:min(62vh, 520px); display:flex; flex-direction:column; background:linear-gradient(#1f150d, #120c08); border:1px solid #c9a24a; border-left:4px solid #b3261e; border-radius:10px; box-shadow:0 8px 26px rgba(0,0,0,.65), 0 0 18px rgba(179,38,30,.25); color:#ecd9b4; animation:rtPendEntra .35s ease-out; }
+.rt-pend-caixa[hidden]{ display:none !important; }
+@keyframes rtPendEntra{ from{ opacity:0; transform:translateX(12px); } to{ opacity:1; transform:none; } }
+.rt-pend-topo{ display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid rgba(201,162,74,.3); }
+.rt-pend-topo b{ font:900 11.5px Cinzel, Georgia, serif; letter-spacing:.12em; color:#ffcf7a; }
+.rt-pend-topo b span{ display:inline-block; min-width:18px; margin-left:4px; padding:1px 6px; border-radius:9px; background:#b3261e; color:#fff; font:800 10px Roboto, Arial, sans-serif; text-align:center; }
+.rt-pend-min{ background:none; border:1px solid rgba(201,162,74,.4); color:#e0b656; border-radius:5px; width:22px; height:20px; line-height:1; cursor:pointer; }
+.rt-pend-corpo{ overflow:auto; padding:6px 8px 9px; display:flex; flex-direction:column; gap:3px; }
+.rt-pend-caixa.min .rt-pend-corpo{ display:none; }
+.rt-pend-grupo{ font:800 9px Roboto, Arial, sans-serif; letter-spacing:.12em; color:#a89170; margin:6px 2px 2px; }
+.rt-pend-item{ display:flex; justify-content:space-between; align-items:center; gap:6px; text-align:left; background:rgba(40,27,16,.9); border:1px solid rgba(201,162,74,.22); border-radius:6px; color:#ecd9b4; font:600 11px Roboto, Arial, sans-serif; padding:6px 8px; cursor:pointer; }
+.rt-pend-item i{ font-style:normal; color:#e0b656; }
+.rt-pend-item:hover{ border-color:#e0b656; background:rgba(70,46,20,.95); color:#fff3cf; }
+.rt-pend-pisca{ animation:rtPendPisca 1.4s ease-out; }
+@keyframes rtPendPisca{ 0%, 40%{ box-shadow:0 0 0 3px #ffd36b, 0 0 18px rgba(255,200,80,.7); } 100%{ box-shadow:none; } }
+
+
+.board-save-control.rt-ts #boardNameInput{ width:100%; box-sizing:border-box; }
+.board-save-control.rt-ts .board-save-fields{ display:flex; flex-direction:column; align-items:stretch; gap:6px; }
+.rt-ts-botoes{ display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.rt-ts-botoes .mini-btn{ padding:7px 8px; font-weight:800; letter-spacing:.06em; }
+.rt-tab-salvos .rt-pick-card{ width:min(760px, 96vw); }
+.rt-tab-salvos-corpo{ flex:1; overflow:auto; padding:10px 12px; min-height:200px; }
+.rt-tab-salvos-corpo .master-list{ display:block !important; border:0; background:none; padding:0; margin:0; max-height:none; }
+.rt-tab-salvos-corpo .board-load-list-header{ display:none; }
+.rt-tab-salvos-corpo .board-load-list-cards{ display:grid !important; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:8px; }
+.rt-tab-salvos-corpo .board-load-list-cards.collapsed{ display:grid !important; }
+.rt-tab-salvos-corpo .master-card{ display:flex; flex-direction:column; gap:8px; background:rgba(34,24,16,.92); border:1px solid rgba(201,162,74,.3); border-radius:8px; padding:10px; }
+.rt-tab-salvos-corpo .master-card[hidden]{ display:none; }
+.rt-tab-salvos-corpo .master-card:hover{ border-color:#e0b656; }
+.rt-tab-salvos-corpo .mc-name{ font:800 12.5px Cinzel, Georgia, serif; color:#ffe6b0; letter-spacing:.04em; }
+.rt-tab-salvos-corpo .mc-meta{ font:600 10px Roboto, Arial, sans-serif; color:#a89170; }
+.rt-tab-salvos-corpo .mc-actions{ display:flex; gap:6px; }
+.rt-tab-salvos-corpo .mc-actions button{ flex:1; }
+.rt-tab-salvos-corpo .master-empty{ color:#cdb994; font:600 12px Roboto, Arial, sans-serif; padding:14px; text-align:center; }
+.rt-tab-salvos-corpo .master-card{ align-items:stretch !important; text-align:left; }
+.rt-tab-salvos-corpo .mc-actions{ flex-direction:row !important; justify-content:stretch; }
+.rt-tab-salvos-corpo .mc-actions button{ padding:6px 4px; }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -65648,7 +65690,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "2.1";
+const RT_VERSAO_APP = "2.2";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -67102,6 +67144,222 @@ rtMusToca(alvo);
 if (RT_MUS.el && !RT_MUS.el.__saindo && !RT_MUS.fades.has(RT_MUS.el) && Math.abs(RT_MUS.el.volume - rtMusVol()) > .01) RT_MUS.el.volume = rtMusVol();
 } catch (e) {}
 }), 1e3);
+function rtPendLista(st, L) {
+const out = [];
+const og = st.og ? RT_OG_BY[st.og] : null;
+const c = (txt, sel) => out.push({
+txt: txt,
+aba: "criacao",
+sel: sel
+});
+if (!st.hw) c("Mundo natal", "#rtHw");
+if (!st.og) c("Origem", "#rtOg");
+if (og && og.sub && !st.sub) c("Sub-origem (" + og.pt + ")", "#rtSub");
+if (og && og.psy && !st.psy) c("Disciplina psíquica", "#rtPsy");
+if (st.psy === "navigator" && !st.navPath) c("Caminho do Navegador", "#rtNavPath");
+if (og && og.tri && !st.tri) c("Momento de Triunfo", "#rtTri");
+if (og && og.dark && !st.dark) c("Hora mais Sombria", "#rtDark");
+if (!st.a1) c("Arquétipo inicial", "#rtA1");
+const usados = RT_CH.reduce(((s, k) => s + (parseInt((st.dist || {})[k], 10) || 0)), 0);
+if (usados < 6) c("Distribuição de características (" + (6 - usados) + " restante" + (6 - usados > 1 ? "s" : "") + ")", "#rtDistBadge");
+for (let l = 1; l <= L; l++) {
+const slots = rtSlotsForLevel(st, l);
+if (slots === null) {
+const g = rtTierOf(l);
+if (g > 1 && !out.some((x => x.grau === g))) out.push({
+txt: "Nível " + l + ": arquétipo do Grau " + (g === 2 ? "II" : "III"),
+aba: "progressao",
+sel: "#rtA2",
+lv: l,
+grau: g
+});
+continue;
+}
+slots.forEach(((sl, i) => {
+if (sl.startsWith("auto:") || sl === "ult" || sl === "ap") return;
+if (!(st.lv[l] || [])[i]) out.push({
+txt: "Nível " + l + ": " + (RT_SLOT_LABEL[sl] || sl),
+aba: "progressao",
+sel: '.rt-slot-sel[data-rt-lv="' + l + '"][data-rt-i="' + i + '"]',
+lv: l
+});
+}));
+}
+return out;
+}
+function rtPendIr(it) {
+try {
+rtSetTab(it.aba);
+setTimeout((() => {
+let el = it.sel ? document.querySelector("#rtSheet " + it.sel) || document.querySelector(it.sel) : null;
+if (!el && it.lv) el = document.querySelector("#rtSheet .rt-prog-lv .rt-prog-n") && [ ...document.querySelectorAll("#rtSheet .rt-prog-lv") ].find((x => (x.querySelector(".rt-prog-n") || {}).textContent == it.lv));
+if (!el) return;
+const alvo = el.closest("label, .rt-panel, .rt-prog-lv") || el;
+alvo.scrollIntoView({
+block: "center",
+behavior: "smooth"
+});
+alvo.classList.remove("rt-pend-pisca");
+void alvo.offsetWidth;
+alvo.classList.add("rt-pend-pisca");
+if (el.tagName === "SELECT" && !el.disabled) setTimeout((() => rtPickOpen(el)), 450);
+}), 80);
+} catch (e) {
+console.error("pendências", e);
+}
+}
+let RT_PEND_SIG = "";
+function rtPendCaixa() {
+let box = document.getElementById("rtPendCaixa");
+const card = document.getElementById("card");
+let lista = [];
+try {
+const ok = rtReady && card && card.offsetParent && !card.classList.contains("flipped") && (typeof rtCanEdit !== "function" || rtCanEdit()) && !card.classList.contains("ficha-gate-hidden");
+if (ok) {
+const comp = rtLastComputed || rtCompute(rtState, rtCurrentLevel);
+lista = rtPendLista(rtState, comp.L || rtCurrentLevel || 1);
+}
+} catch (e) {
+lista = [];
+}
+if (!lista.length) {
+if (box) box.hidden = true;
+return;
+}
+if (!box) {
+box = document.createElement("div");
+box.id = "rtPendCaixa";
+box.className = "rt-pend-caixa";
+document.body.appendChild(box);
+box.addEventListener("click", (e => {
+if (e.target.closest("[data-pend-min]")) {
+box.classList.toggle("min");
+return;
+}
+const b = e.target.closest("[data-pend-i]");
+if (!b) return;
+const it = (box.__lista || [])[+b.dataset.pendI];
+if (it) rtPendIr(it);
+}));
+}
+box.__lista = lista;
+const sig = lista.map((x => x.txt)).join("|");
+if (sig !== RT_PEND_SIG || !box.innerHTML) {
+RT_PEND_SIG = sig;
+const cria = lista.filter((x => x.aba === "criacao")), prog = lista.filter((x => x.aba !== "criacao"));
+const linha = it => '<button type="button" class="rt-pend-item" data-pend-i="' + lista.indexOf(it) + '">' + rtEsc(it.txt) + "<i>▸</i></button>";
+box.innerHTML = '<div class="rt-pend-topo"><b>⚠️ FALTA ESCOLHER <span>' + lista.length + '</span></b><button type="button" class="rt-pend-min" data-pend-min title="Minimizar">–</button></div>' + '<div class="rt-pend-corpo">' + (cria.length ? '<div class="rt-pend-grupo">CRIAÇÃO</div>' + cria.map(linha).join("") : "") + (prog.length ? '<div class="rt-pend-grupo">PROGRESSÃO · HABILIDADES E TALENTOS</div>' + prog.map(linha).join("") : "") + "</div>";
+}
+box.hidden = false;
+const r = card.getBoundingClientRect();
+const w = 250;
+if (r.right + 16 + w <= window.innerWidth - 8) {
+box.classList.remove("canto");
+box.style.left = Math.round(r.right + 16) + "px";
+box.style.top = Math.round(Math.max(90, Math.min(r.top, window.innerHeight - 140))) + "px";
+box.style.right = "";
+box.style.bottom = "";
+} else {
+box.classList.add("canto");
+box.style.left = "";
+box.style.top = "";
+box.style.right = "12px";
+box.style.bottom = "12px";
+}
+}
+setInterval((() => {
+try {
+rtPendCaixa();
+} catch (e) {}
+}), 600);
+window.addEventListener("scroll", (() => {
+try {
+rtPendCaixa();
+} catch (e) {}
+}), {
+passive: true
+});
+function rtTabJanela() {
+let m = document.getElementById("rtTabSalvos");
+if (m) return m;
+m = document.createElement("div");
+m.id = "rtTabSalvos";
+m.className = "rt-pick rt-tab-salvos";
+m.hidden = true;
+m.innerHTML = '<div class="rt-pick-card" role="dialog" aria-modal="true"><div class="rt-pick-head"><b>📂 TABULEIROS SALVOS</b><button type="button" class="rt-btn" data-ts-x title="Fechar">✕</button></div>' + '<input type="search" class="rt-pick-busca" placeholder="Procurar tabuleiro…" data-ts-busca>' + '<div class="rt-tab-salvos-corpo" data-ts-corpo></div>' + '<div class="rt-pick-pe"><span class="rt-hint">Carregar substitui as peças e marcações do tabuleiro atual.</span><button type="button" class="rt-btn" data-ts-x>Fechar</button></div></div>';
+document.body.appendChild(m);
+m.addEventListener("click", (e => {
+if (e.target === m || e.target.closest("[data-ts-x]")) rtTabFecha();
+}));
+m.addEventListener("input", (e => {
+if (!e.target.matches("[data-ts-busca]")) return;
+const q = e.target.value.trim().toLowerCase();
+m.querySelectorAll(".master-card").forEach((c => {
+const n = (c.querySelector(".mc-name") || {}).textContent || "";
+c.hidden = !!q && !n.toLowerCase().includes(q);
+}));
+}));
+document.addEventListener("keydown", (e => {
+if (e.key === "Escape" && !m.hidden) rtTabFecha();
+}));
+return m;
+}
+function rtTabFecha() {
+const m = document.getElementById("rtTabSalvos");
+if (!m) return;
+m.hidden = true;
+const lista = document.getElementById("boardLoadList"), casa = document.querySelector(".board-save-control");
+if (lista && casa && lista.parentElement !== casa) {
+lista.hidden = true;
+casa.appendChild(lista);
+}
+}
+function rtTabMonta() {
+const ctl = document.querySelector(".board-save-control");
+if (!ctl || ctl.dataset.rtTs) return;
+const btn = document.getElementById("boardLoadListBtn"), inp = document.getElementById("boardNameInput"), salvar = document.getElementById("boardSaveBtn");
+if (!btn || !inp || !salvar) return;
+ctl.dataset.rtTs = "1";
+ctl.classList.add("rt-ts");
+const linha = document.createElement("div");
+linha.className = "rt-ts-botoes";
+inp.after(linha);
+linha.appendChild(salvar);
+linha.appendChild(btn);
+btn.addEventListener("click", (e => {
+e.preventDefault();
+e.stopImmediatePropagation();
+const m = rtTabJanela();
+const corpo = m.querySelector("[data-ts-corpo]");
+const lista = document.getElementById("boardLoadList");
+if (lista) {
+corpo.appendChild(lista);
+lista.hidden = true;
+}
+const b = m.querySelector("[data-ts-busca]");
+if (b) b.value = "";
+m.hidden = false;
+try {
+loadBoardList();
+} catch (err) {
+console.error(err);
+}
+}), true);
+const lista = document.getElementById("boardLoadList");
+if (lista) new MutationObserver((() => {
+const m = document.getElementById("rtTabSalvos");
+if (m && !m.hidden && lista.hidden && lista.parentElement && lista.parentElement.matches("[data-ts-corpo]") && lista.__aberta) rtTabFecha();
+lista.__aberta = !lista.hidden;
+})).observe(lista, {
+attributes: true,
+attributeFilter: [ "hidden" ]
+});
+}
+setInterval((() => {
+try {
+rtTabMonta();
+} catch (e) {}
+}), 700);
 rtInit();
 recalc();
 })();
