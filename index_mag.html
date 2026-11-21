@@ -5608,6 +5608,8 @@ html.rt-arrastando, html.rt-arrastando *{ cursor:grabbing !important; user-selec
 .rt-tab-salvos-corpo .master-card{ align-items:stretch !important; text-align:left; }
 .rt-tab-salvos-corpo .mc-actions{ flex-direction:row !important; justify-content:stretch; }
 .rt-tab-salvos-corpo .mc-actions button{ padding:6px 4px; }
+
+.rt-pick[hidden], #rtTabSalvos[hidden], #boardLoadList[hidden], .master-list[hidden]{ display:none !important; }
 </style>
 <script>
 /* Timers num Web Worker: o navegador segura setTimeout/setInterval de abas em segundo plano (até 1 vez
@@ -65690,7 +65692,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "2.2";
+const RT_VERSAO_APP = "2.3";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
