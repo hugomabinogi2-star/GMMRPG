@@ -65698,7 +65698,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "4.0";
+const RT_VERSAO_APP = "4.2";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -71174,8 +71174,8 @@ function rtAvIaPinta(k, cab, pele) {
 }
 // desenha uma parte: coordenadas do recorte original (bb) → tela
 function rtAvIaPoe(cx, src, bb, sc, ox, oy) { cx.drawImage(src, ox + bb[0] * sc, oy + bb[1] * sc, (bb[2] - bb[0]) * sc, (bb[3] - bb[1]) * sc); }
-function rtAvIaItem(cx, k, conf, sc, hx, hy) {
-  const src = rtAvIaPinta(k); if (!src) return;
+function rtAvIaItem(cx, k, conf, sc, hx, hy, cor) {
+  const src = (cor && typeof rtAvIaAcento === "function" ? rtAvIaAcento(k, cor) : null) || rtAvIaPinta(k); if (!src) return;
   const bb = RT_AVIA.meta[k].bb; const bw = bb[2] - bb[0], bh = bb[3] - bb[1];
   const W = conf[2] * sc, H = W * bh / bw;
   cx.drawImage(src, hx + conf[0] * sc - conf[3] * W, hy + conf[1] * sc - conf[4] * H, W, H);
@@ -71190,7 +71190,8 @@ function rtAvIaGeo(K) {
 function rtAvIaCompor(rc) {
   const av = rc.av; const K = rtAvIaChaves(rc);
   const cab = RT_AV.cabCor[av.cabCor][0], pele = RT_AV.pele[av.pele][0];
-  const ck = "c|" + JSON.stringify(K) + "|" + cab + "|" + pele;
+  const acc = typeof rtAvAcCor === "function" ? rtAvAcCor(av) : null;
+  const ck = "c|" + JSON.stringify(K) + "|" + cab + "|" + pele + "|" + (acc || "");
   if (RT_AVIA_CACHE.has(ck)) return RT_AVIA_CACHE.get(ck);
   const corpo = rtAvIaPinta(K.corpo, null, pele), cabeca = rtAvIaPinta(K.cab, cab, pele);
   if (!corpo || !cabeca) return null;
@@ -71198,8 +71199,8 @@ function rtAvIaCompor(rc) {
   const cv = document.createElement("canvas"); cv.width = cv.height = G.N; const cx = cv.getContext("2d"); cx.imageSmoothingQuality = "high";
   rtAvIaPoe(cx, corpo, G.mb.bb, G.k, G.ox, G.oy);
   rtAvIaPoe(cx, cabeca, RT_AVIA.meta[K.cab].bb, G.s, G.hx, G.hy);
-  if (K.ac) rtAvIaItem(cx, K.ac, P.ac[K.ac.slice(3)], G.s, G.hx, G.hy);
-  if (K.og) rtAvIaItem(cx, K.og, P.og[K.og.slice(7)], G.s, G.hx, G.hy);
+  if (K.ac) rtAvIaItem(cx, K.ac, P.ac[K.ac.slice(3)], G.s, G.hx, G.hy, acc);
+  if (K.og) rtAvIaItem(cx, K.og, P.og[K.og.slice(7)], G.s, G.hx, G.hy, acc);
   const url = cv.toDataURL("image/png");
   RT_AVIA_CACHE.set(ck, url);
   return url;
@@ -71282,6 +71283,266 @@ try {
   RT_NOVIDADES.unshift(
     ["🧑 Avatar novo", "O avatar do personagem agora usa a arte gerada: corpo (masculino, feminino e aumentados) que troca com a armadura vestida, cabeça com o cabelo e o rosto escolhidos, chapéu ou elmo da origem e o acessório do rosto. A cor do cabelo e o tom de pele são pintados pelo jogo. Vale para a ficha e para a cena de combate."]
   );
+} catch (e) {}
+
+// =====================================================================================
+// VERSÃO 4.1
+// · CABEÇA ganha um segundo seletor: acessório de origem (os 8 chapéus/elmos) ou nenhum.
+//   A origem da ficha não troca mais esse acessório sozinha.
+// · Cena de combate mais dramática (inspiração: Darkest Dungeon): a câmera aproxima forte
+//   e continua chegando devagar, os dois lados se aproximam, o ator avança, faixas pretas
+//   crescem, o fundo muda de cor conforme a ação e o crítico dá um soco de zoom em vermelho.
+// =====================================================================================
+
+// ---------- acessório de origem ----------
+const RT_AV_OG = ["astra_militarum_commander", "commissar", "crime_lord", "ministorum_priest", "navy_officer", "noble", "sanctioned_psyker", "arbitrator"];
+RT_AV.chapeu = [["nada", "Sem acessório de origem"]].concat(RT_AV_OG.map(k => [k, ((typeof RT_OG_BY !== "undefined" && RT_OG_BY[k]) || {}).pt || k]));
+RT_AV_K.push("chapeu");
+{
+  const f = rtAvDe;
+  rtAvDe = function () {
+    const o = f.apply(this, arguments);
+    if (!Number.isFinite(o.chapeu)) o.chapeu = 0;
+    return o;
+  };
+}
+// arte gerada: o chapéu vem da escolha, não da origem
+rtAvIaChaves = function (rc, semArmadura) {
+  const av = rc.av;
+  const ac = RT_AV.caraAc[av.caraAc] && RT_AV.caraAc[av.caraAc][0];
+  const ch = RT_AV.chapeu[av.chapeu || 0] && RT_AV.chapeu[av.chapeu || 0][0];
+  return {
+    corpo: "corpo_" + av.corpo + "_" + (semArmadura ? 0 : rtAvIaArmCol(rc)),
+    cab: "cab_" + av.cab + "_" + av.cara,
+    ac: ac && ac !== "nada" && RT_AVIA && RT_AVIA.img["ac_" + ac] ? "ac_" + ac : null,
+    og: ch && ch !== "nada" && RT_AVIA && RT_AVIA.img["chapeu_" + ch] ? "chapeu_" + ch : null,
+  };
+};
+// boneco de pixel (sem a arte gerada): o mesmo vale
+{
+  const CAB = ["chapeu", "chapeuCor", "chapeuMarca", "capuzPsi", "visor", "crista"];
+  const f = rtAvAplica;
+  rtAvAplica = function (d, av, rc) {
+    f.apply(this, arguments);
+    try {
+      const og = rc && RT_PX_OG[rc.og];
+      if (og) CAB.forEach(k => { if (k in og && d[k] === og[k]) delete d[k]; });
+      const ch = RT_AV.chapeu[av.chapeu || 0][0]; const x = RT_PX_OG[ch];
+      if (x) CAB.forEach(k => { if (k in x) d[k] = x[k]; });
+      if (ch === "sanctioned_psyker") d.capuzPsi = true;
+      if (ch === "arbitrator") { d.chapeu = "elmo"; d.chapeuCor = "#1a1a1e"; d.visor = "#e9c050"; }
+      if (ch === "noble") d.chapeu = "coroa";
+      if (ch === "ministorum_priest") { d.chapeu = "capuz"; d.chapeuCor = "#8e1b12"; }
+    } catch (e) {}
+    return d;
+  };
+}
+// miniaturas: a linha CABEÇA mostra rosto + acessório + chapéu; a do CABELO só a cabeça
+{
+  const f = rtAvMiniatura;
+  rtAvMiniatura = function (av, parte) {
+    try {
+      if (parte === "corpo" || !RT_AVIA || !RT_AVIA_PRONTO) return f.call(this, av, parte === "cara" ? "cab" : parte);
+      const cab = RT_AV.cabCor[av.cabCor][0], pele = RT_AV.pele[av.pele][0];
+      const K = rtAvIaChaves({ av }, true);
+      const src = rtAvIaPinta(K.cab, cab, pele); if (!src) return f.call(this, av, "cab");
+      const o = document.createElement("canvas"); o.width = o.height = 96; const cx = o.getContext("2d"); cx.imageSmoothingQuality = "high";
+      const chapeu = parte === "cara" && K.og;
+      const sc = (chapeu ? 78 : 86) / 470; const ox = 48 - 235 * sc, oy = 93 - 450 * sc;
+      rtAvIaPoe(cx, src, RT_AVIA.meta[K.cab].bb, sc, ox, oy);
+      if (parte === "cara" && K.ac) rtAvIaItem(cx, K.ac, RT_AVIA.p.ac[K.ac.slice(3)], sc, ox, oy, rtAvAcCor(av));
+      if (chapeu) rtAvIaItem(cx, K.og, RT_AVIA.p.og[K.og.slice(7)], sc, ox, oy, rtAvAcCor(av));
+      return o.toDataURL("image/png");
+    } catch (e) { return f.call(this, av, "cab"); }
+  };
+}
+function rtAvChapeuMini(av) {
+  const ch = RT_AV.chapeu[av.chapeu || 0][0];
+  if (ch === "nada" || !RT_AVIA || !RT_AVIA_PRONTO || !RT_AVIA.img["chapeu_" + ch]) return '<i class="rt-av-cor vazio"></i>';
+  const c = rtAvAcCor(av) && rtAvIaAcento("chapeu_" + ch, rtAvAcCor(av));
+  return '<img class="rt-av-chapeu" alt="" src="' + (c ? c.toDataURL("image/png") : RT_AVIA.img["chapeu_" + ch]) + '">';
+}
+rtAvEditorHtml = function () {
+  const av = rtAvDe(rtState); const pode = rtCanEdit();
+  const seta = (k, d, t) => '<button type="button" class="rt-av-seta" data-av-k="' + k + '" data-av-d="' + d + '" title="' + t + '"' + (pode ? "" : " disabled") + ">" + (d < 0 ? "◀" : "▶") + "</button>";
+  return RT_AV_LINHAS.map(L => {
+    const cor = RT_AV[L.cor][av[L.cor]];
+    const meio = /^#/.test(cor[0]) ? '<i class="rt-av-cor" style="background:' + cor[0] + '"></i>' : '<i class="rt-av-cor vazio"></i>';
+    const parte = L.tipo === "cara" ? "cara" : L.parte === "corpo" ? "corpo" : "cab";
+    const extra = L.tipo === "cara" ? '<div class="rt-av-nav">' + seta("chapeu", -1, "Acessório de origem") + rtAvChapeuMini(av) + seta("chapeu", 1, "Acessório de origem") + "</div>"
+      + '<div class="rt-av-nav">' + seta("acCor", -1, "Cor dos detalhes dos acessórios") + rtAvAcSwatch(av) + seta("acCor", 1, "Cor dos detalhes dos acessórios") + "</div>" : "";
+    return '<div class="rt-av-linha"><b class="rt-av-tit">' + L.t + "</b>"
+      + '<div class="rt-av-op"><div class="rt-av-quadro"><img alt="" src="' + rtAvMiniatura(av, parte) + '"></div>'
+      + '<div class="rt-av-nav">' + seta(L.tipo, -1, "Anterior") + seta(L.tipo, 1, "Próximo") + "</div></div>"
+      + '<div class="rt-av-op2"><div class="rt-av-nav">' + seta(L.cor, -1, L.corNm) + meio + seta(L.cor, 1, L.corNm) + "</div>" + extra + "</div></div>";
+  }).join("");
+};
+
+// =====================================================================================
+// CÂMERA DA CENA (Darkest Dungeon)
+// =====================================================================================
+const RT_CAM_TINTA = { golpe: "rgba(110,14,10,.34)", erro: "rgba(30,52,86,.40)", crit: "rgba(210,12,8,.62)", psy: "rgba(120,40,210,.40)", buff: "rgba(230,170,50,.32)", cura: "rgba(50,200,120,.30)", portal: "rgba(80,110,255,.34)" };
+function rtCamPrepara(C) {
+  if (C.__camPronta) return; C.__camPronta = true;
+  const palco = C.caixa.querySelector(".rt-cena-palco"); if (!palco) return;
+  const t = document.createElement("div"); t.className = "rt-cena-tinta"; palco.insertBefore(t, palco.firstChild);
+  const b = document.createElement("div"); b.className = "rt-cena-critbanner"; b.textContent = "CRÍTICO!"; C.caixa.appendChild(b);
+  C.__cam = [];
+}
+function rtCamPara(C) { (C.__cam || []).forEach(a => { try { a.cancel(); } catch (e) {} }); C.__cam = []; }
+function rtCamAnima(C, el, qs, ms, opt) {
+  if (!el || !el.animate) return null;
+  const a = el.animate(qs, Object.assign({ duration: rtCenaMs(ms), fill: "forwards", easing: "cubic-bezier(.2,.8,.2,1)" }, opt || {}));
+  C.__cam.push(a); return a;
+}
+const rtCamAgora = el => { try { const t = getComputedStyle(el).transform; return t && t !== "none" ? t : "none"; } catch (e) { return "none"; } };
+function rtCamTinta(C, cor, forte) {
+  const t = C.caixa.querySelector(".rt-cena-tinta"); if (!t) return;
+  t.style.setProperty("--tinta", cor);
+  rtCamAnima(C, t, [{ opacity: getComputedStyle(t).opacity }, { opacity: forte ? 1 : .85 }], 380);
+}
+// aproxima: zoom rápido e depois continua chegando devagar; os lados se juntam; faixas pretas crescem
+function rtCamEntra(C, z, junta, cor) {
+  if (!C || rtCenaModo() === "off") return;
+  rtCamPrepara(C);
+  const palco = C.caixa.querySelector(".rt-cena-palco"); if (!palco) return;
+  const esq = palco.querySelector(".rt-cena-lado.esq"), dir = palco.querySelector(".rt-cena-lado.dir");
+  const so = C.caixa.classList.contains("so-um");
+  const agora = rtCamAgora(palco); rtCamPara(C);
+  rtCamAnima(C, palco, [{ transform: agora }, { transform: "scale(" + z + ")", offset: .22 }, { transform: "scale(" + (z + .05) + ")" }], 2600, { easing: "cubic-bezier(.25,.9,.25,1)" });
+  if (!so) {
+    rtCamAnima(C, esq, [{ transform: "translateX(0)" }, { transform: "translateX(" + junta + "%)" }], 600);
+    rtCamAnima(C, dir, [{ transform: "translateX(0)" }, { transform: "translateX(-" + junta + "%)" }], 600);
+  }
+  C.caixa.querySelectorAll(".rt-cena-tarja").forEach(t => rtCamAnima(C, t, [{ height: "16px" }, { height: "34px" }], 500));
+  if (cor) rtCamTinta(C, cor);
+  C.caixa.classList.add("rt-cam-on");
+}
+// soco do crítico: zoom ainda maior, fundo vermelho, clarão e a faixa CRÍTICO!
+function rtCamCritico(C) {
+  if (!C || C.__critFeito) return; C.__critFeito = true;
+  rtCamPrepara(C);
+  const palco = C.caixa.querySelector(".rt-cena-palco"); if (!palco) return;
+  const z = parseFloat((rtCamAgora(palco).match(/matrix\(([^,]+)/) || [])[1]) || 1.3;
+  rtCamAnima(C, palco, [{ transform: rtCamAgora(palco) }, { transform: "scale(" + (z + .17) + ") rotate(-1.2deg)", offset: .18 }, { transform: "scale(" + (z + .12) + ") rotate(0deg)" }], 1400, { easing: "cubic-bezier(.15,.9,.3,1)" });
+  rtCamTinta(C, RT_CAM_TINTA.crit, true);
+  if (!C.caixa.classList.contains("so-um")) {
+    const esq = palco.querySelector(".rt-cena-lado.esq"), dir = palco.querySelector(".rt-cena-lado.dir");
+    [esq, dir].forEach((el, i) => { if (el) rtCamAnima(C, el, [{ transform: rtCamAgora(el) }, { transform: "translateX(" + (i ? "-" : "") + "36%)" }], 300); });
+  }
+  const b = C.caixa.querySelector(".rt-cena-critbanner"); if (b) { b.classList.remove("on"); void b.offsetWidth; b.classList.add("on"); }
+  C.caixa.classList.add("rt-cam-crit");
+}
+function rtCamSai(C) {
+  if (!C || !C.__camPronta) return;
+  const palco = C.caixa.querySelector(".rt-cena-palco");
+  const els = [palco, palco && palco.querySelector(".rt-cena-lado.esq"), palco && palco.querySelector(".rt-cena-lado.dir"), C.ator && C.ator.querySelector(".rt-fig-corpo")].filter(Boolean);
+  const agora = els.map(rtCamAgora);
+  const tarjas = [...C.caixa.querySelectorAll(".rt-cena-tarja")].map(t => getComputedStyle(t).height);
+  const t = C.caixa.querySelector(".rt-cena-tinta"); const op = t ? getComputedStyle(t).opacity : 0;
+  rtCamPara(C);
+  els.forEach((el, i) => rtCamAnima(C, el, [{ transform: agora[i] }, { transform: "none" }], 520, { easing: "cubic-bezier(.4,0,.2,1)" }));
+  C.caixa.querySelectorAll(".rt-cena-tarja").forEach((el, i) => rtCamAnima(C, el, [{ height: tarjas[i] }, { height: "16px" }], 480));
+  if (t) rtCamAnima(C, t, [{ opacity: op }, { opacity: 0 }], 520);
+  C.caixa.classList.remove("rt-cam-on", "rt-cam-crit"); C.__critFeito = false;
+}
+// o ator dá um passo à frente e cresce um pouco quando age
+function rtCamAtor(C) {
+  const c = C.ator && C.ator.querySelector(".rt-fig-corpo"); if (!c) return;
+  rtCamAnima(C, c, [{ transform: "translateX(0) scale(1)" }, { transform: "translateX(-14px) scale(1.07)" }], 520);
+}
+// observa o crítico marcado pela cena (classe "crit" na hora do impacto)
+function rtCamVigiaCrit(C) {
+  try { const mo = new MutationObserver(() => { if (C.el.classList.contains("crit")) rtCamCritico(C); }); mo.observe(C.el, { attributes: true, attributeFilter: ["class"] }); return mo; } catch (e) { return null; }
+}
+async function rtCamEnvolve(C, val, z, junta, cor, f, self, args) {
+  const vez = (C.__camVez || 0) + 1; C.__camVez = vez;
+  const t = setTimeout(() => { rtCamEntra(C, z, junta, cor); rtCamAtor(C); }, rtCenaMs(230));
+  const mo = rtCamVigiaCrit(C);
+  try { return await f.apply(self, args); }
+  finally {
+    clearTimeout(t); if (mo) mo.disconnect();
+    if (C.__camVez === vez) rtCamSai(C);
+  }
+}
+// a cena usava um zoom leve por classe; a câmera nova assume
+{
+  const f = rtCenaAtaque;
+  rtCenaAtaque = function (C, att, tgt, val) {
+    const varios = Object.keys(C.alvos).length > 1;
+    const cor = val && val.outcome && val.outcome !== "acerto" ? RT_CAM_TINTA.erro : val && val.psy ? RT_CAM_TINTA.psy : RT_CAM_TINTA.golpe;
+    return rtCamEnvolve(C, val, varios ? 1.16 : 1.34, varios ? 6 : 28, cor, f, this, arguments);
+  };
+}
+{
+  const f = rtCenaMulti;
+  rtCenaMulti = function (C, att, alvos, val) { return rtCamEnvolve(C, val, 1.14, 5, val && val.psy ? RT_CAM_TINTA.psy : RT_CAM_TINTA.golpe, f, this, arguments); };
+}
+{
+  const f = rtCenaEfeito;
+  rtCenaEfeito = function (C, att, tgt, val) {
+    if (val && val.spawn) return rtCamEnvolve(C, val, 1.16, 10, RT_CAM_TINTA.portal, f, this, arguments);
+    const cor = val && val.psy ? RT_CAM_TINTA.psy : val && /cura|kit|medic|regener|revigor/i.test((val.txt || "") + (val.vfx || "")) ? RT_CAM_TINTA.cura : RT_CAM_TINTA.buff;
+    const so = C.caixa.classList.contains("so-um");
+    return rtCamEnvolve(C, val, so ? 1.14 : 1.26, so ? 0 : 18, cor, f, this, arguments);
+  };
+}
+
+try {
+  RT_NOVIDADES.unshift(
+    ["🎬 Cena mais dramática", "Na ação, a câmera aproxima forte e continua chegando devagar, os dois lados se aproximam, o personagem avança, as faixas pretas crescem e o fundo muda de cor: vermelho no golpe, azul no erro, roxo no psíquico, dourado no bônus, verde na cura. No CRÍTICO, um soco de zoom com o fundo em vermelho vivo."],
+    ["🎩 Acessório de origem", "Na guia APARÊNCIA, a CABEÇA tem um segundo seletor para o acessório de origem (os 8 chapéus e elmos) ou nenhum. A origem escolhida na ficha não troca mais esse acessório."]
+  );
+} catch (e) {}
+
+// =====================================================================================
+// VERSÃO 4.2 — cor dos detalhes dos acessórios (chapéu/elmo da origem e acessório do rosto)
+// O jogo acha a cor de destaque de cada peça (o dourado do quepe, o vermelho do comissário,
+// o roxo dos cristais psíquicos, a lente...) e troca só ela, mantendo o sombreado.
+// =====================================================================================
+RT_AV.acCor = [["orig", "Original"], ["#d9a72b", "Ouro"], ["#c8ccd4", "Prata"], ["#9a6a3a", "Bronze"], ["#c01818", "Vermelho"], ["#2a5ad8", "Azul"], ["#2aa84a", "Verde"], ["#8a3ad8", "Roxo"], ["#e8702a", "Laranja"], ["#e9e6f0", "Branco"], ["#2a2a30", "Preto"]];
+RT_AV_K.push("acCor");
+{
+  const f = rtAvDe;
+  rtAvDe = function () { const o = f.apply(this, arguments); if (!Number.isFinite(o.acCor)) o.acCor = 0; return o; };
+}
+function rtAvAcCor(av) { const c = av && RT_AV.acCor[av.acCor || 0]; return c && c[0] !== "orig" ? c[0] : null; }
+function rtAvAcSwatch(av) {
+  const c = rtAvAcCor(av);
+  return c ? '<i class="rt-av-cor" style="background:' + c + '"></i>' : '<i class="rt-av-cor orig" title="Cor original"></i>';
+}
+// a cor de destaque de cada peça: o tom mais saturado que aparece nela
+const RT_AV_ACENTO = new Map();
+function rtAvIaAcentoDe(k) {
+  if (RT_AV_ACENTO.has(k)) return RT_AV_ACENTO.get(k);
+  const im = RT_AVIA_IMGS.get(k); if (!im || !im.naturalWidth) return null;
+  const cv = document.createElement("canvas"); cv.width = im.naturalWidth; cv.height = im.naturalHeight; const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+  const d = cx.getImageData(0, 0, cv.width, cv.height).data; const bins = new Array(12).fill(0);
+  for (let i = 0; i < d.length; i += 4) { if (!d[i + 3]) continue; const [h, s, l] = rtHslDe(d[i], d[i + 1], d[i + 2]); if (s > .38 && l > .14 && l < .88) bins[Math.floor(h / 30) % 12] += s * s; }
+  let b = 0; bins.forEach((v, i) => { if (v > bins[b]) b = i; });
+  const total = bins.reduce((a, v) => a + v, 0);
+  const r = total > 0 ? { h: b * 30 + 15 } : null;
+  RT_AV_ACENTO.set(k, r); return r;
+}
+function rtAvIaAcento(k, cor) {
+  const ck = "a|" + k + "|" + cor; if (RT_AVIA_CACHE.has(ck)) return RT_AVIA_CACHE.get(ck);
+  const ac = rtAvIaAcentoDe(k); const im = RT_AVIA_IMGS.get(k); if (!ac || !im || !im.naturalWidth) return null;
+  const cv = document.createElement("canvas"); cv.width = im.naturalWidth; cv.height = im.naturalHeight; const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+  const D = cx.getImageData(0, 0, cv.width, cv.height), d = D.data; const t = rtHexHsl(cor);
+  const dist = h => { const x = Math.abs(h - ac.h) % 360; return x > 180 ? 360 - x : x; };
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue;
+    const [h, s, l] = rtHslDe(d[i], d[i + 1], d[i + 2]);
+    if (s < .28 || dist(h) > 32) continue;
+    const nl = Math.max(0, Math.min(1, t[2] * (l / .5) * (t[2] > .8 ? .85 : 1) + (t[2] > .8 ? .1 : 0)));
+    const [r, g, b] = rtRgbDe(t[0], t[1] * Math.min(1, s / .6 + .2), nl);
+    d[i] = r; d[i + 1] = g; d[i + 2] = b;
+  }
+  cx.putImageData(D, 0, 0);
+  RT_AVIA_CACHE.set(ck, cv); return cv;
+}
+try {
+  RT_NOVIDADES.unshift(["🎨 Cor dos acessórios", "Na guia APARÊNCIA, a CABEÇA tem um terceiro seletor: a cor dos detalhes dos acessórios (ouro, prata, bronze, vermelho, azul, verde, roxo, laranja, branco, preto ou a original). Vale para o chapéu/elmo da origem e para o acessório do rosto."]);
 } catch (e) {}
 
 rtInit();
@@ -71633,6 +71894,28 @@ img.rt-spr{ image-rendering:pixelated; image-rendering:crisp-edges; display:bloc
 .rt-avatar-box .rt-boneco-palco .rt-spr-box{ position:relative; display:block; width:min(100%, 240px); aspect-ratio:1; animation:rtSprRespira 2.4s ease-in-out infinite; transform-origin:50% 100%; }
 .rt-avatar-box .rt-boneco-palco .rt-spr-box > img.rt-spr{ position:relative; z-index:1; width:100%; height:100%; animation:none; }
 .rt-avatar-box .rt-boneco-palco{ padding-bottom:8px; }
+
+/* ===== v4.1 — câmera dramática e acessório de origem ===== */
+.rt-cena-luta.zoom .rt-cena-palco{ transform:none; }
+.rt-cena-tinta{ position:absolute; inset:-30%; z-index:0; pointer-events:none; opacity:0; --tinta:rgba(110,14,10,.34);
+  background:radial-gradient(ellipse at 50% 58%, transparent 0%, transparent 18%, var(--tinta) 62%), linear-gradient(0deg, var(--tinta), transparent 60%); mix-blend-mode:normal; }
+.rt-cena-lado{ z-index:1; }
+.rt-cam-on .rt-cena-palco{ box-shadow:inset 0 0 80px 30px rgba(0,0,0,.75); }
+.rt-cam-crit .rt-cena-palco{ animation:rtCamCritFlash .5s ease-out; }
+@keyframes rtCamCritFlash{ 0%{ filter:brightness(2.2) saturate(1.6); } 100%{ filter:none; } }
+.rt-cena-critbanner{ position:absolute; left:50%; top:30%; z-index:6; transform:translate(-50%,-50%) scale(.4) skewX(-10deg); opacity:0; pointer-events:none;
+  font:900 46px/1 Cinzel, Georgia, serif; letter-spacing:.12em; color:#fff2d6; -webkit-text-stroke:2px #5a0000;
+  text-shadow:0 0 18px #ff2a1a, 0 0 40px rgba(255,40,20,.8), 3px 3px 0 #3a0000; }
+.rt-cena-critbanner.on{ animation:rtCritBanner 1.3s cubic-bezier(.2,1.4,.3,1) forwards; }
+@keyframes rtCritBanner{ 0%{ opacity:0; transform:translate(-50%,-50%) scale(2.4) skewX(-10deg); } 14%{ opacity:1; transform:translate(-50%,-50%) scale(1) skewX(-10deg); } 70%{ opacity:1; transform:translate(-50%,-50%) scale(1.06) skewX(-10deg); } 100%{ opacity:0; transform:translate(-50%,-62%) scale(1.1) skewX(-10deg); } }
+@media (prefers-reduced-motion: reduce){ .rt-cena-critbanner.on{ animation-duration:.01s; } }
+/* acessório de origem na guia */
+.rt-av-op2{ gap:10px; }
+.rt-av-chapeu{ flex:0 0 26px; width:26px; height:26px; object-fit:contain; image-rendering:pixelated; filter:drop-shadow(0 0 1px #000); }
+.rt-cena-luta .rt-cena-palco{ transform-origin:50% 66%; }
+.rt-cena-luta.so-um .rt-cena-palco{ transform-origin:50% 60%; }
+.rt-av-op2 .rt-av-nav > .rt-av-cor{ margin:0 5px; }
+.rt-av-cor.orig{ background:conic-gradient(#d9a72b, #c01818, #8a3ad8, #2a5ad8, #2aa84a, #d9a72b); }
 
 </style>
 </body>
