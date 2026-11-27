@@ -65702,7 +65702,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "4.3";
+const RT_VERSAO_APP = "4.4";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -68468,7 +68468,7 @@ async function rtCenaMulti(C, att, alvos, val) {
         const cx = pts.reduce((s, p) => s + p.x, 0) / pts.length, cy = pts.reduce((s, p) => s + p.y, 0) / pts.length;
         await Promise.race([rtVfxGranada(val.vfx, A, { x: cx, y: cy, s: pts[0].s * 1.4 }), rtCenaEspera(2000)]);
       } else {
-        await Promise.race([Promise.all(pts.map((P, i) => rtCenaEspera(i * 110).then(() => rtVfxStrike(val.vfx, A, P, figs[i].m.out || "acerto")))), rtCenaEspera(2200)]);
+        await Promise.race([Promise.all(pts.map((P, i) => rtCenaEspera(i * 110).then(() => val.psy ? rtVfxPsy(val.vfx, A, P) : rtVfxStrike(val.vfx, A, P, figs[i].m.out || "acerto")))), rtCenaEspera(2200)]);
       }
     } catch (e) {}
   } else { try { playCutSound(); } catch (e) {} }
@@ -71186,9 +71186,10 @@ function rtAvIaCompor(rc) {
   const av = rc.av; const K = rtAvIaChaves(rc);
   const cab = RT_AV.cabCor[av.cabCor][0], pele = RT_AV.pele[av.pele][0];
   const acc = typeof rtAvAcCor === "function" ? rtAvAcCor(av) : null;
-  const ck = "c|" + JSON.stringify(K) + "|" + cab + "|" + pele + "|" + (acc || "");
+  const ck = "c|" + JSON.stringify(K) + "|" + cab + "|" + pele + "|" + (acc || "") + "|" + (typeof rtAvArmCor === "function" ? rtAvArmCor(av) || "" : "");
   if (RT_AVIA_CACHE.has(ck)) return RT_AVIA_CACHE.get(ck);
-  const corpo = rtAvIaPinta(K.corpo, null, pele), cabeca = rtAvIaPinta(K.cab, cab, pele);
+  const acor = typeof rtAvArmCor === "function" ? rtAvArmCor(av) : null;
+  const corpo = acor ? rtAvIaCorpo(K.corpo, pele, acor) : rtAvIaPinta(K.corpo, null, pele), cabeca = rtAvIaPinta(K.cab, cab, pele);
   if (!corpo || !cabeca) return null;
   const G = rtAvIaGeo(K); const P = RT_AVIA.p;
   const cv = document.createElement("canvas"); cv.width = cv.height = G.N; const cx = cv.getContext("2d"); cx.imageSmoothingQuality = "high";
@@ -71689,6 +71690,240 @@ try {
   );
 } catch (e) {}
 
+// =====================================================================================
+// VERSÃO 4.4
+// · Animações: poderes psíquicos e habilidades não saem mais como tiro; cada família de efeito
+//   tem cor de fundo, partículas e um emblema próprio no impacto (fogo, psíquico, sagrado...).
+// · Avatar: cor da armadura (no CORPO e na Forja, com miniatura da armadura); a arma fica
+//   na mão; a guia APARÊNCIA perde os títulos.
+// =====================================================================================
+
+// ---------- cada efeito com o desenho certo ----------
+const RT_FX_PSY_PROPRIO = new Set(["piro", "piro_grande", "piro_feixe", "sanct_raio", "tele", "tele_escuro"]);
+const RT_FX_ON = new Set(["cura", "escudo", "mira", "furia", "bio", "bio_mal", "adiv", "adiv_area", "sanct_area", "sanct_escudo", "queimando", "atordoado", "recarga", "estimulante"]);
+{
+  const f = rtVfxStrike;
+  rtVfxStrike = function (vfx, A, T, out, o) {
+    const base = String(vfx || "").split("~")[0];
+    try {
+      if (base === "psi") return rtVfxPsy("tele", A, T, o && o.delay);
+      if (RT_FX_PSY_PROPRIO.has(base) || /^nav_/.test(base)) return rtVfxPsy(base, A, T, o && o.delay);
+      if (RT_FX_ON.has(base)) return new Promise(r => setTimeout(r, (o && o.delay) || 0)).then(() => rtVfxOn(base, A, T));
+    } catch (e) {}
+    return f.apply(this, arguments);
+  };
+}
+{
+  const f = rtVfxPsy;
+  rtVfxPsy = function (vfx, A, T, d) { if (vfx === "psi") vfx = "tele"; return f.call(this, vfx, A, T, d); };
+}
+// ---------- assinatura de cada família: fundo, partículas e emblema ----------
+const RT_FX_FAM = [
+  { re: /^(piro|chamas|melta|queimando|granada_fogo|lamina_infernal)/, cor: "rgba(255,105,15,.42)", em: "🔥", part: "brasa" },
+  { re: /^(tele_escuro|privacao)/, cor: "rgba(20,0,40,.62)", em: "👁", part: "sombra" },
+  { re: /^(tele|psi|dominar|ruptura)/, cor: "rgba(150,60,255,.42)", em: "🧠", part: "onda" },
+  { re: /^(sanct|espada_fe|martelo)/, cor: "rgba(255,205,80,.40)", em: "✠", part: "luz" },
+  { re: /^(bio_mal|teia|faca_veneno|agonizador)/, cor: "rgba(90,170,30,.40)", em: "☠", part: "esporo" },
+  { re: /^(cura|bio|estimulante|regener)/, cor: "rgba(60,220,130,.32)", em: "✚", part: "esporo" },
+  { re: /^(adiv|mira)/, cor: "rgba(70,160,255,.36)", em: "👁", part: "luz" },
+  { re: /^(arco|energia|raio_kustom|luz_necron|gauss)/, cor: "rgba(80,220,255,.36)", em: "⚡", part: "faisca" },
+  { re: /^(plasma)/, cor: "rgba(80,160,255,.40)", em: "", part: "faisca" },
+  { re: /^(nav_)/, cor: "rgba(120,80,255,.42)", em: "✦", part: "onda" },
+  { re: /^(furia|serra|varredura_serra|talhadeira)/, cor: "rgba(200,20,10,.42)", em: "", part: "faisca" },
+  { re: /^(atordoado|impacto|energia_impacto)/, cor: "rgba(255,230,120,.30)", em: "💫", part: "" },
+];
+function rtFxFamilia(val) {
+  const v = String((val && val.vfx) || "").split("~")[0]; if (!v) return null;
+  return RT_FX_FAM.find(F => F.re.test(v)) || null;
+}
+function rtFxParticulas(C, tipo, fig) {
+  if (!tipo || !C || rtCenaModo() === "off") return;
+  const palco = C.caixa.querySelector(".rt-cena-palco"); if (!palco) return;
+  const r0 = palco.getBoundingClientRect(); const rf = fig && (fig.querySelector(".rt-fig-corpo") || fig).getBoundingClientRect();
+  const camada = document.createElement("div"); camada.className = "rt-fx-part " + tipo; C.caixa.appendChild(camada);
+  const cx = C.caixa.getBoundingClientRect();
+  const n = tipo === "onda" ? 3 : tipo === "sombra" ? 10 : 26;
+  for (let i = 0; i < n; i++) {
+    const p = document.createElement("i");
+    const x = rf ? rf.left - cx.left + rf.width * (.15 + Math.random() * .7) : Math.random() * cx.width;
+    const y = rf ? rf.top - cx.top + rf.height * (.2 + Math.random() * .75) : cx.height * (.3 + Math.random() * .6);
+    p.style.left = (tipo === "onda" ? (rf ? rf.left - cx.left + rf.width / 2 : cx.width / 2) : x) + "px";
+    p.style.top = (tipo === "onda" ? (rf ? rf.top - cx.top + rf.height / 2 : cx.height / 2) : tipo === "luz" ? y - 60 : y) + "px";
+    p.style.setProperty("--dx", ((Math.random() - .5) * 80).toFixed(0) + "px");
+    p.style.setProperty("--dy", (-(40 + Math.random() * 110)).toFixed(0) + "px");
+    p.style.animationDelay = (tipo === "onda" ? i * .18 : Math.random() * .45).toFixed(2) + "s";
+    camada.appendChild(p);
+  }
+  setTimeout(() => camada.remove(), rtCenaMs(2200));
+}
+function rtFxEmblema(C, fig, em) {
+  const corpo = fig && fig.querySelector(".rt-fig-corpo"); if (!corpo || !em) return;
+  const e = document.createElement("div"); e.className = "rt-fx-emblema"; e.innerHTML = '<span class="rt-num-in">' + em + "</span>";
+  corpo.appendChild(e); setTimeout(() => e.remove(), rtCenaMs(1500));
+}
+{
+  const f = rtCamEnvolve;
+  rtCamEnvolve = function (C, val, z, junta, cor, g, self, args) {
+    const F = rtFxFamilia(val);
+    C.__fxVal = val; C.__fxFam = F; C.__fxFeitos = new Set();
+    if (F && !(val && val.outcome && val.outcome !== "acerto" && val.kind === "ataque")) cor = F.cor;
+    return f.call(this, C, val, z, junta, cor, g, self, args);
+  };
+}
+// o impacto (o clarão na figura) dispara as partículas e o emblema da família
+{
+  const f = rtCenaFlash;
+  rtCenaFlash = function (fig) {
+    const r = f.apply(this, arguments);
+    try {
+      const C = RT_CENA; const F = C && C.__fxFam;
+      if (F && fig && C.__fxFeitos && !C.__fxFeitos.has(fig)) {
+        C.__fxFeitos.add(fig);
+        rtFxParticulas(C, F.part, fig);
+        if (F.em) rtFxEmblema(C, fig, F.em);
+        if (F.part === "sombra" || F.part === "luz") { C.caixa.classList.remove("rt-fx-" + F.part); void C.caixa.offsetWidth; C.caixa.classList.add("rt-fx-" + F.part); setTimeout(() => C.caixa.classList.remove("rt-fx-" + F.part), rtCenaMs(900)); }
+      }
+    } catch (e) {}
+    return r;
+  };
+}
+
+// =====================================================================================
+// AVATAR: cor da armadura
+// =====================================================================================
+RT_AV.armCor = [["orig", "Original"], ["#1e1e22", "Preto"], ["#5a5e66", "Cinza"], ["#d8d4c8", "Branco"], ["#8e1b12", "Vermelho"], ["#1f3f8a", "Azul"], ["#2e5a2e", "Verde"], ["#c2a36a", "Areia"], ["#5a3a22", "Marrom"], ["#4a2a6a", "Roxo"], ["#b08a2a", "Dourado"], ["#4a6070", "Azul-acinzentado"]];
+RT_AV_K.push("armCor");
+{
+  const f = rtAvDe;
+  rtAvDe = function () { const o = f.apply(this, arguments); if (!Number.isFinite(o.armCor)) o.armCor = 0; return o; };
+}
+function rtAvArmCor(av) { const c = av && RT_AV.armCor[av.armCor || 0]; return c && c[0] !== "orig" ? c[0] : null; }
+// pinta as peças da armadura/roupa (tons oliva, cáqui, verde-acinzentado); pele, metal, botas e couro ficam
+function rtAvIaCorpo(k, pele, cor) {
+  const ck = "corpo|" + k + "|" + pele + "|" + cor; if (RT_AVIA_CACHE.has(ck)) return RT_AVIA_CACHE.get(ck);
+  const base = rtAvIaPinta(k, null, pele); if (!base) return null;
+  if (/_0$/.test(k)) { RT_AVIA_CACHE.set(ck, base); return base; }          // sem armadura: nada a pintar
+  const cv = document.createElement("canvas"); cv.width = base.width; cv.height = base.height; const cx = cv.getContext("2d"); cx.drawImage(base, 0, 0);
+  const D = cx.getImageData(0, 0, cv.width, cv.height), d = D.data; const t = rtHexHsl(cor);
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue;
+    const [h, s, l] = rtHslDe(d[i], d[i + 1], d[i + 2]);
+    if (h < 42 || h > 150 || s < .07 || l < .05 || l > .8) continue;
+    const nl = Math.max(0, Math.min(1, t[2] * (l / .34) * (t[2] > .7 ? .82 : 1) + (t[2] > .7 ? .12 : 0)));
+    const [r, g, b] = rtRgbDe(t[0], t[1] * Math.min(1, .35 + s * 1.6), nl);
+    d[i] = r; d[i + 1] = g; d[i + 2] = b;
+  }
+  cx.putImageData(D, 0, 0);
+  RT_AVIA_CACHE.set(ck, cv); return cv;
+}
+// boneco de pixel: a cor vai para as peças de armadura
+{
+  const f = rtAvAplica;
+  rtAvAplica = function (d, av) {
+    f.apply(this, arguments);
+    try { const c = rtAvArmCor(av); if (c) ["peitoral", "ombreira", "joelheira", "colete"].forEach(k => { if (d[k]) d[k] = c; }); } catch (e) {}
+    return d;
+  };
+}
+// a miniatura do CORPO mostra a armadura vestida, já com a cor
+{
+  const f = rtAvMiniatura;
+  rtAvMiniatura = function (av, parte) {
+    try {
+      if (parte !== "corpo" || !RT_AVIA || !RT_AVIA_PRONTO) return f.apply(this, arguments);
+      let col = 0; try { col = rtAvIaArmCol(rtLiveSnapshot()); } catch (e) {}
+      const k = "corpo_" + av.corpo + "_" + col; const pele = RT_AV.pele[av.pele][0]; const c = rtAvArmCor(av);
+      const src = c ? rtAvIaCorpo(k, pele, c) : rtAvIaPinta(k, null, pele); if (!src) return f.apply(this, arguments);
+      const o = document.createElement("canvas"); o.width = o.height = 96; const cx = o.getContext("2d"); cx.imageSmoothingQuality = "high";
+      const bb = RT_AVIA.meta[k].bb; const sc = 90 / Math.max(bb[2] - bb[0], bb[3] - bb[1]);
+      rtAvIaPoe(cx, src, bb, sc, 48 - (bb[0] + bb[2]) / 2 * sc, 93 - bb[3] * sc);
+      return o.toDataURL("image/png");
+    } catch (e) { return f.apply(this, arguments); }
+  };
+}
+// a guia: sem títulos; o CORPO ganha a cor da armadura
+rtAvEditorHtml = function () {
+  const av = rtAvDe(rtState); const pode = rtCanEdit();
+  const seta = (k, d, t) => '<button type="button" class="rt-av-seta" data-av-k="' + k + '" data-av-d="' + d + '" title="' + t + '"' + (pode ? "" : " disabled") + ">" + (d < 0 ? "◀" : "▶") + "</button>";
+  const amostra = c => /^#/.test(c) ? '<i class="rt-av-cor" style="background:' + c + '"></i>' : '<i class="rt-av-cor vazio"></i>';
+  return RT_AV_LINHAS.map(L => {
+    const cor = RT_AV[L.cor][av[L.cor]];
+    const parte = L.tipo === "cara" ? "cara" : L.parte === "corpo" ? "corpo" : "cab";
+    let extra = "";
+    if (L.tipo === "cara") extra = '<div class="rt-av-nav">' + seta("chapeu", -1, "Acessório de origem") + rtAvChapeuMini(av) + seta("chapeu", 1, "Acessório de origem") + "</div>"
+      + '<div class="rt-av-nav">' + seta("acCor", -1, "Cor dos detalhes dos acessórios") + rtAvAcSwatch(av) + seta("acCor", 1, "Cor dos detalhes dos acessórios") + "</div>";
+    if (L.tipo === "corpo") { const ac = rtAvArmCor(av); extra = '<div class="rt-av-nav">' + seta("armCor", -1, "Cor da armadura") + (ac ? '<i class="rt-av-cor rt-av-arm" style="background:' + ac + '"></i>' : '<i class="rt-av-cor orig rt-av-arm"></i>') + seta("armCor", 1, "Cor da armadura") + "</div>"; }
+    return '<div class="rt-av-linha" title="' + L.t + '">'
+      + '<div class="rt-av-op"><div class="rt-av-quadro"><img alt="" src="' + rtAvMiniatura(av, parte) + '"></div>'
+      + '<div class="rt-av-nav">' + seta(L.tipo, -1, "Anterior") + seta(L.tipo, 1, "Próximo") + "</div></div>"
+      + '<div class="rt-av-op2"><div class="rt-av-nav">' + seta(L.cor, -1, L.corNm) + amostra(cor[0]) + seta(L.cor, 1, L.corNm) + "</div>" + extra + "</div></div>";
+  }).join("");
+};
+// a arma do avatar não sai da mão: o corpo gerado não muda de pose, então a mão também não
+{
+  const f = rtPxMao;
+  rtPxMao = function (G) { if (G && G.ia) return { x: G.ia.fx, y: G.ia.fy }; return f.apply(this, arguments); };
+}
+
+// =====================================================================================
+// FORJA: miniatura da armadura no avatar + cor já na compra
+// =====================================================================================
+let RT_FZ_COR = 0;
+function rtFzArmPreview(id) {
+  let rc = null; try { rc = rtLiveSnapshot(); } catch (e) {}
+  const A = RT_ARMOR_BY[id]; if (!rc || !A) return "";
+  const av = Object.assign({}, rtAvDe(rtState), { armCor: RT_FZ_COR });
+  const rc2 = Object.assign({}, rc, { armNome: A.pt, armas: [], av });
+  let url = ""; try { url = rtSprPersonagem(rc2, "idle"); } catch (e) {}
+  const c = rtAvArmCor(av);
+  return '<div class="rt-fz-avatar">' + (url ? '<img class="rt-spr" alt="" src="' + url + '">' : "")
+    + '<div class="rt-fz-cor"><span>COR</span><button type="button" class="rt-av-seta" data-fz-cor="-1">◀</button>'
+    + (c ? '<i class="rt-av-cor" style="background:' + c + '"></i>' : '<i class="rt-av-cor orig"></i>')
+    + '<button type="button" class="rt-av-seta" data-fz-cor="1">▶</button><small>' + rtEsc(RT_AV.armCor[RT_FZ_COR][1]) + "</small></div></div>";
+}
+{
+  const f = rtFzDirHtml;
+  rtFzDirHtml = function () {
+    let h = f.apply(this, arguments);
+    try {
+      if (RT_FZ.aba !== "a") return h;
+      const id = RT_FZ.cat ? RT_FZ.catSel : rtFzItemId(); if (!id) return h;
+      const i = h.indexOf('<b class="rt-fz-nome">'); if (i < 0) return h;
+      h = h.slice(0, i) + rtFzArmPreview(id) + h.slice(i);
+    } catch (e) { console.error("forja: miniatura", e); }
+    return h;
+  };
+}
+{
+  const f = rtForjaAbrir;
+  rtForjaAbrir = function () { try { RT_FZ_COR = rtAvDe(rtState).armCor || 0; } catch (e) {} return f.apply(this, arguments); };
+}
+{
+  const f = rtFzComprarItem;
+  rtFzComprarItem = function () {
+    const aba = RT_FZ.aba; const foto = () => { try { return JSON.stringify(rtState.eq && rtState.eq.arm) + JSON.stringify(rtFzSets("a")); } catch (e) { return ""; } }; const antes = foto();
+    const r = f.apply(this, arguments);
+    try {
+      const depois = foto();
+      if (aba === "a" && antes !== depois) { rtState.av = Object.assign(rtAvDe(rtState), { armCor: RT_FZ_COR }); rtCommit(); try { rtFzSalva(); } catch (e) {} }
+    } catch (e) {}
+    return r;
+  };
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-fz-cor]"); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const n = RT_AV.armCor.length; RT_FZ_COR = ((RT_FZ_COR + (+b.dataset.fzCor)) % n + n) % n;
+  try { rtFzDesenha(); } catch (err) {}
+}, true);
+
+try {
+  RT_NOVIDADES.unshift(
+    ["✨ Animações únicas", "Poderes psíquicos e habilidades não saem mais como tiro. Cada tipo de efeito tem a sua assinatura na cena: fogo com brasas e fundo laranja, psíquico com ondas roxas, sagrado com luz dourada caindo, trevas escurecendo tudo, veneno com esporos verdes, elétrico com faíscas, e um emblema grande no alvo na hora do impacto."],
+    ["🎨 Cor da armadura", "Na guia APARÊNCIA, o CORPO tem a cor da armadura. Na Forja, ao escolher uma armadura aparece uma miniatura do avatar vestindo ela, com o seletor de cor: ao forjar, a armadura já vem na cor escolhida."]
+  );
+} catch (e) {}
+
 rtInit();
 recalc();
 })();
@@ -72115,6 +72350,41 @@ img.rt-spr{ image-rendering:pixelated; image-rendering:crisp-edges; display:bloc
   linear-gradient(180deg, #3a4252, #5a6272 55%, #4a4440 66%); }
 .rt-cenario-fields select{ width:100%; max-width:240px; padding:4px 6px; background:#140e09; color:#efe2bf; border:1px solid #6a4f2a; border-radius:6px; font:inherit; font-size:12px; }
 .rt-num-in{ display:inline-block; }
+
+/* ===== v4.4 — assinaturas de efeito, cor da armadura e Forja ===== */
+.rt-av-ed .rt-av-tit{ display:none; }
+.rt-av-ed .rt-av-linha{ grid-template-columns:1fr 1fr; }
+.rt-av-arm{ border-radius:3px !important; }
+/* partículas */
+.rt-fx-part{ position:absolute; inset:0; z-index:4; pointer-events:none; overflow:hidden; }
+.rt-fx-part i{ position:absolute; display:block; width:5px; height:5px; border-radius:50%; opacity:0; animation:rtFxSobe 1.4s ease-out forwards; }
+.rt-fx-part.brasa i{ background:#ffd27a; box-shadow:0 0 6px 2px #ff6a10; }
+.rt-fx-part.esporo i{ background:#b8ff6a; box-shadow:0 0 6px 2px rgba(110,220,40,.8); width:6px; height:6px; animation-duration:1.8s; }
+.rt-fx-part.faisca i{ width:3px; height:9px; border-radius:2px; background:#e8fbff; box-shadow:0 0 6px 2px #4ad8ff; animation:rtFxFaisca .6s ease-out forwards; }
+.rt-fx-part.luz i{ width:3px; height:16px; border-radius:2px; background:linear-gradient(#fff6cf, rgba(255,210,90,0)); box-shadow:0 0 8px 2px rgba(255,210,90,.7); animation:rtFxCai 1.2s ease-in forwards; }
+.rt-fx-part.sombra i{ width:46px; height:46px; background:radial-gradient(circle, rgba(10,0,20,.9), transparent 70%); animation:rtFxSombra 1.4s ease-out forwards; }
+.rt-fx-part.onda i{ width:20px; height:20px; margin:-10px 0 0 -10px; background:transparent; border:3px solid #c77dff; box-shadow:0 0 14px #9b30ff, inset 0 0 10px #9b30ff; animation:rtFxOnda 1s ease-out forwards; }
+@keyframes rtFxSobe{ 0%{ opacity:0; transform:translate(0,0) scale(.6); } 15%{ opacity:1; } 100%{ opacity:0; transform:translate(var(--dx), var(--dy)) scale(.2); } }
+@keyframes rtFxFaisca{ 0%{ opacity:1; transform:translate(0,0) rotate(0deg); } 100%{ opacity:0; transform:translate(var(--dx), calc(var(--dy) * -.4)) rotate(160deg); } }
+@keyframes rtFxCai{ 0%{ opacity:0; transform:translateY(-40px); } 25%{ opacity:1; } 100%{ opacity:0; transform:translateY(90px); } }
+@keyframes rtFxSombra{ 0%{ opacity:0; transform:scale(.4); } 30%{ opacity:1; } 100%{ opacity:0; transform:translate(var(--dx), calc(var(--dy) * .3)) scale(2.2); } }
+@keyframes rtFxOnda{ 0%{ opacity:1; transform:scale(.3); } 100%{ opacity:0; transform:scale(9); } }
+/* emblema grande no alvo (como os ícones do Darkest Dungeon) */
+.rt-fx-emblema{ position:absolute; left:50%; top:38%; z-index:7; pointer-events:none; font:400 64px/1 "Segoe UI Emoji", "Apple Color Emoji", sans-serif; color:#fff;
+  transform:translate(-50%,-50%) scale(.2); opacity:0; filter:drop-shadow(0 0 10px rgba(0,0,0,.9)) drop-shadow(0 0 16px rgba(255,255,255,.35)); animation:rtFxEmblema 1.4s cubic-bezier(.2,1.4,.3,1) forwards; }
+@keyframes rtFxEmblema{ 0%{ opacity:0; transform:translate(-50%,-50%) scale(.2) rotate(-20deg); } 18%{ opacity:1; transform:translate(-50%,-50%) scale(1.25) rotate(4deg); } 32%{ transform:translate(-50%,-50%) scale(1) rotate(0); } 75%{ opacity:1; } 100%{ opacity:0; transform:translate(-50%,-80%) scale(1.1); } }
+/* clarões de família */
+.rt-cena-caixa.rt-fx-sombra .rt-cena-palco{ animation:rtFxEscurece .9s ease-out; }
+.rt-cena-caixa.rt-fx-luz .rt-cena-palco{ animation:rtFxIlumina .9s ease-out; }
+@keyframes rtFxEscurece{ 0%{ filter:brightness(1); } 20%{ filter:brightness(.25) saturate(.4); } 100%{ filter:brightness(1); } }
+@keyframes rtFxIlumina{ 0%{ filter:brightness(1); } 18%{ filter:brightness(1.9) sepia(.5); } 100%{ filter:brightness(1); } }
+/* Forja: avatar vestindo a armadura */
+.rt-fz-avatar{ display:flex; flex-direction:column; align-items:center; gap:6px; margin:8px auto 6px; padding:8px; max-width:220px; border:1px solid rgba(201,162,74,.4); border-radius:10px;
+  background:radial-gradient(ellipse at 50% 92%, rgba(201,162,74,.25), transparent 58%), linear-gradient(180deg, #17110b, #0b0805); }
+.rt-fz-avatar img.rt-spr{ width:140px; height:140px; image-rendering:pixelated; filter:drop-shadow(0 0 1px #000) drop-shadow(0 6px 8px rgba(0,0,0,.6)); }
+.rt-fz-cor{ display:flex; align-items:center; gap:6px; }
+.rt-fz-cor > span, .rt-fz-cor > small{ font:700 10px/1 Cinzel, Georgia, serif; letter-spacing:.06em; color:#cdb98a; text-transform:uppercase; }
+.rt-fz-cor .rt-av-cor{ width:18px; height:18px; flex:0 0 18px; }
 
 </style>
 </body>
