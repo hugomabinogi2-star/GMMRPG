@@ -5788,7 +5788,6 @@ html.rt-arrastando, html.rt-arrastando *{ cursor:grabbing !important; user-selec
       <button type="button" class="board-mode-toggle ar-ap-tip" id="boardDarkModeLabel" aria-pressed="false">
         <span class="board-mode-toggle-name">🌑</span><div class="cs-tooltip">ESCURIDÃO TOTAL</div>
       </button>
-      <button type="button" class="mini-btn ar-ap-tip rt-pausa-btn" id="rtPausaBtn" aria-pressed="false"><span class="rt-pausa-ic">⏸️</span><div class="cs-tooltip">PAUSAR A MESA</div></button>
       <div id="iniciativaTabuleiroHint" class="dice-hint"></div>
       <div id="boardSendHint" class="mesa-hint"></div>
       
@@ -5801,6 +5800,7 @@ html.rt-arrastando, html.rt-arrastando *{ cursor:grabbing !important; user-selec
         <div class="turn-status-bar">
           <span class="turn-status-text" id="liveTurnStatus">NENHUMA INICIATIVA RODADA AINDA.</span>
           <button type="button" class="mini-btn" id="liveEndTurnBtn" disabled title="Encerrar Turno"><span class="end-turn-icon">⏳</span></button>
+          <button type="button" class="mini-btn ar-ap-tip rt-pausa-btn" id="rtPausaBtn2" aria-pressed="false"><span class="rt-pausa-ic">⏸️</span><div class="cs-tooltip">PAUSAR A MESA</div></button>
           <button type="button" class="mini-btn rt-end-combat" id="rtEndCombatBtn2" disabled hidden title="Encerrar o combate e ver o resumo">🏁</button>
         </div>
         <div class="live-board-panel-body" id="liveBoardPanelBody">
@@ -6059,6 +6059,7 @@ html.rt-arrastando, html.rt-arrastando *{ cursor:grabbing !important; user-selec
             <button type="button" class="mini-btn" id="turnDelayBtn" disabled title="Avançar Turno — segura a ação, vai pro fim da fila desta rodada">➡️</button>
             <button type="button" class="mini-btn" id="turnUndoBtn" disabled title="Voltar ao Turno Anterior — desfaz o último encerramento de turno (avançar, manual, erro, ou automático)">⬅️</button>
             <button type="button" class="mini-btn" id="boardEndTurnBtn" disabled title="Encerrar/Pular Turno"><span class="end-turn-icon">⏳</span></button>
+            <button type="button" class="mini-btn ar-ap-tip rt-pausa-btn" id="rtPausaBtn" aria-pressed="false"><span class="rt-pausa-ic">⏸️</span><div class="cs-tooltip">PAUSAR A MESA</div></button>
             <button type="button" class="mini-btn rt-end-combat" id="rtEndCombatBtn" disabled hidden title="Encerrar o combate e ver o resumo">🏁</button>
           </div>
           <div class="turn-queue-panel" id="turnQueuePanel">
@@ -65693,7 +65694,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "3.3";
+const RT_VERSAO_APP = "3.4";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -70210,6 +70211,134 @@ try {
     } catch (e) {}
   };
 }
+
+// =====================================================================================
+// VERSÃO 3.4
+// · Pausar a mesa fica ao lado do ⏳ encerrar/pular turno (mudança no HTML).
+// · Na cena, o efeito do ataque para na frente da figura do alvo (não atravessa mais).
+// · Quem vai cair com o golpe entra na cena de pé, com a vida de antes, e só fica cinza depois do golpe.
+// =====================================================================================
+
+// ---------- a vida de cada atingido ANTES da ação (vai junto da animação para todos) ----------
+let RT_CENA_HP0 = null, RT_CENA_HP0_DE = null;
+{
+  const f = rtCenaAfeta;
+  rtCenaAfeta = function (t) {
+    try {
+      if (RT_CENA_AFET && t && t.id) {
+        if (RT_CENA_HP0_DE !== RT_CENA_AFET) { RT_CENA_HP0 = {}; RT_CENA_HP0_DE = RT_CENA_AFET; }
+        if (!(t.id in RT_CENA_HP0)) { const h = rtHpInfo(t); RT_CENA_HP0[t.id] = [Math.round((h.vida || 0) * 10) / 10, rtIsDown(t) ? 1 : 0]; }
+      }
+    } catch (e) {}
+    return f.apply(this, arguments);
+  };
+}
+{
+  const f = rtPlayAndBroadcast;
+  rtPlayAndBroadcast = function (att, tgt, val) {
+    try {
+      if (val && val.rt && !val.hp0 && RT_CENA_AFET && RT_CENA_HP0_DE === RT_CENA_AFET && RT_CENA_HP0) {
+        const o = {}; let n = 0;
+        for (const id in RT_CENA_HP0) { if (n++ >= 10) break; o[id] = RT_CENA_HP0[id]; }
+        if (n) val.hp0 = o;
+      }
+    } catch (e) {}
+    return f.apply(this, arguments);
+  };
+}
+
+// ---------- a cena começa com todos como estavam antes do golpe ----------
+let RT_CENA_VAL = null, RT_CENA_ATIVA = 0;
+{
+  const f = rtCenaToca1;
+  rtCenaToca1 = function (aA, tA, val) {
+    RT_CENA_VAL = val; RT_CENA_ATIVA++;
+    let p;
+    try { p = f.apply(this, arguments); } catch (e) { RT_CENA_VAL = null; RT_CENA_ATIVA--; throw e; }
+    RT_CENA_VAL = null;
+    return Promise.resolve(p).finally(() => { RT_CENA_ATIVA = Math.max(0, RT_CENA_ATIVA - 1); });
+  };
+}
+{
+  const f = rtCenaMonta;
+  rtCenaMonta = function (att, alvos) {
+    const C = f.apply(this, arguments);
+    try {
+      const val = RT_CENA_VAL; const hp0 = val && val.hp0;
+      Object.keys(C.alvos).forEach(id => {
+        const fig = C.alvos[id]; if (!fig || (fig === C.ator && !(hp0 && hp0[id]))) return;
+        if (hp0 && hp0[id]) {
+          rtCenaVida(fig, hp0[id][0], true);
+          fig.classList.toggle("caido", !!hp0[id][1]);
+        } else if (val && val.kind !== "buff") fig.classList.remove("caido");   // sem a vida de antes: de pé até o golpe
+      });
+    } catch (e) {}
+    return C;
+  };
+}
+// efeito (cura, buff, poder em aliado...): no fim, cinza só se ficou fora de combate; volta ao normal se levantou
+{
+  const f = rtCenaEfeito;
+  rtCenaEfeito = async function (C, att, tgt) {
+    const r = await f.apply(this, arguments);
+    try {
+      Object.keys(C.alvos).forEach(id => { const t = rtTokenById(id), fig = C.alvos[id]; if (t && fig && fig.__vis) fig.classList.toggle("caido", !!rtIsDown(t)); });
+    } catch (e) {}
+    return r;
+  };
+}
+
+// ---------- o golpe/disparo para na frente da figura do alvo ----------
+function rtCenaFrente(A, T) {
+  if (!A || !T) return T;
+  const dx = A.x - T.x; if (Math.abs(dx) < 4) return T;
+  return { x: T.x + Math.sign(dx) * T.s * .42, y: T.y, s: T.s };
+}
+{
+  const f = rtVfxStrike;
+  rtVfxStrike = function (vfx, A, T, out, o) {
+    if (RT_CENA_ATIVA && A && T && document.getElementById("rtCena") && vfx !== "varredura") T = rtCenaFrente(A, T);
+    return f.call(this, vfx, A, T, out, o);
+  };
+}
+{
+  const f = rtVfxPsy;
+  rtVfxPsy = function (vfx, A, T, delay) {
+    if (RT_CENA_ATIVA && A && T && document.getElementById("rtCena")) T = rtCenaFrente(A, T);
+    return f.call(this, vfx, A, T, delay);
+  };
+}
+// errou/esquivou: na cena o tiro passa raspando por cima ou por baixo e some na frente do alvo, sem atravessar
+{
+  const f = rtvMissPoint;
+  rtvMissPoint = function (A, T, out) {
+    if (!(RT_CENA_ATIVA && document.getElementById("rtCena")) || out === "cobertura") return f.apply(this, arguments);
+    const lado = Math.random() < .5 ? -1 : 1;
+    return { x: T.x, y: T.y + lado * T.s * (.55 + Math.random() * .2), s: T.s };
+  };
+}
+
+// ---------- o mesmo botão de pausa também na barra de turno em cima do tabuleiro ----------
+function rtPausa2Sync() {
+  const a = document.getElementById("rtPausaBtn"), b = document.getElementById("rtPausaBtn2"); if (!b) return;
+  b.hidden = currentRole !== "mestre";
+  b.classList.toggle("rt-pausa-on", !!RT_PAUSA); b.setAttribute("aria-pressed", RT_PAUSA ? "true" : "false");
+  const ic = b.querySelector(".rt-pausa-ic"); if (ic) ic.textContent = RT_PAUSA ? "▶️" : "⏸️";
+  const tip = b.querySelector(".cs-tooltip"); if (tip) tip.textContent = RT_PAUSA ? "CONTINUAR A MESA" : "PAUSAR A MESA";
+}
+{ const f = rtPausaRender; rtPausaRender = function () { const r = f.apply(this, arguments); try { rtPausa2Sync(); } catch (e) {} return r; }; }
+setInterval(() => { try { rtPausa2Sync(); } catch (e) {} }, 800);
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("#rtPausaBtn2"); if (!b || currentRole !== "mestre") return;
+  e.preventDefault(); const a = document.getElementById("rtPausaBtn"); if (a) a.click();
+});
+
+try {
+  RT_NOVIDADES.unshift(
+    ["⏸️ Pausa no lugar certo", "O botão de pausar a mesa agora fica ao lado do ⏳ encerrar/pular turno: no painel ⏳ TURNO e na barra de turno em cima do tabuleiro."],
+    ["🎬 Cena mais certa", "Tiros, raios e golpes param na frente do alvo em vez de atravessá-lo, e quem cai com o golpe entra na cena de pé e só fica cinza depois do impacto."]
+  );
+} catch (e) {}
 
 rtInit();
 recalc();
