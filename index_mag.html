@@ -5965,6 +5965,10 @@ html.rt-arrastando, html.rt-arrastando *{ cursor:grabbing !important; user-selec
             <input type="number" id="boardColsInput" min="2" max="40" value="8" title="Número de colunas">
             <button id="boardResizeBtn" class="mini-btn" type="button">APLICAR</button>
           </div>
+          <div class="board-grid-color-fields rt-cenario-fields">
+            <label for="rtCenarioSel">CENÁRIO DA CENA</label>
+            <select id="rtCenarioSel" class="rt-cenario-sel"><option value="colmeia">CIDADE COLMEIA</option><option value="nave">NAVE</option><option value="deserto">DESERTO</option><option value="floresta">FLORESTA</option><option value="savana">SAVANA</option><option value="tundra">TUNDRA CONGELADA</option><option value="montanha">MONTANHA</option></select>
+          </div>
           <div class="board-grid-color-fields">
             <label>COR DAS LINHAS DO GRID</label>
             <div class="board-grid-color-swatches" id="boardGridColorSwatches">
@@ -65698,7 +65702,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "4.2";
+const RT_VERSAO_APP = "4.3";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -68387,7 +68391,7 @@ async function rtCenaAtaque(C, att, tgt, val) {
   await rtCenaEspera(140);
   // investida / disparo
   const pa = fa && fa.getBoundingClientRect(), pt = ft && ft.getBoundingClientRect();
-  const dist = pa && pt ? (pa.left - pt.right) : 200;
+  const dist = pa && pt ? Math.max(pa.left - pt.right, pt.left - pa.right) : 200;
   let volta = null;
   if (fa && melee) {
     const dx = -Math.max(40, dist * .72);
@@ -70050,21 +70054,12 @@ function rtCartaEtapa(menu, caixa, c, att, tgt) {
   const conta = () => { const n = pe.querySelector("[data-rt-conta]"); if (n) n.textContent = escolha.size + "/" + sel.max; const ok = pe.querySelector("[data-rt-ok]"); if (ok) ok.disabled = !escolha.size; };
   const nome = String(info.nome || "Ação");
   const custo = rtCartaCusto(info.linhas);
+  // sem confirmação: escolher a carta (ou dar OK na escolha de alvos) já executa a ação
   const confirmar = () => {
-    const alvos = sel ? [...escolha].map(id => rtTokenById(id)).filter(Boolean) : rtPrevAlvos(k, att, tgt);
-    mostra(alvos.filter(t => t && t.id !== att.id), false);
-    if (titulo) titulo.textContent = "CONFIRMAR AÇÃO";
-    const quem = alvos.length ? alvos.map(t => rtNm(t)).join(", ") : (mesmo ? "você mesmo" : (tgt ? rtNm(tgt) : ""));
-    pe.innerHTML = '<div class="rt-cena-etapa-txt">Usar <b>' + rtEsc(nome) + "</b>" + (quem ? " em <b>" + rtEsc(quem) + "</b>" : "") + (custo ? " (" + custo + ")" : "") + "?"
-      + (alvos.length > 1 ? '<small>' + alvos.length + " alvos serão atingidos.</small>" : "") + "</div>"
-      + '<div class="rt-cena-etapa-bts"><button type="button" class="rt-btn" data-rt-volta>↩ VOLTAR</button><button type="button" class="rt-btn rt-btn-ok" data-rt-confirma>✔ CONFIRMAR</button></div>';
-    pe.querySelector("[data-rt-volta]").onclick = ev => { ev.stopPropagation(); if (sel && cands.length) escolher(); else volta(); };
-    pe.querySelector("[data-rt-confirma]").onclick = ev => {
-      ev.stopPropagation();
-      RT_ALVOS_ESC = sel ? new Set(escolha) : null;
-      c.__ok = true;
-      try { c.click(); } finally { setTimeout(() => { RT_ALVOS_ESC = null; }, 0); }
-    };
+    volta();
+    RT_ALVOS_ESC = sel ? new Set(escolha) : null;
+    c.__ok = true;
+    try { c.click(); } finally { setTimeout(() => { RT_ALVOS_ESC = null; c.__ok = false; }, 0); }
   };
   const escolher = () => {
     const lista = (sel.fixo && tgt ? [tgt] : []).concat(cands).filter((t, i, a) => t && a.findIndex(x => x.id === t.id) === i);
@@ -71545,6 +71540,155 @@ try {
   RT_NOVIDADES.unshift(["🎨 Cor dos acessórios", "Na guia APARÊNCIA, a CABEÇA tem um terceiro seletor: a cor dos detalhes dos acessórios (ouro, prata, bronze, vermelho, azul, verde, roxo, laranja, branco, preto ou a original). Vale para o chapéu/elmo da origem e para o acessório do rosto."]);
 } catch (e) {}
 
+// =====================================================================================
+// VERSÃO 4.3
+// · Cena: inimigos sempre à DIREITA, aliados à ESQUERDA. A vida sai de dentro da cena e vira
+//   barras em pé nas bordas: aliados na esquerda, inimigos na direita (a barra desce e sobe).
+// · Cartas: escolher a carta já executa (sem o "confirmar").
+// · Mestre: seletor de CENÁRIO da cena (o fundo do quadro), junto de tamanho e cor do tabuleiro.
+// =====================================================================================
+const rtEhInim = t => { try { return !!t && rtEquipeDe(t) === "i"; } catch (e) { return false; } };
+
+// ---------- lados da cena ----------
+// a cena foi feita com o ator na direita e os alvos na esquerda; quando quem age é aliado,
+// o palco é espelhado (os textos voltam ao normal) e os inimigos ficam sempre à direita.
+function rtCenaLados(C, att) {
+  if (!C || C.__lados) return; C.__lados = true;
+  const palco = C.caixa.querySelector(".rt-cena-palco"); if (!palco) return;
+  const esq = palco.querySelector(".rt-cena-lado.esq"), dir = palco.querySelector(".rt-cena-lado.dir");
+  const alvos = Object.keys(C.alvos).map(id => ({ id, f: C.alvos[id], t: rtTokenById(id) })).filter(x => x.f && x.f !== C.ator);
+  const ladoAtor = att ? rtEhInim(att) : (alvos[0] ? !rtEhInim(alvos[0].t) : true);
+  const mesmoTime = att && alvos.length && alvos.every(x => x.t && rtEhInim(x.t) === ladoAtor);
+  if (mesmoTime && esq && dir) {            // ação no próprio time: todos do mesmo lado
+    alvos.forEach(x => dir.insertBefore(x.f, dir.firstChild));
+    C.caixa.classList.add("mesmo-time");
+  }
+  if (!ladoAtor) palco.classList.add("espelho");
+  C.espelho = !ladoAtor;
+}
+// números da cena: com o palco espelhado, só as letras desviram (a posição continua na figura)
+{
+  const f = rtCenaTexto;
+  rtCenaTexto = function (C, fig) {
+    const r = f.apply(this, arguments);
+    try {
+      const corpo = fig && fig.querySelector(".rt-fig-corpo"); const n = corpo && corpo.lastElementChild;
+      if (n && n.classList.contains("rt-cena-num") && !n.firstElementChild) { const s = document.createElement("span"); s.className = "rt-num-in"; s.textContent = n.textContent; n.textContent = ""; n.appendChild(s); }
+    } catch (e) {}
+    return r;
+  };
+}
+// ---------- barras de vida em pé nas bordas ----------
+function rtCenaBarras(C) {
+  const caixa = C.caixa; caixa.querySelectorAll(".rt-cena-hp").forEach(x => x.remove());
+  const palco = caixa.querySelector(".rt-cena-palco"); if (!palco) return;
+  const L = document.createElement("div"); L.className = "rt-cena-hp esq";
+  const R = document.createElement("div"); R.className = "rt-cena-hp dir";
+  const figs = [...palco.querySelectorAll(".rt-fig")].filter(f => f.__vis && f.dataset.id);
+  figs.forEach(f => {
+    const t = rtTokenById(f.dataset.id); const inim = rtEhInim(t);
+    const b = document.createElement("div"); b.className = "rt-hp-barra " + (inim ? "inim" : "alia");
+    b.title = rtNm(t);
+    b.innerHTML = '<span class="rt-hp-n"></span><div class="rt-hp-tubo"><i></i></div>';
+    f.__barra = b; (inim ? R : L).appendChild(b);
+    rtCenaBarraPoe(f, true);
+  });
+  // a barra mais perto do centro é a da figura mais perto do centro
+  [...R.children].reverse().forEach(x => R.appendChild(x));
+  caixa.appendChild(L); caixa.appendChild(R);
+}
+function rtCenaBarraPoe(f, ja) {
+  const b = f && f.__barra; if (!b) return;
+  const max = f.__max || 1, v = Math.max(0, Math.min(max, f.__vida || 0)); const p = 100 * v / max;
+  const i = b.querySelector(".rt-hp-tubo i");
+  if (ja) { i.style.transition = "none"; i.style.height = p.toFixed(1) + "%"; void i.offsetWidth; i.style.transition = ""; } else i.style.height = p.toFixed(1) + "%";
+  b.querySelector(".rt-hp-n").textContent = Math.round(v);
+  b.classList.toggle("baixa", p <= 25); b.classList.toggle("zero", v <= 0);
+}
+{
+  const f = rtCenaVida;
+  rtCenaVida = function (fig, vida, ja) { const r = f.apply(this, arguments); try { rtCenaBarraPoe(fig, ja); } catch (e) {} return r; };
+}
+{
+  const f = rtCenaMonta;
+  rtCenaMonta = function (att, alvos) {
+    const C = f.apply(this, arguments);
+    try {
+      rtCenaLados(C, att);
+      C.caixa.dataset.cenario = RT_CENARIO;
+      rtCenarioFundo(C.caixa);
+      rtCenaBarras(C);
+    } catch (e) { console.error("lados da cena", e); }
+    return C;
+  };
+}
+// a janela das cartas segue a mesma regra (inimigo à direita)
+{
+  const f = rtCartasMonta;
+  rtCartasMonta = function (tokenEl) {
+    const o = f.apply(this, arguments);
+    try {
+      const menu = boardActionMenuEl; const caixa = menu && menu.querySelector(".rt-cena-escolha"); if (!caixa || caixa.__lados) return o;
+      caixa.__lados = true;
+      const palco = caixa.querySelector(".rt-cena-palco"); const att = resolveAttackerToken();
+      const tgt = tokenEl && tokenEl.dataset.tokenId ? rtTokenById(tokenEl.dataset.tokenId) : null;
+      if (!palco || !att) return o;
+      const inimA = rtEhInim(att);
+      if (tgt && tgt.id !== att.id && rtEhInim(tgt) === inimA) {
+        const esq = palco.querySelector(".rt-cena-lado.esq"), dir = palco.querySelector(".rt-cena-lado.dir");
+        [...esq.children].forEach(x => dir.insertBefore(x, dir.firstChild));
+        caixa.classList.add("mesmo-time");
+      }
+      if (!inimA) palco.classList.add("espelho");
+      caixa.dataset.cenario = RT_CENARIO; rtCenarioFundo(caixa);
+    } catch (e) { console.error("lados das cartas", e); }
+    return o;
+  };
+}
+
+// =====================================================================================
+// CENÁRIO
+// =====================================================================================
+const RT_CENARIOS = [["colmeia", "CIDADE COLMEIA"], ["nave", "NAVE"], ["deserto", "DESERTO"], ["floresta", "FLORESTA"], ["savana", "SAVANA"], ["tundra", "TUNDRA CONGELADA"], ["montanha", "MONTANHA"]];
+const RT_CENARIO_IMG = Object.assign({}, (window.RT_IMG && window.RT_IMG.cenarios) || {});      // as artes chegam depois
+let RT_CENARIO = "colmeia";
+function rtCenarioFundo(caixa) {
+  const p = caixa && caixa.querySelector(".rt-cena-palco"); if (!p) return;
+  const img = RT_CENARIO_IMG[RT_CENARIO];
+  if (img) { p.style.backgroundImage = "linear-gradient(0deg, rgba(0,0,0,.55), transparent 45%), url(" + img + ")"; p.style.backgroundSize = "cover"; p.style.backgroundPosition = "center 70%"; p.classList.add("com-arte"); }
+  else { p.style.backgroundImage = ""; p.classList.remove("com-arte"); }
+}
+let RT_CENARIO_OUVINDO = false;
+setInterval(() => {
+  try {
+    const sel = document.getElementById("rtCenarioSel");
+    if (sel && !sel.__ev) {
+      sel.__ev = true;
+      sel.addEventListener("change", () => {
+        if (currentRole !== "mestre" || !fbDb) return;
+        const v = RT_CENARIOS.some(c => c[0] === sel.value) ? sel.value : "colmeia";
+        RT_CENARIO = v; fbDb.ref("mesa40k/config/cenario").set(v).catch(e => alert("Não foi possível salvar o cenário: " + (e && e.message || e)));
+        try { rtDropAviso("CENÁRIO: " + (RT_CENARIOS.find(c => c[0] === v) || [, v])[1]); } catch (e) {}
+      });
+    }
+    if (sel) { sel.disabled = currentRole !== "mestre"; if (sel.value !== RT_CENARIO) sel.value = RT_CENARIO; }
+    if (RT_CENARIO_OUVINDO || !fbReady || !fbDb || !currentRole) return;
+    RT_CENARIO_OUVINDO = true;
+    fbDb.ref("mesa40k/config/cenario").on("value", snap => {
+      const v = snap.val(); RT_CENARIO = RT_CENARIOS.some(c => c[0] === v) ? v : "colmeia";
+      try { if (RT_CENA) { RT_CENA.caixa.dataset.cenario = RT_CENARIO; rtCenarioFundo(RT_CENA.caixa); } } catch (e) {}
+    });
+  } catch (e) {}
+}, 800);
+
+try {
+  RT_NOVIDADES.unshift(
+    ["↔️ Lados da cena", "Na cena de combate os inimigos ficam sempre à direita e os aliados à esquerda. A vida saiu de dentro da cena: agora são barras em pé nas bordas (aliados na esquerda, inimigos na direita), que descem quando a vida cai e sobem quando ela volta."],
+    ["🃏 Carta direto", "Escolher a carta já executa a ação, sem a confirmação. Ações com escolha de alvos ainda mostram o seletor (ex.: 2/3) e executam no OK."],
+    ["🏞️ Cenário", "O mestre escolhe o cenário da cena (cidade colmeia, nave, deserto, floresta, savana, tundra congelada ou montanha) junto do tamanho e da cor do tabuleiro. Ele muda o fundo do quadro da cena para todos."]
+  );
+} catch (e) {}
+
 rtInit();
 recalc();
 })();
@@ -71916,6 +72060,61 @@ img.rt-spr{ image-rendering:pixelated; image-rendering:crisp-edges; display:bloc
 .rt-cena-luta.so-um .rt-cena-palco{ transform-origin:50% 60%; }
 .rt-av-op2 .rt-av-nav > .rt-av-cor{ margin:0 5px; }
 .rt-av-cor.orig{ background:conic-gradient(#d9a72b, #c01818, #8a3ad8, #2a5ad8, #2aa84a, #d9a72b); }
+
+/* ===== v4.3 — lados, barras de vida em pé e cenário ===== */
+.rt-cena-luta .rt-fig-vida{ display:none; }
+.rt-cena-lado.dir .rt-fig-spr .rt-fig-corpo > img.rt-spr{ transform:scaleX(-1); animation-name:rtSprRespiraE; }
+.rt-cena-lado.dir .rt-fig-spr .rt-fig-corpo > .rt-spr-box{ transform:scaleX(-1); animation-name:rtSprRespiraE; }
+.rt-cena-palco.espelho{ scale:-1 1; }
+.rt-cena-palco.espelho .rt-fig-placa, .rt-cena-palco.espelho .rt-num-in, .rt-cena-palco.espelho .rt-cena-vs, .rt-cena-palco.espelho .rt-fig-med{ scale:-1 1; }
+.mesmo-time .rt-cena-palco{ grid-template-columns:1fr; }
+.mesmo-time .rt-cena-lado.esq{ display:none; }
+.mesmo-time .rt-cena-lado.dir{ justify-content:center; gap:26px; }
+.mesmo-time .rt-cena-vs{ display:none; }
+/* barras de vida nas bordas */
+.rt-cena-hp{ position:absolute; top:30px; bottom:26px; z-index:5; display:flex; gap:4px; pointer-events:none; }
+.rt-cena-hp.esq{ left:7px; }
+.rt-cena-hp.dir{ right:7px; flex-direction:row-reverse; }
+.rt-cena-hp:empty{ display:none; }
+.rt-hp-barra{ display:flex; flex-direction:column; align-items:center; gap:3px; width:18px; }
+.rt-hp-n{ font:700 10px/1 Cinzel, Georgia, serif; color:#f3e6c4; text-shadow:0 1px 2px #000, 0 0 4px #000; }
+.rt-hp-tubo{ flex:1; width:12px; position:relative; overflow:hidden; border:1px solid #b8913f; border-radius:7px; background:linear-gradient(90deg, #070504, #1a120b, #070504); box-shadow:inset 0 0 5px #000, 0 0 6px rgba(0,0,0,.8); }
+.rt-hp-tubo i{ position:absolute; left:0; right:0; bottom:0; height:100%; border-radius:6px 6px 0 0; transition:height .6s cubic-bezier(.3,.7,.3,1);
+  background:linear-gradient(90deg, #17702c, #4fd06c 45%, #9af0ad 55%, #17702c); box-shadow:0 0 8px rgba(80,220,110,.55); }
+.rt-hp-barra.inim .rt-hp-tubo i{ background:linear-gradient(90deg, #7a0d0d, #e0392b 45%, #ff8a7a 55%, #7a0d0d); box-shadow:0 0 8px rgba(230,50,40,.55); }
+.rt-hp-barra.baixa .rt-hp-tubo i{ animation:rtHpPulsa .8s ease-in-out infinite; }
+.rt-hp-barra.zero{ opacity:.55; }
+@keyframes rtHpPulsa{ 50%{ filter:brightness(1.6); } }
+.varios .rt-hp-barra{ width:14px; } .varios .rt-hp-tubo{ width:9px; }
+/* cenários (fundo provisório até chegarem as artes) */
+.rt-cena-caixa[data-cenario] .rt-cena-palco:not(.com-arte){ background-blend-mode:normal; }
+.rt-cena-caixa[data-cenario="colmeia"] .rt-cena-palco:not(.com-arte){ background:
+  linear-gradient(180deg, transparent 66%, rgba(70,52,34,.7) 67%, #0e0a07 100%),
+  repeating-linear-gradient(90deg, rgba(0,0,0,0) 0 38px, rgba(255,170,80,.05) 38px 40px, rgba(0,0,0,0) 40px 90px),
+  radial-gradient(ellipse at 70% 15%, rgba(255,140,40,.22), transparent 45%), linear-gradient(180deg, #1c1510, #120d09 60%); }
+.rt-cena-caixa[data-cenario="nave"] .rt-cena-palco:not(.com-arte){ background:
+  linear-gradient(180deg, transparent 66%, rgba(60,70,86,.75) 67%, #0a0c10 100%),
+  repeating-linear-gradient(90deg, rgba(150,180,220,.05) 0 2px, transparent 2px 64px),
+  radial-gradient(ellipse at 50% 10%, rgba(120,170,255,.2), transparent 50%), linear-gradient(180deg, #121722, #0b0e15 65%); }
+.rt-cena-caixa[data-cenario="deserto"] .rt-cena-palco:not(.com-arte){ background:
+  linear-gradient(180deg, transparent 64%, rgba(170,120,60,.8) 65%, #4a3218 100%),
+  radial-gradient(ellipse at 75% 18%, rgba(255,220,140,.45), transparent 30%), linear-gradient(180deg, #8a5a2a, #c8904a 50%, #9a6a34 64%); }
+.rt-cena-caixa[data-cenario="floresta"] .rt-cena-palco:not(.com-arte){ background:
+  linear-gradient(180deg, transparent 66%, rgba(30,50,20,.85) 67%, #0a1206 100%),
+  repeating-linear-gradient(90deg, rgba(10,20,8,.6) 0 14px, transparent 14px 70px),
+  radial-gradient(ellipse at 40% 10%, rgba(140,200,90,.22), transparent 45%), linear-gradient(180deg, #1a2a14, #0e180a 65%); }
+.rt-cena-caixa[data-cenario="savana"] .rt-cena-palco:not(.com-arte){ background:
+  linear-gradient(180deg, transparent 65%, rgba(120,110,40,.85) 66%, #3a3410 100%),
+  radial-gradient(ellipse at 25% 20%, rgba(255,200,110,.4), transparent 32%), linear-gradient(180deg, #a8642a, #d29a4a 45%, #8a7a30 65%); }
+.rt-cena-caixa[data-cenario="tundra"] .rt-cena-palco:not(.com-arte){ background:
+  linear-gradient(180deg, transparent 65%, rgba(200,220,235,.85) 66%, #6a7f92 100%),
+  radial-gradient(ellipse at 60% 15%, rgba(255,255,255,.35), transparent 40%), linear-gradient(180deg, #4a5e72, #8aa2b8 50%, #b8cad8 65%); }
+.rt-cena-caixa[data-cenario="montanha"] .rt-cena-palco:not(.com-arte){ background:
+  linear-gradient(180deg, transparent 66%, rgba(80,72,64,.85) 67%, #1a1612 100%),
+  linear-gradient(160deg, transparent 40%, rgba(40,36,34,.9) 41%, transparent 60%), linear-gradient(200deg, transparent 45%, rgba(56,50,46,.9) 46%, transparent 66%),
+  linear-gradient(180deg, #3a4252, #5a6272 55%, #4a4440 66%); }
+.rt-cenario-fields select{ width:100%; max-width:240px; padding:4px 6px; background:#140e09; color:#efe2bf; border:1px solid #6a4f2a; border-radius:6px; font:inherit; font-size:12px; }
+.rt-num-in{ display:inline-block; }
 
 </style>
 </body>
