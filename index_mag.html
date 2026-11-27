@@ -65703,7 +65703,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "4.7";
+const RT_VERSAO_APP = "4.8";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -72213,10 +72213,56 @@ function rtCapaChave(av, corpoKey) {
   const g = /_4$/.test(corpoKey || "") && RT_CAPA.meta[c[0] + "_g"] ? "_g" : "";
   return RT_CAPA.meta[c[0] + g] ? c[0] + g : null;
 }
+// ---------- cor da capa ----------
+RT_AV.capaCor = [["orig", "Original"], ["#8e1b12", "Vermelho"], ["#5a0e12", "Vinho"], ["#1e1e24", "Preto"], ["#e2dccb", "Branco"], ["#1f3f8a", "Azul"], ["#16244a", "Azul-marinho"], ["#2e5a2e", "Verde"], ["#4a2a6a", "Roxo"], ["#b08a2a", "Dourado"], ["#5a3a22", "Marrom"], ["#6a6e76", "Cinza"]];
+RT_AV_K.push("capaCor");
+{
+  const f = rtAvDe;
+  rtAvDe = function () { const o = f.apply(this, arguments); if (!Number.isFinite(o.capaCor)) o.capaCor = 0; return o; };
+}
+function rtCapaCor(av) { const c = av && RT_AV.capaCor[av.capaCor || 0]; return c && c[0] !== "orig" ? c[0] : null; }
+// tom principal do tecido de cada capa (o matiz mais presente); capas cinzas/pretas são tingidas pela luz
+const RT_CAPA_TOM = new Map();
+function rtCapaTom(k) {
+  if (RT_CAPA_TOM.has(k)) return RT_CAPA_TOM.get(k);
+  const bins = new Array(24).fill(0); let sat = 0, tot = 0;
+  ["t", "f"].forEach(l => {
+    const im = RT_CAPA_IMGS.get(k + "_" + l); if (!im || !im.naturalWidth) return;
+    const cv = document.createElement("canvas"); cv.width = im.naturalWidth; cv.height = im.naturalHeight; const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+    const d = cx.getImageData(0, 0, cv.width, cv.height).data;
+    for (let i = 0; i < d.length; i += 4) { if (!d[i + 3]) continue; tot++; const [h, s, lu] = rtHslDe(d[i], d[i + 1], d[i + 2]); if (s > .25 && lu > .08 && lu < .9) { sat++; bins[Math.floor(h / 15) % 24]++; } }
+  });
+  let b = 0; bins.forEach((v, i) => { if (v > bins[b]) b = i; });
+  let r = { h: b * 15 + 7.5, cinza: !tot || sat / tot < .3 };
+  if (/^manto_cerimonial/.test(k)) r = { h: 222, cinza: false, smin: .1, faixa: 45 };       // azul-escuro pouco saturado (o dourado do bordado não conta)
+  RT_CAPA_TOM.set(k, r); return r;
+}
+function rtCapaPinta(k, lado, cor) {
+  const ck = "capa|" + k + "|" + lado + "|" + cor; if (RT_AVIA_CACHE.has(ck)) return RT_AVIA_CACHE.get(ck);
+  const im = RT_CAPA_IMGS.get(k + "_" + lado); if (!im || !im.naturalWidth) return null;
+  const T = rtCapaTom(k); const t = rtHexHsl(cor);
+  const cv = document.createElement("canvas"); cv.width = im.naturalWidth; cv.height = im.naturalHeight; const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+  const D = cx.getImageData(0, 0, cv.width, cv.height), d = D.data;
+  const dist = h => { const x = Math.abs(h - T.h) % 360; return x > 180 ? 360 - x : x; };
+  // a luz média do tecido vira a luz da cor escolhida (sombras e brilhos continuam)
+  const ref = T.cinza ? .3 : .38;
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue;
+    const [h, s, l] = rtHslDe(d[i], d[i + 1], d[i + 2]);
+    const tecido = T.cinza ? (s < .3 && l > .05 && l < .78) : (s > (T.smin || .2) && dist(h) < (T.faixa || 38));
+    if (!tecido) continue;
+    const nl = Math.max(.02, Math.min(.95, rtAvMapaL(l, ref, t[2])));
+    const ns = Math.max(0, Math.min(1, t[1] * (T.cinza ? .9 : Math.min(1.15, .45 + s))));
+    const [r, g, b] = rtRgbDe(t[0], ns, nl); d[i] = r; d[i + 1] = g; d[i + 2] = b;
+  }
+  cx.putImageData(D, 0, 0);
+  RT_AVIA_CACHE.set(ck, cv); return cv;
+}
 // desenha a camada (t = trás, f = frente) da capa alinhada ao corpo
-function rtCapaPoe(cx, k, lado, mb, k2, ox, oy) {
-  const m = RT_CAPA.meta[k]; const bb = m["bb" + lado]; const im = RT_CAPA_IMGS.get(k + "_" + lado);
-  if (!bb || !im || !im.naturalWidth) return;
+function rtCapaPoe(cx, k, lado, mb, k2, ox, oy, cor) {
+  const m = RT_CAPA.meta[k]; const bb = m["bb" + lado]; const im0 = RT_CAPA_IMGS.get(k + "_" + lado);
+  const im = cor && im0 && im0.naturalWidth ? (rtCapaPinta(k, lado, cor) || im0) : im0;
+  if (!bb || !im || !(im.naturalWidth || im.width)) return;
   const sc = (mb.pe - mb.pesc[1]) / Math.max(1, m.pe - m.pesc[1]);
   const X = x => ox + (mb.pesc[0] + (x - m.pesc[0]) * sc) * k2, Y = y => oy + (mb.pesc[1] + (y - m.pesc[1]) * sc) * k2;
   cx.drawImage(im, X(bb[0]), Y(bb[1]), X(bb[2]) - X(bb[0]), Y(bb[3]) - Y(bb[1]));
@@ -72224,16 +72270,16 @@ function rtCapaPoe(cx, k, lado, mb, k2, ox, oy) {
 rtAvIaCompor = function (rc) {
   const av = rc.av; const K = rtAvIaChaves(rc);
   const cab = RT_AV.cabCor[av.cabCor][0], pele = RT_AV.pele[av.pele][0];
-  const acc = rtAvAcCor(av), acor = rtAvArmCor(av), capa = rtCapaChave(av, K.corpo);
-  const ck = "c47|" + JSON.stringify(K) + "|" + cab + "|" + pele + "|" + (acc || "") + "|" + (acor || "") + "|" + (capa || "");
+  const acc = rtAvAcCor(av), acor = rtAvArmCor(av), capa = rtCapaChave(av, K.corpo), ccor = rtCapaCor(av);
+  const ck = "c47|" + JSON.stringify(K) + "|" + cab + "|" + pele + "|" + (acc || "") + "|" + (acor || "") + "|" + (capa || "") + "|" + (ccor || "");
   if (RT_AVIA_CACHE.has(ck)) return RT_AVIA_CACHE.get(ck);
   const corpo = acor ? rtAvIaCorpo(K.corpo, pele, acor) : rtAvIaPinta(K.corpo, null, pele), cabeca = rtAvIaPinta(K.cab, cab, pele);
   if (!corpo || !cabeca) return null;
   const G = rtAvIaGeo(K); const P = RT_AVIA.p;
   const cv = document.createElement("canvas"); cv.width = cv.height = G.N; const cx = cv.getContext("2d"); cx.imageSmoothingQuality = "high";
-  if (capa) rtCapaPoe(cx, capa, "t", G.mb, G.k, G.ox, G.oy);
+  if (capa) rtCapaPoe(cx, capa, "t", G.mb, G.k, G.ox, G.oy, ccor);
   rtAvIaPoe(cx, corpo, G.mb.bb, G.k, G.ox, G.oy);
-  if (capa) rtCapaPoe(cx, capa, "f", G.mb, G.k, G.ox, G.oy);
+  if (capa) rtCapaPoe(cx, capa, "f", G.mb, G.k, G.ox, G.oy, ccor);
   rtAvIaPoe(cx, cabeca, RT_AVIA.meta[K.cab].bb, G.s, G.hx, G.hy);
   if (K.ac) rtAvIaItem(cx, K.ac, P.ac[K.ac.slice(3)], G.s, G.hx, G.hy, acc);
   if (K.og) rtAvIaItem(cx, K.og, P.og[K.og.slice(7)], G.s, G.hx, G.hy, acc);
@@ -72245,13 +72291,13 @@ rtAvIaCompor = function (rc) {
 function rtCapaMini(av) {
   const c = RT_AV.capa[av.capa || 0]; if (!c || c[0] === "nada" || !RT_CAPA) return '<i class="rt-av-cor vazio"></i>';
   const k = c[0]; const m = RT_CAPA.meta[k]; if (!m) return '<i class="rt-av-cor vazio"></i>';
-  const ck = "mini|" + k; let u = RT_AVIA_CACHE.get(ck);
+  const ccor = rtCapaCor(av); const ck = "mini|" + k + "|" + (ccor || ""); let u = RT_AVIA_CACHE.get(ck);
   if (!u) {
     const o = document.createElement("canvas"); o.width = o.height = 64; const cx = o.getContext("2d");
     const bbs = ["t", "f"].map(l => m["bb" + l]).filter(Boolean); if (!bbs.length) return '<i class="rt-av-cor vazio"></i>';
     const x0 = Math.min(...bbs.map(b => b[0])), y0 = Math.min(...bbs.map(b => b[1])), x1 = Math.max(...bbs.map(b => b[2])), y1 = Math.max(...bbs.map(b => b[3]));
     const sc = 62 / Math.max(x1 - x0, y1 - y0); let ok = true;
-    ["t", "f"].forEach(l => { const b = m["bb" + l], im = RT_CAPA_IMGS.get(k + "_" + l); if (!b || !im) return; if (!im.naturalWidth) { ok = false; return; } cx.drawImage(im, 1 + (b[0] - x0) * sc, 1 + (b[1] - y0) * sc, (b[2] - b[0]) * sc, (b[3] - b[1]) * sc); });
+    ["t", "f"].forEach(l => { const b = m["bb" + l], im0 = RT_CAPA_IMGS.get(k + "_" + l); if (!b || !im0) return; if (!im0.naturalWidth) { ok = false; return; } const im = (ccor && rtCapaPinta(k, l, ccor)) || im0; cx.drawImage(im, 1 + (b[0] - x0) * sc, 1 + (b[1] - y0) * sc, (b[2] - b[0]) * sc, (b[3] - b[1]) * sc); });
     u = o.toDataURL("image/png"); if (ok) RT_AVIA_CACHE.set(ck, u);
   }
   return '<img class="rt-av-capa" alt="" src="' + u + '">';
@@ -72268,9 +72314,9 @@ function rtCapaMini(av) {
       const mb = RT_AVIA.meta[kc]; const bb = mb.bb; const sc = 90 / Math.max(bb[2] - bb[0], bb[3] - bb[1]);
       const ox = 48 - (bb[0] + bb[2]) / 2 * sc, oy = 93 - bb[3] * sc;
       const o = document.createElement("canvas"); o.width = o.height = 96; const cx = o.getContext("2d"); cx.imageSmoothingQuality = "high";
-      rtCapaPoe(cx, capa, "t", mb, sc, ox, oy);
+      rtCapaPoe(cx, capa, "t", mb, sc, ox, oy, rtCapaCor(av));
       const im = new Image(); im.src = u; if (im.complete && im.naturalWidth) cx.drawImage(im, 0, 0); else return u;
-      rtCapaPoe(cx, capa, "f", mb, sc, ox, oy);
+      rtCapaPoe(cx, capa, "f", mb, sc, ox, oy, rtCapaCor(av));
       return o.toDataURL("image/png");
     } catch (e) { return u; }
   };
@@ -72283,7 +72329,10 @@ function rtCapaMini(av) {
     try {
       const av = rtAvDe(rtState); const pode = rtCanEdit();
       const seta = (d) => '<button type="button" class="rt-av-seta" data-av-k="capa" data-av-d="' + d + '" title="Capa ou manto"' + (pode ? "" : " disabled") + ">" + (d < 0 ? "◀" : "▶") + "</button>";
-      const linha = '<div class="rt-av-nav">' + seta(-1) + rtCapaMini(av) + seta(1) + "</div>";
+      const setaC = (d) => '<button type="button" class="rt-av-seta" data-av-k="capaCor" data-av-d="' + d + '" title="Cor da capa"' + (pode ? "" : " disabled") + ">" + (d < 0 ? "◀" : "▶") + "</button>";
+      const cc = rtCapaCor(av);
+      const linha = '<div class="rt-av-nav">' + seta(-1) + rtCapaMini(av) + seta(1) + "</div>"
+        + (av.capa ? '<div class="rt-av-nav">' + setaC(-1) + (cc ? '<i class="rt-av-cor" style="background:' + cc + '"></i>' : '<i class="rt-av-cor orig"></i>') + setaC(1) + "</div>" : "");
       const i = h.lastIndexOf('data-av-k="armCor" data-av-d="1"'); if (i < 0) return h;
       const fim = h.indexOf("</div>", i) + 6;
       h = h.slice(0, fim) + linha + h.slice(fim);
@@ -72295,6 +72344,7 @@ try { RT_AVIA_CACHE.clear(); RT_SPR_CACHE.clear(); } catch (e) {}
 try {
   RT_NOVIDADES.unshift(
     ["🧥 Capas e mantos", "Na guia APARÊNCIA, o CORPO ganhou o seletor de capa ou manto: 6 capas (vermelha imperial, preta rasgada, de nobre, da Eclesiarquia, de batedor e do Mechanicus) e 6 mantos (pele de lobo, meia-capa cerimonial, malha, estola de sacerdote, cachecol e da Inquisição). A capa fica atrás e os detalhes da frente por cima da armadura."],
+    ["🎨 Cor da capa", "Logo abaixo do seletor de capa há a cor da capa ou do manto: 11 cores (vermelho, vinho, preto, branco, azul, azul-marinho, verde, roxo, dourado, marrom e cinza) ou a original. A cor pinta o tecido e mantém os detalhes de ouro, pele e metal."],
     ["♀ Armaduras femininas", "Os corpos femininos (normal e aumentado) agora vestem armaduras de corte feminino em todos os níveis: leve, média, pesada e energizada."]
   );
 } catch (e) {}
