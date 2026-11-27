@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<script src="index_mag_imagens.js?v=40avatar1"></script>
+<script src="index_mag_imagens.js?v=45cenario1"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rogue Trader — Mesa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33800,13 +33800,14 @@ it.draw(cx, p, el);
 cx.restore();
 return p < 1;
 }));
+if (!RTV.items.length) { cx.setTransform(1, 0, 0, 1, 0, 0); cx.clearRect(0, 0, RTV.cv.width, RTV.cv.height); }
 RTV.raf = RTV.items.length ? requestAnimationFrame(rtvLoop) : 0;
 }
 function rtvAdd(dur, draw, delay) {
 if (RTV_REDUZ || !rtvEnsure()) return;
 RTV.items.push({
-t0: performance.now() + (delay || 0),
-dur: dur,
+t0: performance.now() + Math.min(8000, Math.max(0, +delay || 0)),
+dur: Number.isFinite(+dur) && +dur > 0 ? Math.min(+dur, 6000) : 300,
 draw: draw
 });
 if (!RTV.raf) RTV.raf = requestAnimationFrame(rtvLoop);
@@ -65702,7 +65703,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "4.4";
+const RT_VERSAO_APP = "4.5";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -71924,6 +71925,214 @@ try {
   );
 } catch (e) {}
 
+// ---------- v4.5: fundos dos cenários (arte gerada) ----------
+rtCenarioFundo = function (caixa) {
+  const p = caixa && caixa.querySelector(".rt-cena-palco"); if (!p) return;
+  const img = RT_CENARIO_IMG[RT_CENARIO];
+  if (img) {
+    p.style.backgroundImage = "radial-gradient(ellipse at 50% 62%, rgba(0,0,0,.28), transparent 70%), linear-gradient(0deg, rgba(0,0,0,.45), transparent 38%), url(" + img + ")";
+    p.style.backgroundSize = "cover"; p.style.backgroundPosition = "center 72%"; p.classList.add("com-arte");
+  } else { p.style.backgroundImage = ""; p.classList.remove("com-arte"); }
+};
+try { RT_NOVIDADES.unshift(["🏞️ Cenários pintados", "Os 7 cenários (cidade colmeia, nave, deserto, floresta, savana, tundra congelada e montanha) agora têm o fundo pintado na cena de combate e na janela das cartas."]); } catch (e) {}
+
+// =====================================================================================
+// VERSÃO 4.5
+// · Fundos pintados dos 7 cenários (ver fim de v44.js).
+// · Correção: o último quadro de um efeito podia ficar preso na tela (edits.py: rtvLoop).
+// · Animações épicas: cada família de efeito ganha uma assinatura própria e espalhafatosa no
+//   impacto (pilar de luz, vórtice, explosão, raios em cadeia, corte que atravessa a tela...),
+//   aura de carga em quem age, clarão de impacto na figura e brilho nos efeitos da cena.
+// =====================================================================================
+
+// ---------- famílias (com as de arma comum) ----------
+const RT_FX2 = [
+  { id: "fogo", re: /^(piro|chamas|melta|queimando|granada_fogo|lamina_infernal|lanca_chamas)/, cor: "rgba(255,105,15,.45)", c: "#ff7a1a", em: "🔥", part: "brasa" },
+  { id: "trevas", re: /^(tele_escuro|privacao)/, cor: "rgba(20,0,40,.66)", c: "#7a2aff", em: "👁", part: "sombra" },
+  { id: "psi", re: /^(tele|psi|dominar|ruptura|forca)/, cor: "rgba(150,60,255,.45)", c: "#c77dff", em: "🧠", part: "onda" },
+  { id: "sagrado", re: /^(sanct|espada_fe|martelo)/, cor: "rgba(255,205,80,.42)", c: "#ffd36b", em: "✠", part: "luz" },
+  { id: "veneno", re: /^(bio_mal|teia|faca_veneno|agonizador|agulha|estilhacos)/, cor: "rgba(90,170,30,.42)", c: "#9dff4a", em: "☠", part: "esporo" },
+  { id: "cura", re: /^(cura|bio|estimulante|regener|recarga)/, cor: "rgba(60,220,130,.34)", c: "#6dff9a", em: "✚", part: "esporo" },
+  { id: "visao", re: /^(adiv|mira)/, cor: "rgba(70,160,255,.38)", c: "#6ab8ff", em: "👁", part: "luz" },
+  { id: "eletrico", re: /^(arco|energia|raio_kustom|luz_necron|gauss|atordoado)/, cor: "rgba(80,220,255,.40)", c: "#8fe8ff", em: "⚡", part: "faisca" },
+  { id: "plasma", re: /^(plasma|feixe_aeldari|shuriken)/, cor: "rgba(60,150,255,.44)", c: "#5ec8ff", em: "", part: "faisca" },
+  { id: "nav", re: /^(nav_)/, cor: "rgba(120,80,255,.44)", c: "#a98aff", em: "✦", part: "onda" },
+  { id: "explosivo", re: /^(bolt|granada|autocanhao|escopeta|dakka|metralha|blaster)/, cor: "rgba(255,140,40,.34)", c: "#ffb347", em: "💥", part: "brasa" },
+  { id: "furia", re: /^(furia|serra|varredura_serra|talhadeira)/, cor: "rgba(200,20,10,.46)", c: "#ff3a2a", em: "", part: "faisca" },
+  { id: "impacto", re: /^(impacto|energia_impacto|escudo_golpe|maca)/, cor: "rgba(255,230,120,.32)", c: "#ffe9a8", em: "💫", part: "" },
+  { id: "escudo", re: /^(escudo|sanct_escudo)/, cor: "rgba(120,200,255,.32)", c: "#a8e0ff", em: "🛡", part: "luz" },
+];
+rtFxFamilia = function (val) {
+  const v = String((val && val.vfx) || "").split("~")[0];
+  let F = v && RT_FX2.find(x => x.re.test(v));
+  if (!F && val && (val.kind === "ataque" || val.kind === "multi" || val.outcome)) {
+    const melee = val.tipo === "cac" || (v && rtVfxMelee(v));
+    F = melee ? { id: "corte", cor: "rgba(140,10,10,.40)", c: "#ffffff", em: "", part: "faisca" } : { id: "tiro", cor: "rgba(255,170,60,.30)", c: "#ffd27a", em: "", part: "faisca" };
+  }
+  return F || null;
+};
+
+// ---------- peças de cena (DOM, dentro da caixa) ----------
+function rtFxPos(C, fig) {
+  const cx = C.caixa.getBoundingClientRect(); const c = fig && (fig.querySelector(".rt-fig-corpo") || fig); if (!c) return null;
+  const r = c.getBoundingClientRect();
+  return { x: r.left - cx.left + r.width / 2, y: r.top - cx.top + r.height * .55, w: r.width, h: r.height, top: r.top - cx.top, cw: cx.width, ch: cx.height };
+}
+function rtFxEl(C, cls, css, ms, html) {
+  const e = document.createElement("div"); e.className = "rt-fx2 " + cls; Object.assign(e.style, css || {});
+  if (html) e.innerHTML = html;
+  C.caixa.appendChild(e); setTimeout(() => e.remove(), rtCenaMs(ms || 1200)); return e;
+}
+const rtFxTry = f => { try { f(); } catch (e) {} };
+function rtFxStrobe(C, cor, ms) { rtFxEl(C, "strobe", { "--c": cor }, ms || 380); }
+function rtFxOnda(C, p, cor, tam, ms, atraso) { rtFxEl(C, "onda", { left: p.x + "px", top: p.y + "px", "--c": cor, "--t": (tam || 3) + "", animationDelay: (atraso || 0) + "ms" }, (ms || 700) + (atraso || 0)); }
+function rtFxRaios(C, p, cor, ms) { rtFxEl(C, "raios", { left: p.x + "px", top: p.y + "px", "--c": cor }, ms || 1300); }
+function rtFxPilar(C, p, cor, ms) { rtFxEl(C, "pilar", { left: p.x + "px", height: (p.y + p.h * .5) + "px", "--c": cor, "--w": Math.max(60, p.w * .7) + "px" }, ms || 1200); }
+function rtFxVortex(C, p, cor, ms) { rtFxEl(C, "vortex", { left: p.x + "px", top: p.y + "px", "--c": cor, "--s": (p.w * 1.6) + "px" }, ms || 1400); }
+function rtFxCorte(C, p, ang, cor, atraso) { rtFxEl(C, "corte", { left: p.x + "px", top: p.y + "px", "--a": ang + "deg", "--c": cor, animationDelay: (atraso || 0) + "ms" }, 700 + (atraso || 0)); }
+function rtFxClaroFig(fig, cor) {
+  const im = fig && fig.querySelector(".rt-fig-corpo"); if (!im || !im.animate) return;
+  rtFxTry(() => im.animate([{ filter: "brightness(6) saturate(0) drop-shadow(0 0 14px " + cor + ")" }, { filter: "brightness(1)" }], { duration: rtCenaMs(260), easing: "ease-out" }));
+}
+// raios em cadeia (canvas) ao redor do ponto
+function rtFxRaiosCanvas(P, n, cor, alcance) {
+  for (let i = 0; i < n; i++) rtFxTry(() => {
+    const a = Math.random() * Math.PI * 2, d = P.s * (alcance || 1.1) * (.6 + Math.random() * .6);
+    rtvLightning({ x: P.x, y: P.y, s: P.s }, { x: P.x + Math.cos(a) * d, y: P.y + Math.sin(a) * d, s: P.s }, { dur: 260, delay: i * 70, cor });
+  });
+}
+
+// ---------- a assinatura épica de cada família no impacto ----------
+function rtFxEpico(C, fig, F, val) {
+  const p = rtFxPos(C, fig); if (!p) return;
+  const P = rtCenaPonto(fig); const A = rtCenaPonto(C.ator);
+  const ang = C.espelho ? 155 : 25;
+  rtFxClaroFig(fig, F.c);
+  switch (F.id) {
+    case "fogo":
+      rtFxStrobe(C, "rgba(255,120,20,.55)"); rtFxOnda(C, p, "#ff8a2a", 4); rtFxOnda(C, p, "#ffd27a", 2.4, 600, 120);
+      rtFxEl(C, "chama", { left: p.x + "px", top: (p.y + p.h * .45) + "px", "--w": p.w * 1.2 + "px" }, 1300);
+      if (P) rtFxTry(() => { rtvFlash(P, "rgba(255,200,110,1)", P.s * .9, 300); rtvFireOn(P, { n: 60 }); rtvBurst(P, { n: 30, cores: ["#fff1a8", "#ff9a2a", "#ff4a00"], vel: .45, life: 700, size: 3, g: -2e-4, glow: 14 }); });
+      break;
+    case "psi":
+      rtFxVortex(C, p, "#b04aff"); rtFxStrobe(C, "rgba(160,70,255,.45)"); rtFxOnda(C, p, "#c77dff", 5, 900); rtFxOnda(C, p, "#ffffff", 2, 500, 180);
+      C.caixa.classList.remove("rt-fx-chroma"); void C.caixa.offsetWidth; C.caixa.classList.add("rt-fx-chroma"); setTimeout(() => C.caixa.classList.remove("rt-fx-chroma"), rtCenaMs(700));
+      if (P) { rtFxTry(() => rtvSwirl(P, { cor: "#c77dff", n: 16, dur: 900, raio: .9 })); rtFxRaiosCanvas(P, 4, "#d9a8ff", 1.2); }
+      break;
+    case "trevas":
+      rtFxEl(C, "breu", {}, 1300); rtFxVortex(C, p, "#2a0048", 1500); rtFxOnda(C, p, "#5a189a", 4, 1000);
+      if (P) rtFxTry(() => { rtvSwirl(P, { cor: "#8a3aff", n: 12, dur: 1100, raio: 1 }); });
+      break;
+    case "sagrado":
+      rtFxPilar(C, p, "#ffe8a0", 1400); rtFxRaios(C, p, "rgba(255,220,120,.55)"); rtFxStrobe(C, "rgba(255,240,190,.6)", 450); rtFxOnda(C, p, "#ffd36b", 4.5, 900);
+      if (P) rtFxTry(() => { rtvPillar(P, {}); rtvBurst(P, { n: 34, cores: ["#ffffff", "#ffe9a8", "#ffd36b"], vel: .3, life: 900, size: 2.6, g: -3e-4, glow: 16 }); });
+      break;
+    case "veneno":
+      rtFxEl(C, "nevoa", { left: p.x + "px", top: (p.y + p.h * .3) + "px", "--c": "rgba(120,220,40,.55)", "--w": p.w * 2 + "px" }, 1500); rtFxOnda(C, p, "#9dff4a", 3);
+      if (P) rtFxTry(() => { rtvBurst(P, { n: 22, cores: ["#d4ff8a", "#7acc2a"], vel: .12, life: 1100, size: 3.4, g: -1e-4, glow: 10 }); });
+      break;
+    case "cura":
+      rtFxPilar(C, p, "#9dffb8", 1100); rtFxOnda(C, p, "#6dff9a", 3, 900); rtFxOnda(C, p, "#ffffff", 1.8, 700, 200);
+      if (P) rtFxTry(() => { rtvSwirl(P, { cor: "#7dff9a", n: 14, dur: 1100, raio: .8 }); rtvBurst(P, { n: 24, cores: ["#ffffff", "#9dffb8"], vel: .1, life: 1200, size: 2.6, g: -4e-4, glow: 12 }); });
+      break;
+    case "visao":
+      rtFxEl(C, "mira", { left: p.x + "px", top: p.y + "px", "--c": "#6ab8ff" }, 1200); rtFxRaios(C, p, "rgba(110,180,255,.4)", 1100);
+      break;
+    case "eletrico":
+      rtFxStrobe(C, "rgba(200,245,255,.7)", 250); setTimeout(() => rtFxStrobe(C, "rgba(200,245,255,.5)", 200), rtCenaMs(160));
+      if (P) rtFxRaiosCanvas(P, 7, "#bfeeff", 1.5);
+      if (A && P) rtFxTry(() => rtvLightning(A, P, { dur: 380, cor: "#e8fbff" }));
+      rtFxOnda(C, p, "#8fe8ff", 3.5, 600);
+      break;
+    case "plasma":
+      rtFxStrobe(C, "rgba(140,210,255,.6)", 320); rtFxOnda(C, p, "#5ec8ff", 5, 800); rtFxOnda(C, p, "#ffffff", 2.6, 500, 80);
+      if (P) rtFxTry(() => { rtvFlash(P, "rgba(190,235,255,1)", P.s * 1.1, 320); rtvRing(P, { cor: "#5ec8ff", raio: 1.5, dur: 600 }); rtvBurst(P, { n: 28, cores: ["#ffffff", "#5ec8ff"], vel: .4, life: 600, size: 2.6, glow: 16 }); });
+      break;
+    case "nav":
+      rtFxVortex(C, p, "#7a5aff", 1500); rtFxRaios(C, p, "rgba(170,140,255,.45)"); rtFxOnda(C, p, "#a98aff", 4, 900);
+      break;
+    case "explosivo":
+      rtFxStrobe(C, "rgba(255,200,120,.55)", 300); rtFxOnda(C, p, "#ffb347", 4.5, 700);
+      if (P) rtFxTry(() => { rtvFlash(P, "rgba(255,220,150,1)", P.s * .8, 260); rtvRing(P, { cor: "#ffb347", raio: 1.2, dur: 450 }); rtvBurst(P, { n: 26, cores: ["#ffe9a8", "#ff8a2a", "#6a5a4a"], vel: .5, life: 600, size: 2.6, g: 8e-4 }); });
+      break;
+    case "furia":
+      rtFxCorte(C, p, ang, "#ff3a2a"); rtFxCorte(C, p, -ang, "#ff8a6a", 110); rtFxStrobe(C, "rgba(200,0,0,.45)", 350);
+      if (P) rtFxTry(() => { rtvBurst(P, { n: 26, cores: ["#c4161c", "#8a0a0a", "#ff6a5a"], vel: .35, life: 650, size: 3, g: 9e-4 }); rtvSparks(P, "#ffcf6a", 26, 0); });
+      break;
+    case "impacto":
+      rtFxOnda(C, p, "#ffe9a8", 4, 600); rtFxOnda(C, p, "#ffffff", 2.4, 450, 90); rtFxStrobe(C, "rgba(255,240,200,.4)", 260);
+      if (P) rtFxTry(() => { rtvBurst(P, { n: 24, cores: ["#d9c7a0", "#8a7a60"], vel: .35, life: 600, size: 3, g: 8e-4 }); rtvRing(P, { cor: "#ffe9a8", raio: 1.3, dur: 500 }); });
+      break;
+    case "escudo":
+      rtFxEl(C, "domo", { left: p.x + "px", top: (p.y + p.h * .2) + "px", "--s": p.w * 1.5 + "px" }, 1300); rtFxOnda(C, p, "#a8e0ff", 3, 800);
+      break;
+    case "corte":
+      rtFxCorte(C, p, ang, "#ffffff"); rtFxOnda(C, p, "#ffffff", 2.2, 380);
+      if (val && val.crit) rtFxCorte(C, p, -ang, "#ffe9a8", 90);
+      if (P) rtFxTry(() => { rtvSparks(P, "#fff1c0", 18, 0); rtvBurst(P, { n: 16, cores: ["#c4161c", "#8a0a0a"], vel: .3, life: 550, size: 2.6, g: 9e-4 }); });
+      break;
+    case "tiro":
+      rtFxOnda(C, p, "#ffd27a", 2.2, 400);
+      if (P) rtFxTry(() => { rtvSparks(P, "#ffd27a", 16, 0); rtvFlash(P, "rgba(255,220,150,.9)", P.s * .5, 200); });
+      break;
+  }
+}
+// aura de carga em quem age + clarão da boca da arma
+function rtFxCarga(C, F, val) {
+  const c = C.ator && C.ator.querySelector(".rt-fig-corpo"); if (!c || !F) return;
+  C.ator.style.setProperty("--fxc", F.c); C.ator.classList.remove("rt-fx-carga"); void C.ator.offsetWidth; C.ator.classList.add("rt-fx-carga");
+  setTimeout(() => C.ator && C.ator.classList.remove("rt-fx-carga"), rtCenaMs(1500));
+  const p = rtFxPos(C, C.ator);
+  if (p && F.id !== "tiro" && F.id !== "corte") { rtFxOnda(C, p, F.c, 1.8, 600); rtFxEl(C, "brilho-chao", { left: p.x + "px", top: (p.top + p.h) + "px", "--c": F.c }, 1500); }
+}
+{
+  const f = rtCamEnvolve;
+  rtCamEnvolve = function (C, val) {
+    const F = rtFxFamilia(val);
+    setTimeout(() => { try { if (C.el.isConnected) rtFxCarga(C, F, val); } catch (e) {} }, rtCenaMs(250));
+    const r = f.apply(this, arguments);
+    C.__fxFam = F; C.__fxVal = val;
+    return r;
+  };
+}
+{
+  const f = rtCenaFlash;
+  rtCenaFlash = function (fig) {
+    const C = RT_CENA; const ja = C && C.__fxFeitos && C.__fxFeitos.has(fig);
+    const r = f.apply(this, arguments);
+    try { if (C && C.__fxFam && fig && fig !== C.ator && !ja && rtCenaModo() !== "off") rtFxEpico(C, fig, C.__fxFam, C.__fxVal); } catch (e) { console.error("efeito épico", e); }
+    return r;
+  };
+}
+// brilho nos efeitos enquanto a cena está aberta
+{
+  const f = rtCenaToca1;
+  rtCenaToca1 = function () {
+    document.body.classList.add("rt-cena-brilho");
+    const p = f.apply(this, arguments);
+    return Promise.resolve(p).finally(() => setTimeout(() => { if (!RT_CENA_ATIVA) document.body.classList.remove("rt-cena-brilho"); }, 1200));
+  };
+}
+// os efeitos de tela ficam dentro do quadro da cena enquanto ela está aberta
+function rtFxRecorta() {
+  try {
+    const cv = RTV && RTV.cv; if (!cv) return;
+    const cx = RT_CENA && RT_CENA.caixa && RT_CENA.caixa.isConnected ? RT_CENA.caixa.getBoundingClientRect() : null;
+    const v = cx ? "inset(" + Math.max(0, cx.top) + "px " + Math.max(0, innerWidth - cx.right) + "px " + Math.max(0, innerHeight - cx.bottom) + "px " + Math.max(0, cx.left) + "px round 12px)" : "";
+    if (cv.style.clipPath !== v) cv.style.clipPath = v;
+  } catch (e) {}
+}
+setInterval(rtFxRecorta, 120);
+// segurança: se a lista de efeitos esvaziou, a tela de efeitos fica limpa
+setInterval(() => { try { if (RTV && RTV.cx && !RTV.items.length && !RTV.raf) { RTV.cx.setTransform(1, 0, 0, 1, 0, 0); RTV.cx.clearRect(0, 0, RTV.cv.width, RTV.cv.height); } } catch (e) {} }, 1500);
+
+try {
+  RT_NOVIDADES.unshift(
+    ["💥 Animações épicas", "Cada tipo de ação tem a sua assinatura no impacto: explosão e coluna de fogo, vórtice psíquico com distorção, pilar de luz sagrada com raios, trevas que engolem a cena, nuvem de veneno, raios em cadeia, nova de plasma, cortes que atravessam a tela e ondas de choque. Quem age brilha com uma aura antes de agir e o alvo dá um clarão no golpe."],
+    ["🩹 Efeito preso", "Corrigido: às vezes o último quadro de um efeito (como o projétil azul) ficava parado na tela depois do ataque."]
+  );
+} catch (e) {}
+
 rtInit();
 recalc();
 })();
@@ -72385,6 +72594,53 @@ img.rt-spr{ image-rendering:pixelated; image-rendering:crisp-edges; display:bloc
 .rt-fz-cor{ display:flex; align-items:center; gap:6px; }
 .rt-fz-cor > span, .rt-fz-cor > small{ font:700 10px/1 Cinzel, Georgia, serif; letter-spacing:.06em; color:#cdb98a; text-transform:uppercase; }
 .rt-fz-cor .rt-av-cor{ width:18px; height:18px; flex:0 0 18px; }
+.rt-cena-palco.com-arte{ background-color:#0c0907; background-repeat:no-repeat; }
+
+/* ===== v4.5 — animações épicas ===== */
+body.rt-cena-brilho #rtVfxCanvas{ filter:drop-shadow(0 0 5px rgba(255,255,255,.45)) saturate(1.35) brightness(1.12); }
+.rt-fx2{ position:absolute; pointer-events:none; z-index:5; }
+.rt-fx2.strobe{ inset:0; background:var(--c); mix-blend-mode:screen; animation:rtFx2Strobe .38s ease-out forwards; z-index:6; }
+@keyframes rtFx2Strobe{ 0%{ opacity:1; } 100%{ opacity:0; } }
+.rt-fx2.onda{ width:40px; height:40px; margin:-20px 0 0 -20px; border-radius:50%; border:4px solid var(--c); box-shadow:0 0 18px var(--c), inset 0 0 14px var(--c); opacity:0; animation:rtFx2Onda .7s cubic-bezier(.1,.7,.3,1) forwards; }
+@keyframes rtFx2Onda{ 0%{ opacity:1; transform:scale(.2); } 100%{ opacity:0; transform:scale(var(--t, 3)); border-width:1px; } }
+.rt-fx2.raios{ width:520px; height:520px; margin:-260px 0 0 -260px; border-radius:50%; z-index:2; mix-blend-mode:screen;
+  background:repeating-conic-gradient(from 0deg, var(--c) 0deg 6deg, transparent 6deg 22deg); -webkit-mask:radial-gradient(circle, #000 8%, transparent 68%); mask:radial-gradient(circle, #000 8%, transparent 68%);
+  animation:rtFx2Raios 1.3s ease-out forwards; }
+@keyframes rtFx2Raios{ 0%{ opacity:0; transform:rotate(0deg) scale(.4); } 20%{ opacity:1; } 100%{ opacity:0; transform:rotate(50deg) scale(1.15); } }
+.rt-fx2.pilar{ top:0; width:var(--w); margin-left:calc(var(--w) / -2); z-index:2; mix-blend-mode:screen;
+  background:linear-gradient(90deg, transparent, var(--c) 30%, #fff 50%, var(--c) 70%, transparent); box-shadow:0 0 40px 10px var(--c); transform-origin:50% 0; animation:rtFx2Pilar 1.2s ease-out forwards; }
+@keyframes rtFx2Pilar{ 0%{ opacity:0; transform:scaleX(.1) scaleY(0); } 15%{ opacity:1; transform:scaleX(1.1) scaleY(1); } 70%{ opacity:.85; transform:scaleX(.8); } 100%{ opacity:0; transform:scaleX(.2); } }
+.rt-fx2.vortex{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius:50%; z-index:2;
+  background:conic-gradient(from 0deg, transparent, var(--c), transparent 30%, var(--c) 45%, transparent 60%, var(--c) 80%, transparent);
+  -webkit-mask:radial-gradient(circle, transparent 12%, #000 30%, transparent 70%); mask:radial-gradient(circle, transparent 12%, #000 30%, transparent 70%);
+  filter:blur(1px) drop-shadow(0 0 12px var(--c)); animation:rtFx2Vortex 1.4s ease-in-out forwards; }
+@keyframes rtFx2Vortex{ 0%{ opacity:0; transform:rotate(0) scale(.3); } 25%{ opacity:1; } 100%{ opacity:0; transform:rotate(-540deg) scale(1.2); } }
+.rt-fx2.corte{ width:820px; height:10px; margin:-5px 0 0 -410px; border-radius:50%; z-index:6; transform:rotate(var(--a)) scaleX(0);
+  background:linear-gradient(90deg, transparent, var(--c) 40%, #fff 50%, var(--c) 60%, transparent); box-shadow:0 0 18px 4px var(--c); animation:rtFx2Corte .55s cubic-bezier(.2,.9,.2,1) forwards; }
+@keyframes rtFx2Corte{ 0%{ opacity:1; transform:rotate(var(--a)) scaleX(0) scaleY(1.6); } 30%{ opacity:1; transform:rotate(var(--a)) scaleX(1) scaleY(1); } 100%{ opacity:0; transform:rotate(var(--a)) scaleX(1.05) scaleY(.1); } }
+.rt-fx2.chama{ width:var(--w); height:220px; margin-left:calc(var(--w) / -2); transform-origin:50% 100%; translate:0 -100%; z-index:4; mix-blend-mode:screen;
+  background:radial-gradient(ellipse at 50% 100%, #fff3c0 0%, #ffb02a 22%, #ff4a00 45%, rgba(160,20,0,.6) 62%, transparent 72%); filter:blur(3px); animation:rtFx2Chama 1.3s ease-out forwards; }
+@keyframes rtFx2Chama{ 0%{ opacity:0; transform:scaleY(.1) scaleX(.6); } 20%{ opacity:1; transform:scaleY(1.15) scaleX(1.1); } 45%{ transform:scaleY(.9) scaleX(.95); } 70%{ opacity:.9; transform:scaleY(1.05); } 100%{ opacity:0; transform:scaleY(1.3) scaleX(.5); } }
+.rt-fx2.breu{ inset:0; z-index:3; background:radial-gradient(ellipse at 50% 55%, transparent 10%, rgba(10,0,20,.92) 60%); animation:rtFx2Breu 1.3s ease-in-out forwards; }
+@keyframes rtFx2Breu{ 0%{ opacity:0; } 25%{ opacity:1; } 70%{ opacity:1; } 100%{ opacity:0; } }
+.rt-fx2.nevoa{ width:var(--w); height:140px; margin-left:calc(var(--w) / -2); translate:0 -60%; z-index:4; border-radius:50%;
+  background:radial-gradient(ellipse, var(--c), transparent 65%); filter:blur(8px); animation:rtFx2Nevoa 1.5s ease-out forwards; }
+@keyframes rtFx2Nevoa{ 0%{ opacity:0; transform:scale(.3); } 30%{ opacity:1; } 100%{ opacity:0; transform:scale(1.4) translateY(-20px); } }
+.rt-fx2.mira{ width:120px; height:120px; margin:-60px 0 0 -60px; z-index:6; border-radius:50%; border:3px solid var(--c); box-shadow:0 0 14px var(--c), inset 0 0 14px var(--c);
+  background:linear-gradient(var(--c), var(--c)) center/2px 100% no-repeat, linear-gradient(var(--c), var(--c)) center/100% 2px no-repeat; animation:rtFx2Mira 1.2s ease-out forwards; }
+@keyframes rtFx2Mira{ 0%{ opacity:0; transform:scale(2.6) rotate(-90deg); } 35%{ opacity:1; transform:scale(1) rotate(0); } 75%{ opacity:1; transform:scale(.9); } 100%{ opacity:0; transform:scale(.5); } }
+.rt-fx2.domo{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); z-index:5; border-radius:50%;
+  background:radial-gradient(circle, transparent 55%, rgba(168,224,255,.35) 66%, rgba(255,255,255,.75) 70%, transparent 72%); box-shadow:0 0 30px rgba(168,224,255,.6); animation:rtFx2Domo 1.3s ease-out forwards; }
+@keyframes rtFx2Domo{ 0%{ opacity:0; transform:scale(.2); } 25%{ opacity:1; transform:scale(1.05); } 80%{ opacity:.9; transform:scale(1); } 100%{ opacity:0; transform:scale(1.15); } }
+.rt-fx2.brilho-chao{ width:200px; height:40px; margin:-20px 0 0 -100px; z-index:0; border-radius:50%; background:radial-gradient(ellipse, var(--c), transparent 70%); filter:blur(4px); animation:rtFx2Chao 1.5s ease-out forwards; }
+@keyframes rtFx2Chao{ 0%{ opacity:0; transform:scale(.4); } 30%{ opacity:.9; transform:scale(1.1); } 100%{ opacity:0; transform:scale(1.4); } }
+/* aura de carga em quem age */
+.rt-fig.rt-fx-carga .rt-fig-corpo{ animation:rtFx2Aura 1.4s ease-in-out; }
+@keyframes rtFx2Aura{ 0%{ filter:none; } 30%{ filter:drop-shadow(0 0 6px var(--fxc)) drop-shadow(0 0 18px var(--fxc)) brightness(1.3); } 100%{ filter:none; } }
+/* distorção psíquica (aberração cromática) */
+.rt-cena-caixa.rt-fx-chroma .rt-cena-palco{ animation:rtFx2Chroma .7s steps(7) 1; }
+@keyframes rtFx2Chroma{ 0%,100%{ filter:none; } 15%{ filter:drop-shadow(4px 0 0 rgba(255,0,80,.6)) drop-shadow(-4px 0 0 rgba(0,220,255,.6)); } 45%{ filter:drop-shadow(-3px 1px 0 rgba(255,0,80,.6)) drop-shadow(3px -1px 0 rgba(0,220,255,.6)) hue-rotate(20deg); } 75%{ filter:drop-shadow(2px 0 0 rgba(255,0,80,.5)) drop-shadow(-2px 0 0 rgba(0,220,255,.5)); } }
+@media (prefers-reduced-motion: reduce){ .rt-fx2{ display:none; } }
 
 </style>
 </body>
