@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<script src="index_mag_imagens.js?v=33cartas01"></script>
+<script src="index_mag_imagens.js?v=36figuras1"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rogue Trader — Mesa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26976,8 +26976,10 @@ if (i === 0 && rtEhEscudoBase(w)) return null;
 if (i === 1 && (!esqLivre || esqLivre === "escudo" && !rtEhEscudoBase(w))) return null;
 if (i === 1 && rtMaosDe(RT_WEAPON_BY[w.id], comp) >= 2) return null;
 w.mao = i === 0 ? "dir" : "esq";
+try { const _a = rtArmaAura(s.bonus || []); w.__au = _a && _a.n ? [ _a.n, _a.cor ] : 0; } catch (e) {}
 return w;
 })).filter(Boolean).map((w => ({
+au: w.__au || 0,
 mao: w.mao,
 id: w.id,
 nome: w.nome,
@@ -65694,7 +65696,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "3.4";
+const RT_VERSAO_APP = "3.6";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -69093,7 +69095,7 @@ function rtSprArmaNaMao(cx, img, a, pose, geo, S, d) {
   cx.fillStyle = (d && (d.luva || d.pele)) || RT_PELE.clara; cx.fillRect((m.x - 1) * S, (m.y - 1) * S, 2 * S, 3 * S);
 }
 function rtSprPersonagem(rc, pose) {
-  const semArma = pose === "atkSem";
+  const semArma = pose === "atkSem" || pose === "idleSem";
   pose = pose === "atk" || pose === "atkSem" ? "atk" : "idle";
   const dir = (rc.armas || []).find(w => w && w.mao === "dir") || (rc.armas || [])[0] || {};
   const chave = ["p", rc.hw, rc.og, rc.a1, rc.a2, rc.armNome, (rc.armas || []).map(w => w && w.id).join("+"), (rc.aug || []).length, pose, semArma ? 1 : 0].join("|");
@@ -70340,6 +70342,211 @@ try {
   );
 } catch (e) {}
 
+// =====================================================================================
+// VERSÃO 3.5
+// · Na cena, o personagem segura a arte de verdade da arma equipada (a mesma da carta e do
+//   inventário), com o brilho que ela tem no inventário. Duas armas = uma em cada mão.
+// · Prompts dos inimigos (e reforços) em folhas: várias figuras de pixel art por imagem.
+// =====================================================================================
+
+// ---------- armas na mão da figura ----------
+function rtCenaMaosDe(tok) {
+  if (!tok || tok.bst) return null;
+  const rc = rtcOf(tok); if (!rc || !(rc.hw || rc.og || rc.a1)) return null;
+  const armas = (rc.armas || []).filter(Boolean);
+  const dir = armas.find(w => w.mao === "dir") || armas[0];
+  const esq = armas.find(w => w !== dir);
+  const geo = rtPxPersonagem(rc).geo || "normal";
+  const lista = [];
+  const um = (w, lado) => {
+    if (!w || !w.id) return;
+    const a = rtPxArmaDe(w); if (!a || a.escudo || /escudo/.test(w.id)) return;
+    const url = rtArteDaArma(w); if (!url) return;
+    lista.push({ w, a, url, lado, au: Array.isArray(w.au) ? w.au : null });
+  };
+  um(dir, "frente"); um(esq, "tras");
+  return lista.length ? { geo, lista, frente: lista.some(x => x.lado === "frente") } : null;
+}
+// posição da arma na figura (em % do quadro da figura), conforme a mão e a pose
+function rtCenaMaoPos(x, geo, pose) {
+  const G = RT_PX_GEO[geo] || RT_PX_GEO.normal;
+  const P = rtSprArmaGeo(x.a, pose);
+  const L = P.L * (x.a.pega === "dist" && (x.a.maos || 1) < 2 ? 1.55 : 1.15);
+  let mx, my, ang = P.ang, espelha = false;
+  if (x.lado === "frente") { const m = rtPxMao(G, x.a.pega, pose); mx = m.x; my = m.y; }
+  else if (x.a.pega === "cac") { const [bx, by, bw, bh] = G.arB; mx = bx + bw / 2; my = by + bh + 1; espelha = true; }   // lâmina para o outro lado
+  else { const m = rtPxMao(G, x.a.pega, pose); mx = m.x - 3; my = m.y - 2; ang = (ang || 0) - 10; }                  // segunda pistola, logo atrás da primeira
+  return { left: (mx + .5) / RT_PX_W * 100, top: (my + .5) / RT_PX_H * 100, larg: L / RT_PX_W * 100, g: P.g, ang, espelha };
+}
+function rtCenaMaoPoe(fig, pose) {
+  const M = fig && fig.__maos; if (!M) return;
+  fig.querySelectorAll(".rt-mao").forEach(el => {
+    const x = M.lista[+el.dataset.i]; if (!x) return;
+    const p = rtCenaMaoPos(x, M.geo, pose);
+    el.style.left = p.left.toFixed(2) + "%"; el.style.top = p.top.toFixed(2) + "%"; el.style.width = p.larg.toFixed(2) + "%";
+    el.style.transformOrigin = (p.g * 100).toFixed(1) + "% 50%";
+    el.style.transform = "translate(" + (-p.g * 100).toFixed(1) + "%, -50%)" + (p.espelha ? " scaleX(-1)" : "") + " rotate(" + p.ang + "deg)";
+  });
+}
+function rtCenaMaoHtml(x, i) {
+  const n = x.au ? +x.au[0] || 0 : 0, cor = x.au && x.au[1] || "#ffc94a";
+  let f = ""; const nf = n >= 4 ? 7 : n >= 3 ? 4 : 0;
+  for (let k = 0; k < nf; k++) f += '<i class="rt-faisca" style="left:' + (12 + k * 37 % 76) + "%;animation-delay:" + (k * .31 % 1.8).toFixed(2) + 's"></i>';
+  return '<span class="rt-mao rt-mao-' + x.lado + " rt-aura-" + n + '" data-i="' + i + '" data-w="' + rtEsc(x.w.id) + '" style="--au:' + cor + '"><img alt="" src="' + x.url + '">' + f + "</span>";
+}
+{
+  const f = rtCenaFigura;
+  rtCenaFigura = function (tok, papel) {
+    const el = f.apply(this, arguments);
+    try {
+      if (!tok || !el.__vis || !el.classList.contains("rt-fig-spr")) return el;
+      const M = rtCenaMaosDe(tok); if (!M) return el;
+      const im = el.querySelector(".rt-fig-corpo > img.rt-spr"); if (!im) return el;
+      el.__maos = M;
+      if (M.frente) { const u = rtSprDaPeca(tok, "idleSem"); if (u) im.src = u; }
+      const box = document.createElement("span"); box.className = "rt-spr-box";
+      im.replaceWith(box);
+      const tras = M.lista.map((x, i) => x.lado === "tras" ? rtCenaMaoHtml(x, i) : "").join("");
+      const frente = M.lista.map((x, i) => x.lado === "frente" ? rtCenaMaoHtml(x, i) : "").join("");
+      box.insertAdjacentHTML("beforeend", tras); box.appendChild(im); box.insertAdjacentHTML("beforeend", frente);
+      rtCenaMaoPoe(el, "idle");
+    } catch (e) { console.error("arma na mão", e); }
+    return el;
+  };
+}
+// a figura com arma na mão troca de pose sem desenhar a arma de pixel por cima
+{
+  const f = rtSprPose;
+  rtSprPose = function (fig, pose) {
+    if (fig && fig.__maos) {
+      const atk = pose === "atk" || pose === "atkSem";
+      rtCenaMaoPoe(fig, atk ? "atk" : "idle");
+      if (fig.__maos.frente) pose = atk ? "atkSem" : "idleSem";
+    }
+    return f.call(this, fig, pose);
+  };
+}
+// no golpe/disparo a arte grande da arma assume: a que está na mão some enquanto isso
+{
+  const f = rtCenaArmaFx;
+  rtCenaArmaFx = function (fa, info) {
+    const r = f.apply(this, arguments);
+    let el = null;
+    try {
+      if (fa && fa.__maos && info && info.w) {
+        el = [...fa.querySelectorAll(".rt-mao")].find(x => x.dataset.w === info.w.id) || fa.querySelector(".rt-mao-frente");
+        if (el) el.style.visibility = "hidden";
+      }
+    } catch (e) {}
+    if (!r) { if (el) el.style.visibility = ""; return r; }
+    return { fim() { r.fim(); if (el) setTimeout(() => { el.style.visibility = ""; }, rtCenaMs(240)); } };
+  };
+}
+
+// =====================================================================================
+// PROMPTS DOS INIMIGOS EM FOLHAS (várias figuras numa imagem só)
+// =====================================================================================
+const RT_FFOLHA_GRADE = { 9: [3, 3], 16: [4, 4], 25: [5, 5] };
+let RT_FFOLHA_N = (() => { try { const n = +localStorage.getItem("rtFFolhaN"); return RT_FFOLHA_GRADE[n] ? n : 16; } catch (e) { return 16; } })();
+const RT_FFOLHA_EXT = { 9: "nine", 12: "twelve", 16: "sixteen", 20: "twenty", 25: "twenty-five" };
+function rtFigUnidades(lado) {
+  const out = []; const F = lado === "reforco" ? RT_AFAC : RT_BFAC;
+  try { Object.keys(F).forEach(f => Object.keys(F[f].uni).forEach(u => out.push({ k: "u:" + f + ":" + u, nm: F[f].uni[u].pt || u, fac: F[f].pt || f, desc: RT_PROMPT_UNI[f + ":" + u] || F[f].uni[u].pt || u }))); } catch (e) {}
+  return out;
+}
+function rtFFolhas(lado, n) {
+  n = n || RT_FFOLHA_N; const it = rtFigUnidades(lado); const fs = [];
+  for (let i = 0; i < it.length; i += n) fs.push(it.slice(i, i + n));
+  return fs;
+}
+function rtFFolhaGrade(qt) {
+  // a última folha pode ter menos figuras: a grade fica do tamanho certo (colunas fixas)
+  const C = qt <= 4 ? 2 : qt <= 9 ? 3 : qt <= 16 ? 4 : 5;
+  return [C, Math.ceil(qt / C)];
+}
+function rtFFolhaPrompt(f, n, quem) {
+  n = n || RT_FFOLHA_N;
+  const [C, R] = f.length >= n ? RT_FFOLHA_GRADE[n] : rtFFolhaGrade(f.length);
+  const cel = C * R, vazias = cel - f.length;
+  return "A sprite sheet of " + f.length + " separate 16-bit pixel art figures of Warhammer 40,000 " + (quem || "enemies") + ", arranged in a grid of " + C + " columns and " + R + " rows of equal SQUARE cells, numbered left to right, top to bottom, the cells separated by thin solid black lines. "
+    + "Every cell has the same solid flat pure magenta background (#FF00FF). Each cell holds exactly ONE full-body figure in side view facing RIGHT, in a standing ready pose, scaled to fill most of the cell height with its feet near the bottom edge of the cell, nothing crossing into the neighbouring cells. "
+    + "All " + (RT_FFOLHA_EXT[f.length] || f.length) + " figures share the same pixel size and style: grimdark Warhammer 40,000, crisp hard pixels, limited palette, dark 1-pixel outline, no anti-aliasing, retro 16-bit game sprite look. No text, no numbers, no labels, no frames, no ground shadow, no scenery.\n"
+    + f.map((x, i) => "Figure " + (i + 1) + " (row " + (Math.floor(i / C) + 1) + ", column " + (i % C + 1) + "): " + x.desc + ".").join("\n")
+    + (vazias > 0 ? "\nThe remaining " + vazias + " cell(s) at the end stay plain magenta, empty." : "");
+}
+function rtFTodas(lado, n) {
+  const fs = rtFFolhas(lado, n); const quem = lado === "reforco" ? "Imperial soldiers" : "enemies";
+  return "Please generate " + fs.length + " separate images, one after another, one image for each prompt below (Sheet 1 to Sheet " + fs.length + "). Keep exactly the same pixel art style and the same pixel size in all of them.\n\n"
+    + fs.map((f, i) => "=== Sheet " + (i + 1) + " of " + fs.length + " ===\n" + rtFFolhaPrompt(f, n, quem)).join("\n\n");
+}
+function rtFFolhasHtml() {
+  const ini = rtFFolhas("inimigo"), ref = rtFFolhas("reforco");
+  const [C, R] = RT_FFOLHA_GRADE[RT_FFOLHA_N];
+  const lista = (fs, lado) => fs.map((fl, i) => '<div class="rt-folha"><button type="button" class="rt-btn" data-rt-ffolha="' + lado + ":" + i + '">📋 ' + (lado === "reforco" ? "REFORÇOS " : "FOLHA ") + (i + 1) + "</button><span>" + fl.map(x => rtEsc(x.nm)).join(" · ") + "</span></div>").join("");
+  return "<summary>🧍 PROMPTS EM FOLHA — inimigos: " + ini.length + " folha(s) de " + RT_FFOLHA_N + " · reforços: " + ref.length + "</summary>"
+    + '<div class="rt-folhas-tam">Figuras por imagem: ' + Object.keys(RT_FFOLHA_GRADE).map(n => '<button type="button" class="rt-btn' + (+n === RT_FFOLHA_N ? " on" : "") + '" data-rt-ffolha-n="' + n + '">' + n + " (" + RT_FFOLHA_GRADE[n].join(" × ") + ")</button>").join("")
+    + '<button type="button" class="rt-btn rt-btn-ok" data-rt-ffolha-todas="inimigo">📋 TODOS OS INIMIGOS DE UMA VEZ</button></div>'
+    + '<p class="rt-hint">Cada folha gera até ' + RT_FFOLHA_N + " figuras numa imagem só (grade de " + C + " × " + R + "), todas de lado olhando para a direita, em fundo magenta. Mais figuras por imagem = menos imagens, mas cada figura sai menor e a IA erra mais; 16 é um bom meio-termo. Mande cada imagem no chat dizendo o número da folha e quantas figuras por folha: elas são recortadas, o magenta sai e as figuras entram na cena.</p>"
+    + '<div class="rt-folhas-lista">' + lista(ini, "inimigo") + lista(ref, "reforco") + "</div>";
+}
+{
+  const f = rtFigWikiHtml;
+  rtFigWikiHtml = function () {
+    const h = f.apply(this, arguments);
+    let ab = false; try { ab = !!document.querySelector(".rt-ffolhas[open]"); } catch (e) {}
+    return '<details class="rt-folhas rt-ffolhas"' + (ab ? " open" : "") + ">" + rtFFolhasHtml() + "</details>" + h;
+  };
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-rt-ffolha], [data-rt-ffolha-n], [data-rt-ffolha-todas]"); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  if (b.dataset.rtFfolhaN) { RT_FFOLHA_N = +b.dataset.rtFfolhaN; try { localStorage.setItem("rtFFolhaN", RT_FFOLHA_N); } catch (err) {} const d = b.closest(".rt-ffolhas"); if (d) { d.innerHTML = rtFFolhasHtml(); d.open = true; } return; }
+  if (b.dataset.rtFfolhaTodas) { const n = rtFFolhas(b.dataset.rtFfolhaTodas).length; rtCopia(rtFTodas(b.dataset.rtFfolhaTodas), "PEDIDO COM AS " + n + " FOLHAS DE INIMIGOS COPIADO."); return; }
+  if (b.dataset.rtFfolha) {
+    const [lado, i] = b.dataset.rtFfolha.split(":"); const fl = rtFFolhas(lado)[+i];
+    if (fl) rtCopia(rtFFolhaPrompt(fl, RT_FFOLHA_N, lado === "reforco" ? "Imperial soldiers" : "enemies"), "PROMPT DA FOLHA " + (+i + 1) + " (" + fl.length + " FIGURAS) COPIADO.");
+  }
+}, true);
+
+try {
+  RT_NOVIDADES.unshift(
+    ["🗡️ Arma de verdade na mão", "Na cena de combate o personagem segura a arte da arma equipada (a mesma da carta e do inventário), com o brilho que ela tem no inventário. Com duas armas, uma fica em cada mão: duas espadas aparecem uma de cada lado."],
+    ["🧍 Inimigos em folha", "A página 🧍 Figuras e prompts tem prompts de folhas com 9, 16 ou 25 inimigos por imagem, e um pedido com todos de uma vez."]
+  );
+} catch (e) {}
+{
+  const f = rtWikiExtra;
+  rtWikiExtra = function (cats) {
+    f.apply(this, arguments);
+    try {
+      const R = cats.find(c => c.id === "regras"); const T = R && R.itens.find(x => x.id === "cena-combate");
+      if (T) T.html += `<h5>A arma na mão</h5><ul><li>Na cena, o personagem segura a <b>arte da arma equipada</b>, a mesma da carta e do inventário, com o mesmo <b>brilho</b> das armas especiais (bônus da Forja).</li>
+        <li>Com duas armas, cada uma fica numa mão: duas espadas aparecem uma de cada lado do personagem; duas pistolas, uma logo atrás da outra.</li>
+        <li>No golpe ou no disparo, a arma da mão vira a arte grande que desce em arco ou dá o coice, e volta para a mão depois.</li></ul>`;
+    } catch (e) {}
+  };
+}
+
+// =====================================================================================
+// VERSÃO 3.6 — figuras de pixel art dos inimigos e reforços (folhas geradas e recortadas)
+// =====================================================================================
+const RT_FIG_PADRAO = Object.assign({}, (window.RT_IMG && window.RT_IMG.figuras) || {});
+{
+  const f = rtSprUnidade;
+  rtSprUnidade = function (fa, v, u) {
+    const k = "u:" + fa + ":" + u;
+    if (!RT_SPR_ARTE[k] && RT_FIG_PADRAO[k]) return RT_FIG_PADRAO[k];
+    return f.apply(this, arguments);
+  };
+}
+// carrega as figuras cedo, para a cena já abrir com elas prontas
+setTimeout(() => { try { Object.values(RT_FIG_PADRAO).forEach(u => rtSprImg(u)); } catch (e) {} }, 3000);
+try {
+  RT_NOVIDADES.unshift(
+    ["👾 Inimigos novos na cena", "Todos os inimigos e reforços do Bestiário ganharam figuras novas em pixel art na cena de combate. O mestre ainda pode trocar qualquer uma pela página 🧍 Figuras e prompts (↺ PADRÃO volta para a nova)."]
+  );
+} catch (e) {}
+
 rtInit();
 recalc();
 })();
@@ -70624,6 +70831,27 @@ img.rt-spr{ image-rendering:pixelated; image-rendering:crisp-edges; display:bloc
 .rt-folhas-tam{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:6px 0; font-size:12px; color:#cdb98a; }
 .rt-folhas-tam .rt-btn{ font-size:10.5px; padding:3px 9px; }
 .rt-folhas-tam .rt-btn.on{ border-color:#ffd76a; color:#ffd76a; box-shadow:0 0 8px rgba(255,215,106,.4); }
+
+/* ===== v3.5 — arma de verdade na mão da figura ===== */
+.rt-fig-spr .rt-fig-corpo > .rt-spr-box{ position:relative; display:block; flex:0 0 auto; width:calc(168px * var(--spr-k, 1)); height:calc(168px * var(--spr-k, 1)); margin-bottom:-6px;
+  animation:rtSprRespira 2.4s ease-in-out infinite; transform-origin:50% 100%; }
+.rt-fig-ator.rt-fig-spr .rt-fig-corpo > .rt-spr-box{ transform:scaleX(-1); animation-name:rtSprRespiraE; }
+.rt-fig-spr.caido .rt-fig-corpo > .rt-spr-box{ animation:none; }
+.rt-spr-box > img.rt-spr{ position:relative; z-index:1; width:100%; height:100%; max-width:none; object-fit:contain; border-radius:0;
+  filter:drop-shadow(0 0 1px rgba(0,0,0,.9)) drop-shadow(0 0 10px var(--eq-brilho, rgba(201,162,74,.35))); }
+.rt-cena-escolha .rt-fig-spr .rt-fig-corpo > .rt-spr-box{ width:calc(136px * var(--spr-k, 1)); height:calc(136px * var(--spr-k, 1)); }
+.varios .rt-cena-lado.esq .rt-fig-spr .rt-fig-corpo > .rt-spr-box{ width:calc(110px * var(--spr-k, 1)); height:calc(110px * var(--spr-k, 1)); }
+@media (max-width:640px){ .rt-fig-spr .rt-fig-corpo > .rt-spr-box{ width:calc(120px * var(--spr-k, 1)); height:calc(120px * var(--spr-k, 1)); } }
+.rt-mao{ position:absolute; display:block; pointer-events:none; transition:left .18s, top .18s, transform .18s; }
+.rt-mao-frente{ z-index:2; }
+.rt-mao-tras{ z-index:0; }
+.rt-mao > img{ position:relative; z-index:1; display:block; width:100%; height:auto; max-width:none; }
+.rt-mao.rt-aura-0 > img{ filter:drop-shadow(0 0 1px #000) drop-shadow(0 1px 1px rgba(0,0,0,.7)); }
+.rt-mao.rt-aura-3::before, .rt-mao.rt-aura-4::before{ inset:-30% -8%; border-radius:50%; }
+.rt-mao .rt-faisca{ bottom:40%; }
+.rt-fig-spr.caido .rt-mao{ filter:grayscale(1); }
+.rt-fig-spr.caido .rt-mao > img, .rt-fig-spr.caido .rt-mao::before{ animation:none; }
+.rt-fig-spr.caido .rt-mao .rt-faisca{ display:none; }
 
 </style>
 </body>
