@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<script src="index_mag_imagens.js?v=36figuras1"></script>
+<script src="index_mag_imagens.js?v=40avatar1"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rogue Trader — Mesa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30433,6 +30433,8 @@ nav: comp.isPsy && st.psy === "navigator" ? rtNavPathsOf(st) : [],
 cons: cons,
 armNome: comp.armR.id ? comp.armR.nome : "",
 og: st.og || null,
+av: (typeof rtAvDe === "function" ? rtAvDe(st) : null),
+sx: (typeof rtAvDe === "function" ? ([ 1, 3 ].includes(rtAvDe(st).corpo) ? "f" : "m") : (st.sx === "f" ? "f" : "m")),
 sk: Object.assign({}, comp.sk || {}),
 ups: function() {
 const out = [];
@@ -65696,7 +65698,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "3.6";
+const RT_VERSAO_APP = "4.0";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -68735,6 +68737,8 @@ function rtPxHumano(c, d, pose) {
   if (d.olhoBio) PX.luz(c, hx + hw - 2, olhoY, 1, 1, "#ff3a2a");
   if (d.cicatriz) PX.ln(c, hx + hw - 4, hy + 3, hx + hw - 2, hy + hh - 3, "#a8584a", 1);
   if (d.barba) PX.r(c, hx + 2, hy + hh - 3, hw - 2, 3, d.barba);
+  if (d.bigode) PX.r(c, hx + hw - 4, hy + Math.round(hh * .62), 4, 1, d.bigode);
+  if (d.labio) PX.p(c, hx + hw - 1, hy + Math.round(hh * .72), d.labio);
   if (d.mascara) PX.r(c, hx + hw - 4, hy + Math.round(hh * .58), 5, 3, d.mascara);
   if (d.respirador) { PX.r(c, hx + hw - 3, hy + Math.round(hh * .6), 4, 3, "#4a4a4a"); PX.p(c, hx + hw + 1, hy + Math.round(hh * .7), "#2a2a2a"); }
   if (d.pintura) PX.r(c, hx + hw - 4, olhoY + 1, 4, 1, d.pintura);
@@ -68744,6 +68748,7 @@ function rtPxHumano(c, d, pose) {
   const cobre = d.chapeu && d.chapeu !== "coroa";      // com chapéu/capacete o moicano e o cabelo arrepiado ficam por baixo
   if (d.cabeca === "careca" || (cobre && (d.cabeca === "moicano" || d.cabeca === "selvagem"))) {}
   else if (d.cabeca === "moicano") { PX.r(c, hx + 2, hy - 3, 3, 4, cab || "#d9622a"); }
+  else if (d.cabeca === "rabo") { PX.r(c, hx, hy - 1, hw - 1, 2, cab); PX.r(c, hx, hy, 2, Math.round(hh * .5), cab); PX.r(c, hx - 2, hy + 1, 2, hh, cab); PX.p(c, hx - 1, hy, cab); }
   else if (d.cabeca === "longo") { PX.r(c, hx, hy - 1, hw - 1, 3, cab); PX.r(c, hx - 1, hy, 3, hh + 3, cab); }
   else if (d.cabeca === "selvagem") { PX.r(c, hx - 1, hy - 2, hw, 4, cab); PX.r(c, hx - 2, hy, 3, hh - 1, cab); PX.p(c, hx + 2, hy - 3, cab); PX.p(c, hx + 5, hy - 3, cab); }
   else if (cab) { PX.r(c, hx, hy - 1, hw - 1, 2, cab); PX.r(c, hx, hy, 2, Math.round(hh * .5), cab); }
@@ -69098,7 +69103,7 @@ function rtSprPersonagem(rc, pose) {
   const semArma = pose === "atkSem" || pose === "idleSem";
   pose = pose === "atk" || pose === "atkSem" ? "atk" : "idle";
   const dir = (rc.armas || []).find(w => w && w.mao === "dir") || (rc.armas || [])[0] || {};
-  const chave = ["p", rc.hw, rc.og, rc.a1, rc.a2, rc.armNome, (rc.armas || []).map(w => w && w.id).join("+"), (rc.aug || []).length, pose, semArma ? 1 : 0].join("|");
+  const chave = ["p", rc.sx || "m", rc.av ? [rc.av.cab, rc.av.cabCor, rc.av.cara, rc.av.caraAc, rc.av.corpo, rc.av.pele].join(".") : "", rc.hw, rc.og, rc.a1, rc.a2, rc.armNome, (rc.armas || []).map(w => w && w.id).join("+"), (rc.aug || []).length, pose, semArma ? 1 : 0].join("|");
   if (RT_SPR_CACHE.has(chave)) return RT_SPR_CACHE.get(chave);
   const d = rtPxPersonagem(rc);
   const S = 4;
@@ -70547,6 +70552,738 @@ try {
   );
 } catch (e) {}
 
+// =====================================================================================
+// VERSÃO 3.7 — aparência masculina/feminina na ficha + prompts das figuras dos personagens
+// (aparência × mundo natal × origem × armadura)
+// Cada folha: 4 linhas (uma origem por linha, a mesma pessoa) × 5 colunas (sem armadura → energizada)
+// =====================================================================================
+const RT_PC_HW = {
+  death_world: "survivor from a deadly jungle death world: tanned weathered skin, wild dark hair, red war paint stripes on the face, a bone necklace",
+  voidborn: "pale voidborn spacer: very pale skin, long white hair, tall and thin, a dark teal void undersuit with a metal collar ring",
+  hive_world: "hive world ganger: orange mohawk, a respirator mask hanging at the neck, gang tattoos, grimy skin",
+  forge_world: "forge world tech-adept: a red bionic eye, cables and implants on the scalp, a thin mechadendrite arm rising from the back",
+  imperial_world: "ordinary citizen of an imperial world: brown hair, plain honest face, a small golden aquila pendant",
+  fortress_world: "fortress world soldier: short military haircut, stern scarred face, olive fatigues and dog tags under the gear",
+};
+const RT_PC_OG = {
+  astra_militarum_commander: "who is an Imperial Guard commander with a peaked cap bearing a golden aquila, golden epaulettes, medals and a long greatcoat",
+  commissar: "who is an Imperial Commissar with a black peaked cap with a silver skull, a long black leather coat and a red sash",
+  crime_lord: "who is a crime lord with a fur-collared long coat, heavy gold chains and rings",
+  ministorum_priest: "who is an Ecclesiarchy priest in red and cream robes with a golden rosarius and purity seals",
+  navy_officer: "who is an Imperial Navy officer in a dark blue uniform coat with gold trim and a bicorne hat",
+  noble: "who is a rich noble with a crimson cape with gold trim, a white ruff collar and a jewel brooch",
+  sanctioned_psyker: "who is a sanctioned psyker with a psychic hood (metal collar with cables), glowing purple eyes and purity seals",
+  arbitrator: "who is an Adeptus Arbites enforcer with a black helmet with a golden visor and a black uniform",
+};
+const RT_PC_ARM = ["sem", "leve", "media", "pesada", "energizada"];
+const RT_PC_ARM_TXT = ["no armor, only the clothing of the role", "a light flak vest over the clothing", "medium flak armor: chest plate, one shoulder pad and knee pads", "heavy carapace armor with big shoulder pauldrons, chest plate and greaves", "bulky Imperial power armor with huge rounded pauldrons and a backpack, the figure bigger (head and role details still visible)"];
+function rtPcHwLista() { try { return (RT.hw || []).map(h => [h.id, h.pt]).filter(x => RT_PC_HW[x[0]]); } catch (e) { return Object.keys(RT_PC_HW).map(k => [k, k]); } }
+function rtPcOgLista() { try { return Object.keys(RT_OG_BY).filter(k => RT_PC_OG[k]).map(k => [k, RT_OG_BY[k].pt]); } catch (e) { return Object.keys(RT_PC_OG).map(k => [k, k]); } }
+// 24 folhas: 1–12 masculinas, 13–24 femininas; cada mundo natal em 2 folhas de 4 origens
+const RT_PC_SX = { m: ["a man", "MASCULINA"], f: ["a woman", "FEMININA"] };
+function rtPcFolhas(sx) {
+  const fs = []; const ogs = rtPcOgLista();
+  (sx ? [sx] : ["m", "f"]).forEach(s => rtPcHwLista().forEach(([hw, hwNm]) => { for (let i = 0; i < ogs.length; i += 4) fs.push({ sx: s, hw, hwNm, ogs: ogs.slice(i, i + 4) }); }));
+  return fs;
+}
+function rtPcFolhaPrompt(f) {
+  const R = f.ogs.length; const quem = RT_PC_SX[f.sx || "m"][0];
+  return "A character sprite sheet of " + (R * 5) + " separate 16-bit pixel art figures for a Warhammer 40,000 RPG, arranged in a grid of 5 columns and " + R + " rows of equal cells, the cells separated by thin solid black lines. "
+    + "Each ROW is one and the same person (same face, skin, hair and outfit in all five cells of the row), and the 5 COLUMNS show that person with increasing armor, left to right: column 1 " + RT_PC_ARM_TXT[0] + "; column 2 " + RT_PC_ARM_TXT[1] + "; column 3 " + RT_PC_ARM_TXT[2] + "; column 4 " + RT_PC_ARM_TXT[3] + "; column 5 " + RT_PC_ARM_TXT[4] + ". "
+    + (f.sx === "f" ? "All figures on this sheet are clearly WOMEN (female face and build, armor shaped for a woman), grim and battle-ready, not sexualized. " : "All figures on this sheet are clearly MEN (male face and build). ")
+    + "Every cell has the same solid flat pure magenta background (#FF00FF). Each cell holds exactly ONE full-body figure in side view facing RIGHT, standing ready pose, BOTH HANDS EMPTY (no weapon, no shield, nothing held), the front arm bent with the empty fist forward at waist height, scaled to fill most of the cell height with the feet near the bottom edge, nothing crossing into the neighbouring cells. "
+    + "All figures share the same pixel size and style: grimdark Warhammer 40,000, crisp hard pixels, limited palette, dark 1-pixel outline, no anti-aliasing, retro 16-bit game sprite look. No text, no numbers, no labels, no frames, no ground shadow, no scenery.\n"
+    + f.ogs.map(([og], i) => "Row " + (i + 1) + ": " + quem + ", a " + RT_PC_HW[f.hw] + ", " + RT_PC_OG[og] + ".").join("\n");
+}
+function rtPcTodas(sx) {
+  const todas = rtPcFolhas(); const fs = rtPcFolhas(sx); const n0 = sx === "f" ? todas.length - fs.length : 0;
+  return "Please generate " + fs.length + " separate images, one after another, one image for each prompt below (Sheet " + (n0 + 1) + " to Sheet " + (n0 + fs.length) + "). Keep exactly the same pixel art style and the same pixel size in all of them.\n\n"
+    + fs.map((f, i) => "=== Sheet " + (n0 + i + 1) + " of " + todas.length + " ===\n" + rtPcFolhaPrompt(f)).join("\n\n");
+}
+function rtPcFolhasHtml() {
+  const fs = rtPcFolhas(); const nm = rtPcFolhas("m").length;
+  return "<summary>🧑 PROMPTS DOS PERSONAGENS — " + fs.length + " folhas de 20 (" + (fs.length * 20) + " figuras)</summary>"
+    + '<div class="rt-folhas-tam"><button type="button" class="rt-btn rt-btn-ok" data-rt-pcfolha-todas="m">📋 ♂ MASCULINAS (FOLHAS 1–' + nm + ')</button><button type="button" class="rt-btn rt-btn-ok" data-rt-pcfolha-todas="f">📋 ♀ FEMININAS (FOLHAS ' + (nm + 1) + "–" + fs.length + ")</button></div>"
+    + '<p class="rt-hint">Uma figura para cada combinação de <b>aparência × mundo natal × origem × armadura</b> (sem, leve, média, pesada, energizada). Cada folha é um mundo natal com 4 origens: cada linha é a mesma pessoa e as 5 colunas vão de sem armadura até a energizada. As mãos ficam vazias, porque a arma é a arte da arma equipada, posta na mão na cena. A aparência (masculina ou feminina) é escolhida na ficha, logo abaixo do Mundo Natal. Mande cada imagem no chat com o número da folha.</p>'
+    + '<div class="rt-folhas-lista">' + fs.map((f, i) => '<div class="rt-folha"><button type="button" class="rt-btn" data-rt-pcfolha="' + i + '">📋 FOLHA ' + (i + 1) + "</button><span><b>" + (f.sx === "f" ? "♀ " : "♂ ") + rtEsc(f.hwNm) + ":</b> " + f.ogs.map(o => rtEsc(o[1])).join(" · ") + "</span></div>").join("") + "</div>";
+}
+{
+  const f = rtFigWikiHtml;
+  rtFigWikiHtml = function () {
+    let ab = false; try { ab = !!document.querySelector(".rt-pcfolhas[open]"); } catch (e) {}
+    const h = f.apply(this, arguments);
+    return '<details class="rt-folhas rt-pcfolhas"' + (ab ? " open" : "") + ">" + rtPcFolhasHtml() + "</details>" + h;
+  };
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-rt-pcfolha], [data-rt-pcfolha-todas]"); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  if (b.matches("[data-rt-pcfolha-todas]")) { const sx = b.dataset.rtPcfolhaTodas; rtCopia(rtPcTodas(sx), "PEDIDO COM AS " + rtPcFolhas(sx).length + " FOLHAS " + (sx === "f" ? "FEMININAS" : "MASCULINAS") + " COPIADO."); return; }
+  const f = rtPcFolhas()[+b.dataset.rtPcfolha]; if (f) rtCopia(rtPcFolhaPrompt(f), "PROMPT DA FOLHA " + (+b.dataset.rtPcfolha + 1) + " DE PERSONAGENS COPIADO.");
+}, true);
+// ---------- aparência (masculina / feminina) na ficha ----------
+document.addEventListener("change", e => {
+  const t = e.target; if (!t || t.id !== "rtSx") return;
+  e.stopPropagation();
+  try { if (!rtCanEdit()) { t.value = rtState.sx === "f" ? "f" : "m"; return; } rtState.sx = t.value === "f" ? "f" : "m"; rtCommit(); } catch (err) { console.error("aparência", err); }
+}, true);
+{
+  const f = rtRenderAll;
+  rtRenderAll = function () {
+    const r = f.apply(this, arguments);
+    try { const s = document.getElementById("rtSx"); if (s) { s.value = rtState.sx === "f" ? "f" : "m"; s.disabled = !rtCanEdit(); } } catch (e) {}
+    return r;
+  };
+}
+// boneco de pixel (enquanto não há figura gerada): aparência feminina = cabelo longo e corpo mais esguio
+{
+  const f = rtPxPersonagem;
+  rtPxPersonagem = function (rc) {
+    const d = f.apply(this, arguments);
+    try {
+      if (rc && rc.sx === "f") {
+        if (d.cabeca !== "careca" && d.cabeca !== "moicano") d.cabeca = "longo";
+        if (!d.cabelo) d.cabelo = "#3a2a1a";
+        if (!d.geo || d.geo === "normal") d.geo = "magro";
+      }
+    } catch (e) {}
+    return d;
+  };
+}
+try {
+  RT_NOVIDADES.unshift(
+    ["♀♂ Aparência", "A ficha tem a escolha de aparência masculina ou feminina, logo abaixo do Mundo Natal. Ela muda o boneco do personagem e a figura na cena."],
+    ["🧑 Personagens em folha", "A página 🧍 Figuras e prompts tem os prompts das figuras dos personagens: uma para cada aparência × mundo natal × origem × armadura, em 24 folhas de 20 (12 masculinas e 12 femininas)."]
+  );
+} catch (e) {}
+
+// =====================================================================================
+// VERSÃO 3.8
+// · Portal: na cena o portal aparece sozinho, cai um raio na frente dele e do raio surge a unidade.
+// · Demônio de outra facção que ataca um portal toma o portal para a facção dele.
+// · Avatar: o boneco sai do VER VERSO e vai para a FICHA (embaixo de Características);
+//   nova guia APARÊNCIA (embaixo de Perícias): CABELO, CABEÇA e CORPO, cada um com tipo e cor.
+// =====================================================================================
+
+// =====================================================================================
+// PORTAL: a cena do surgimento
+// =====================================================================================
+{
+  const f = rtPlayAndBroadcast;
+  rtPlayAndBroadcast = function (att, tgt, val) {
+    try { if (val && val.rt && val.kind === "buff" && att && rtEhPortal(att) && tgt && tgt.id !== att.id && (val.txt === "PORTAL" || val.txt === "CHEFE!")) val.spawn = 1; } catch (e) {}
+    return f.apply(this, arguments);
+  };
+}
+{
+  const f = rtCenaToca1;
+  rtCenaToca1 = async function (aA, tA, val) {
+    // a peça nova pode chegar um pouco depois da animação: espera até 1,5 s por ela
+    if (val && val.spawn && tA) { for (let i = 0; i < 15 && !rtCenaTokEm(tA); i++) await new Promise(r => setTimeout(r, 100)); }
+    return f.apply(this, arguments);
+  };
+}
+{
+  const f = rtCenaMonta;
+  rtCenaMonta = function (att, alvos) {
+    const C = f.apply(this, arguments);
+    try { if (RT_CENA_VAL && RT_CENA_VAL.spawn) Object.keys(C.alvos).forEach(id => { const fg = C.alvos[id]; if (fg && fg !== C.ator) fg.classList.add("rt-fig-oculta"); }); } catch (e) {}
+    return C;
+  };
+}
+async function rtCenaSpawn(C, att, tgt, val) {
+  const fa = C.ator, ft = C.alvos[tgt && tgt.id];
+  if (!ft || ft === fa) return;
+  const arma = C.caixa.querySelector(".rt-cena-arma"); if (arma) arma.classList.remove("on");
+  rtCenaNarra(C, val.txt === "CHEFE!" ? "O PORTAL SE ESCANCARA…" : "O PORTAL PULSA…", "");
+  if (fa) rtCenaAnima(fa, [{ transform: "scale(1)", filter: "brightness(1)" }, { transform: "scale(1.08)", filter: "brightness(1.8)" }, { transform: "scale(1)", filter: "brightness(1)" }], 700);
+  await rtCenaEspera(650);
+  const P = rtCenaPonto(ft); const cx = C.caixa.getBoundingClientRect();
+  if (P) {
+    const chao = { x: P.x, y: P.y + P.s * .55, s: P.s }, ceu = { x: P.x + (Math.random() - .5) * P.s * .4, y: cx.top + 6, s: P.s };
+    try { rtSom("arco", 0); } catch (e) {}
+    try { rtvLightning(chao, ceu, { dur: 380 }); rtvLightning({ x: chao.x + P.s * .12, y: chao.y, s: P.s }, { x: ceu.x - P.s * .3, y: ceu.y, s: P.s }, { dur: 300, delay: 90 }); } catch (e) {}
+    try { rtvFlash(chao, "rgba(210,230,255,0.95)", P.s * 1.3, 380, 60); } catch (e) {}
+    C.el.classList.add("rt-cena-raio"); setTimeout(() => C.el.classList.remove("rt-cena-raio"), rtCenaMs(260));
+  }
+  rtCenaTreme(C, true);
+  await rtCenaEspera(170);
+  ft.classList.remove("rt-fig-oculta");
+  await rtCenaAnima(ft, [
+    { opacity: 0, transform: "translateY(10px) scale(.55)", filter: "brightness(5) saturate(0)" },
+    { opacity: 1, transform: "translateY(0) scale(1.08)", filter: "brightness(2.2) saturate(.5)", offset: .45 },
+    { opacity: 1, transform: "translateY(0) scale(1)", filter: "brightness(1) saturate(1)" }], 650);
+  rtCenaTexto(C, ft, (val.icon ? val.icon + " " : "") + (val.txt === "CHEFE!" ? "CHEFE!" : "SURGIU!"), val.txt === "CHEFE!" ? "crit" : "buff");
+  rtCenaNarra(C, val.txt === "CHEFE!" ? "UM CHEFE EMERGE DO PORTAL!" : "DO RAIO SURGE " + String(rtNm(tgt)).toUpperCase() + "!", "mal");
+  await rtCenaEspera(1000);
+}
+{
+  const f = rtCenaEfeito;
+  rtCenaEfeito = async function (C, att, tgt, val) {
+    if (val && val.spawn && tgt && C.alvos[tgt.id] && C.alvos[tgt.id] !== C.ator) return rtCenaSpawn(C, att, tgt, val);
+    return f.apply(this, arguments);
+  };
+}
+
+// =====================================================================================
+// PORTAL TOMADO: demônio de outra facção ataca o portal → o portal passa para a facção dele
+// =====================================================================================
+const rtPortalTomavel = (att, t) => !!(att && t && att.bst && t.bst && att.id !== t.id && rtEhDemonio(att) && rtEhPortal(t) && !rtIsDown(t) && att.bst.f && t.bst.f && att.bst.f !== t.bst.f);
+// o demônio enxerga os portais das outras facções como alvo
+{
+  const f = rtFoesOf;
+  rtFoesOf = function (tok) {
+    const l = f.apply(this, arguments);
+    try {
+      if (tok && tok.bst && rtEhDemonio(tok)) rtAllTokens().forEach(t => { if (rtPortalTomavel(tok, t) && !l.includes(t)) l.push(t); });
+    } catch (e) {}
+    return l;
+  };
+}
+function rtPortalToma(att, t) {
+  const F = RT_BFAC[att.bst.f]; if (!F) return false;
+  const antes = (RT_BFAC[t.bst.f] || {}).pt || t.bst.f;
+  t.bst = Object.assign({}, t.bst, { f: att.bst.f, v: att.bst.v || Object.keys(F.vert || {})[0] });
+  try { if (t.rtc) t.rtc.bstF = att.bst.f; } catch (e) {}
+  try { if (currentRole === "mestre") t.portrait = rtBestPortrait(t); } catch (e) {}
+  try { const p = rtPosOf(t); if (p) renderBoardCell(p.r, p.c); } catch (e) {}
+  try { scheduleBoardTokensPush(); } catch (e) {}
+  setTimeout(() => {
+    try { rtPlayAndBroadcast(att, t, { rt: 1, kind: "buff", icon: "🌀", vfx: "tele_escuro", txt: "PORTAL TOMADO", deidade: "" }); } catch (e) {}
+    RT_POST_LIVRE = true;
+    try { postToDiscord(`🌀😈 ${String(rtNm(att)).toUpperCase()} CORROMPE O SPAWNWARP: O PORTAL DE ${String(antes).toUpperCase()} AGORA SERVE A ${String(F.pt || att.bst.f).toUpperCase()}!`, null); } catch (e) {} finally { RT_POST_LIVRE = false; }
+  }, 60);
+  return true;
+}
+{
+  const f = rtApplyStrike;
+  rtApplyStrike = function (att, tgt, res) {
+    try {
+      if (rtPortalTomavel(att, tgt) && res) { rtPortalToma(att, tgt); res.dano = 0; res.crit = false; }
+    } catch (e) { console.error("portal tomado", e); }
+    return f.apply(this, arguments);
+  };
+}
+
+// =====================================================================================
+// AVATAR: cabelo, cabeça e corpo
+// =====================================================================================
+const RT_AV = {
+  cab: [["curto", "Curto"], ["longo", "Longo"], ["rabo", "Rabo de cavalo"], ["moicano", "Moicano"], ["selvagem", "Arrepiado"], ["careca", "Raspado"]],
+  cabCor: [["#1a1412", "Preto"], ["#3a2a1a", "Castanho escuro"], ["#5a3a1a", "Castanho"], ["#a8401a", "Ruivo"], ["#c8a85a", "Loiro"], ["#e9e6f0", "Platinado"], ["#8a8a8a", "Grisalho"], ["#d9622a", "Laranja"], ["#3a5aa8", "Azul"], ["#a81a1a", "Vermelho"], ["#6a2a8a", "Roxo"]],
+  cara: [["comum", "Rosto limpo"], ["rala", "Barba rala"], ["barba", "Barba cheia"], ["bigode", "Bigode"]],
+  caraAc: [["nada", "Sem marcas"], ["cicatriz", "Cicatriz"], ["pintura", "Pintura de guerra"], ["olhoBio", "Olho biônico"], ["lente", "Lente tática"], ["tapa", "Tapa-olho"], ["respirador", "Respirador"], ["mascara", "Máscara"]],
+  corpo: [["m", "Masculino"], ["f", "Feminino"], ["ma", "Masculino aumentado"], ["fa", "Feminino aumentado"]],
+  pele: [["#f0c8a8", "Muito clara"], ["#e3b48c", "Clara"], ["#c99a6c", "Morena clara"], ["#a8764a", "Morena"], ["#80522f", "Escura"], ["#5a3620", "Muito escura"], ["#e9e0e6", "Pálida"], ["#b8b0a8", "Cinzenta"]],
+};
+const RT_AV_K = ["cab", "cabCor", "cara", "caraAc", "corpo", "pele"];
+const rtAvIdx = (lista, v) => Math.max(0, lista.findIndex(x => x[0] === v));
+function rtAvPerto(lista, cor) {
+  if (!cor) return 0; const h = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+  try { const a = h(cor); let m = 0, md = 1e9; lista.forEach((x, i) => { const b = h(x[0]); const d = (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2; if (d < md) { md = d; m = i; } }); return m; } catch (e) { return 0; }
+}
+// o avatar da ficha; quem ainda não escolheu começa com o visual do mundo natal
+function rtAvDe(st) {
+  st = st || rtState;
+  const o = {};
+  const H = (st && RT_PX_HW[st.hw]) || {};
+  const base = {
+    cab: H.cabeca ? rtAvIdx(RT_AV.cab, H.cabeca) : 0, cabCor: rtAvPerto(RT_AV.cabCor, H.cabelo || "#3a2a1a"), cara: 0,
+    caraAc: H.respirador ? 6 : H.olhoBio ? 3 : H.pintura ? 2 : 0, corpo: st && st.sx === "f" ? 1 : 0, pele: rtAvPerto(RT_AV.pele, H.pele || RT_PELE.clara),
+  };
+  const a = (st && st.av) || {};
+  RT_AV_K.forEach(k => { const n = RT_AV[k].length; const v = parseInt(a[k], 10); o[k] = Number.isFinite(v) ? ((v % n) + n) % n : base[k]; });
+  return o;
+}
+// aplica o avatar nos dados do boneco de pixel
+function rtAvAplica(d, av, rc) {
+  if (!av) return d;
+  const cab = RT_AV.cabCor[av.cabCor][0];
+  d.pele = RT_AV.pele[av.pele][0]; d.cabelo = cab; d.cabeca = RT_AV.cab[av.cab][0];
+  delete d.barba; delete d.bigode;
+  const cara = RT_AV.cara[av.cara][0];
+  if (cara === "rala") d.barba = rtPxCor(d.pele, -.32); else if (cara === "barba") d.barba = rtPxCor(cab, -.05); else if (cara === "bigode") d.bigode = cab;
+  // marcas do rosto: as do mundo natal saem (agora quem escolhe é o jogador); as do arquétipo ficam
+  const ar = Object.assign({}, (rc && RT_PX_ARCH[rc.a2]) || {}, (rc && RT_PX_ARCH[rc.a1]) || {});
+  ["respirador", "pintura", "olhoBio", "cicatriz", "lente", "mascara"].forEach(k => { if (!(k in ar)) delete d[k]; });
+  if (rc && (rc.aug || []).length) d.olhoBio = true;
+  const ac = RT_AV.caraAc[av.caraAc][0];
+  if (ac === "cicatriz") d.cicatriz = true; else if (ac === "pintura") d.pintura = "#a81a1a"; else if (ac === "olhoBio") d.olhoBio = true;
+  else if (ac === "lente") d.lente = "#5aff8a"; else if (ac === "tapa") d.lente = "#141414"; else if (ac === "respirador") d.respirador = true; else if (ac === "mascara") d.mascara = "#1a1a1e";
+  const corpo = RT_AV.corpo[av.corpo][0];
+  if ((corpo === "f" || corpo === "fa") && (!d.geo || d.geo === "normal")) d.geo = "magro";
+  if (corpo === "ma" || corpo === "fa") { d.bracoBio = true; d.luva = d.luva || "#9a9aa0"; d.aumentado = true; }
+  return d;
+}
+{
+  const f = rtPxPersonagem;
+  rtPxPersonagem = function (rc) { const d = f.apply(this, arguments); try { if (rc && rc.av) rtAvAplica(d, rc.av, rc); } catch (e) {} return d; };
+}
+// o corpinho só com a roupa de baixo (para a guia APARÊNCIA)
+const RT_AV_CACHE = new Map();
+function rtAvCanvas(av) {
+  const k = RT_AV_K.map(x => av[x]).join("."); if (RT_AV_CACHE.has(k)) return RT_AV_CACHE.get(k);
+  const d = rtAvAplica({}, av, null);
+  const pele = d.pele, roupaBaixo = "#2a2a30";
+  const aum = !!d.aumentado, metal = "#7a7a84";
+  Object.assign(d, { roupa: pele, manga: aum ? metal : pele, mangaB: aum ? rtPxCor(metal, -.2) : rtPxCor(pele, -.15), calca: aum ? metal : pele, bota: aum ? "#5a5a62" : rtPxCor(pele, -.22), cinto: roupaBaixo, luva: aum ? "#9a9aa0" : pele });
+  const c = rtPxNovo(); rtPxHumano(c, d, "idle");
+  const G = RT_PX_GEO[d.geo || "normal"];
+  PX.r(c, G.lbx - 1, G.belt, (G.lfx + G.lw + 1) - (G.lbx - 1), 4, roupaBaixo);                 // roupa de baixo
+  if (RT_AV.corpo[av.corpo][0].startsWith("f")) PX.r(c, G.tx + 1, G.ty + 2, G.tw - 1, 4, roupaBaixo);
+  if (aum) { PX.p(c, G.lfx + 1, G.ly + Math.round(G.lh * .45), "#ff3a2a"); PX.r(c, G.om[0], G.om[1], 2, 2, "#5a5a62"); }
+  rtPxAcaba(c);
+  const cv = rtPxCanvas(c, 4); const out = { cv, G };
+  RT_AV_CACHE.set(k, out); return out;
+}
+function rtAvMiniatura(av, parte) {
+  const { cv, G } = rtAvCanvas(av); const S = 4;
+  const o = document.createElement("canvas"); o.width = 96; o.height = 96; const cx = o.getContext("2d"); cx.imageSmoothingEnabled = false;
+  if (parte === "corpo") { const t = 36, x0 = (G.tx + G.tw / 2 - t / 2) * S, y0 = (G.pe + 3 - t) * S; cx.drawImage(cv, x0, y0, t * S, t * S, 0, 0, 96, 96); }
+  else { const t = 18, x0 = (G.hx + G.hw / 2 - t / 2) * S, y0 = (G.hy + G.hh / 2 - t / 2 - 1) * S; cx.drawImage(cv, x0, y0, t * S, t * S, 0, 0, 96, 96); }
+  return o.toDataURL("image/png");
+}
+
+// ---------- o boneco vai para a FICHA, embaixo de Características ----------
+rtBonecoVerso = function (forca) {
+  if (!rtReady) return;
+  const velho = document.querySelector("#rtVersoImgs > #rtBonecoBox"); if (velho) velho.remove();
+  const tab = document.getElementById("rtCharTable"); const col = tab && tab.closest(".rt-col"); if (!col) return;
+  let el = document.getElementById("rtAvatarBox");
+  if (!el) {
+    el = document.createElement("div"); el.id = "rtAvatarBox"; el.className = "rt-panel rt-avatar-box";
+    el.innerHTML = '<h3>Avatar</h3><div class="rt-boneco-palco"><img class="rt-spr" alt=""></div><div class="rt-boneco-leg"></div>';
+    col.appendChild(el);
+    el.addEventListener("mouseenter", () => { const im = el.querySelector("img.rt-spr"); if (im && el.__atk) im.src = el.__atk; });
+    el.addEventListener("mouseleave", () => { const im = el.querySelector("img.rt-spr"); if (im && el.__idle) im.src = el.__idle; });
+  }
+  let rc = null;
+  try { rc = rtLiveSnapshot(); } catch (e) { rc = null; }
+  if (!rc) { el.hidden = true; return; }
+  const sig = JSON.stringify([rc.hw, rc.og, rc.a1, rc.a2, rc.armNome, (rc.armas || []).map(w => w.id + w.mao), (rc.aug || []).length, rc.av, Object.keys(RT_SPR_ARTE).length]);
+  if (!forca && sig === RT_BONECO_SIG && el.querySelector("img.rt-spr").getAttribute("src")) return;
+  RT_BONECO_SIG = sig;
+  el.hidden = false;
+  el.__idle = rtSprPersonagem(rc, "idle"); el.__atk = rtSprPersonagem(rc, "atk");
+  el.querySelector("img.rt-spr").src = el.__idle;
+  const nm = (k, tb) => { try { return tb && tb[k] ? tb[k].pt : ""; } catch (e) { return ""; } };
+  const hw = ((RT.hw || []).find(h => h.id === rc.hw) || {}).pt || "";
+  const partes = [hw, nm(rc.og, RT_OG_BY), rc.a1 && RT.arch[rc.a1] ? RT.arch[rc.a1].pt : "", rc.armNome || ""].filter(Boolean);
+  el.querySelector(".rt-boneco-leg").textContent = partes.length ? partes.join(" · ") : "Escolha mundo natal, origem e arquétipo";
+  el.title = "O avatar usa a APARÊNCIA (cabelo, cabeça e corpo) e veste a origem, a armadura e as armas da ficha. Passe o mouse para ver a pose de ataque.";
+};
+
+// ---------- guia APARÊNCIA, embaixo de Perícias ----------
+const RT_AV_LINHAS = [
+  { t: "CABELO", parte: "cab", tipo: "cab", cor: "cabCor", corNm: "Cor do cabelo" },
+  { t: "CABEÇA", parte: "cab", tipo: "cara", cor: "caraAc", corNm: "Acessório / marca" },
+  { t: "CORPO", parte: "corpo", tipo: "corpo", cor: "pele", corNm: "Tom de pele" },
+];
+function rtAvEditorHtml() {
+  const av = rtAvDe(rtState); const pode = rtCanEdit();
+  const seta = (k, d) => '<button type="button" class="rt-av-seta" data-av-k="' + k + '" data-av-d="' + d + '"' + (pode ? "" : " disabled") + ">" + (d < 0 ? "◀" : "▶") + "</button>";
+  return RT_AV_LINHAS.map(L => {
+    const tipo = RT_AV[L.tipo][av[L.tipo]], cor = RT_AV[L.cor][av[L.cor]];
+    const amostra = /^#/.test(cor[0]) ? '<i class="rt-av-cor" style="background:' + cor[0] + '"></i>' : "";
+    return '<div class="rt-av-linha"><b class="rt-av-tit">' + L.t + "</b>"
+      + '<div class="rt-av-op"><div class="rt-av-quadro"><img alt="" src="' + rtAvMiniatura(av, L.parte === "corpo" ? "corpo" : "cab") + '"></div>'
+      + '<div class="rt-av-nav">' + seta(L.tipo, -1) + "<span>" + rtEsc(tipo[1]) + "</span>" + seta(L.tipo, 1) + "</div></div>"
+      + '<div class="rt-av-op2"><small>' + rtEsc(L.corNm) + '</small><div class="rt-av-nav">' + seta(L.cor, -1) + "<span>" + amostra + rtEsc(cor[1]) + "</span>" + seta(L.cor, 1) + "</div>"
+      + '<small class="rt-av-n">' + (av[L.tipo] + 1) + "/" + RT_AV[L.tipo].length + " · " + (av[L.cor] + 1) + "/" + RT_AV[L.cor].length + "</small></div></div>";
+  }).join("") + '<p class="rt-hint">Só o corpo com a roupa de baixo: a origem, a armadura e as armas vestem o avatar por cima. Os cabelos, rostos e corpos desenhados chegam depois e entram nestas mesmas setas.</p>';
+}
+let RT_AV_SIG = "";
+function rtAvEditor(forca) {
+  const tab = document.getElementById("rtSkillTable"); const col = tab && tab.closest(".rt-col"); if (!col) return;
+  let el = document.getElementById("rtAvEditor");
+  if (!el) { el = document.createElement("div"); el.id = "rtAvEditor"; el.className = "rt-panel rt-av-ed"; el.innerHTML = '<h3>Aparência</h3><div class="rt-av-corpo"></div>'; col.appendChild(el); }
+  const sig = JSON.stringify([rtAvDe(rtState), rtCanEdit()]);
+  if (!forca && sig === RT_AV_SIG) return;
+  RT_AV_SIG = sig;
+  el.querySelector(".rt-av-corpo").innerHTML = rtAvEditorHtml();
+}
+setInterval(() => { try { if (rtReady) rtAvEditor(false); } catch (e) {} }, 700);
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-av-k]"); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  try {
+    if (!rtCanEdit()) return;
+    const k = b.dataset.avK, d = +b.dataset.avD; const av = rtAvDe(rtState); const n = RT_AV[k].length;
+    av[k] = ((av[k] + d) % n + n) % n;
+    rtState.av = av; rtState.sx = [1, 3].includes(av.corpo) ? "f" : "m";
+    rtCommit(); rtAvEditor(true); rtBonecoVerso(true);
+  } catch (err) { console.error("aparência", err); }
+}, true);
+
+try {
+  RT_NOVIDADES.unshift(
+    ["🧑 Avatar na ficha", "O boneco do personagem saiu do VER VERSO e agora fica na FICHA, embaixo de Características. Embaixo de Perícias, a guia APARÊNCIA escolhe CABELO (tipo e cor), CABEÇA (rosto e acessório/marca) e CORPO (masculino, feminino e as versões aumentadas, com membros mecânicos, e o tom de pele)."],
+    ["🌀 Portal em cena", "Quando o SpawnWarp gera uma unidade, a cena mostra o portal sozinho, um raio cai na frente dele e a unidade surge do raio."],
+    ["😈 Portal tomado", "Em mapas com mais de uma facção, um demônio que ataca o portal de outra facção toma o portal: dali em diante ele gera unidades da facção do demônio."]
+  );
+} catch (e) {}
+{
+  const f = rtWikiExtra;
+  rtWikiExtra = function (cats) {
+    f.apply(this, arguments);
+    try {
+      cats.forEach(c => (c.itens || []).forEach(x => {
+        if (x.id === "patrulha-spawn") x.html += `<h5>🌀 Raio e portal tomado</h5><ul><li>Na cena, o portal aparece sozinho, um <b>raio</b> cai na frente dele e a unidade nova surge do raio.</li>
+          <li>Em mapas com inimigos de mais de uma facção, um <b>demônio</b> que ataca o portal de outra facção não causa dano: ele <b>toma o portal</b>, que passa a gerar unidades da facção do demônio. Demônios controlados pela IA procuram esses portais como alvo.</li></ul>`;
+      }));
+    } catch (e) {}
+  };
+}
+
+// =====================================================================================
+// VERSÃO 3.9
+// · Guia APARÊNCIA só com as setas (sem nomes e sem textos); avatar sem legenda.
+// · O avatar veste o equipamento da ficha: armadura, origem e as armas (a arte da arma
+//   na mão, com o brilho do inventário), como na cena.
+// · CABEÇA ganha rostos femininos. Prompts das partes do avatar para gerar na outra IA.
+// =====================================================================================
+RT_AV.cara.push(["fem", "Rosto feminino"], ["femMarcado", "Rosto feminino marcado"]);
+{
+  const f = rtAvAplica;
+  rtAvAplica = function (d, av) {
+    f.apply(this, arguments);
+    try {
+      const cara = RT_AV.cara[av.cara] && RT_AV.cara[av.cara][0];
+      if (cara === "fem") d.labio = "#b0525a";
+      else if (cara === "femMarcado") { d.labio = "#8e4a4a"; d.cicatriz = true; }
+    } catch (e) {}
+    return d;
+  };
+}
+
+// ---------- guia APARÊNCIA: só miniatura e setas ----------
+rtAvEditorHtml = function () {
+  const av = rtAvDe(rtState); const pode = rtCanEdit();
+  const seta = (k, d, t) => '<button type="button" class="rt-av-seta" data-av-k="' + k + '" data-av-d="' + d + '" title="' + t + '"' + (pode ? "" : " disabled") + ">" + (d < 0 ? "◀" : "▶") + "</button>";
+  return RT_AV_LINHAS.map(L => {
+    const cor = RT_AV[L.cor][av[L.cor]];
+    const meio = /^#/.test(cor[0]) ? '<i class="rt-av-cor" style="background:' + cor[0] + '"></i>' : '<i class="rt-av-cor vazio"></i>';
+    return '<div class="rt-av-linha"><b class="rt-av-tit">' + L.t + "</b>"
+      + '<div class="rt-av-op"><div class="rt-av-quadro"><img alt="" src="' + rtAvMiniatura(av, L.parte === "corpo" ? "corpo" : "cab") + '"></div>'
+      + '<div class="rt-av-nav">' + seta(L.tipo, -1, "Anterior") + seta(L.tipo, 1, "Próximo") + "</div></div>"
+      + '<div class="rt-av-op2"><div class="rt-av-nav">' + seta(L.cor, -1, L.corNm) + meio + seta(L.cor, 1, L.corNm) + "</div></div></div>";
+  }).join("");
+};
+
+// ---------- o avatar com o equipamento da ficha ----------
+function rtAvMaosDe(rc) {
+  if (!rc) return null;
+  const armas = (rc.armas || []).filter(Boolean);
+  const dir = armas.find(w => w.mao === "dir") || armas[0];
+  const esq = armas.find(w => w !== dir);
+  const geo = rtPxPersonagem(rc).geo || "normal";
+  const lista = [];
+  const um = (w, lado) => {
+    if (!w || !w.id) return;
+    const a = rtPxArmaDe(w); if (!a || a.escudo || /escudo/.test(w.id)) return;
+    const url = rtArteDaArma(w); if (!url) return;
+    lista.push({ w, a, url, lado, au: Array.isArray(w.au) ? w.au : null });
+  };
+  um(dir, "frente"); um(esq, "tras");
+  return lista.length ? { geo, lista, frente: lista.some(x => x.lado === "frente") } : null;
+}
+rtBonecoVerso = function (forca) {
+  if (!rtReady) return;
+  const velho = document.querySelector("#rtVersoImgs > #rtBonecoBox"); if (velho) velho.remove();
+  const tab = document.getElementById("rtCharTable"); const col = tab && tab.closest(".rt-col"); if (!col) return;
+  let el = document.getElementById("rtAvatarBox");
+  if (el && !el.querySelector(".rt-spr-box")) { el.remove(); el = null; }
+  if (!el) {
+    el = document.createElement("div"); el.id = "rtAvatarBox"; el.className = "rt-panel rt-avatar-box";
+    el.innerHTML = '<h3>Avatar</h3><div class="rt-boneco-palco"><span class="rt-spr-box"><img class="rt-spr" alt=""></span></div>';
+    col.appendChild(el);
+    const pose = atk => { const im = el.querySelector("img.rt-spr"); const u = atk ? el.__atk : el.__idle; if (im && u) im.src = u; rtCenaMaoPoe(el, atk ? "atk" : "idle"); };
+    el.addEventListener("mouseenter", () => pose(true));
+    el.addEventListener("mouseleave", () => pose(false));
+  }
+  let rc = null;
+  try { rc = rtLiveSnapshot(); } catch (e) { rc = null; }
+  if (!rc) { el.hidden = true; return; }
+  const sig = JSON.stringify([rc.hw, rc.og, rc.a1, rc.a2, rc.armNome, (rc.armas || []).map(w => [w.id, w.mao, w.au]), rc.aug, rc.av, Object.keys(RT_SPR_ARTE).length]);
+  if (!forca && sig === RT_BONECO_SIG && el.querySelector("img.rt-spr").getAttribute("src")) return;
+  RT_BONECO_SIG = sig;
+  el.hidden = false;
+  const M = rtAvMaosDe(rc); el.__maos = M;
+  const semArma = M && M.frente;
+  el.__idle = rtSprPersonagem(rc, semArma ? "idleSem" : "idle"); el.__atk = rtSprPersonagem(rc, semArma ? "atkSem" : "atk");
+  const box = el.querySelector(".rt-spr-box"); const im = box.querySelector("img.rt-spr");
+  box.querySelectorAll(".rt-mao").forEach(x => x.remove());
+  im.src = el.__idle;
+  if (M) {
+    im.insertAdjacentHTML("beforebegin", M.lista.map((x, i) => x.lado === "tras" ? rtCenaMaoHtml(x, i) : "").join(""));
+    im.insertAdjacentHTML("afterend", M.lista.map((x, i) => x.lado === "frente" ? rtCenaMaoHtml(x, i) : "").join(""));
+    rtCenaMaoPoe(el, "idle");
+  }
+  el.removeAttribute("title");
+};
+// equipamento novo na ficha → o avatar troca na hora
+{
+  const f = rtCommit;
+  rtCommit = function () { const r = f.apply(this, arguments); try { rtBonecoVerso(false); } catch (e) {} return r; };
+}
+
+// =====================================================================================
+// PROMPTS DAS PARTES DO AVATAR (para gerar na outra IA e substituir as de pixel do jogo)
+// Corpo sem cabeça + cabeça (cabelo × rosto) + chapéu da origem + acessório do rosto.
+// As cores (cabelo e pele) não precisam de imagem: o jogo pinta por cima.
+// =====================================================================================
+const RT_AVP_BASE = "Same art style in every cell: 16-bit pixel art in the grimdark Warhammer 40,000 style, crisp hard pixels, limited palette, dark 1-pixel outline, no anti-aliasing, retro game sprite look. Every cell has the same solid flat pure magenta background (#FF00FF), and the cells are separated by thin solid black lines. No text, no numbers, no labels, no frames, no ground shadow, no scenery.";
+const RT_AVP_PELE = "All skin is ONE single medium tan placeholder tone (#C08A5C) with simple darker shading, because the game recolors the skin later.";
+const RT_AVP_CABELO = "All hair, beards and eyebrows are a flat bright placeholder GREEN (#30D030) with darker green shading, because the game recolors the hair later.";
+const RT_AVP_FOLHAS = [
+  { nm: "Corpos (sem cabeça) × armadura", grade: [5, 4], txt: () =>
+    "A sprite sheet of 20 separate pixel art BODIES for a paper-doll character system, in a grid of 5 columns and 4 rows of equal cells. "
+    + "Each body is HEADLESS: drawn from the neck down, the neck cut cleanly flat at the top (the head is a separate piece added later). Full body below the neck, side view facing RIGHT, standing ready pose, BOTH HANDS EMPTY with the front fist held forward at waist height. Every body has the same height and the same pose, the neck top at the same height in every cell, the feet near the bottom edge, nothing crossing into the neighbouring cells. "
+    + "ROWS (body type): row 1 an average human man; row 2 an average human woman; row 3 an augmented man whose arms and legs are replaced by Adeptus Mechanicus bionic limbs (bare steel, cables, pistons); row 4 an augmented woman with the same kind of bionic arms and legs. "
+    + "COLUMNS (what the body wears): column 1 only plain dark grey underwear (shorts, and a sports top for the women); column 2 a light flak vest over simple fatigues; column 3 medium flak armor: chest plate, one shoulder pad, knee pads; column 4 heavy carapace armor with big shoulder pauldrons and greaves; column 5 bulky Imperial power armor with huge rounded pauldrons and a backpack (the body bigger). "
+    + RT_AVP_PELE + " " + RT_AVP_BASE },
+  { nm: "Cabeças 1 (curto, longo, rabo de cavalo) × rosto", grade: [6, 3], cab: [0, 1, 2] },
+  { nm: "Cabeças 2 (moicano, arrepiado, raspado) × rosto", grade: [6, 3], cab: [3, 4, 5] },
+  { nm: "Chapéus e elmos da origem", grade: [3, 3], txt: () =>
+    "A sprite sheet of 8 separate pixel art HEADGEAR items for a paper-doll character system, in a grid of 3 columns and 3 rows of equal cells (the last cell stays plain magenta, empty). Each cell holds ONLY the isolated item, side view facing RIGHT, sized to sit on a human head that fills about two thirds of the cell, no head, no person. "
+    + "Cell 1: an Imperial Guard commander peaked cap with a golden aquila. Cell 2: a black Commissar peaked cap with a silver skull. Cell 3: a crime lord's dark wide-brimmed hat with a gold band. Cell 4: a red and cream Ecclesiarchy priest hood (cowl). Cell 5: a dark blue Imperial Navy bicorne hat with gold trim. Cell 6: a noble's golden circlet with a blue jewel. Cell 7: a psyker hood: a metal collar and head frame with cables and purple glowing crystals. Cell 8: a black Adeptus Arbites helmet with a golden visor. "
+    + RT_AVP_BASE },
+  { nm: "Acessórios e marcas do rosto", grade: [3, 3], txt: () =>
+    "A sprite sheet of 7 separate pixel art FACE ACCESSORIES for a paper-doll character system, in a grid of 3 columns and 3 rows of equal cells (the last two cells stay plain magenta, empty). Each cell holds ONLY the isolated item as it would sit on a face seen in side view facing RIGHT, sized for a human head that fills about two thirds of the cell, no head, no person. "
+    + "Cell 1: a jagged pinkish scar line. Cell 2: red tribal war paint stripes. Cell 3: an Adeptus Mechanicus bionic eye with a glowing red lens and metal plate. Cell 4: a green glowing tactical monocle lens on a small headset. Cell 5: a black leather eyepatch with its strap. Cell 6: a grey respirator mask with a filter canister, covering mouth and nose. Cell 7: a black cloth assassin face mask covering the lower face. "
+    + RT_AVP_BASE },
+];
+const RT_AVP_ROSTOS = ["a young man, clean-shaven", "a man with short stubble", "a man with a full thick beard", "a man with a thick moustache", "a young woman", "a mature woman with stern weathered features"];
+const RT_AVP_CORTES = ["short cropped hair", "long hair falling to the shoulders", "hair tied back in a ponytail", "a tall mohawk with the sides shaved", "wild spiky unkempt hair", "a shaved bald head (no hair)"];
+function rtAvpPrompt(i) {
+  const F = RT_AVP_FOLHAS[i]; if (F.txt) return F.txt();
+  return "A sprite sheet of " + (F.cab.length * 6) + " separate pixel art HEADS for a paper-doll character system, in a grid of 6 columns and " + F.cab.length + " rows of equal cells. "
+    + "Each cell holds ONLY a head with its neck: side view in profile facing RIGHT, the neck cut cleanly flat at the bottom center of the cell, every head the same size and at the same place in its cell, neutral calm expression, nothing crossing into the neighbouring cells. "
+    + "ROWS (hairstyle): " + F.cab.map((c, r) => "row " + (r + 1) + " " + RT_AVP_CORTES[c]).join("; ") + ". "
+    + "COLUMNS (face): " + RT_AVP_ROSTOS.map((x, c) => "column " + (c + 1) + " " + x).join("; ") + ". Each row keeps the same hairstyle and each column the same face. "
+    + RT_AVP_CABELO + " " + RT_AVP_PELE + " " + RT_AVP_BASE;
+}
+function rtAvpTodas() {
+  const n = RT_AVP_FOLHAS.length;
+  return "Please generate " + n + " separate images, one after another, one image for each prompt below (Sheet 1 to Sheet " + n + "). Keep exactly the same pixel art style and the same pixel size in all of them, so the pieces fit together as a paper doll.\n\n"
+    + RT_AVP_FOLHAS.map((f, i) => "=== Sheet " + (i + 1) + " of " + n + " ===\n" + rtAvpPrompt(i)).join("\n\n");
+}
+function rtAvpHtml() {
+  return "<summary>🧑 PROMPTS DAS PARTES DO AVATAR — " + RT_AVP_FOLHAS.length + " folhas</summary>"
+    + '<div class="rt-folhas-tam"><button type="button" class="rt-btn rt-btn-ok" data-rt-avp-todas>📋 TODAS AS FOLHAS DE UMA VEZ</button></div>'
+    + '<p class="rt-hint">O avatar é montado por partes: corpo sem cabeça (já com a armadura), cabeça (cabelo × rosto), chapéu da origem e acessório do rosto. O cabelo vem verde e a pele num tom só, porque o jogo pinta as 11 cores de cabelo e os 8 tons de pele. Mande cada imagem no chat com o número da folha.</p>'
+    + '<div class="rt-folhas-lista">' + RT_AVP_FOLHAS.map((f, i) => '<div class="rt-folha"><button type="button" class="rt-btn" data-rt-avp="' + i + '">📋 FOLHA ' + (i + 1) + "</button><span>" + rtEsc(f.nm) + " (" + f.grade.join(" × ") + ")</span></div>").join("") + "</div>";
+}
+{
+  const f = rtFigWikiHtml;
+  rtFigWikiHtml = function () {
+    let ab = false; try { ab = !!document.querySelector(".rt-avpfolhas[open]"); } catch (e) {}
+    const h = f.apply(this, arguments);
+    return '<details class="rt-folhas rt-avpfolhas"' + (ab ? " open" : "") + ">" + rtAvpHtml() + "</details>" + h;
+  };
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-rt-avp], [data-rt-avp-todas]"); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  if (b.matches("[data-rt-avp-todas]")) { rtCopia(rtAvpTodas(), "PEDIDO COM AS " + RT_AVP_FOLHAS.length + " FOLHAS DO AVATAR COPIADO."); return; }
+  const i = +b.dataset.rtAvp; rtCopia(rtAvpPrompt(i), "PROMPT DA FOLHA " + (i + 1) + " DO AVATAR COPIADO.");
+}, true);
+
+try {
+  RT_NOVIDADES.unshift(
+    ["🧑 Avatar equipado", "O avatar da ficha veste a armadura, a origem e as armas colocadas na ficha (a arte da arma na mão, com o brilho do inventário) e troca na hora quando o equipamento muda. A guia APARÊNCIA ficou só com as setas."]
+  );
+} catch (e) {}
+
+// =====================================================================================
+// VERSÃO 4.0 — o avatar do personagem com a arte gerada (corpo × armadura, cabeça
+// cabelo × rosto, chapéu da origem e acessório do rosto). O jogo pinta o cabelo e a pele.
+// =====================================================================================
+const RT_AVIA = (window.RT_IMG && window.RT_IMG.avatar) || null;
+const RT_AVIA_N = 288;
+const RT_AVIA_ARM = { leve: 1, media: 2, pesada: 3, energizada: 4 };
+const RT_AVIA_IMGS = new Map();
+const RT_AVIA_CACHE = new Map();
+let RT_AVIA_PRONTO = false;
+// carrega as partes uma vez; quando chegam, refaz avatar, guia e figuras
+(function () {
+  if (!RT_AVIA) return;
+  const ks = Object.keys(RT_AVIA.img); let falta = ks.length;
+  ks.forEach(k => {
+    const im = new Image();
+    im.onload = im.onerror = () => {
+      if (--falta) return;
+      RT_AVIA_PRONTO = true; RT_AVIA_CACHE.clear();
+      try { RT_SPR_CACHE.clear(); } catch (e) {}
+      setTimeout(() => { try { rtBonecoVerso(true); } catch (e) {} try { rtAvEditor(true); } catch (e) {} }, 50);
+    };
+    im.src = RT_AVIA.img[k]; RT_AVIA_IMGS.set(k, im);
+  });
+})();
+const rtAvIaUsa = rc => !!(RT_AVIA && RT_AVIA_PRONTO && rc && rc.av && (rc.hw || rc.og || rc.a1));
+function rtAvIaArmCol(rc) {
+  try { const A = rc && rc.armNome && RT_ARMORS.find(a => a.pt === rc.armNome || a.nome === rc.armNome || a.id === rc.armNome); return (A && RT_AVIA_ARM[A.cls]) || 0; } catch (e) { return 0; }
+}
+function rtAvIaChaves(rc, semArmadura) {
+  const av = rc.av;
+  const ac = RT_AV.caraAc[av.caraAc] && RT_AV.caraAc[av.caraAc][0];
+  return {
+    corpo: "corpo_" + av.corpo + "_" + (semArmadura ? 0 : rtAvIaArmCol(rc)),
+    cab: "cab_" + av.cab + "_" + av.cara,
+    ac: ac && ac !== "nada" && RT_AVIA.img["ac_" + ac] ? "ac_" + ac : null,
+    og: rc.og && RT_AVIA.img["chapeu_" + rc.og] ? "chapeu_" + rc.og : null,
+  };
+}
+// ---------- cor do cabelo e da pele (o cabelo veio verde e a pele num tom só) ----------
+function rtHslDe(r, g, b) {
+  r /= 255; g /= 255; b /= 255; const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1) + 1e-6);
+  let h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; if (h < 0) h += 360;
+  return [h, s, l];
+}
+function rtRgbDe(h, s, l) {
+  const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+const rtHexHsl = hex => rtHslDe(parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16));
+function rtAvIaPinta(k, cab, pele) {
+  const ck = k + "|" + (cab || "") + "|" + (pele || "");
+  if (RT_AVIA_CACHE.has(ck)) return RT_AVIA_CACHE.get(ck);
+  const im = RT_AVIA_IMGS.get(k); if (!im || !im.naturalWidth) return null;
+  const cv = document.createElement("canvas"); cv.width = im.naturalWidth; cv.height = im.naturalHeight;
+  const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+  if (cab || pele) {
+    const P = RT_AVIA.p; const D = cx.getImageData(0, 0, cv.width, cv.height), d = D.data;
+    const tc = cab ? rtHexHsl(cab) : null, tp = pele ? rtHexHsl(pele) : null;
+    for (let i = 0; i < d.length; i += 4) {
+      if (!d[i + 3]) continue;
+      const [h, s, l] = rtHslDe(d[i], d[i + 1], d[i + 2]);
+      let t = null, lr = 1;
+      if (tc && h >= 75 && h <= 165 && s > .3) { t = tc; lr = P.lrefCab; }
+      else if (tp && h >= 12 && h <= 40 && s > P.psat && l > P.pl0 && l < .85) { t = tp; lr = P.lrefPele; }
+      if (!t) continue;
+      const [r, g, b] = rtRgbDe(t[0], t[1], Math.max(0, Math.min(1, t[2] * l / lr)));
+      d[i] = r; d[i + 1] = g; d[i + 2] = b;
+    }
+    cx.putImageData(D, 0, 0);
+  }
+  RT_AVIA_CACHE.set(ck, cv);
+  return cv;
+}
+// desenha uma parte: coordenadas do recorte original (bb) → tela
+function rtAvIaPoe(cx, src, bb, sc, ox, oy) { cx.drawImage(src, ox + bb[0] * sc, oy + bb[1] * sc, (bb[2] - bb[0]) * sc, (bb[3] - bb[1]) * sc); }
+function rtAvIaItem(cx, k, conf, sc, hx, hy) {
+  const src = rtAvIaPinta(k); if (!src) return;
+  const bb = RT_AVIA.meta[k].bb; const bw = bb[2] - bb[0], bh = bb[3] - bb[1];
+  const W = conf[2] * sc, H = W * bh / bw;
+  cx.drawImage(src, hx + conf[0] * sc - conf[3] * W, hy + conf[1] * sc - conf[4] * H, W, H);
+}
+// geometria (corpo inteiro na tela)
+function rtAvIaGeo(K) {
+  const P = RT_AVIA.p, N = RT_AVIA_N, k = N / P.mundo, mb = RT_AVIA.meta[K.corpo];
+  const ox = N / 2 - P.cx * k, oy = N * P.pe - mb.pe * k, s = P.s * k;
+  const hx = ox + (mb.pesc[0] + P.dx) * k - P.hpx * s, hy = oy + (mb.pesc[1] + P.dy) * k - P.hpy * s;
+  return { N, k, ox, oy, s, hx, hy, mb };
+}
+function rtAvIaCompor(rc) {
+  const av = rc.av; const K = rtAvIaChaves(rc);
+  const cab = RT_AV.cabCor[av.cabCor][0], pele = RT_AV.pele[av.pele][0];
+  const ck = "c|" + JSON.stringify(K) + "|" + cab + "|" + pele;
+  if (RT_AVIA_CACHE.has(ck)) return RT_AVIA_CACHE.get(ck);
+  const corpo = rtAvIaPinta(K.corpo, null, pele), cabeca = rtAvIaPinta(K.cab, cab, pele);
+  if (!corpo || !cabeca) return null;
+  const G = rtAvIaGeo(K); const P = RT_AVIA.p;
+  const cv = document.createElement("canvas"); cv.width = cv.height = G.N; const cx = cv.getContext("2d"); cx.imageSmoothingQuality = "high";
+  rtAvIaPoe(cx, corpo, G.mb.bb, G.k, G.ox, G.oy);
+  rtAvIaPoe(cx, cabeca, RT_AVIA.meta[K.cab].bb, G.s, G.hx, G.hy);
+  if (K.ac) rtAvIaItem(cx, K.ac, P.ac[K.ac.slice(3)], G.s, G.hx, G.hy);
+  if (K.og) rtAvIaItem(cx, K.og, P.og[K.og.slice(7)], G.s, G.hx, G.hy);
+  const url = cv.toDataURL("image/png");
+  RT_AVIA_CACHE.set(ck, url);
+  return url;
+}
+// as mãos do corpo gerado, em pixels do quadro de 48 (para as armas na mão e o golpe da cena)
+function rtAvIaGeoChave(rc) {
+  const K = rtAvIaChaves(rc); const key = "ia_" + K.corpo;
+  if (!RT_PX_GEO[key]) {
+    const G = rtAvIaGeo(K); const g = v => v / G.N * RT_PX_W;
+    const f = G.mb.maoF, t = G.mb.maoT;
+    const fx = g(G.ox + f[0] * G.k), fy = g(G.oy + f[1] * G.k), bx = g(G.ox + t[0] * G.k), by = g(G.oy + t[1] * G.k);
+    RT_PX_GEO[key] = Object.assign({}, RT_PX_GEO.normal, { ia: { fx, fy }, arB: [bx - 1, by - 11, 2, 10] });
+  }
+  return key;
+}
+{
+  const f = rtPxMao;
+  rtPxMao = function (G, pega, pose) {
+    if (G && G.ia) return pose === "atk" ? { x: G.ia.fx + 1.5, y: G.ia.fy - .5 } : { x: G.ia.fx, y: G.ia.fy };
+    return f.apply(this, arguments);
+  };
+}
+{
+  const f = rtPxPersonagem;
+  rtPxPersonagem = function (rc) {
+    const d = f.apply(this, arguments);
+    try { if (rtAvIaUsa(rc)) d.geo = rtAvIaGeoChave(rc); } catch (e) {}
+    return d;
+  };
+}
+{
+  const f = rtCenaMaoPos;
+  rtCenaMaoPos = function (x, geo) {
+    const r = f.apply(this, arguments);
+    if (typeof geo === "string" && geo.startsWith("ia_")) r.larg *= 1.12;      // a figura gerada é mais alta: arma um pouco maior
+    return r;
+  };
+}
+// a figura do personagem (ficha e cena) passa a ser a arte gerada; a arma vai por cima, na mão
+{
+  const f = rtSprPersonagem;
+  rtSprPersonagem = function (rc, pose) {
+    try { if (rtAvIaUsa(rc)) { const u = rtAvIaCompor(rc); if (u) return u; } } catch (e) { console.error("avatar", e); }
+    return f.apply(this, arguments);
+  };
+}
+// com a arte gerada a arma é sempre a arte por cima (nada de arma desenhada no corpo)
+{
+  const f = rtAvMaosDe;
+  rtAvMaosDe = function (rc) { const M = f.apply(this, arguments); if (M && rtAvIaUsa(rc)) M.frente = true; return M; };
+}
+{
+  const f = rtCenaMaosDe;
+  rtCenaMaosDe = function (tok) { const M = f.apply(this, arguments); try { if (M && rtAvIaUsa(rtcOf(tok))) M.frente = true; } catch (e) {} return M; };
+}
+// ---------- miniaturas da guia APARÊNCIA com a arte gerada ----------
+{
+  const f = rtAvMiniatura;
+  rtAvMiniatura = function (av, parte) {
+    try {
+      if (!RT_AVIA || !RT_AVIA_PRONTO) return f.apply(this, arguments);
+      const cab = RT_AV.cabCor[av.cabCor][0], pele = RT_AV.pele[av.pele][0];
+      const K = rtAvIaChaves({ av }, true);
+      const o = document.createElement("canvas"); o.width = o.height = 96; const cx = o.getContext("2d"); cx.imageSmoothingQuality = "high";
+      if (parte === "corpo") {
+        const src = rtAvIaPinta(K.corpo, null, pele); if (!src) return f.apply(this, arguments);
+        const bb = RT_AVIA.meta[K.corpo].bb; const sc = 90 / Math.max(bb[2] - bb[0], bb[3] - bb[1]);
+        rtAvIaPoe(cx, src, bb, sc, 48 - (bb[0] + bb[2]) / 2 * sc, 93 - bb[3] * sc);
+      } else {
+        const src = rtAvIaPinta(K.cab, cab, pele); if (!src) return f.apply(this, arguments);
+        const bb = RT_AVIA.meta[K.cab].bb; const sc = 86 / 470; const ox = 48 - 235 * sc, oy = 92 - 450 * sc;
+        rtAvIaPoe(cx, src, bb, sc, ox, oy);
+        if (K.ac) rtAvIaItem(cx, K.ac, RT_AVIA.p.ac[K.ac.slice(3)], sc, ox, oy);
+      }
+      return o.toDataURL("image/png");
+    } catch (e) { return f.apply(this, arguments); }
+  };
+}
+try {
+  RT_NOVIDADES.unshift(
+    ["🧑 Avatar novo", "O avatar do personagem agora usa a arte gerada: corpo (masculino, feminino e aumentados) que troca com a armadura vestida, cabeça com o cabelo e o rosto escolhidos, chapéu ou elmo da origem e o acessório do rosto. A cor do cabelo e o tom de pele são pintados pelo jogo. Vale para a ficha e para a cena de combate."]
+  );
+} catch (e) {}
+
 rtInit();
 recalc();
 })();
@@ -70852,6 +71589,50 @@ img.rt-spr{ image-rendering:pixelated; image-rendering:crisp-edges; display:bloc
 .rt-fig-spr.caido .rt-mao{ filter:grayscale(1); }
 .rt-fig-spr.caido .rt-mao > img, .rt-fig-spr.caido .rt-mao::before{ animation:none; }
 .rt-fig-spr.caido .rt-mao .rt-faisca{ display:none; }
+
+/* ===== v3.8 — portal e avatar ===== */
+.rt-fig.rt-fig-oculta{ visibility:hidden !important; }
+.rt-cena.rt-cena-raio .rt-cena-caixa{ box-shadow:0 0 0 2px #cfe6ff, 0 0 80px 20px rgba(190,220,255,.55); }
+.rt-cena.rt-cena-raio .rt-cena-escuro{ background:rgba(200,225,255,.22); }
+
+/* avatar na ficha */
+.rt-avatar-box{ display:flex; flex-direction:column; align-items:stretch; overflow:hidden; }
+.rt-avatar-box[hidden]{ display:none !important; }
+.rt-avatar-box .rt-boneco-palco{ min-height:240px; display:flex; align-items:flex-end; justify-content:center; padding:6px 0 2px;
+  background:radial-gradient(ellipse at 50% 92%, rgba(201,162,74,.25), transparent 58%), linear-gradient(180deg, #17110b, #0b0805); border-radius:8px; }
+.rt-avatar-box .rt-boneco-palco img.rt-spr{ width:min(100%, 240px); height:auto; aspect-ratio:1; filter:drop-shadow(0 0 1px #000) drop-shadow(0 6px 8px rgba(0,0,0,.6)); animation:rtSprRespira 2.4s ease-in-out infinite; transform-origin:50% 100%; }
+.rt-avatar-box .rt-boneco-leg{ font:700 9.5px/1.25 Cinzel, Georgia, serif; letter-spacing:.05em; color:#cdb98a; text-align:center; padding:5px 2px 0; text-transform:uppercase; }
+
+/* guia APARÊNCIA */
+.rt-av-ed .rt-av-linha{ display:grid; grid-template-columns:58px 1fr 1fr; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid rgba(201,162,74,.18); }
+.rt-av-ed .rt-av-linha:last-of-type{ border-bottom:0; }
+.rt-av-tit{ font:700 11px/1.2 Cinzel, Georgia, serif; letter-spacing:.08em; color:#e0b656; }
+.rt-av-op{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+.rt-av-quadro{ width:76px; height:76px; border-radius:8px; overflow:hidden; border:1px solid rgba(201,162,74,.35);
+  background:repeating-conic-gradient(#1c150d 0% 25%, #241a10 0% 50%) 50% / 12px 12px; }
+.rt-av-quadro img{ width:100%; height:100%; image-rendering:pixelated; display:block; }
+.rt-av-op2{ display:flex; flex-direction:column; align-items:center; gap:4px; text-align:center; }
+.rt-av-op2 > small{ font-size:9.5px; letter-spacing:.05em; text-transform:uppercase; color:#b9a67a; }
+.rt-av-nav{ display:flex; align-items:center; justify-content:center; gap:4px; width:100%; }
+.rt-av-nav > span{ flex:1; min-width:0; font-size:10.5px; line-height:1.15; text-align:center; text-transform:uppercase; color:#efe2bf; display:flex; align-items:center; justify-content:center; gap:4px; }
+.rt-av-seta{ flex:0 0 22px; width:22px; height:22px; padding:0; border-radius:50%; border:1px solid rgba(201,162,74,.55); background:#1a120a; color:#e0b656; font-size:10px; line-height:20px; cursor:pointer; }
+.rt-av-seta:hover:not(:disabled){ background:#3a2814; color:#fff3cf; }
+.rt-av-seta:disabled{ opacity:.35; cursor:not-allowed; }
+.rt-av-cor{ display:inline-block; flex:0 0 12px; width:12px; height:12px; border-radius:50%; border:1px solid rgba(0,0,0,.6); box-shadow:0 0 0 1px rgba(255,255,255,.25); }
+.rt-av-n{ font-size:9px !important; color:#8a7a5a !important; }
+.rt-pcfolhas{ display:none !important; }   /* os prompts de figura inteira saíram: o avatar agora é montado por partes */
+
+/* ===== v3.9 — guia só com setas e avatar equipado ===== */
+.rt-av-ed .rt-av-linha{ grid-template-columns:64px 1fr 1fr; }
+.rt-av-nav{ gap:6px; }
+.rt-av-op .rt-av-nav, .rt-av-op2 .rt-av-nav{ justify-content:center; }
+.rt-av-op2{ justify-content:center; height:100%; }
+.rt-av-cor{ flex:0 0 16px; width:16px; height:16px; }
+.rt-av-cor.vazio{ background:repeating-linear-gradient(45deg, #3a2a1a 0 3px, #1a120a 3px 6px); }
+.rt-av-seta{ flex:0 0 26px; width:26px; height:26px; font-size:11px; line-height:24px; }
+.rt-avatar-box .rt-boneco-palco .rt-spr-box{ position:relative; display:block; width:min(100%, 240px); aspect-ratio:1; animation:rtSprRespira 2.4s ease-in-out infinite; transform-origin:50% 100%; }
+.rt-avatar-box .rt-boneco-palco .rt-spr-box > img.rt-spr{ position:relative; z-index:1; width:100%; height:100%; animation:none; }
+.rt-avatar-box .rt-boneco-palco{ padding-bottom:8px; }
 
 </style>
 </body>
