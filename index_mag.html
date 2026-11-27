@@ -65703,7 +65703,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "4.5";
+const RT_VERSAO_APP = "4.6";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -72132,6 +72132,61 @@ try {
     ["🩹 Efeito preso", "Corrigido: às vezes o último quadro de um efeito (como o projétil azul) ficava parado na tela depois do ataque."]
   );
 } catch (e) {}
+
+// =====================================================================================
+// VERSÃO 4.6 — coloração dos avatares
+// · Cabelo e pele pintados preservando o sombreado: o tom de referência da arte vira o tom
+//   escolhido e o resto da luz/sombra é mapeado proporcionalmente (sem estourar no branco
+//   nem chapar no preto). Sombras da pele um pouco mais quentes, brilhos mais frios.
+// · A máscara da pele pega também as meias-sombras (corpos sem armadura e cabeças).
+// · A franja rosada (resto do fundo magenta) nas bordas vira contorno escuro.
+// =====================================================================================
+const RT_AV_REF = { cab: { l: .37, s: .60 }, pele: { l: .56, s: .47 } };
+// leva a luminosidade "l" (da arte) para o tom escolhido, mantendo 0→0 e 1→1
+function rtAvMapaL(l, ref, alvo) {
+  if (l <= ref) return alvo * (l / ref);
+  return alvo + (1 - alvo) * ((l - ref) / (1 - ref)) * .92;
+}
+rtAvIaPinta = function (k, cab, pele) {
+  const ck = "v46|" + k + "|" + (cab || "") + "|" + (pele || "");
+  if (RT_AVIA_CACHE.has(ck)) return RT_AVIA_CACHE.get(ck);
+  const im = RT_AVIA_IMGS.get(k); if (!im || !im.naturalWidth) return null;
+  const W = im.naturalWidth, H = im.naturalHeight;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+  const D = cx.getImageData(0, 0, W, H), d = D.data;
+  const tc = cab ? rtHexHsl(cab) : null, tp = pele ? rtHexHsl(pele) : null;
+  const corpoNu = /^corpo_\d+_0$/.test(k), cabeca = /^cab_/.test(k), parte = corpoNu || cabeca || /^corpo_/.test(k);
+  const transp = i => i < 0 || i >= W * H || !d[i * 4 + 3];
+  for (let p = 0, i = 0; p < W * H; p++, i += 4) {
+    if (!d[i + 3]) continue;
+    const [h, s, l] = rtHslDe(d[i], d[i + 1], d[i + 2]);
+    // franja magenta na borda → contorno escuro
+    if (parte && h > 278 && h < 345 && s > .22) {
+      const x = p % W;
+      if ((x > 0 && transp(p - 1)) || (x < W - 1 && transp(p + 1)) || transp(p - W) || transp(p + W) || s > .5) { d[i] = 26; d[i + 1] = 18; d[i + 2] = 16; continue; }
+    }
+    let t = null, R = null, quente = false;
+    if (tc && h >= 70 && h <= 170 && s > .22) { t = tc; R = RT_AV_REF.cab; }
+    else if (tp && h >= 6 && h <= 44 && l < .9 && (corpoNu || cabeca ? (s > .16 && l > .14) : (s > .28 && l > .33))) { t = tp; R = RT_AV_REF.pele; quente = true; }
+    if (!t) continue;
+    const nl = Math.max(.02, Math.min(.97, rtAvMapaL(l, R.l, t[2])));
+    // saturação acompanha a da arte, mas cores quase cinzas (platinado, grisalho, pálida) continuam suaves
+    const ns = Math.max(0, Math.min(1, t[1] * Math.min(R === RT_AV_REF.cab ? 1.08 : 1.25, s / R.s)));
+    let nh = t[0];
+    if (quente) nh = (nh + (nl < t[2] ? -6 : 3) * Math.min(1, Math.abs(nl - t[2]) * 4) + 360) % 360;
+    const [r, g, b] = rtRgbDe(nh, ns, nl);
+    d[i] = r; d[i + 1] = g; d[i + 2] = b;
+  }
+  cx.putImageData(D, 0, 0);
+  RT_AVIA_CACHE.set(ck, cv);
+  return cv;
+};
+// tons de pele e cabelo um pouco revistos (os extremos ficavam estourados)
+RT_AV.pele = [["#ecc4a2", "Muito clara"], ["#dca883", "Clara"], ["#c4935f", "Morena clara"], ["#a26f45", "Morena"], ["#7a4c2c", "Escura"], ["#55331e", "Muito escura"], ["#e2d6d2", "Pálida"], ["#a8a29c", "Cinzenta"]];
+RT_AV.cabCor = [["#1c1614", "Preto"], ["#3a281a", "Castanho escuro"], ["#5e3c1e", "Castanho"], ["#a4421c", "Ruivo"], ["#c9a458", "Loiro"], ["#dcdad6", "Platinado"], ["#8c8a86", "Grisalho"], ["#d8682a", "Laranja"], ["#3a58a4", "Azul"], ["#a41c1c", "Vermelho"], ["#6a2a8a", "Roxo"]];
+try { RT_AVIA_CACHE.clear(); RT_SPR_CACHE.clear(); } catch (e) {}
+try { RT_NOVIDADES.unshift(["🎨 Cores do avatar", "A cor do cabelo e o tom de pele do avatar ficaram mais naturais: mantêm o sombreado da arte, sem estourar nos tons claros nem chapar nos escuros, e a borda rosada em volta da figura sumiu."]); } catch (e) {}
 
 rtInit();
 recalc();
