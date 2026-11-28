@@ -65704,7 +65704,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "5.7";
+const RT_VERSAO_APP = "5.8";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -73218,6 +73218,513 @@ try {
   };
 }
 
+// =====================================================================================
+// VERSÃO 5.8
+// · Cada carta tem a sua própria assinatura de animação: a carta aparece sobre quem age e,
+//   no alvo, uma combinação só dela (motivo principal + detalhe + cores + o ícone da carta).
+//   Antes muitas habilidades caíam no mesmo brilho genérico ("buff").
+// · Wiki: página 🃏 Cartas e animações com a aparência de cada carta, o que ela faz e um palco
+//   para ver a animação dela.
+// =====================================================================================
+
+// ---------- informações de cada carta ----------
+const RT_SG_EAB_VFX = { fogo_disforme: "piro", arco_tesla: "sanct_raio", tortura: "bio_mal", escudo_fase: "sanct_escudo", aura_terror: "tele_escuro", grito_caos: "furia", grito_waaagh: "furia", bencao_sombria: "tele_escuro", drogas_combate: "bio", invocar_cultistas: "tele_escuro" };
+const RT_SG_MANUAL = {
+  "arma:cac": { d: "Ataque corpo a corpo com a arma da mão, só contra alvo ao lado. O alvo pode aparar (se tiver arma corpo a corpo) ou esquivar; o dano ganha bônus pela Força.", vfx: "corte", alvo: "inimigo", meta: ["1 PA"] },
+  "arma:varredura": { d: "Atinge todos os inimigos ao seu lado de uma vez (machados e armas de duas mãos).", vfx: "varredura", alvo: "inimigo", meta: ["2 PA"] },
+  "modo:unico": { d: "Um disparo da arma.", vfx: "laser", alvo: "inimigo", meta: ["1 PA"] },
+  "modo:rajada": { d: "Dispara a cadência da arma; cada tiro rola acerto (−10% por tiro), cobertura e esquiva separados.", vfx: "laser", tiros: 4, alvo: "inimigo", meta: ["2 PA"] },
+  "modo:certeiro": { d: "+25% de acerto e +50% de dano crítico.", vfx: "bolt", alvo: "inimigo", meta: ["2 PA"] },
+  "modo:sobrecarga": { d: "+50% de dano; a arma esfria por 1 rodada.", vfx: "plasma", alvo: "inimigo", meta: ["2 PA"] },
+  "modo:chama": { d: "Sem teste de acerto: atinge o alvo e quem estiver ao lado dele; esquiva pela metade; ignora cobertura parcial.", vfx: "chamas", alvo: "inimigo", meta: ["1 PA"] },
+  "modo:arco": { d: "Acerta o alvo e salta para até 2 inimigos a 2 casas, com metade do dano.", vfx: "arco", alvo: "inimigo", meta: ["1 PA"] },
+  "modo:rede": { d: "Lança-Teias: atinge o alvo e os inimigos ao lado dele (3×3), sem teste de acerto. Quem falhar em Agilidade fica Preso na Teia.", vfx: "teia", alvo: "inimigo", meta: ["2 PA"] },
+  "modo:sobrecarga_area": { d: "Plasma: o alvo recebe o tiro normal e os inimigos a 1 casa dele levam 75% do dano, esquiva pela metade. A arma esfria por 1 rodada.", vfx: "plasma", alvo: "inimigo", meta: ["2 PA"] },
+  "ult:ha": { d: "A habilidade suprema do arquétipo, liberada com Ímpeto 175 ou mais. A carta brilha dourada.", vfx: "sanct_escudo", alvo: "si" },
+  "ult:dm": { d: "A habilidade suprema de desespero, liberada com Ímpeto 25 ou menos. A carta brilha vermelha.", vfx: "furia", alvo: "si" },
+  "gen:recarregar": { d: "Repõe o pente de uma arma equipada.", vfx: "recarga", alvo: "si", meta: ["PA da arma"] },
+  "gen:kit": { d: "Kit de primeiros socorros: cura quem está ao seu lado (ou você mesmo).", vfx: "cura", alvo: "aliado" },
+  "gen:outras": { d: "Abre a lista das habilidades que não cabem na roda.", sem: 1 },
+  "gen:ai-on": { d: "Só o mestre vê: liga o turno automático da peça (ela passa a jogar sozinha).", sem: 1 },
+  "gen:ai-off": { d: "Só o mestre vê: desliga o turno automático da peça.", sem: 1 },
+  "gen:fora": { d: "Aparece quando a ficha está com 0 de vida: ela está fora de combate.", sem: 1 },
+  "tal:talho": { d: "Com cargas de Talho: atravessa o inimigo ao seu lado até a casa atrás dele e golpeia com −50% de dano, sem provocar ataque de oportunidade. 1× por alvo por rodada.", vfx: "corte", alvo: "inimigo", meta: ["0 PA"] },
+  "tal:galvanizar": { d: "Ferrum Sanctum: ganha 1 acúmulo (+5% de dano por acúmulo e mais dano recebido por acúmulo). 1× por rodada.", vfx: "energia", alvo: "si", meta: ["1 PA"] },
+  "tal:zona": { d: "Centraliza em você a zona do seu talento (ex.: zona de comando).", vfx: "mira", alvo: "si", meta: ["1 PA"] },
+  "tal:baioneta": { d: "Armas laser de duas mãos: golpe de baioneta corpo a corpo com o mesmo dano, 1× por rodada, fora do limite de ataques.", vfx: "corte", alvo: "inimigo", meta: ["1 PA"] },
+  "tal:alma": { d: "Alma Inscrita: o próximo poder psíquico sai sem Fenômenos e sem degradar o Véu.", vfx: "psi", alvo: "si" },
+  "tal:ordem": { d: "Isso é uma Ordem!: dá uma ordem que move ou faz agir o alvo.", vfx: "buff", alvo: "qualquer" },
+  "tal:lex": { d: "Em Nome da Lex Imperialis!: o Árbitro impõe a lei sobre o alvo.", vfx: "impacto", alvo: "inimigo" },
+};
+function rtCartaInfo(k) {
+  const i = k.indexOf(":"), g = k.slice(0, i), id = k.slice(i + 1);
+  let it = null; try { rtIcoCatalogo().some(G => (it = G.itens.find(x => x.k === k)) ? true : false); } catch (e) {}
+  const o = { k, g, id, nm: it ? it.nm : id, ic: it ? it.ic : "✦", d: "", meta: [], alvo: "inimigo", vfx: "buff", psy: false, area: 0 };
+  try {
+    if (g === "hab") {
+      const ab = rtAbilityData(id) || {}; const a2 = (RT_AB2 && RT_AB2[id]) || {};
+      o.d = ab.d || ""; if (ab.ap != null) o.meta.push(ab.ap + " PA"); if (ab.alc) o.meta.push("Alcance: " + ab.alc); if (ab.cd) o.meta.push("Recarga: " + ab.cd); if (ab.dur) o.meta.push("Duração: " + ab.dur);
+      o.alvo = a2.alvo || (/inimig/i.test(ab.alc || "") ? "inimigo" : /aliad/i.test(ab.alc || "") ? "aliado" : "si");
+      o.vfx = (typeof RT_VFX_AB !== "undefined" && RT_VFX_AB[id]) || "buff";
+      if (a2.og) o.og = 1;
+    } else if (g === "psy") {
+      const p = RT_PSY[id] || {}; o.d = p.d || ""; o.psy = true; o.vfx = RT_VFX_PSY[id] || (p.alvo === "inimigo" ? "psi" : "buff"); o.alvo = p.alvo || "inimigo";
+      if (p.pa != null) o.meta.push(p.pa + " PA"); if (p.alc) o.meta.push("Alcance: " + p.alc + " casas"); if (p.maior) o.meta.push("Poder maior");
+    } else if (g === "cons") {
+      const c = RT_CONS.find(x => x.id === id) || {}; o.d = c.d || ""; o.vfx = c.id || "buff"; o.area = c.raio || 0;
+      o.alvo = c.tipo === "granada" ? "inimigo" : (c.alvo || "si"); if (c.pa != null) o.meta.push(c.pa + " PA"); if (c.alc) o.meta.push("Alcance: " + c.alc + " casas");
+    } else if (g === "eab") {
+      const e = RT_EAB[id] || {}; o.d = e.d || ""; o.alvo = e.alvo || "si"; o.vfx = RT_SG_EAB_VFX[id] || "buff"; o.psy = o.alvo === "inimigo";
+      if (e.pa != null) o.meta.push(e.pa + " PA");
+    }
+  } catch (e) {}
+  const M = RT_SG_MANUAL[k];
+  if (M) { Object.assign(o, M); if (!M.meta) o.meta = o.meta || []; }
+  if (!o.d) o.d = (it && it.ds) || "";
+  if (o.alvo === "qualquer") o.alvo = "aliado";
+  return o;
+}
+
+// ---------- a assinatura de cada carta ----------
+const RT_SG_PALETAS = {
+  fogo: ["#ff7a1a", "#ffd27a"], sagrado: ["#ffd36b", "#fff6c8"], psi: ["#c77dff", "#7a2aff"], veneno: ["#9dff4a", "#3f8f10"], cura: ["#6dff9a", "#e8fff0"],
+  sangue: ["#ff3a2a", "#8a0a0a"], tech: ["#3fe0c0", "#c8fff4"], sombra: ["#8a3aff", "#26003f"], eletrico: ["#8fe8ff", "#2a7aff"], ouro: ["#f3c74e", "#ff9a2a"],
+  comando: ["#ff9a2e", "#ffe9a8"], mira: ["#ff4a4a", "#6ab8ff"], warp: ["#ff4ad8", "#7a5aff"], terra: ["#d9b38c", "#8a6a4a"], plasma: ["#5ec8ff", "#ffffff"],
+  gelo: ["#bfeeff", "#4aa8ff"], aco: ["#d8dde6", "#7f8a99"], esmeralda: ["#3fc27a", "#c8ffd8"],
+};
+// [regra no nome+descrição, paleta, motivos preferidos]
+const RT_SG_TEMAS = [
+  [/cura|curar|regener|revigor|primeiros socorros|kit|medic|estimulante|reanim|ferimentos? temporari/, "cura", ["pulso", "ascensao", "espiral"]],
+  [/escudo|proteg|defes|deflex|armadura|resist|barreira|guarda|bloque|cobertura|fortific/, "aco", ["domo", "selo", "laminas"]],
+  [/fogo|chama|incend|queim|ignic|piro|derret|melta|inferno/, "fogo", ["chamas", "meteoro", "estrela"]],
+  [/veneno|toxin|praga|doenc|\bgas\b|esporo|envenen|droga/, "veneno", ["nevoa", "implosao", "espiral"]],
+  [/raio|eletric|relamp|tesla|choque|tempestade|galvan/, "eletrico", ["relampago", "ondas", "estrela"]],
+  [/imperador|sagrad|\bfe\b|santo|pureza|purgar|oracao|benc|martir|ecclesi|fervor|heroic|exemplar/, "sagrado", ["pilar", "cruz", "estrela"]],
+  [/sombra|escur|trevas|invis|furtiv|camufl|privacao|terror|medo|sombri/, "sombra", ["implosao", "olho", "vortex"]],
+  [/psiq|mente|mental|telep|dominar|ruptura|vontade|presci|pressag|adivinh|profec|precogn|destino|sorte/, "psi", ["olho", "runas", "vortex"]],
+  [/disform|portal|teleport|tempo|rebobin|velocidade|rapid|corr|investida|avanc|recuar|reposicion|mover|movimento|desloc|salto|empurr/, "warp", ["eco", "vortex", "espiral"]],
+  [/furia|raiva|massacre|sangue|brutal|imprudente|selvag|carnific|matanca|inimigo jurado/, "sangue", ["garras", "sangue", "xcorte"]],
+  [/ordem|comando|grito|intimid|moral|inspir|lider|exort|discurso|waaagh|brado|oficial|tropa/, "comando", ["grito", "ondas", "cruz"]],
+  [/maquina|mechanic|augm|servo|engenh|tecno|reparo|recarreg|pente|munic|omnissia|cogit|ferrum/, "tech", ["engrenagem", "runas", "selo"]],
+  [/morte|execut|abate|assassin|caveira|fatal|mortal|golpe de miseric|ceifa/, "sangue", ["caveira", "xcorte", "implosao"]],
+  [/granada|explos|bomba|fragment|artilh|bombard|crater/, "fogo", ["meteoro", "ondas", "estilhacos"]],
+  [/prend|imobil|teia|rede|agarr|grilh|amarr|atordo|lentid|paralis|preso/, "aco", ["correntes", "selo", "implosao"]],
+  [/quebr|penetr|estilha|romp|destru|demol|esmag|fratur|vulnerab|fraqueza|expor|analis|ponto fraco/, "mira", ["estilhacos", "mira", "xcorte"]],
+  [/mira|precis|alvo|marca|avist|detect|observ|disparo|tiro|atir/, "mira", ["mira", "chuva", "olho"]],
+  [/corte|lamina|golpe|talho|espada|baioneta|machado|serra|corpo a corpo/, "aco", ["xcorte", "garras", "laminas"]],
+  [/navega|warp|estrela|vazio|cosmo/, "warp", ["prisma", "estrelas", "vortex"]],
+];
+const RT_SG_MOTIVOS = ["pilar", "vortex", "runas", "selo", "estrela", "cruz", "domo", "mira", "relampago", "chamas", "nevoa", "chuva", "implosao", "ascensao", "garras",
+  "xcorte", "ondas", "eco", "olho", "correntes", "estilhacos", "pulso", "engrenagem", "caveira", "grito", "meteoro", "espiral", "laminas", "prisma", "sangue", "estrelas"];
+const RT_SG_EXTRAS = ["anel", "faiscas", "clarao", "chao", "brasas", "orbita", "raiosmini", "fumaca", "vinheta", "chroma", "estrobo", "aura"];
+const RT_SG_GLIFOS = ["ᚠᚢᚦᚨᚱᚲᚷᚹ", "✠☩✙✚✛✜✞✟", "ΑΩΣΨΦΔΛΞ", "ᛟᛞᛗᛚᛜᛝᛏᛒ", "◈◇◆❖✧✦✶✷", "☿♃♄♅♆♇⚶⚷", "⌬⏣⎔⌖⍟⎈⏧⌘", "ᚸᚻᚾᛁᛃᛇᛈᛉ"];
+const RT_SG_SIMBOLOS = ["✠", "☩", "⚜", "✙", "☠", "⚙", "✦", "❖", "⚔", "☄", "✪", "♰"];
+function rtSgHash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+let RT_SG = null, RT_SG_NOMES = null, RT_SG_ICONES = null;
+// algumas cartas com tema fixo
+const RT_SG_FORCA = { "ult:ha": ["sagrado", ["pilar", "cruz"]], "ult:dm": ["sangue", ["caveira", "sangue"]], "tal:talho": ["aco", ["eco", "xcorte"]], "tal:baioneta": ["aco", ["xcorte", "garras"]],
+  "tal:galvanizar": ["eletrico", ["relampago", "engrenagem"]], "tal:zona": ["comando", ["selo", "mira"]], "tal:alma": ["psi", ["runas", "selo"]], "tal:ordem": ["comando", ["grito", "cruz"]], "tal:lex": ["ouro", ["cruz", "correntes"]],
+  "gen:kit": ["cura", ["pulso", "ascensao"]], "gen:recarregar": ["tech", ["engrenagem", "chuva"]] };
+const RT_SG_SEM = k => /^(arma|modo):/.test(k) || /^gen:(outras|ai-on|ai-off|fora)$/.test(k);
+function rtSgTabela() {
+  if (RT_SG) return RT_SG;
+  const G = rtIcoCatalogo(); if (!G || !G.length) return {};
+  const tab = {}, usados = new Set(), nomes = new Map(), icones = new Map();
+  const norm = s => rtWikiNorm(String(s || "")).replace(/\s*\(\d+\)\s*$/, "").trim();
+  G.forEach(g => g.itens.forEach(x => {
+    if (RT_SG_SEM(x.k)) return;
+    const info = rtCartaInfo(x.k);
+    const txt = " " + rtWikiNorm(x.nm + " " + info.d) + " ";
+    const fz = RT_SG_FORCA[x.k];
+    const tema = fz ? [null, fz[0], fz[1]] : RT_SG_TEMAS.find(t => t[0].test(txt));
+    const h = rtSgHash(x.k);
+    const pal = tema ? RT_SG_PALETAS[tema[1]] : Object.values(RT_SG_PALETAS)[h % Object.keys(RT_SG_PALETAS).length];
+    const pref = tema ? tema[2] : [];
+    const ordem = pref.concat(RT_SG_MOTIVOS.map((_, i) => RT_SG_MOTIVOS[(h + i * 7) % RT_SG_MOTIVOS.length]).filter(m => !pref.includes(m)));
+    let main = ordem[0], extra = RT_SG_EXTRAS[(h >>> 5) % RT_SG_EXTRAS.length];
+    achou: for (const m of ordem) for (let e = 0; e < RT_SG_EXTRAS.length; e++) {
+      const ex = RT_SG_EXTRAS[((h >>> 5) + e) % RT_SG_EXTRAS.length];
+      if (!usados.has(m + "|" + ex)) { main = m; extra = ex; break achou; }
+    }
+    usados.add(main + "|" + extra);
+    tab[x.k] = { k: x.k, ic: x.ic, nm: x.nm, main, extra, c1: pal[0], c2: pal[1], gl: RT_SG_GLIFOS[(h >>> 9) % RT_SG_GLIFOS.length], sb: RT_SG_SIMBOLOS[(h >>> 13) % RT_SG_SIMBOLOS.length], giro: (h >>> 17) % 2 ? 1 : -1 };
+    nomes.set(norm(x.nm), x.k);
+    if (!icones.has(x.ic)) icones.set(x.ic, []); icones.get(x.ic).push(x.k);
+  }));
+  RT_SG = tab; RT_SG_NOMES = nomes; RT_SG_ICONES = icones;
+  return tab;
+}
+// qual carta gerou este efeito
+let RT_CARTA_ATUAL = null;
+document.addEventListener("click", e => {
+  try {
+    const c = e.target.closest && e.target.closest(".board-ability-circle"); if (!c) return;
+    const k = (c.__rt && c.__rt.chave) || c.dataset.rtIco; if (k) RT_CARTA_ATUAL = { k, t: Date.now() };
+  } catch (x) {}
+}, true);
+function rtSgChave(val) {
+  if (!val) return null;
+  const T = rtSgTabela();
+  if (val.ck && T[val.ck]) return val.ck;
+  const norm = s => rtWikiNorm(String(s || "")).replace(/\s*\(\d+\)\s*$/, "").trim();
+  const nms = [val.label, val.txt].filter(Boolean).map(norm);
+  const cands = (val.icon && RT_SG_ICONES.get(val.icon)) || [];
+  if (!RT_SG_ICONES) return null;
+  const recente = RT_CARTA_ATUAL && Date.now() - RT_CARTA_ATUAL.t < 60000 ? RT_CARTA_ATUAL.k : null;
+  if (cands.length === 1) return cands[0];
+  if (cands.length > 1) {
+    const porNome = cands.find(k => nms.some(n => n && (n === norm(T[k].nm) || n.includes(norm(T[k].nm)))));
+    if (porNome) return porNome;
+    if (recente && cands.includes(recente)) return recente;
+    return cands[0];
+  }
+  for (const n of nms) { const k = RT_SG_NOMES.get(n); if (k) return k; }
+  return null;
+}
+// quem age marca a carta no efeito que vai para todos
+{
+  const f = rtPlayAndBroadcast;
+  rtPlayAndBroadcast = function (att, tgt, val) {
+    try { if (val && val.rt && !val.ck) { const k = rtSgChave(val); if (k) val.ck = k; } } catch (e) {}
+    return f.apply(this, arguments);
+  };
+}
+
+// ---------- peças das animações ----------
+function rtSgEl(C, cls, css, ms, html) { return rtFxEl(C, "rt-sg " + cls, css, ms, html); }
+function rtSgFigImg(fig) { return fig && fig.querySelector(".rt-fig-corpo img, .rt-fig-corpo .rt-spr-box img.rt-spr"); }
+const RT_SG_M = {
+  pilar(C, p, P, S) { rtFxPilar(C, p, S.c1, 1400); rtFxOnda(C, p, S.c2, 3.5, 900, 150); if (P) rtFxTry(() => rtvBurst(P, { n: 30, cores: ["#ffffff", S.c1, S.c2], vel: .22, life: 1000, size: 2.6, g: -4e-4, glow: 14 })); },
+  vortex(C, p, P, S) { rtFxVortex(C, p, S.c1, 1500); setTimeout(() => rtFxVortex(C, p, S.c2, 1100), rtCenaMs(220)); rtFxOnda(C, p, S.c1, 4, 1000); },
+  runas(C, p, P, S) {
+    const n = 8; let h = ""; for (let i = 0; i < n; i++) h += '<i style="--i:' + i + '">' + S.gl[i % S.gl.length] + "</i>";
+    rtSgEl(C, "runas", { left: p.x + "px", top: p.y + "px", "--r": (p.w * .62) + "px", "--c": S.c1, "--g": S.giro }, 1600, h);
+    rtFxOnda(C, p, S.c2, 2.6, 800, 500);
+  },
+  selo(C, p, P, S) {
+    let h = ""; for (let i = 0; i < 12; i++) h += '<i style="--i:' + i + '">' + S.gl[i % S.gl.length] + "</i>";
+    rtSgEl(C, "selo", { left: p.x + "px", top: (p.top + p.h * .96) + "px", "--s": (p.w * 2) + "px", "--c": S.c1, "--c2": S.c2, "--g": S.giro }, 1700, "<b></b><b></b><span>" + h + "</span>");
+    if (P) rtFxTry(() => rtvBurst(P, { n: 16, cores: [S.c1, "#ffffff"], vel: .08, life: 1200, size: 2.2, g: -3e-4, glow: 10 }));
+  },
+  estrela(C, p, P, S) { rtFxRaios(C, p, S.c1, 1300); rtSgEl(C, "estrela", { left: p.x + "px", top: p.y + "px", "--s": (p.w * 1.5) + "px", "--c": S.c1, "--c2": S.c2 }, 1100); },
+  cruz(C, p, P, S) { rtSgEl(C, "glifo carimbo", { left: p.x + "px", top: p.y + "px", "--s": (p.w * 1.35) + "px", "--c": S.c1 }, 1400, S.sb); rtFxOnda(C, p, S.c2, 4, 800, 260); },
+  domo(C, p, P, S) { rtSgEl(C, "hex", { left: p.x + "px", top: (p.y - p.h * .05) + "px", "--s": (p.w * 1.6) + "px", "--c": S.c1, "--c2": S.c2 }, 1600); },
+  mira(C, p, P, S) {
+    rtFxEl(C, "mira", { left: p.x + "px", top: p.y + "px", "--c": S.c1 }, 1200);
+    rtSgEl(C, "trava", { left: p.x + "px", top: p.y + "px", "--s": (p.w * .9) + "px", "--c": S.c1 }, 1200, "<i></i><i></i><i></i><i></i>");
+    if (P) setTimeout(() => rtFxTry(() => rtvFlash(P, S.c2, P.s * .6, 220)), rtCenaMs(700));
+  },
+  relampago(C, p, P, S) {
+    rtFxStrobe(C, "rgba(220,245,255,.6)", 240);
+    if (P) { rtFxRaiosCanvas(P, 6, S.c1, 1.4); rtFxTry(() => rtvLightning({ x: P.x + P.s * .4, y: P.y - P.s * 3.2, s: P.s }, P, { dur: 380, cor: S.c2 })); }
+    rtFxOnda(C, p, S.c1, 3, 600);
+  },
+  chamas(C, p, P, S) {
+    rtFxEl(C, "chama", { left: p.x + "px", top: (p.y + p.h * .45) + "px", "--w": p.w * 1.2 + "px" }, 1300);
+    if (P) rtFxTry(() => { rtvFireOn(P, { n: 40 }); rtvBurst(P, { n: 24, cores: [S.c2, S.c1, "#ff4a00"], vel: .4, life: 700, size: 3, g: -2e-4, glow: 12 }); });
+  },
+  nevoa(C, p, P, S) {
+    rtFxEl(C, "nevoa", { left: p.x + "px", top: (p.y + p.h * .3) + "px", "--c": S.c1, "--w": p.w * 2 + "px" }, 1600);
+    if (P) rtFxTry(() => rtvBurst(P, { n: 20, cores: [S.c1, S.c2], vel: .1, life: 1300, size: 3.6, g: -1e-4, glow: 8 }));
+  },
+  chuva(C, p, P, S) {
+    if (!P) return;
+    for (let i = 0; i < 10; i++) rtFxTry(() => rtvTracer({ x: P.x + (Math.random() * 2 - 1) * P.s * 1.4, y: P.y - P.s * 3.4, s: P.s }, { x: P.x + (Math.random() - .5) * P.s * .8, y: P.y + (Math.random() - .3) * P.s * .5, s: P.s }, { cor: S.c1, larg: 3, len: 42, vel: 2, glow: 10, delay: i * 70 }));
+    setTimeout(() => rtFxOnda(C, p, S.c2, 3, 600), rtCenaMs(500));
+  },
+  implosao(C, p, P, S) {
+    rtSgEl(C, "implode", { left: p.x + "px", top: p.y + "px", "--s": (p.w * 2.6) + "px", "--c": S.c1 }, 800);
+    setTimeout(() => { rtFxOnda(C, p, S.c2, 4.5, 700); if (P) rtFxTry(() => { rtvFlash(P, S.c2, P.s, 260); rtvBurst(P, { n: 30, cores: [S.c1, S.c2, "#ffffff"], vel: .5, life: 600, size: 2.6, glow: 14 }); }); }, rtCenaMs(560));
+  },
+  ascensao(C, p, P, S) {
+    rtSgEl(C, "coluna", { left: p.x + "px", top: (p.top - p.h * .2) + "px", "--w": (p.w * .9) + "px", "--h": (p.h * 1.3) + "px", "--c": S.c1 }, 1500);
+    if (P) rtFxTry(() => rtvBurst(P, { n: 40, cores: [S.c1, S.c2, "#ffffff"], vel: .07, life: 1400, size: 2.4, g: -7e-4, glow: 12 }));
+  },
+  garras(C, p, P, S) {
+    const a = C.espelho ? 120 : 60;
+    for (let i = 0; i < 3; i++) rtFxCorte(C, { x: p.x + (i - 1) * p.w * .16, y: p.y + (i - 1) * 6 }, a, i === 1 ? "#ffffff" : S.c1, i * 70);
+    if (P) rtFxTry(() => rtvBurst(P, { n: 18, cores: [S.c1, S.c2], vel: .3, life: 600, size: 2.8, g: 9e-4 }));
+  },
+  xcorte(C, p, P, S) { rtFxCorte(C, p, 35, S.c1); rtFxCorte(C, p, -35, S.c2, 130); if (P) rtFxTry(() => rtvSparks(P, "#fff1c0", 22, 0)); },
+  ondas(C, p, P, S) { for (let i = 0; i < 4; i++) rtFxOnda(C, p, i % 2 ? S.c2 : S.c1, 2.4 + i * .7, 700, i * 140); },
+  eco(C, p, P, S, fig) {
+    const im = rtSgFigImg(fig); if (!im) { rtFxOnda(C, p, S.c1, 3); return; }
+    const r = im.getBoundingClientRect(), cx = C.caixa.getBoundingClientRect();
+    for (let i = 0; i < 4; i++) {
+      const e = rtSgEl(C, "eco", { left: (r.left - cx.left) + "px", top: (r.top - cx.top) + "px", width: r.width + "px", height: r.height + "px", "--dx": ((i % 2 ? -1 : 1) * (18 + i * 14)) + "px", "--c": i % 2 ? S.c2 : S.c1, animationDelay: (i * 70) + "ms" }, 900 + i * 70);
+      const c = im.cloneNode(); c.removeAttribute("class"); const tf = getComputedStyle(im).transform; if (tf && tf !== "none") c.style.transform = tf; e.appendChild(c);
+    }
+  },
+  olho(C, p, P, S) { rtSgEl(C, "olho", { left: p.x + "px", top: (p.top + p.h * .05) + "px", "--s": (p.w * 1.1) + "px", "--c": S.c1, "--c2": S.c2 }, 1500, "<i></i>"); rtFxRaios(C, p, S.c1, 1100); },
+  correntes(C, p, P, S) {
+    rtSgEl(C, "corrente", { left: p.x + "px", top: p.y + "px", "--w": (p.w * 1.8) + "px", "--a": "28deg", "--c": S.c1 }, 1300);
+    rtSgEl(C, "corrente", { left: p.x + "px", top: p.y + "px", "--w": (p.w * 1.8) + "px", "--a": "-28deg", "--c": S.c2, animationDelay: "120ms" }, 1400);
+    if (P) setTimeout(() => rtFxTry(() => rtvSparks(P, S.c1, 16, 0)), rtCenaMs(450));
+  },
+  estilhacos(C, p, P, S) {
+    let h = ""; for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2 + Math.random() * .4, d = p.w * (.7 + Math.random() * .6); h += '<i style="--dx:' + (Math.cos(a) * d).toFixed(0) + "px;--dy:" + (Math.sin(a) * d).toFixed(0) + "px;--r:" + (Math.random() * 540 - 270).toFixed(0) + 'deg"></i>'; }
+    rtSgEl(C, "cacos", { left: p.x + "px", top: p.y + "px", "--c": S.c1, "--c2": S.c2 }, 1100, h);
+    rtFxStrobe(C, "rgba(255,255,255,.45)", 220);
+  },
+  pulso(C, p, P, S, fig) {
+    const c = fig && fig.querySelector(".rt-fig-corpo"); if (c && c.animate) rtFxTry(() => c.animate([{ transform: "scale(1)" }, { transform: "scale(1.12)" }, { transform: "scale(1)" }, { transform: "scale(1.07)" }, { transform: "scale(1)" }], { duration: rtCenaMs(900), easing: "ease-out" }));
+    rtFxOnda(C, p, S.c1, 3, 700); rtFxOnda(C, p, S.c2, 2.2, 600, 300);
+    let h = ""; for (let i = 0; i < 6; i++) h += '<i style="--i:' + i + ";left:" + (10 + i * 16) + '%">' + (i % 2 ? "✚" : "♥") + "</i>";
+    rtSgEl(C, "sobe", { left: p.x + "px", top: (p.y + p.h * .2) + "px", "--w": p.w + "px", "--c": S.c1 }, 1500, h);
+  },
+  engrenagem(C, p, P, S) { rtSgEl(C, "engr", { left: p.x + "px", top: p.y + "px", "--s": (p.w * 1.3) + "px", "--c": S.c1, "--c2": S.c2 }, 1500, "<i>⚙</i><i>⚙</i>"); if (P) rtFxTry(() => rtvSparks(P, S.c2, 18, 200)); },
+  caveira(C, p, P, S) { rtFxEl(C, "breu", {}, 1100); rtSgEl(C, "glifo sobe-glifo", { left: p.x + "px", top: (p.y - p.h * .1) + "px", "--s": (p.w * 1.1) + "px", "--c": S.c1 }, 1500, "☠"); if (P) rtFxTry(() => rtvBurst(P, { n: 20, cores: ["#e8e0c8", S.c1], vel: .15, life: 1000, size: 2.4, g: -2e-4, glow: 6 })); },
+  grito(C, p, P, S) {
+    const a = rtFxPos(C, C.ator); const de = a && a !== p ? a : { x: p.x + (C.espelho ? -1 : 1) * p.w, y: p.y };
+    const ang = Math.atan2(p.y - de.y, p.x - de.x) * 180 / Math.PI, dist = Math.hypot(p.x - de.x, p.y - de.y);
+    for (let i = 0; i < 4; i++) rtSgEl(C, "arco", { left: de.x + "px", top: de.y + "px", "--a": ang + "deg", "--d": dist + "px", "--s": (p.w * .9) + "px", "--c": i % 2 ? S.c2 : S.c1, animationDelay: (i * 120) + "ms" }, 900 + i * 120);
+    setTimeout(() => rtFxOnda(C, p, S.c1, 3.5, 700), rtCenaMs(450));
+  },
+  meteoro(C, p, P, S) {
+    if (!P) return;
+    const de = { x: P.x + (C.espelho ? -1 : 1) * P.s * 2.4, y: P.y - P.s * 3.4, s: P.s };
+    let t = 500; rtFxTry(() => { t = rtvOrb(de, P, { cor: S.c1, raio: P.s * .18, vel: 1 }) || 500; });
+    setTimeout(() => { rtFxStrobe(C, "rgba(255,200,120,.5)", 260); rtFxOnda(C, p, S.c1, 4.5, 700); rtFxOnda(C, p, S.c2, 3, 600, 100); rtFxTry(() => { rtvFlash(P, S.c2, P.s * 1.1, 300); rtvBurst(P, { n: 30, cores: [S.c2, S.c1, "#5a4a3a"], vel: .5, life: 650, size: 3, g: 8e-4 }); }); }, Math.min(900, t));
+  },
+  espiral(C, p, P, S) {
+    let h = ""; for (let i = 0; i < 14; i++) h += '<i style="--i:' + i + '"></i>';
+    rtSgEl(C, "espiral", { left: p.x + "px", top: (p.top + p.h) + "px", "--r": (p.w * .55) + "px", "--h": (p.h * 1.1) + "px", "--c": S.c1, "--c2": S.c2, "--g": S.giro }, 1600, h);
+  },
+  laminas(C, p, P, S) { let h = ""; for (let i = 0; i < 6; i++) h += '<i style="--i:' + i + '"></i>'; rtSgEl(C, "laminas", { left: p.x + "px", top: p.y + "px", "--r": (p.w * .7) + "px", "--c": S.c1, "--g": S.giro }, 1300, h); if (P) setTimeout(() => rtFxTry(() => rtvSparks(P, S.c2, 20, 0)), rtCenaMs(800)); },
+  prisma(C, p, P, S) {
+    C.caixa.classList.remove("rt-sg-prisma"); void C.caixa.offsetWidth; C.caixa.classList.add("rt-sg-prisma"); setTimeout(() => C.caixa.classList.remove("rt-sg-prisma"), rtCenaMs(900));
+    rtFxRaios(C, p, S.c1, 1200); rtSgEl(C, "estrela", { left: p.x + "px", top: p.y + "px", "--s": (p.w * 1.2) + "px", "--c": S.c2, "--c2": S.c1 }, 1000);
+  },
+  sangue(C, p, P, S) {
+    rtSgEl(C, "vinheta", { "--c": "rgba(140,0,0,.55)" }, 1000);
+    rtFxOnda(C, p, S.c1, 3.6, 600);
+    if (P) rtFxTry(() => rtvBurst(P, { n: 36, cores: ["#c4161c", "#8a0a0a", S.c1], vel: .45, life: 700, size: 3.2, g: 1e-3 }));
+  },
+  estrelas(C, p, P, S) {
+    let h = ""; for (let i = 0; i < 9; i++) h += '<i style="left:' + (Math.random() * 100).toFixed(0) + "%;top:" + (Math.random() * 100).toFixed(0) + "%;animation-delay:" + (i * 90) + 'ms">✦</i>';
+    rtSgEl(C, "estrelas", { left: p.x + "px", top: p.y + "px", "--s": (p.w * 1.6) + "px", "--c": S.c1 }, 1500, h);
+    rtFxOnda(C, p, S.c2, 2.6, 700, 400);
+  },
+};
+const RT_SG_E = {
+  anel(C, p, P, S) { rtFxOnda(C, p, S.c2, 2.6, 650, 200); },
+  faiscas(C, p, P, S) { if (P) rtFxTry(() => rtvSparks(P, S.c2, 22, 120)); },
+  clarao(C, p, P, S) { if (P) rtFxTry(() => rtvFlash(P, S.c2, P.s * 1.1, 300, 80)); },
+  chao(C, p, P, S) { rtFxEl(C, "brilho-chao", { left: p.x + "px", top: (p.top + p.h) + "px", "--c": S.c1 }, 1500); },
+  brasas(C, p, P, S) { if (P) rtFxTry(() => rtvBurst(P, { n: 18, cores: [S.c1, S.c2], vel: .16, life: 1100, size: 2, g: -3e-4, glow: 8 })); },
+  orbita(C, p, P, S) { let h = ""; for (let i = 0; i < 3; i++) h += '<i style="--i:' + i + '">' + S.sb + "</i>"; rtSgEl(C, "orbita", { left: p.x + "px", top: p.y + "px", "--r": (p.w * .7) + "px", "--c": S.c2, "--g": S.giro }, 1400, h); },
+  raiosmini(C, p, P, S) { rtFxRaios(C, p, S.c2, 900); },
+  fumaca(C, p, P, S) { if (P) rtFxTry(() => rtvSmoke(P, 7, 10, 150, S.c2)); },
+  vinheta(C, p, P, S) { rtSgEl(C, "vinheta", { "--c": S.c1 }, 1100); },
+  chroma(C) { C.caixa.classList.remove("rt-fx-chroma"); void C.caixa.offsetWidth; C.caixa.classList.add("rt-fx-chroma"); setTimeout(() => C.caixa.classList.remove("rt-fx-chroma"), rtCenaMs(700)); },
+  estrobo(C, p, P, S) { rtFxStrobe(C, S.c1, 300); },
+  aura(C, p, P, S, fig) { const c = fig && fig.querySelector(".rt-fig-corpo"); if (c && c.animate) rtFxTry(() => c.animate([{ filter: "drop-shadow(0 0 0 " + S.c1 + ")" }, { filter: "drop-shadow(0 0 14px " + S.c1 + ") brightness(1.3)" }, { filter: "none" }], { duration: rtCenaMs(1200) })); },
+};
+// o ícone da carta no alvo
+function rtSgEmblema(C, p, S, fraco) {
+  const img = typeof RT_ICONES !== "undefined" && RT_ICONES[S.k];
+  rtSgEl(C, "emblema" + (fraco ? " fraco" : ""), { left: p.x + "px", top: (p.top + p.h * .12) + "px", "--s": (p.w * (fraco ? .45 : .62)) + "px", "--c": S.c1 }, 1500, img ? '<img alt="" src="' + img + '">' : S.ic);
+}
+// a carta aparece sobre quem age
+function rtSgCarta(C, S) {
+  const p = rtFxPos(C, C.ator); if (!p) return;
+  const arte = (typeof RT_CARTAS !== "undefined" && RT_CARTAS[S.k]) || (typeof RT_CARTA_PADRAO !== "undefined" && RT_CARTA_PADRAO[S.k]);
+  const w = Math.max(46, Math.min(96, p.w * .55));
+  rtSgEl(C, "carta", { left: p.x + "px", top: (p.top - w * .2) + "px", "--w": w + "px", "--c": S.c1 }, 1300, '<span class="rt-sg-carta-in">' + (arte ? '<img alt="" src="' + arte + '">' : "<b>" + S.ic + "</b>") + "</span>");
+}
+// toca a assinatura da carta numa figura
+function rtSgToca(C, fig, S, fraco) {
+  const p = rtFxPos(C, fig); if (!p) return;
+  const P = rtCenaPonto(fig);
+  rtFxClaroFig(fig, S.c1);
+  rtSgEmblema(C, p, S, fraco);
+  if (fraco) { rtFxOnda(C, p, S.c1, 2.6, 700); return; }
+  rtFxTry(() => RT_SG_M[S.main] && RT_SG_M[S.main](C, p, P, S, fig));
+  rtFxTry(() => RT_SG_E[S.extra] && RT_SG_E[S.extra](C, p, P, S, fig));
+}
+
+// ---------- na cena de combate ----------
+{
+  const f = rtCamEnvolve;
+  rtCamEnvolve = function (C, val) {
+    let S = null;
+    try { if (!(val && val.spawn)) { const k = rtSgChave(val); if (k) S = rtSgTabela()[k]; } } catch (e) {}
+    const r = f.apply(this, arguments);
+    try {
+      C.__sg = S ? { S, feitos: new Set() } : null;
+      if (S) {
+        C.__fxFam = null;                                              // a assinatura da carta substitui a da família
+        if (rtCenaModo() !== "off") setTimeout(() => { try { if (C.el.isConnected) rtSgCarta(C, S); } catch (e) {} }, rtCenaMs(180));
+      }
+    } catch (e) {}
+    return r;
+  };
+}
+{
+  const f = rtCenaFlash;
+  rtCenaFlash = function (fig) {
+    const r = f.apply(this, arguments);
+    try {
+      const C = RT_CENA, G = C && C.__sg;
+      if (G && fig && !G.feitos.has(fig) && rtCenaModo() !== "off" && C.caixa.contains(fig)) { G.feitos.add(fig); rtSgToca(C, fig, G.S, G.feitos.size > 1); }
+    } catch (e) { console.error("assinatura da carta", e); }
+    return r;
+  };
+}
+
+// ---------- palco da wiki (ver a animação de uma carta) ----------
+let RT_SG_PREVIA = null;
+// enquanto o palco da wiki toca, a tela de efeitos fica recortada no palco (a cada quadro, antes de pintar)
+function rtSgRecortaLoop() {
+  if (!RT_SG_PREVIA) return;
+  try { const cv = RTV && RTV.cv; const b = RT_SG_PREVIA.getBoundingClientRect(); if (cv) cv.style.clipPath = "inset(" + Math.max(0, b.top) + "px " + Math.max(0, innerWidth - b.right) + "px " + Math.max(0, innerHeight - b.bottom) + "px " + Math.max(0, b.left) + "px round 10px)"; } catch (e) {}
+  requestAnimationFrame(rtSgRecortaLoop);
+}
+// no palco da wiki o brilho do chão do tabuleiro não acende
+{
+  const f = rtvFloor;
+  rtvFloor = function () { if (RT_SG_PREVIA) return; return f.apply(this, arguments); };
+}
+function rtSgFiguraUrl(tipo) {
+  try {
+    if (tipo === "jog") { const rc = rtLiveSnapshot(); if (rc) return rtSprPersonagem(Object.assign({}, rc, { armas: [] }), "idle"); }
+    if (tipo === "ini") return rtSprUnidade("orks", "choque", "nobre", "idle");
+    if (tipo === "ali") return rtSprUnidade("imperio", Object.keys((RT_AFAC.imperio || {}).vert || { x: 1 })[0], Object.keys((RT_AFAC.imperio || {}).uni || { x: 1 })[0], "idle");
+  } catch (e) {}
+  return null;
+}
+function rtSgPalco() {
+  const el = document.createElement("div"); el.className = "rt-sg-palco";
+  el.innerHTML = '<div class="rt-sg-fig alvo"><div class="rt-fig-corpo"><span class="rt-fig-flash"></span></div></div><div class="rt-sg-fig ator"><div class="rt-fig-corpo"><span class="rt-fig-flash"></span></div></div><div class="rt-sg-palco-tit"></div>';
+  return el;
+}
+function rtSgPoeFig(fig, url, emoji, vira) {
+  const c = fig.querySelector(".rt-fig-corpo"); c.querySelectorAll("img, .rt-sg-emo").forEach(x => x.remove());
+  if (url) { const im = document.createElement("img"); im.alt = ""; im.src = url; if (vira) im.style.transform = "scaleX(-1)"; c.prepend(im); }
+  else { const s = document.createElement("span"); s.className = "rt-sg-emo"; s.textContent = emoji; c.prepend(s); }
+}
+let RT_SG_TOCANDO = 0;
+async function rtSgPrevia(k, host) {
+  const S = rtSgTabela()[k]; const I = rtCartaInfo(k);
+  if (I.sem) return;
+  const meu = ++RT_SG_TOCANDO;
+  let palco = host.querySelector(".rt-sg-palco");
+  document.querySelectorAll(".rt-sg-palco").forEach(x => { if (x !== palco) x.remove(); });
+  if (!palco) { palco = rtSgPalco(); host.appendChild(palco); }
+  palco.querySelectorAll(".rt-fx2").forEach(x => x.remove());
+  const figT = palco.querySelector(".rt-sg-fig.alvo"), figA = palco.querySelector(".rt-sg-fig.ator");
+  const si = I.alvo === "si", ofensiva = I.alvo === "inimigo";
+  palco.classList.toggle("so-um", si);
+  rtSgPoeFig(figA, rtSgFiguraUrl("jog"), "🧑‍🚀", true);
+  if (!si) rtSgPoeFig(figT, ofensiva ? rtSgFiguraUrl("ini") : (rtSgFiguraUrl("jog") || rtSgFiguraUrl("ali")), ofensiva ? "👹" : "🧑‍🚀", false);
+  palco.querySelector(".rt-sg-palco-tit").textContent = (I.ic ? I.ic + " " : "") + I.nm;
+  palco.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  await new Promise(r => setTimeout(r, 380));
+  if (meu !== RT_SG_TOCANDO) return;
+  RT_SG_PREVIA = palco; try { rtvEnsure(); } catch (e) {} requestAnimationFrame(rtSgRecortaLoop);
+  const C = { caixa: palco, ator: figA, espelho: false, el: palco, alvos: {} };
+  const alvo = si ? figA : figT;
+  try {
+    if (S) rtSgCarta(C, S);
+    rtCenaAnima(figA, [{ transform: "translateY(0)" }, { transform: "translateY(-8px) scale(1.04)" }, { transform: "translateY(0)" }], 520);
+    await new Promise(r => setTimeout(r, rtCenaMs(520)));
+    const A = rtCenaPonto(figA), T = rtCenaPonto(alvo);
+    let pv = null;
+    try {
+      const v = I.vfx;
+      if (A && T && v) {
+        if (I.g === "cons" && /^granada_/.test(v)) pv = rtVfxGranada(v, A, Object.assign({}, T, { s: T.s * 1.4 }));
+        else if (I.tiros) pv = rtVfxBurst(v, A, T, I.tiros);
+        else if (I.psy) pv = rtVfxPsy(v, A, T);
+        else if (ofensiva) pv = rtVfxStrike(v, A, T, "acerto");
+        else pv = rtVfxOn(v, A, T);
+      }
+    } catch (e) {}
+    await Promise.race([Promise.resolve(pv), new Promise(r => setTimeout(r, 1400))]);
+    if (meu !== RT_SG_TOCANDO) return;
+    rtCenaFlash(alvo, ofensiva ? "#ffffff" : "#fff6c8");
+    if (S) rtSgToca(C, alvo, S);
+    else { const fam = rtFxFamilia({ vfx: I.vfx, kind: ofensiva ? "ataque" : "buff", tipo: /corte|varredura/.test(I.vfx) ? "cac" : "" }); if (fam) rtFxEpico(C, alvo, fam, {}); }
+    if (ofensiva) rtCenaAnima(alvo, [{ transform: "translateX(0)" }, { transform: "translateX(-14px) rotate(-4deg)" }, { transform: "translateX(0)" }], 380);
+    await new Promise(r => setTimeout(r, 1800));
+  } finally { if (meu === RT_SG_TOCANDO) { RT_SG_PREVIA = null; try { if (RTV && RTV.cv) RTV.cv.style.clipPath = ""; } catch (e) {} } }
+}
+
+// ---------- página da wiki ----------
+const RT_SG_GRUPOS = { tipos: "Tipos de ação", talentos: "Talentos na roda", hab: "Habilidades dos arquétipos", origem: "Habilidades de origem", psy: "Poderes psíquicos", cons: "Granadas e consumíveis", eab: "Habilidades do Bestiário" };
+const RT_SG_MOTIVO_NM = { pilar: "pilar de luz", vortex: "vórtice", runas: "círculo de runas", selo: "selo no chão", estrela: "estrela de raios", cruz: "símbolo carimbado", domo: "escudo hexagonal", mira: "mira travando", relampago: "relâmpago do céu",
+  chamas: "coluna de fogo", nevoa: "névoa", chuva: "chuva de projéteis", implosao: "implosão", ascensao: "coluna que sobe", garras: "três garras", xcorte: "corte em X", ondas: "ondas de choque", eco: "imagens de eco", olho: "olho que se abre",
+  correntes: "correntes", estilhacos: "estilhaços", pulso: "pulsação", engrenagem: "engrenagens", caveira: "caveira", grito: "ondas de grito", meteoro: "meteoro", espiral: "espiral", laminas: "lâminas girando", prisma: "prisma", sangue: "explosão de sangue", estrelas: "constelação" };
+function rtSgCartaVisual(I) {
+  const arte = (typeof RT_CARTAS !== "undefined" && RT_CARTAS[I.k]) || (typeof RT_CARTA_PADRAO !== "undefined" && RT_CARTA_PADRAO[I.k]);
+  const custo = (I.meta || []).find(m => /PA$/.test(m)) || "";
+  const ic = typeof RT_ICONES !== "undefined" && RT_ICONES[I.k] ? '<img class="rt-ico-img" alt="" src="' + RT_ICONES[I.k] + '">' : rtEsc(I.ic || "");
+  return '<div class="rt-wc-carta' + (I.k === "ult:ha" ? " ha" : I.k === "ult:dm" ? " dm" : "") + '"><span class="rt-wc-ic">' + ic + "</span>" + (custo ? '<span class="rt-wc-custo">' + rtEsc(custo) + "</span>" : "")
+    + '<span class="rt-wc-arte">' + (arte ? '<img alt="" loading="lazy" src="' + arte + '">' : '<span class="rt-wc-sem">' + rtEsc(I.ic || "?") + "</span>") + "</span>"
+    + '<span class="rt-wc-nome">' + rtEsc(I.nm) + "</span></div>";
+}
+function rtSgWikiHtml() {
+  const G = rtIcoCatalogo(); const T = rtSgTabela();
+  const chips = '<button type="button" class="on" data-sg-grupo="">Todas</button>' + G.map(g => '<button type="button" data-sg-grupo="' + g.id + '">' + rtEsc(RT_SG_GRUPOS[g.id] || g.nm) + "</button>").join("");
+  return '<div class="rt-wc-filtros"><input type="search" class="rt-wiki-busca" placeholder="🔎 Procurar carta…" data-sg-busca><div class="rt-wc-chips">' + chips + "</div></div>"
+    + G.map(g => '<div class="rt-wc-grupo" data-sg-g="' + g.id + '"><h5>' + rtEsc(RT_SG_GRUPOS[g.id] || g.nm) + " <small>" + g.itens.length + "</small></h5>"
+      + g.itens.map(x => {
+        const I = rtCartaInfo(x.k), S = T[x.k];
+        const sig = S ? '<div class="rt-wc-sig" style="--c1:' + S.c1 + ";--c2:" + S.c2 + '"><i></i><i></i> Animação: <b>' + rtEsc(RT_SG_MOTIVO_NM[S.main] || S.main) + "</b> com o ícone " + rtEsc(S.ic) + "</div>"
+          : /^(arma|modo):/.test(x.k) ? '<div class="rt-wc-sig neutra">Animação: a da arma equipada (cada arma tem a sua).</div>' : "";
+        return '<div class="rt-wc-item" data-sg-k="' + rtEsc(x.k) + '" data-sg-busca="' + rtEsc(rtWikiNorm(x.nm + " " + I.d + " " + (RT_SG_GRUPOS[g.id] || ""))) + '">'
+          + rtSgCartaVisual(I)
+          + '<div class="rt-wc-txt"><b class="rt-wc-tit">' + rtEsc(I.ic || "") + " " + rtEsc(I.nm) + "</b>"
+          + (I.meta && I.meta.length ? '<div class="rt-wc-meta">' + I.meta.map(m => "<span>" + rtEsc(m) + "</span>").join("") + "</div>" : "")
+          + "<p>" + rtEsc(I.d || "") + "</p>" + sig
+          + (I.sem ? "" : '<button type="button" class="rt-btn rt-wc-play" data-sg-play>▶ VER ANIMAÇÃO</button>') + "</div></div>";
+      }).join("") + "</div>").join("");
+}
+function rtSgWikiFiltra(box) {
+  const q = rtWikiNorm((box.querySelector("[data-sg-busca]") || {}).value || "").trim();
+  const g = (box.querySelector(".rt-wc-chips .on") || {}).dataset; const gid = g ? g.sgGrupo : "";
+  box.querySelectorAll(".rt-wc-item").forEach(el => { el.hidden = !!q && !el.dataset.sgBusca.includes(q); });
+  box.querySelectorAll(".rt-wc-grupo").forEach(el => { el.hidden = (gid && el.dataset.sgG !== gid) || !el.querySelector(".rt-wc-item:not([hidden])"); });
+}
+function rtSgWikiDesenha(forca) {
+  document.querySelectorAll("[data-rt-cartas-wiki]").forEach(box => {
+    if (!box.isConnected || (box.dataset.ok && !forca) || !box.offsetParent) return;
+    box.dataset.ok = "1"; box.innerHTML = rtSgWikiHtml();
+    if (box.dataset.ev) return; box.dataset.ev = "1";
+    box.addEventListener("input", e => { if (e.target.matches("[data-sg-busca]")) rtSgWikiFiltra(box); });
+    box.addEventListener("click", e => {
+      const ch = e.target.closest("[data-sg-grupo]");
+      if (ch) { box.querySelectorAll("[data-sg-grupo]").forEach(b => b.classList.toggle("on", b === ch)); rtSgWikiFiltra(box); return; }
+      const pl = e.target.closest("[data-sg-play]"), it = e.target.closest(".rt-wc-item");
+      if ((pl || (it && e.target.closest(".rt-wc-carta"))) && it) { e.preventDefault(); rtSgPrevia(it.dataset.sgK, it).catch(err => console.error("prévia da carta", err)); }
+    });
+  });
+}
+rtTique(() => { try { rtSgWikiDesenha(false); } catch (e) {} }, 700);
+{
+  const f = rtWikiExtra;
+  rtWikiExtra = function (cats, add, cat) {
+    f.apply(this, arguments);
+    try {
+      if (typeof cat !== "function" || typeof add !== "function") return;
+      const C = cat("cartas", "Cartas e animações", "🃏", "Todas as cartas de ação: como cada uma é, o que faz e a animação dela.");
+      let nomes = ""; try { rtIcoCatalogo().forEach(g => g.itens.forEach(x => { nomes += " " + x.nm; })); } catch (e) {}
+      add(C, "cartas", "🃏 Cartas e animações", "A aparência, o efeito e a animação de cada carta",
+        '<p>Cada carta de ação tem a <b>sua própria animação</b>. Quando a carta é usada, ela aparece brilhando sobre quem age; no alvo acontece a assinatura dela: um <b>motivo principal</b> (pilar de luz, vórtice, runas, correntes, meteoro...), um <b>detalhe</b>, as <b>cores</b> do tema e o <b>ícone da carta</b>. Duas cartas nunca têm a mesma combinação.</p>'
+        + '<p>Clique em <b>▶ VER ANIMAÇÃO</b> (ou na carta) para ver a animação num palco de teste. As cartas de ataque com arma (golpe, tiro único, rajada...) usam a animação da arma equipada, e cada arma tem a sua.</p>'
+        + '<div class="rt-wc" data-rt-cartas-wiki></div>',
+        "cartas carta animacao animacoes efeito habilidade poder psiquico granada consumivel bestiario talento ver" + nomes);
+      C.itens.forEach(x => x.abrir = true);
+    } catch (e) { console.error("wiki cartas", e); }
+  };
+}
+try {
+  RT_NOVIDADES.unshift(
+    ["✨ Uma animação para cada carta", "Cada carta de ação ganhou a sua própria animação: a carta aparece brilhando sobre quem age e, no alvo, uma combinação só dela (pilar de luz, vórtice, runas, correntes, meteoro, engrenagens, olho que se abre...), nas cores do tema e com o ícone da carta. Antes muitas habilidades usavam o mesmo brilho."],
+    ["🃏 Wiki: Cartas e animações", "Página nova na Wiki com todas as cartas: a aparência, o que cada uma faz e um palco para ver a animação dela."]
+  );
+} catch (e) {}
+
 rtInit();
 recalc();
 })();
@@ -73855,6 +74362,164 @@ body.rt-cena-brilho #rtVfxCanvas{ filter:drop-shadow(0 0 5px rgba(255,255,255,.4
 @media (prefers-reduced-motion: reduce){ .chat-msg.rt-chat-novo{ animation:none; } }
 #chatInput{ font-size:14.5px; padding:8px 10px; }
 @media (max-width:640px){ .rt-log-corpo{ font-size:14.5px; } .rt-vox-txt{ font-size:15px; } .rt-chat-abas button{ font-size:13px; } }
+
+/* ===== v5.8: assinatura de cada carta + página da wiki ===== */
+.rt-fx2.rt-sg{ z-index:6; }
+/* emblema: o ícone da carta no alvo */
+.rt-sg.emblema{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); display:flex; align-items:center; justify-content:center; font-size:calc(var(--s) * .78); line-height:1; z-index:7;
+  filter:drop-shadow(0 0 6px var(--c)) drop-shadow(0 0 16px var(--c)); animation:rtSgEmblema 1.5s cubic-bezier(.2,1.3,.4,1) forwards; }
+.rt-sg.emblema img{ width:100%; height:100%; object-fit:cover; border-radius:50%; }
+.rt-sg.emblema.fraco{ animation-duration:1.1s; }
+@keyframes rtSgEmblema{ 0%{ opacity:0; transform:scale(.2) rotate(-20deg); } 18%{ opacity:1; transform:scale(1.35) rotate(6deg); } 32%{ transform:scale(1) rotate(0); } 75%{ opacity:1; transform:translateY(-14px); } 100%{ opacity:0; transform:translateY(-34px) scale(.9); } }
+/* a carta sobre quem age */
+.rt-sg.carta{ width:var(--w); height:calc(var(--w) * 1.4); margin:calc(var(--w) * -1.4) 0 0 calc(var(--w) / -2); perspective:500px; z-index:8; }
+.rt-sg-carta-in{ position:absolute; inset:0; border-radius:7px; overflow:hidden; display:flex; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 40%, #3a2a14, #0d0906);
+  border:2px solid var(--c); box-shadow:0 0 12px var(--c), 0 0 30px var(--c), inset 0 0 10px rgba(0,0,0,.7); animation:rtSgCarta 1.3s cubic-bezier(.2,.9,.3,1) forwards; }
+.rt-sg-carta-in img{ width:100%; height:100%; object-fit:cover; }
+.rt-sg-carta-in b{ font-size:calc(var(--w) * .55); filter:drop-shadow(0 0 6px var(--c)); }
+@keyframes rtSgCarta{ 0%{ opacity:0; transform:translateY(30px) rotateY(180deg) scale(.4); } 30%{ opacity:1; transform:translateY(0) rotateY(0) scale(1.05); } 65%{ opacity:1; transform:translateY(-6px) scale(1); filter:brightness(1); }
+  100%{ opacity:0; transform:translateY(-26px) scale(1.5); filter:brightness(3) blur(2px); } }
+/* runas, órbita e lâminas: anel girando */
+.rt-sg.runas, .rt-sg.orbita, .rt-sg.laminas{ width:0; height:0; animation:rtSgGira 1.6s linear forwards; }
+.rt-sg.runas i, .rt-sg.orbita i{ position:absolute; left:0; top:0; font-style:normal; font-size:22px; line-height:1; color:#fff; translate:-50% -50%;
+  transform:rotate(calc(var(--i) * 45deg)) translateY(calc(var(--r) * -1)); text-shadow:0 0 6px var(--c), 0 0 14px var(--c); animation:rtSgRuna 1.6s ease-out forwards; }
+.rt-sg.orbita i{ transform:rotate(calc(var(--i) * 120deg)) translateY(calc(var(--r) * -1)); font-size:18px; }
+@keyframes rtSgGira{ from{ rotate:0deg; } to{ rotate:calc(var(--g, 1) * 300deg); } }
+@keyframes rtSgRuna{ 0%{ opacity:0; scale:.3; } 20%{ opacity:1; scale:1.2; } 80%{ opacity:1; scale:1; } 100%{ opacity:0; scale:.6; } }
+.rt-sg.laminas{ animation-duration:1.3s; }
+.rt-sg.laminas i{ position:absolute; left:0; top:0; width:14px; height:46px; margin:-23px 0 0 -7px; border-radius:50% 50% 50% 50% / 90% 90% 10% 10%;
+  background:linear-gradient(90deg, #fff, var(--c)); box-shadow:0 0 10px var(--c); transform:rotate(calc(var(--i) * 60deg)) translateY(calc(var(--r) * -1)) rotate(35deg); animation:rtSgLamina 1.3s ease-in forwards; }
+@keyframes rtSgLamina{ 0%{ opacity:0; } 15%{ opacity:1; } 70%{ opacity:1; translate:0 0; } 100%{ opacity:0; scale:.2; } }
+/* selo no chão */
+.rt-sg.selo{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); transform:scaleY(.34); z-index:1; animation:rtSgSelo 1.7s ease-out forwards; }
+.rt-sg.selo b{ position:absolute; inset:0; border-radius:50%; border:3px dashed var(--c); box-shadow:0 0 14px var(--c), inset 0 0 14px var(--c); animation:rtSgGira 1.7s linear forwards; }
+.rt-sg.selo b + b{ inset:16%; border:2px solid var(--c2); animation-direction:reverse; }
+.rt-sg.selo span{ position:absolute; left:50%; top:50%; width:0; height:0; animation:rtSgGira 1.7s linear reverse forwards; }
+.rt-sg.selo span i{ position:absolute; font-style:normal; font-size:20px; color:var(--c2); translate:-50% -50%; transform:rotate(calc(var(--i) * 30deg)) translateY(calc(var(--s) * -.42)); text-shadow:0 0 8px var(--c); }
+@keyframes rtSgSelo{ 0%{ opacity:0; scale:.2; } 25%{ opacity:1; scale:1.05; } 80%{ opacity:1; } 100%{ opacity:0; scale:1.2; } }
+/* estrela de 4 pontas */
+.rt-sg.estrela{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); background:radial-gradient(circle, #fff 0 8%, var(--c) 22%, var(--c2) 40%, transparent 62%);
+  clip-path:polygon(50% 0, 58% 42%, 100% 50%, 58% 58%, 50% 100%, 42% 58%, 0 50%, 42% 42%); mix-blend-mode:screen; animation:rtSgEstrela 1.1s ease-out forwards; }
+@keyframes rtSgEstrela{ 0%{ opacity:0; transform:scale(.1) rotate(0); } 25%{ opacity:1; transform:scale(1.1) rotate(45deg); } 100%{ opacity:0; transform:scale(.5) rotate(140deg); } }
+/* símbolo grande (carimbo, caveira) */
+.rt-sg.glifo{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); display:flex; align-items:center; justify-content:center; font-size:calc(var(--s) * .9); line-height:1;
+  color:#fff; text-shadow:0 0 10px var(--c), 0 0 26px var(--c), 0 0 50px var(--c); z-index:7; }
+.rt-sg.glifo.carimbo{ animation:rtSgCarimbo 1.4s cubic-bezier(.2,.9,.3,1) forwards; }
+@keyframes rtSgCarimbo{ 0%{ opacity:0; transform:scale(3); } 22%{ opacity:1; transform:scale(.9); } 32%{ transform:scale(1.05); } 80%{ opacity:.9; transform:scale(1); } 100%{ opacity:0; transform:scale(1.4); } }
+.rt-sg.glifo.sobe-glifo{ color:#e8e0c8; animation:rtSgSobe 1.5s ease-out forwards; }
+@keyframes rtSgSobe{ 0%{ opacity:0; transform:translateY(20px) scale(.5); } 25%{ opacity:1; transform:translateY(0) scale(1.15); } 80%{ opacity:.9; } 100%{ opacity:0; transform:translateY(-40px) scale(1); } }
+/* escudo hexagonal */
+.rt-sg.hex{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); clip-path:polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%);
+  background:repeating-linear-gradient(60deg, transparent 0 14px, var(--c) 14px 16px), repeating-linear-gradient(-60deg, transparent 0 14px, var(--c) 14px 16px), radial-gradient(circle, transparent 40%, var(--c2) 100%);
+  opacity:.85; mix-blend-mode:screen; filter:drop-shadow(0 0 8px var(--c)); animation:rtSgHex 1.6s ease-out forwards; }
+@keyframes rtSgHex{ 0%{ opacity:0; transform:scale(.3) rotate(-30deg); } 25%{ opacity:.95; transform:scale(1.05) rotate(0); } 70%{ opacity:.8; } 100%{ opacity:0; transform:scale(1.15); } }
+/* mira travando */
+.rt-sg.trava{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); }
+.rt-sg.trava i{ position:absolute; width:26%; height:26%; border:3px solid var(--c); filter:drop-shadow(0 0 4px var(--c)); animation:rtSgTrava 1.2s cubic-bezier(.2,.9,.3,1) forwards; }
+.rt-sg.trava i:nth-child(1){ left:0; top:0; border-right:0; border-bottom:0; --dx:-40px; --dy:-40px; }
+.rt-sg.trava i:nth-child(2){ right:0; top:0; border-left:0; border-bottom:0; --dx:40px; --dy:-40px; }
+.rt-sg.trava i:nth-child(3){ left:0; bottom:0; border-right:0; border-top:0; --dx:-40px; --dy:40px; }
+.rt-sg.trava i:nth-child(4){ right:0; bottom:0; border-left:0; border-top:0; --dx:40px; --dy:40px; }
+@keyframes rtSgTrava{ 0%{ opacity:0; translate:var(--dx) var(--dy); } 45%{ opacity:1; translate:0 0; } 60%{ scale:.85; } 85%{ opacity:1; scale:1; } 100%{ opacity:0; } }
+/* implosão: anel que fecha */
+.rt-sg.implode{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius:50%; border:5px solid var(--c); box-shadow:0 0 20px var(--c), inset 0 0 26px var(--c); animation:rtSgImplode .8s cubic-bezier(.7,0,.9,.4) forwards; }
+@keyframes rtSgImplode{ 0%{ opacity:0; transform:scale(1); } 20%{ opacity:1; } 100%{ opacity:1; transform:scale(.02); } }
+/* coluna que sobe */
+.rt-sg.coluna{ width:var(--w); height:var(--h); margin-left:calc(var(--w) / -2); border-radius:50% 50% 40% 40%; background:linear-gradient(0deg, var(--c), transparent); mix-blend-mode:screen; filter:blur(4px); transform-origin:50% 100%; animation:rtSgColuna 1.5s ease-out forwards; }
+@keyframes rtSgColuna{ 0%{ opacity:0; transform:scaleY(0); } 30%{ opacity:.9; transform:scaleY(1); } 100%{ opacity:0; transform:scaleY(1.2) scaleX(.5); } }
+/* eco: cópias da figura */
+.rt-sg.eco{ opacity:0; filter:drop-shadow(0 0 6px var(--c)) brightness(1.6) saturate(.4); mix-blend-mode:screen; animation:rtSgEco .9s ease-out forwards; }
+.rt-sg.eco img{ width:100%; height:100%; object-fit:contain; }
+@keyframes rtSgEco{ 0%{ opacity:.8; translate:0 0; } 100%{ opacity:0; translate:var(--dx) 0; } }
+/* olho que se abre */
+.rt-sg.olho{ width:var(--s); height:calc(var(--s) * .55); margin:calc(var(--s) * -.275) 0 0 calc(var(--s) / -2); border-radius:50%; background:radial-gradient(circle, #000 0 12%, var(--c) 14% 30%, var(--c2) 32% 40%, #fff6 42% 60%, transparent 62%);
+  border:2px solid var(--c); box-shadow:0 0 18px var(--c); z-index:7; animation:rtSgOlho 1.5s ease-in-out forwards; }
+.rt-sg.olho i{ position:absolute; inset:0; border-radius:50%; background:radial-gradient(circle at 40% 40%, #fff 0 4%, transparent 6%); }
+@keyframes rtSgOlho{ 0%{ opacity:0; transform:scaleY(0); } 25%{ opacity:1; transform:scaleY(1.1); } 35%{ transform:scaleY(1); } 70%{ opacity:1; transform:scaleY(1); } 82%{ transform:scaleY(.05); } 90%{ transform:scaleY(1); } 100%{ opacity:0; transform:scale(1.5); } }
+/* correntes */
+.rt-sg.corrente{ width:var(--w); height:12px; margin:-6px 0 0 calc(var(--w) / -2); transform:rotate(var(--a)); border-radius:6px;
+  background:repeating-linear-gradient(90deg, var(--c) 0 12px, transparent 12px 16px, #fff 16px 18px, transparent 18px 22px); filter:drop-shadow(0 0 5px var(--c)); animation:rtSgCorrente 1.3s ease-out forwards; }
+@keyframes rtSgCorrente{ 0%{ opacity:0; clip-path:inset(0 100% 0 0); } 35%{ opacity:1; clip-path:inset(0 0 0 0); } 55%{ scale:.85 1; } 85%{ opacity:1; } 100%{ opacity:0; scale:.85 1; } }
+/* estilhaços */
+.rt-sg.cacos{ width:0; height:0; }
+.rt-sg.cacos i{ position:absolute; width:14px; height:18px; margin:-9px 0 0 -7px; background:linear-gradient(135deg, #fff, var(--c) 50%, var(--c2)); clip-path:polygon(50% 0, 100% 70%, 20% 100%); filter:drop-shadow(0 0 4px var(--c)); animation:rtSgCaco 1.1s cubic-bezier(.1,.8,.3,1) forwards; }
+@keyframes rtSgCaco{ 0%{ opacity:1; transform:translate(0, 0) rotate(0); } 100%{ opacity:0; transform:translate(var(--dx), var(--dy)) rotate(var(--r)); } }
+/* pulsação: corações e cruzes que sobem */
+.rt-sg.sobe{ width:var(--w); height:0; margin-left:calc(var(--w) / -2); }
+.rt-sg.sobe i{ position:absolute; top:0; font-style:normal; font-size:18px; color:var(--c); text-shadow:0 0 8px var(--c); opacity:0; animation:rtSgSobeP 1.3s ease-out forwards; animation-delay:calc(var(--i) * 110ms); }
+@keyframes rtSgSobeP{ 0%{ opacity:0; transform:translateY(0) scale(.5); } 25%{ opacity:1; transform:translateY(-20px) scale(1.1); } 100%{ opacity:0; transform:translateY(-90px) scale(.8); } }
+/* engrenagens */
+.rt-sg.engr{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); z-index:2; }
+.rt-sg.engr i{ position:absolute; font-style:normal; line-height:1; color:var(--c); text-shadow:0 0 10px var(--c), 0 0 22px var(--c2); animation:rtSgEngr 1.5s ease-in-out forwards; }
+.rt-sg.engr i:nth-child(1){ left:-10%; top:5%; font-size:calc(var(--s) * .7); }
+.rt-sg.engr i:nth-child(2){ right:-5%; bottom:0; font-size:calc(var(--s) * .45); animation-direction:reverse; color:var(--c2); }
+@keyframes rtSgEngr{ 0%{ opacity:0; rotate:0deg; scale:.4; } 25%{ opacity:.95; scale:1; } 80%{ opacity:.9; } 100%{ opacity:0; rotate:240deg; } }
+/* ondas de grito */
+.rt-sg.arco{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); border-radius:50%; border:4px solid transparent; border-right-color:var(--c); filter:drop-shadow(0 0 6px var(--c));
+  transform:rotate(var(--a)); opacity:0; animation:rtSgArco .9s ease-out forwards; }
+@keyframes rtSgArco{ 0%{ opacity:1; translate:0 0; scale:.4; } 100%{ opacity:0; scale:1.3; transform:rotate(var(--a)) translateX(var(--d)); } }
+/* espiral */
+.rt-sg.espiral{ width:0; height:0; }
+.rt-sg.espiral i{ position:absolute; width:8px; height:8px; margin:-4px; border-radius:50%; background:#fff; box-shadow:0 0 8px var(--c), 0 0 16px var(--c2); opacity:0; animation:rtSgEspiral 1.4s ease-out forwards; animation-delay:calc(var(--i) * 50ms); }
+@keyframes rtSgEspiral{ 0%{ opacity:0; transform:rotate(calc(var(--i) * 52deg)) translateX(var(--r)) translateY(0); }
+  20%{ opacity:1; } 100%{ opacity:0; transform:rotate(calc(var(--i) * 52deg + var(--g, 1) * 260deg)) translateX(calc(var(--r) * .3)) translateY(calc(var(--h) * -1)); } }
+/* prisma */
+.rt-sg-prisma .rt-cena-palco, .rt-sg-palco.rt-sg-prisma{ animation:rtSgPrisma .9s linear 1; }
+@keyframes rtSgPrisma{ 0%{ filter:hue-rotate(0); } 50%{ filter:hue-rotate(180deg) saturate(1.6); } 100%{ filter:hue-rotate(360deg); } }
+/* vinheta colorida */
+.rt-sg.vinheta{ inset:0; z-index:4; background:radial-gradient(ellipse at 50% 55%, transparent 35%, var(--c) 100%); mix-blend-mode:screen; animation:rtSgVinheta 1.1s ease-out forwards; }
+@keyframes rtSgVinheta{ 0%{ opacity:0; } 25%{ opacity:1; } 100%{ opacity:0; } }
+/* constelação */
+.rt-sg.estrelas{ width:var(--s); height:var(--s); margin:calc(var(--s) / -2) 0 0 calc(var(--s) / -2); }
+.rt-sg.estrelas i{ position:absolute; font-style:normal; font-size:16px; color:#fff; text-shadow:0 0 8px var(--c), 0 0 16px var(--c); opacity:0; animation:rtSgBrilha 1s ease-in-out forwards; }
+@keyframes rtSgBrilha{ 0%{ opacity:0; scale:.2; } 40%{ opacity:1; scale:1.4; } 100%{ opacity:0; scale:.6; rotate:90deg; } }
+@media (prefers-reduced-motion: reduce){ .rt-sg.runas, .rt-sg.orbita, .rt-sg.laminas{ animation-duration:.01s; } }
+
+/* ---------- palco de teste da wiki ---------- */
+.rt-sg-palco{ position:relative; overflow:hidden; grid-column:1 / -1; height:230px; margin-top:8px; border-radius:10px; border:1px solid #5a4421;
+  background:radial-gradient(ellipse at 50% 120%, #4a3418 0%, transparent 60%), linear-gradient(180deg, #161009, #0a0704); box-shadow:inset 0 0 30px rgba(0,0,0,.8); }
+.rt-sg-palco::after{ content:""; position:absolute; left:6%; right:6%; bottom:24px; height:2px; background:linear-gradient(90deg, transparent, #6b5426, transparent); }
+.rt-sg-fig{ position:absolute; bottom:26px; width:130px; height:150px; display:flex; align-items:flex-end; justify-content:center; }
+.rt-sg-fig.alvo{ left:12%; } .rt-sg-fig.ator{ right:12%; }
+.rt-sg-palco.so-um .rt-sg-fig.alvo{ display:none; } .rt-sg-palco.so-um .rt-sg-fig.ator{ right:auto; left:50%; margin-left:-65px; }
+.rt-sg-fig .rt-fig-corpo{ position:relative; width:100%; height:100%; display:flex; align-items:flex-end; justify-content:center; border:0; border-radius:0; background:transparent; box-shadow:none; }
+.rt-sg-fig .rt-fig-corpo > img{ width:auto; height:100%; max-width:none; object-fit:contain; border-radius:0; filter:drop-shadow(0 3px 3px rgba(0,0,0,.7)); image-rendering:auto; }
+.rt-sg-fig .rt-fig-flash{ inset:20% 22% 8%; border-radius:50%; filter:blur(12px); }
+.rt-sg-emo{ font-size:80px; line-height:1; }
+.rt-sg-palco-tit{ position:absolute; left:0; right:0; top:8px; text-align:center; font:700 13px Cinzel, Georgia, serif; letter-spacing:.08em; color:#e0b656; text-shadow:0 1px 2px #000; text-transform:uppercase; }
+
+/* ---------- página das cartas ---------- */
+.rt-wc-filtros{ position:sticky; top:0; z-index:3; padding:6px 0 8px; background:inherit; }
+.rt-wc-chips{ display:flex; flex-wrap:wrap; gap:5px; margin-top:6px; }
+.rt-wc-chips button{ padding:4px 9px; border-radius:12px; border:1px solid #6b5426; background:rgba(0,0,0,.25); color:inherit; font:700 11px Cinzel, Georgia, serif; letter-spacing:.04em; cursor:pointer; }
+.rt-wc-chips button.on{ background:linear-gradient(180deg, #e0b656, #a9822a); color:#2a1c08; border-color:#7a5c1e; }
+.rt-wc-grupo h5{ margin:14px 0 6px; } .rt-wc-grupo h5 small{ opacity:.6; font-weight:400; }
+.rt-wc-item{ display:grid; grid-template-columns:104px 1fr; gap:12px; align-items:start; padding:10px; margin-bottom:8px; border-radius:10px; border:1px solid rgba(160,120,60,.35); background:rgba(0,0,0,.12); }
+.rt-wc-item[hidden], .rt-wc-grupo[hidden]{ display:none; }
+.rt-wc-carta{ position:relative; width:104px; height:146px; border-radius:9px; cursor:pointer; background:linear-gradient(180deg, #2a1d0e, #120c06); border:2px solid #b8892e;
+  box-shadow:0 4px 10px rgba(0,0,0,.6), inset 0 0 0 1px #000; transition:transform .15s, box-shadow .15s; }
+.rt-wc-carta:hover{ transform:translateY(-4px) scale(1.04); box-shadow:0 10px 18px rgba(0,0,0,.7), 0 0 14px 2px rgba(243,199,78,.5); }
+.rt-wc-carta.ha{ border-color:#f3c74e; box-shadow:0 0 14px 3px rgba(243,199,78,.6); } .rt-wc-carta.dm{ border-color:#ff5a45; box-shadow:0 0 14px 3px rgba(255,90,69,.6); }
+.rt-wc-ic{ position:absolute; top:2px; left:5px; height:18px; display:flex; align-items:center; font-size:14px; filter:drop-shadow(0 1px 1px #000); }
+.rt-wc-ic .rt-ico-img{ width:18px; height:18px; border-radius:50%; }
+.rt-wc-custo{ position:absolute; top:3px; right:5px; font:800 9.5px Georgia, serif; color:#ffe9a6; background:rgba(0,0,0,.55); border:1px solid #6b5426; border-radius:8px; padding:1px 5px; }
+.rt-wc-arte{ position:absolute; left:6px; right:6px; top:22px; bottom:36px; border-radius:6px; overflow:hidden; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 50% 40%, #4a3418, #120c06 78%); border:1px solid #000; }
+.rt-wc-arte img{ width:100%; height:100%; object-fit:cover; display:block; }
+.rt-wc-sem{ font-size:42px; filter:drop-shadow(0 2px 3px #000); }
+.rt-wc-nome{ position:absolute; left:4px; right:4px; bottom:4px; height:30px; display:flex; align-items:center; justify-content:center; text-align:center;
+  font:800 9.5px/1.15 Georgia, serif; letter-spacing:.02em; color:#f1e2bd; text-transform:uppercase; text-shadow:0 1px 1px #000; overflow:hidden; }
+.rt-wc-txt{ min-width:0; }
+.rt-wc-tit{ display:block; font:700 15px Cinzel, Georgia, serif; letter-spacing:.03em; }
+.rt-wc-meta{ display:flex; flex-wrap:wrap; gap:4px; margin:5px 0 2px; }
+.rt-wc-meta span{ font-size:11px; padding:1px 7px; border-radius:9px; background:rgba(160,120,60,.18); border:1px solid rgba(160,120,60,.4); }
+.rt-wc-txt p{ margin:5px 0; line-height:1.4; }
+.rt-wc-sig{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:12px; opacity:.9; margin:4px 0 6px; }
+.rt-wc-sig i{ width:12px; height:12px; border-radius:50%; background:var(--c1); box-shadow:0 0 6px var(--c1); }
+.rt-wc-sig i + i{ background:var(--c2); box-shadow:0 0 6px var(--c2); margin-left:-4px; }
+.rt-wc-sig.neutra{ font-style:italic; }
+.rt-wc-play{ margin-top:2px; }
+@media (max-width:640px){ .rt-wc-item{ grid-template-columns:84px 1fr; } .rt-wc-carta{ width:84px; height:118px; } .rt-sg-fig{ width:100px; height:120px; } .rt-sg-palco{ height:200px; } }
 
 </style>
 </body>
