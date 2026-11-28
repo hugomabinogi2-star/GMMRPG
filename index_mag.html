@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<script src="index_mag_imagens.js?v=50perucas1"></script>
+<script src="index_mag_imagens.js?v=51base"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rogue Trader — Mesa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14243,7 +14243,8 @@ cols: BOARD_COLS,
 marks: boardMarks,
 tokens: tokensOut,
 background: boardBackground || null,
-gridColor: boardGridColor
+gridColor: boardGridColor,
+cenario: typeof RT_CENARIO !== "undefined" ? RT_CENARIO : null
 };
 const path = `${BOARDS_PATH}/${slugify(name)}.json`;
 const original = boardSaveBtn.textContent;
@@ -65703,7 +65704,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "5.0";
+const RT_VERSAO_APP = "5.2";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -71095,14 +71096,14 @@ try {
 // VERSÃO 4.0 — o avatar do personagem com a arte gerada (corpo × armadura, cabeça
 // cabelo × rosto, chapéu da origem e acessório do rosto). O jogo pinta o cabelo e a pele.
 // =====================================================================================
-const RT_AVIA = (window.RT_IMG && window.RT_IMG.avatar) || null;
+let RT_AVIA = (window.RT_IMG && window.RT_IMG.avatar) || null;   // pode chegar depois (index_mag_avatar.js)
 const RT_AVIA_N = 288;
 const RT_AVIA_ARM = { leve: 1, media: 2, pesada: 3, energizada: 4 };
 const RT_AVIA_IMGS = new Map();
 const RT_AVIA_CACHE = new Map();
 let RT_AVIA_PRONTO = false;
 // carrega as partes uma vez; quando chegam, refaz avatar, guia e figuras
-(function () {
+function rtAvIaCarrega() {
   if (!RT_AVIA) return;
   const ks = Object.keys(RT_AVIA.img); let falta = ks.length;
   ks.forEach(k => {
@@ -71115,7 +71116,8 @@ let RT_AVIA_PRONTO = false;
     };
     im.src = RT_AVIA.img[k]; RT_AVIA_IMGS.set(k, im);
   });
-})();
+}
+rtAvIaCarrega();
 const rtAvIaUsa = rc => !!(RT_AVIA && RT_AVIA_PRONTO && rc && rc.av && (rc.hw || rc.og || rc.a1));
 function rtAvIaArmCol(rc) {
   try { const A = rc && rc.armNome && RT_ARMORS.find(a => a.pt === rc.armNome || a.nome === rc.armNome || a.id === rc.armNome); return (A && RT_AVIA_ARM[A.cls]) || 0; } catch (e) { return 0; }
@@ -72195,7 +72197,7 @@ try { RT_NOVIDADES.unshift(["🎨 Cores do avatar", "A cor do cabelo e o tom de 
 //   frente (ombros, golas, estolas, fechos) por cima da armadura. Versões largas para a
 //   armadura energizada.
 // =====================================================================================
-const RT_CAPA = (window.RT_IMG && window.RT_IMG.capas) || null;
+let RT_CAPA = (window.RT_IMG && window.RT_IMG.capas) || null;
 RT_AV.capa = [["nada", "Sem capa"],
   ["capa_vermelha", "Capa imperial vermelha"], ["capa_rasgada", "Capa preta rasgada"], ["capa_nobre", "Capa de nobre"], ["capa_eclesiarquia", "Capa da Eclesiarquia"], ["capa_batedor", "Capa de batedor"], ["capa_mechanicus", "Manto do Mechanicus"],
   ["manto_lobo", "Manto de pele de lobo"], ["manto_cerimonial", "Meia-capa cerimonial"], ["manto_malha", "Manto de malha"], ["manto_estola", "Estola de sacerdote"], ["manto_cachecol", "Cachecol"], ["manto_inquisicao", "Manto da Inquisição"]];
@@ -72205,9 +72207,10 @@ RT_AV_K.push("capa");
   rtAvDe = function () { const o = f.apply(this, arguments); if (!Number.isFinite(o.capa)) o.capa = 0; return o; };
 }
 const RT_CAPA_IMGS = new Map();
-if (RT_CAPA) Object.keys(RT_CAPA.img).forEach(k => {
+function rtCapaCarrega() { if (RT_CAPA) Object.keys(RT_CAPA.img).forEach(k => {
   const im = new Image(); im.onload = () => { try { RT_AVIA_CACHE.clear(); RT_SPR_CACHE.clear(); } catch (e) {} }; im.src = RT_CAPA.img[k]; RT_CAPA_IMGS.set(k, im);
-});
+}); }
+rtCapaCarrega();
 function rtCapaChave(av, corpoKey) {
   const c = RT_AV.capa[av && av.capa || 0]; if (!c || c[0] === "nada" || !RT_CAPA) return null;
   const g = /_4$/.test(corpoKey || "") && RT_CAPA.meta[c[0] + "_g"] ? "_g" : "";
@@ -72520,6 +72523,256 @@ try { RT_NOVIDADES.unshift(["🎀 Perucas de época", "A APARÊNCIA ganhou 6 pen
     try { const c = cats.find(x => x.id === "figuras"); const it = c && c.itens.find(x => x.id === "figuras"); if (it) it.html = it.html.replace("(15 penteados e 11 cores)", "(21 penteados, entre eles 6 perucas de época, e 11 cores)"); } catch (e) {}
   };
 }
+
+// =====================================================================================
+// VERSÃO 5.1
+// · Imagens extras (cartas, figuras+cenários, avatar+capas) em arquivos separados, carregados
+//   em segundo plano depois que a mesa abre (a abertura não espera por elas).
+// · Brilho da arma calculado do próprio item (não depende mais de salvar a ficha de novo).
+// · Números da cena nunca saem do quadro com o zoom.
+// · O cabelo fica por baixo de elmos, capuzes e chapéus.
+// · O cenário vai junto do tabuleiro salvo.
+// · Wiki: lista das cartas sem arte, com o prompt pronto.
+// =====================================================================================
+
+// ---------- imagens extras ----------
+const RT_IMG_VERS = {"cartas": "be0a7eb6da", "cena": "4b761d560b", "avatar": "8770790f81"};
+const RT_IMG_OK = {};
+window.rtImgChegou = function (nome) {
+  RT_IMG_OK[nome] = true;
+  const I = window.RT_IMG || {};
+  try {
+    if (nome === "cartas" && I.cartas) { Object.assign(RT_CARTA_PADRAO, I.cartas); try { rtIcoWikiDesenha(true); } catch (e) {} }
+    if (nome === "cena") {
+      if (I.figuras) { Object.assign(RT_FIG_PADRAO, I.figuras); try { RT_SPR_CACHE.clear(); } catch (e) {} Object.values(RT_FIG_PADRAO).forEach(u => { try { rtSprImg(u); } catch (e) {} }); }
+      if (I.cenarios) { Object.assign(RT_CENARIO_IMG, I.cenarios); try { if (RT_CENA) rtCenarioFundo(RT_CENA.caixa); } catch (e) {} }
+    }
+    if (nome === "avatar") {
+      if (I.avatar && !RT_AVIA) { RT_AVIA = I.avatar; rtAvIaCarrega(); }
+      if (I.capas && !RT_CAPA) { RT_CAPA = I.capas; rtCapaCarrega(); }
+    }
+  } catch (e) { console.error("imagens extras", nome, e); }
+};
+(function () {
+  const I = window.RT_IMG || {};
+  const ja = { cartas: !!I.cartas, cena: !!(I.figuras && I.cenarios), avatar: !!(I.avatar && I.capas) };
+  Object.keys(RT_IMG_VERS).forEach((nome, i) => {
+    if (ja[nome]) { RT_IMG_OK[nome] = true; return; }
+    setTimeout(() => {
+      const s = document.createElement("script"); s.async = true;
+      s.src = "index_mag_" + nome + ".js?v=" + RT_IMG_VERS[nome];
+      s.onerror = () => console.warn("não foi possível carregar index_mag_" + nome + ".js (suba o arquivo no GitHub junto do index_mag.html)");
+      document.head.appendChild(s);
+    }, 400 + i * 250);
+  });
+})();
+
+// ---------- brilho da arma pelo próprio item ----------
+const RT_AURA_STATS = ["pen", "acerto", "crit", "cad", "mun", "alc", "redEsq", "aparar", "bloq", "castigo", "infusao", "devast"];
+function rtAuraDoItem(w, rc) {
+  if (!w || !w.id || !RT_WEAPON_BY[w.id]) return null;
+  try {
+    const comp = { tals: ((rc && rc.tals) || []).map(id => ({ id })), B: (rc && rc.B) || {}, ch: (rc && rc.ch) || {}, psy: (rc && rc.psy) || 0, sk: (rc && rc.sk) || {} };
+    const base = rtResolveWeapon({ id: w.id, nome: "", bonus: [] }, comp); if (!base) return null;
+    const bonus = [];
+    const d = (w.max || 0) - (base.max || 0); if (d > 0) bonus.push({ s: "dano", v: d });
+    RT_AURA_STATS.forEach(s => { const v = (+w[s] || 0) - (+base[s] || 0); if (v > 0) bonus.push({ s, v }); });
+    const a = rtArmaAura(bonus);
+    return a && a.n ? [a.n, a.cor] : null;
+  } catch (e) { return null; }
+}
+function rtAuraCompleta(M, rc) {
+  if (!M) return M;
+  M.lista.forEach(x => { if (!Array.isArray(x.au) && x.w && x.w.au === undefined) x.au = rtAuraDoItem(x.w, rc); });
+  return M;
+}
+{
+  const f = rtCenaMaosDe;
+  rtCenaMaosDe = function (tok) { const M = f.apply(this, arguments); try { return rtAuraCompleta(M, rtcOf(tok)); } catch (e) { return M; } };
+}
+{
+  const f = rtAvMaosDe;
+  rtAvMaosDe = function (rc) { return rtAuraCompleta(f.apply(this, arguments), rc); };
+}
+
+// ---------- números da cena dentro do quadro ----------
+function rtCenaNumDentro(n) {
+  try {
+    const cx = n.closest(".rt-cena-caixa"); if (!cx || !n.isConnected) return;
+    const a = n.getBoundingClientRect(), b = cx.getBoundingClientRect();
+    const margem = 10; let dx = 0;
+    if (a.right > b.right - margem) dx = (b.right - margem) - a.right;
+    if (a.left + dx < b.left + margem) dx = (b.left + margem) - a.left;
+    let dy = 0; if (a.top < b.top + 22) dy = (b.top + 22) - a.top;
+    if (!dx && !dy) return;
+    const esp = !!n.closest(".rt-cena-palco.espelho");
+    const sc = (b.width / cx.offsetWidth) || 1;              // o palco pode estar com zoom
+    const z = (n.getBoundingClientRect().width / (n.offsetWidth || 1)) || 1;
+    const ox = (parseFloat(n.dataset.dx) || 0) + dx / z * (esp ? -1 : 1), oy = (parseFloat(n.dataset.dy) || 0) + dy / z;
+    n.dataset.dx = ox; n.dataset.dy = oy;
+    n.style.marginLeft = ox.toFixed(1) + "px"; n.style.marginTop = oy.toFixed(1) + "px";
+    void sc;
+  } catch (e) {}
+}
+{
+  const f = rtCenaTexto;
+  rtCenaTexto = function (C, fig) {
+    const r = f.apply(this, arguments);
+    try {
+      const corpo = fig && fig.querySelector(".rt-fig-corpo"); const n = corpo && [...corpo.querySelectorAll(".rt-cena-num")].pop();
+      if (n) { const ate = performance.now() + 1700; const loop = () => { if (!n.isConnected || performance.now() > ate) return; rtCenaNumDentro(n); requestAnimationFrame(loop); }; requestAnimationFrame(loop); }
+    } catch (e) {}
+    return r;
+  };
+}
+
+// ---------- cabelo por baixo de elmos e chapéus ----------
+// TOPO: o cabelo acima do alto do chapéu some (moicano, coque, peruca alta).
+// COBRE: além disso, o cabelo da parte de cima/de trás da cabeça some (elmo, capuz, capuz de malha).
+const RT_CHAPEU_TOPO = new Set(["chapeu_astra_militarum_commander", "chapeu_commissar", "chapeu_crime_lord", "chapeu_navy_officer", "chapeu_inquisidor", "chapeu_tricornio", "chapeu_piloto", "chapeu_cadiano", "chapeu_krieg", "chapeu_arbitrator", "chapeu_lobo", "chapeu_mechanicus", "chapeu_ministorum_priest"]);
+// linha da aba/faixa de cada chapéu (coordenadas da cabeça): o cabelo acima dela fica por baixo do chapéu
+const RT_CHAPEU_LINHA = { chapeu_astra_militarum_commander: 182, chapeu_commissar: 182, chapeu_crime_lord: 186, chapeu_navy_officer: 172, chapeu_inquisidor: 178, chapeu_tricornio: 172,
+  chapeu_piloto: 205, chapeu_cadiano: 202, chapeu_krieg: 215, chapeu_arbitrator: 215, chapeu_lobo: 215, chapeu_mechanicus: 215, chapeu_ministorum_priest: 215 };
+const RT_CHAPEU_COBRE = {     // em coordenadas da cabeça (olho ~ x318, y223; nariz x401)
+  chapeu_cadiano: (x, y) => y < 200, chapeu_piloto: (x, y) => y < 205, chapeu_arbitrator: (x, y) => y < 215,
+  chapeu_krieg: (x, y) => y < 215 || (x < 300 && y < 330), chapeu_lobo: (x, y) => y < 215 || (x < 250 && y < 340),
+  chapeu_mechanicus: (x, y) => y < 215 || (x < 268 && y < 380), chapeu_ministorum_priest: (x, y) => y < 215 || (x < 268 && y < 380),
+  ac_coif: (x, y) => y < 215 || (x < 268 && y < 400),
+};
+const RT_TOPO_CACHE = new Map();
+function rtChapeuTopo(k) {
+  if (RT_TOPO_CACHE.has(k)) return RT_TOPO_CACHE.get(k);
+  try {
+    const m = RT_AVIA.meta[k]; const im = RT_AVIA_IMGS.get(k); if (!m || !im || !im.naturalWidth) return null;
+    const W = im.naturalWidth, H = im.naturalHeight; const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+    const d = cx.getImageData(0, 0, W, H).data; let r0 = 0;
+    for (let r = 0; r < H; r++) { let n = 0; for (let x = 0; x < W; x++) if (d[(r * W + x) * 4 + 3]) n++; if (n > W * .06) { r0 = r; break; } }
+    let y0, hh;
+    if (m.quadro) { y0 = m.bb[1]; hh = m.bb[3] - m.bb[1]; }
+    else { const c = RT_AVIA.p.og[k.slice(7)]; if (!c) return null; const bw = m.bb[2] - m.bb[0], bh = m.bb[3] - m.bb[1]; hh = c[2] * bh / bw; y0 = c[1] - c[4] * hh; }
+    const t = y0 + r0 / H * hh; RT_TOPO_CACHE.set(k, t); return t;
+  } catch (e) { return null; }
+}
+const RT_CAB_MASK = new Map();
+function rtCabeloMask(k) {
+  if (RT_CAB_MASK.has(k)) return RT_CAB_MASK.get(k);
+  const im = RT_AVIA_IMGS.get(k); if (!im || !im.naturalWidth) return null;
+  const W = im.naturalWidth, H = im.naturalHeight; const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+  const d = cx.getImageData(0, 0, W, H).data; const m = new Uint8Array(W * H);
+  for (let p = 0, i = 0; p < W * H; p++, i += 4) { if (!d[i + 3]) continue; const [h, s] = rtHslDe(d[i], d[i + 1], d[i + 2]); if (h >= 70 && h <= 170 && s > .22) m[p] = 1; }
+  RT_CAB_MASK.set(k, m); return m;
+}
+function rtCabecaSemCabelo(kCab, src, regras) {
+  const ck = "semcab|" + kCab + "|" + src.width + "|" + regras.id;
+  if (RT_AVIA_CACHE.has(ck + "|" + (src.__ck || ""))) return RT_AVIA_CACHE.get(ck + "|" + (src.__ck || ""));
+  const m = rtCabeloMask(kCab); if (!m) return src;
+  const bb = RT_AVIA.meta[kCab].bb; const W = src.width, H = src.height;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d"); cx.drawImage(src, 0, 0);
+  const D = cx.getImageData(0, 0, W, H), d = D.data; const sx = (bb[2] - bb[0]) / W, sy = (bb[3] - bb[1]) / H;
+  for (let p = 0; p < W * H; p++) {
+    if (!m[p]) continue;
+    const x = bb[0] + (p % W + .5) * sx, y = bb[1] + ((p / W | 0) + .5) * sy;
+    if (regras.f(x, y)) d[p * 4 + 3] = 0;
+  }
+  cx.putImageData(D, 0, 0);
+  RT_AVIA_CACHE.set(ck + "|" + (src.__ck || ""), cv); return cv;
+}
+// a cabeça usada pelo avatar passa por aqui quando há chapéu ou capuz de malha
+{
+  const f = rtAvIaCompor;
+  rtAvIaCompor = function (rc) {
+    try {
+      const av = rc && rc.av; if (!av || !RT_AVIA) return f.apply(this, arguments);
+      const K = rtAvIaChaves(rc);
+      const regrasF = [];
+      if (K.og && RT_CHAPEU_LINHA[K.og]) { const t = RT_CHAPEU_LINHA[K.og]; regrasF.push((x, y) => y < t); }
+      if (K.og && RT_CHAPEU_COBRE[K.og]) regrasF.push(RT_CHAPEU_COBRE[K.og]);
+      if (K.ac && RT_CHAPEU_COBRE[K.ac]) regrasF.push(RT_CHAPEU_COBRE[K.ac]);
+      if (!regrasF.length) return f.apply(this, arguments);
+      const regras = { id: (K.og || "") + "+" + (K.ac || ""), f: (x, y) => regrasF.some(g => g(x, y)) };
+      const orig = rtAvIaPinta;
+      rtAvIaPinta = function (k) {
+        const c = orig.apply(this, arguments);
+        if (c && k === K.cab) { c.__ck = c.__ck || Math.random().toString(36).slice(2); return rtCabecaSemCabelo(k, c, regras); }
+        return c;
+      };
+      try { return f.apply(this, arguments); } finally { rtAvIaPinta = orig; }
+    } catch (e) { console.error("cabelo e chapéu", e); return f.apply(this, arguments); }
+  };
+}
+
+// ---------- o cenário vem junto do tabuleiro carregado ----------
+{
+  const f = applyBoardData;
+  applyBoardData = function (data) {
+    const r = f.apply(this, arguments);
+    try {
+      const v = data && data.cenario;
+      if (v && RT_CENARIOS.some(c => c[0] === v) && currentRole === "mestre" && fbDb && v !== RT_CENARIO) { RT_CENARIO = v; fbDb.ref("mesa40k/config/cenario").set(v); }
+    } catch (e) {}
+    return r;
+  };
+}
+
+// ---------- wiki: cartas sem arte ----------
+function rtCartasSemArte() {
+  const G = rtIcoCatalogo(); const ordem = ["tipos", "talentos", "origem", "hab", "psy", "cons"]; const out = [];
+  ordem.forEach(id => { const g = G.find(x => x.id === id); if (g) g.itens.forEach(x => { if (/^(arma|modo):/.test(x.k)) return; if (!RT_CARTAS[x.k] && !RT_CARTA_PADRAO[x.k]) out.push(x); }); });   // cartas de arma mostram a arte da arma
+  return out;
+}
+const RT_CARTA_CONCEITO_EXTRA = ({
+  "gen:ai-on": "a Mechanicus servitor's skull-shaped cogitator lighting up with green runes as an automatic battle protocol is switched on",
+  "gen:ai-off": "a commander's armored hand pulling the control lever of a servitor, its green eye lights fading out as the automatic protocol shuts down",
+  "gen:fora": "a fallen Imperial soldier lying on the battlefield, helmet rolled away, a medic's red cross lamp flickering beside him",
+});
+function rtCartaConceitoDe(x) {
+  return RT_CARTA_CONCEITO[x.k] || RT_CARTA_CONCEITO_EXTRA[x.k] || ("a dramatic scene that clearly shows the Warhammer 40,000 action called \"" + x.nm + "\"" + (x.ds ? " (" + x.ds + ")" : "") + ", grimdark, heroic");
+}
+function rtSemArtePrompt(lista) {
+  const n = lista.length <= 6 ? 6 : lista.length <= 12 ? 12 : 20; const f = lista.slice(0, n);
+  const vazias = n - f.length;
+  return rtFolhaCab(n) + "\n" + f.map((x, i) => "Card " + (i + 1) + " (" + rtFolhaPos(i, n) + "): " + rtCartaConceitoDe(x) + ".").join("\n")
+    + (vazias > 0 ? "\nThe remaining " + vazias + " cell(s) at the end stay plain black." : "");
+}
+{
+  const f = rtFolhasHtml;
+  rtFolhasHtml = function () {
+    let h = f.apply(this, arguments);
+    try {
+      const L = rtCartasSemArte();
+      h += '<div class="rt-sem-arte"><b>🃏 CARTAS SEM ARTE: ' + L.length + "</b> "
+        + (L.length ? '<button type="button" class="rt-btn rt-btn-ok" data-rt-sem-arte>📋 PROMPT DAS QUE FALTAM' + (L.length > 20 ? " (as 20 primeiras)" : "") + "</button><span>" + L.map(x => rtEsc(x.nm)).join(" · ") + "</span>"
+          : "<span>Todas as cartas de ação têm arte. Quando surgir uma ação nova sem arte, ela aparece aqui com o prompt pronto.</span>") + "</div>";
+    } catch (e) {}
+    return h;
+  };
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest && e.target.closest("[data-rt-sem-arte]"); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const L = rtCartasSemArte(); if (L.length) rtCopia(rtSemArtePrompt(L), "PROMPT DAS " + Math.min(20, L.length) + " CARTAS SEM ARTE COPIADO.");
+}, true);
+
+try {
+  RT_NOVIDADES.unshift(
+    ["⚡ Abertura mais leve", "As imagens das cartas, das figuras, dos cenários e do avatar agora vêm em arquivos separados e carregam em segundo plano, então a mesa abre mais rápido."],
+    ["🪖 Cabelo sob o elmo", "O cabelo do avatar fica por baixo de elmos, capuzes e chapéus: moicano, coque e perucas altas não atravessam mais o capacete."],
+    ["🏞️ Cenário no tabuleiro", "O cenário da cena é salvo junto com o tabuleiro e volta sozinho quando o mestre carrega o tabuleiro."]
+  );
+} catch (e) {}
+
+// ---------- celular: câmera mais contida ----------
+{
+  const f = rtCamEntra;
+  rtCamEntra = function (C, z, junta, cor) {
+    if (innerWidth < 640) { z = 1 + (z - 1) * .5; junta = junta * .5; }
+    return f.call(this, C, z, junta, cor);
+  };
+}
+
+// ---------- v5.2: os 8 chapéus de origem e os 7 acessórios antigos refeitos na cabeça-molde ----------
+try { RT_AVIA_CACHE.clear(); RT_SPR_CACHE.clear(); } catch (e) {}
+try { RT_NOVIDADES.unshift(["🎩 Acessórios refeitos", "Os 8 chapéus de origem (quepe de comandante e de comissário, chapéu do senhor do crime, capuz de sacerdote, bicorne, tiara, capuz psíquico e elmo de arbitrador) e os 7 acessórios de rosto antigos ganharam arte nova e encaixam certinho na cabeça do avatar."]); } catch (e) {}
 
 rtInit();
 recalc();
