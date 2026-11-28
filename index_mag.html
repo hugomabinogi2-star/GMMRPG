@@ -65704,7 +65704,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "5.4";
+const RT_VERSAO_APP = "5.5";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -72892,6 +72892,9 @@ try {
 //   na frente do corpo (antes ficava atrás, virada para o outro lado).
 // · Peças do tabuleiro: o boneco inteiro em pé na casa (padrão), o busto na bolinha ou o retrato.
 // · Zoom da peça (mouse por cima): sempre a imagem da ficha, qualquer que seja a peça.
+// VERSÃO 5.5
+// · O boneco do tabuleiro vira para o lado do último passo (esquerda ou direita).
+// · Só duas opções de peça: o avatar na mesa ou o token com a foto da ficha (saiu o busto).
 // =====================================================================================
 
 // ---------- segunda arma ----------
@@ -72912,8 +72915,9 @@ try {
   };
 }
 
-// ---------- peças do tabuleiro: boneco inteiro / busto / retrato ----------
+// ---------- peças do tabuleiro: avatar na mesa (boneco inteiro) / token com a foto da ficha ----------
 if (!RT_PREFS.pecaModo) RT_PREFS.pecaModo = RT_PREFS.figPecas === false ? "retrato" : "boneco";
+if (RT_PREFS.pecaModo !== "retrato") RT_PREFS.pecaModo = "boneco";      // o busto saiu (5.5)
 RT_PREFS.figPecas = RT_PREFS.pecaModo !== "retrato";
 const RT_BONECO_PECA = new Map();
 // a figura inteira recortada (sem o vazio em volta), com a proporção largura/altura
@@ -72945,26 +72949,31 @@ function rtPecaLimpa(el, tok) {
     el.style.backgroundImage = p ? 'url("' + p + '")' : "";
   }
   if (el.classList.contains("rt-peca-boneco")) {
-    el.classList.remove("rt-peca-boneco", "rt-boneco-ini");
+    el.classList.remove("rt-peca-boneco", "rt-boneco-ini", "rt-boneco-esq");
     el.querySelectorAll(":scope > .rt-boneco-img").forEach(x => x.remove());
   }
 }
+// para que lado cada peça está virada: muda quando ela anda para a esquerda ou para a direita
+// (andar só para cima ou para baixo mantém o lado; no começo, jogadores e aliados olham para a direita e inimigos para a esquerda)
+const RT_PECA_VIRA = new Map();
+function rtPecaViraEsq(tok) {
+  const c = +tok.anchorC, st = RT_PECA_VIRA.get(tok.id);
+  if (!st) { const esq = !!tok.bst && !/^aliado/.test(tok.kind || ""); RT_PECA_VIRA.set(tok.id, { c, esq }); return esq; }
+  if (c !== st.c) { if (isFinite(c) && isFinite(st.c)) st.esq = c < st.c; st.c = c; }
+  return st.esq;
+}
 rtPecasDecora = function () {
   if (!rtReady) return;
-  const modo = RT_PREFS.pecaModo || "boneco";
+  const modo = RT_PREFS.pecaModo === "retrato" ? "retrato" : "boneco";
   document.querySelectorAll(".board-token[data-token-id]:not(.token-block)").forEach(el => {
     try {
       const tok = rtTokenById(el.dataset.tokenId);
+      let esq = false; try { if (tok) esq = rtPecaViraEsq(tok); } catch (e) {}
       const morto = el.classList.contains("token-dead");
       const url = tok && !morto && modo !== "retrato" ? rtPecaFiguraUrl(tok) : null;
       if (!url) { rtPecaLimpa(el, tok); return; }
       const ini = !!tok.bst;
-      if (modo === "busto") {
-        if (el.classList.contains("rt-peca-boneco")) rtPecaLimpa(el, tok);
-        const u = rtBustoDe(url, ini); if (!u) return;
-        const bg = 'url("' + u + '")';
-        if (el.style.backgroundImage !== bg) { el.style.backgroundImage = bg; el.classList.add("rt-peca-fig"); }
-      } else {
+      {
         if (el.classList.contains("rt-peca-fig")) rtPecaLimpa(el, tok);
         const B = rtBonecoPecaDe(url, ini); if (!B) return;
         let im = el.querySelector(":scope > .rt-boneco-img");
@@ -72974,7 +72983,7 @@ rtPecasDecora = function () {
         const alt = big ? Math.min(1.08, 1.02 / B.ar) : Math.min(1.38, 1.3 / B.ar);   // figura larga fica mais baixa (não invade as vizinhas)
         im.style.height = (alt * 100).toFixed(1) + "%";
         im.classList.toggle("pix", ini);
-        el.classList.add("rt-peca-boneco"); el.classList.toggle("rt-boneco-ini", ini);
+        el.classList.add("rt-peca-boneco"); el.classList.toggle("rt-boneco-ini", ini); el.classList.toggle("rt-boneco-esq", esq);
       }
       const fb = el.querySelector(":scope > .token-fallback"); if (fb) fb.remove();
     } catch (e) {}
@@ -72985,8 +72994,8 @@ rtTique(() => {
   try {
     const el = document.getElementById("rtPrefs"); if (!el || el.querySelector("[data-p-pecamodo]")) return;
     const lab = document.createElement("label"); lab.className = "rt-prefs-cena";
-    lab.innerHTML = '🧍 Peças do tabuleiro <select data-p-pecamodo><option value="boneco">Boneco inteiro</option><option value="busto">Busto na bolinha</option><option value="retrato">Retrato da ficha</option></select>';
-    const sel = lab.querySelector("select"); sel.value = RT_PREFS.pecaModo || "boneco";
+    lab.innerHTML = '🧍 Peças do tabuleiro <select data-p-pecamodo><option value="boneco">Avatar na mesa</option><option value="retrato">Token com a foto da ficha</option></select>';
+    const sel = lab.querySelector("select"); sel.value = RT_PREFS.pecaModo === "retrato" ? "retrato" : "boneco";
     sel.addEventListener("change", () => {
       RT_PREFS.pecaModo = sel.value; RT_PREFS.figPecas = sel.value !== "retrato";
       try { rtPrefsSalva(); } catch (e) {}
@@ -73014,7 +73023,8 @@ rtTique(() => {
 
 try {
   RT_NOVIDADES.unshift(
-    ["🧍 Boneco inteiro no tabuleiro", "As peças agora podem ser o boneco inteiro em pé na casa: o avatar dos jogadores e a pixel art dos inimigos e reforços, com uma base colorida no chão (dourada, verde ou vermelha). No ⚙️ cada um escolhe: boneco inteiro, busto na bolinha ou retrato da ficha. Passando o mouse, o zoom mostra sempre a imagem da ficha."],
+    ["↔️ O boneco olha para onde andou", "No tabuleiro, o boneco vira para o lado do último passo: andou para a esquerda, fica virado para a esquerda; para a direita, para a direita. No ⚙️ ficaram só duas opções de peça: o avatar na mesa ou o token com a foto da ficha."],
+    ["🧍 Boneco inteiro no tabuleiro", "As peças agora podem ser o boneco inteiro em pé na casa: o avatar dos jogadores e a pixel art dos inimigos e reforços, com uma base colorida no chão (dourada, verde ou vermelha). Passando o mouse, o zoom mostra sempre a imagem da ficha."],
     ["⚔️ Duas armas", "Com duas armas, a segunda fica na outra mão, apontando para a mesma direção da primeira e na frente do corpo."]
   );
 } catch (e) {}
@@ -73026,7 +73036,7 @@ try {
       const R = cats.find(c => c.id === "regras"); const it = R && R.itens.find(x => x.id === "interface");
       if (it) {
         it.html = it.html.replace(/<p><b>Figuras nas peças:<\/b>[\s\S]*?<\/p>/, "");
-        if (it.html.indexOf("Peças do tabuleiro:") < 0) it.html += `<p><b>Peças do tabuleiro:</b> no ⚙️, em "🧍 Peças do tabuleiro", cada um escolhe como vê as peças: <b>boneco inteiro</b> (padrão: o avatar dos jogadores e a pixel art dos inimigos e reforços, em pé na casa, com uma base dourada, verde ou vermelha no chão), <b>busto na bolinha</b> ou <b>retrato da ficha</b>. A escolha vale só para quem mudou. Passando o mouse por cima da peça, o zoom mostra sempre a imagem da ficha.</p>`;
+        if (it.html.indexOf("Peças do tabuleiro:") < 0) it.html += `<p><b>Peças do tabuleiro:</b> no ⚙️, em "🧍 Peças do tabuleiro", cada um escolhe entre o <b>avatar na mesa</b> (padrão: o boneco inteiro dos jogadores e a pixel art dos inimigos e reforços, em pé na casa, com uma base dourada, verde ou vermelha no chão) e o <b>token com a foto da ficha</b>. O boneco vira para o lado do último passo: andou para a esquerda, fica virado para a esquerda; para a direita, para a direita (andar só para cima ou para baixo mantém o lado). A escolha vale só para quem mudou. Passando o mouse por cima da peça, o zoom mostra sempre a imagem da ficha.</p>`;
       }
     } catch (e) {}
   };
@@ -73580,7 +73590,7 @@ body.rt-cena-brilho #rtVfxCanvas{ filter:drop-shadow(0 0 5px rgba(255,255,255,.4
 .board-token.rt-peca-boneco.token-hero-mestre::before{ box-shadow:0 0 0 1.5px var(--rt-base), 0 0 0 3px #000, 0 0 6px 1px var(--rt-base); }
 .board-token.rt-peca-boneco > .rt-boneco-img{ position:absolute; left:50%; bottom:6%; width:auto; max-width:none; z-index:1; pointer-events:none; transform:translateX(-50%);
   filter:drop-shadow(0 1px 0 rgba(0,0,0,.85)) drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
-.board-token.rt-peca-boneco.rt-boneco-ini > .rt-boneco-img{ transform:translateX(-50%) scaleX(-1); }
+.board-token.rt-peca-boneco.rt-boneco-esq > .rt-boneco-img{ transform:translateX(-50%) scaleX(-1); }
 .board-token.rt-peca-boneco > .rt-boneco-img.pix{ image-rendering:pixelated; }
 .board-token.rt-peca-boneco.rt-brilho{ box-shadow:none !important; }
 .board-token.rt-peca-boneco.rt-brilho > .rt-boneco-img{ filter:drop-shadow(0 0 2px #fff6c2) drop-shadow(0 0 6px rgba(255,214,90,.95)) drop-shadow(0 0 12px rgba(255,170,40,.6)); }
