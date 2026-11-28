@@ -33775,7 +33775,7 @@ document.body.appendChild(cv);
 RTV.cv = cv;
 RTV.cx = cv.getContext("2d");
 const fit = () => {
-RTV.dpr = Math.min(2, window.devicePixelRatio || 1);
+RTV.dpr = Math.min(window.innerWidth < 760 ? 1 : 2, window.devicePixelRatio || 1);
 cv.width = Math.round(window.innerWidth * RTV.dpr);
 cv.height = Math.round(window.innerHeight * RTV.dpr);
 };
@@ -65704,7 +65704,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "5.2";
+const RT_VERSAO_APP = "5.3";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -67401,6 +67401,26 @@ rtTabMonta();
 } catch (e) {}
 }), 700);
 // =====================================================================================
+// (5.3) Um relógio só para as verificações das partes novas: em vez de ~14 setInterval
+// separados, um único ciclo. As visuais param quando a aba está escondida; as de lógica
+// (3º argumento = 1, ex.: movimento da equipe) continuam.
+// =====================================================================================
+var RT_TIQUES = [], RT_TIQUE_ID = 0;
+function rtTique(fn, ms, logica) {
+  RT_TIQUES.push({ fn, ms: Math.max(50, +ms || 100), logica: !!logica, prox: performance.now() + (+ms || 100) });
+  if (!RT_TIQUE_ID) RT_TIQUE_ID = setInterval(() => {
+    const agora = performance.now(), oculto = document.hidden;
+    for (let i = 0; i < RT_TIQUES.length; i++) {
+      const t = RT_TIQUES[i]; if (agora < t.prox) continue;
+      t.prox = agora + t.ms;
+      if (oculto && !t.logica) continue;
+      try { t.fn(); } catch (e) {}
+    }
+  }, 100);
+  return RT_TIQUES.length;
+}
+
+// =====================================================================================
 // VERSÃO 2.5
 // =====================================================================================
 
@@ -67620,7 +67640,7 @@ function rtIcoAplica(circle, chave, icon, nome) {
 }
 // leitura das imagens
 let RT_ICO_OUVINDO = false;
-setInterval(() => {
+rtTique(() => {
   if (RT_ICO_OUVINDO || !fbReady || !fbDb || !currentRole) return;
   RT_ICO_OUVINDO = true;
   fbDb.ref("mesa40k/config/icones").on("value", snap => {
@@ -67751,7 +67771,7 @@ function rtIcoWikiDesenha(forca) {
     }
   });
 }
-setInterval(() => { try { rtIcoWikiDesenha(false); } catch (e) {} }, 500);
+rtTique(() => { try { rtIcoWikiDesenha(false); } catch (e) {} }, 500);
 
 // =====================================================================================
 // INICIATIVA POR EQUIPES
@@ -67852,7 +67872,7 @@ function rtEqFaixa() {
   setTimeout(() => { el.classList.remove("on"); el.classList.add("sai"); }, 1900);
   setTimeout(() => el.remove(), 2600);
 }
-setInterval(() => { try { rtEqFaixa(); } catch (e) {} }, 250);
+rtTique(() => { try { rtEqFaixa(); } catch (e) {} }, 250);
 
 // ---------- fila de iniciativa com o nome de cada equipe ----------
 renderTurnQueuePanel = function () {
@@ -67959,7 +67979,7 @@ async function rtEqMovimento(B) {
   }
 }
 // começa o movimento da equipe quando o turno dela começa (no navegador do mestre ou do anfitrião)
-setInterval(() => {
+rtTique(() => {
   try {
     if (!rtReady || !turnState.active || !rtEqPodeRodar() || RT_EQ_RODANDO) return;
     if (typeof RT_PAUSA !== "undefined" && RT_PAUSA) return;
@@ -67975,7 +67995,7 @@ setInterval(() => {
     if (est) return;
     rtEqMovimento(B);
   } catch (e) {}
-}, 400);
+}, 400, 1);
 // a IA da vez espera o movimento da equipe terminar
 {
   const f = rtAiMaybe;
@@ -68034,7 +68054,7 @@ const rtCenaSorteia = l => l[Math.floor(Math.random() * l.length)];
 // ---------- arte das cartas (o mestre troca na página de ícones da wiki) ----------
 var RT_CARTAS = {};
 let RT_CARTAS_OUVINDO = false;
-setInterval(() => {
+rtTique(() => {
   if (RT_CARTAS_OUVINDO || !fbReady || !fbDb || !currentRole) return;
   RT_CARTAS_OUVINDO = true;
   fbDb.ref("mesa40k/config/cartas").on("value", snap => {
@@ -68551,7 +68571,7 @@ async function rtCenaToca1(aA, tA, val) {
 }
 
 // ---------- ⚙️ Ajustes: cenas completas / rápidas / desligadas ----------
-setInterval(() => {
+rtTique(() => {
   try {
     const el = document.getElementById("rtPrefs"); if (!el || el.querySelector("[data-p-cena]")) return;
     const lab = document.createElement("label"); lab.className = "rt-prefs-cena";
@@ -69055,7 +69075,7 @@ function rtPxPortal(c, P) {
 var RT_SPR_ARTE = {};        // chave → imagem enviada pelo mestre
 const RT_SPR_CACHE = new Map();
 let RT_SPR_OUVINDO = false;
-setInterval(() => {
+rtTique(() => {
   if (RT_SPR_OUVINDO || !fbReady || !fbDb || !currentRole) return;
   RT_SPR_OUVINDO = true;
   fbDb.ref("mesa40k/config/figuras").on("value", snap => {
@@ -69237,7 +69257,7 @@ function rtBonecoVerso(forca) {
   el.querySelector(".rt-boneco-leg").textContent = partes.length ? partes.join(" · ") : "Escolha mundo natal, origem e arquétipo";
   el.title = "O boneco muda com o mundo natal, a origem, o arquétipo, a armadura e as armas da ficha. Passe o mouse para ver a pose de ataque.";
 }
-setInterval(() => { try { rtBonecoVerso(false); } catch (e) {} }, 900);
+rtTique(() => { try { rtBonecoVerso(false); } catch (e) {} }, 900);
 
 // =====================================================================================
 // WIKI: "🧍 Figuras e prompts" — ver cada figura, copiar o prompt e trocar pela arte própria
@@ -69427,7 +69447,7 @@ function rtFigFiltra(box) {
   box.querySelectorAll(".rt-fig-item").forEach(el => { el.hidden = !!q && !el.dataset.rtIcoNm.includes(q); });
   box.querySelectorAll("[data-rt-ico-grupo]").forEach(g => { g.hidden = !g.querySelector(".rt-fig-item:not([hidden])"); });
 }
-setInterval(() => { try { rtFigWikiDesenha(false); } catch (e) {} }, 600);
+rtTique(() => { try { rtFigWikiDesenha(false); } catch (e) {} }, 600);
 {
   const f = rtWikiExtra;
   rtWikiExtra = function (cats, add, cat, E) {
@@ -70331,7 +70351,7 @@ function rtPausa2Sync() {
   const tip = b.querySelector(".cs-tooltip"); if (tip) tip.textContent = RT_PAUSA ? "CONTINUAR A MESA" : "PAUSAR A MESA";
 }
 { const f = rtPausaRender; rtPausaRender = function () { const r = f.apply(this, arguments); try { rtPausa2Sync(); } catch (e) {} return r; }; }
-setInterval(() => { try { rtPausa2Sync(); } catch (e) {} }, 800);
+rtTique(() => { try { rtPausa2Sync(); } catch (e) {} }, 800);
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("#rtPausaBtn2"); if (!b || currentRole !== "mestre") return;
   e.preventDefault(); const a = document.getElementById("rtPausaBtn"); if (a) a.click();
@@ -70899,7 +70919,7 @@ function rtAvEditor(forca) {
   RT_AV_SIG = sig;
   el.querySelector(".rt-av-corpo").innerHTML = rtAvEditorHtml();
 }
-setInterval(() => { try { if (rtReady) rtAvEditor(false); } catch (e) {} }, 700);
+rtTique(() => { try { if (rtReady) rtAvEditor(false); } catch (e) {} }, 700);
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest("[data-av-k]"); if (!b) return;
   e.preventDefault(); e.stopPropagation();
@@ -71663,7 +71683,7 @@ function rtCenarioFundo(caixa) {
   else { p.style.backgroundImage = ""; p.classList.remove("com-arte"); }
 }
 let RT_CENARIO_OUVINDO = false;
-setInterval(() => {
+rtTique(() => {
   try {
     const sel = document.getElementById("rtCenarioSel");
     if (sel && !sel.__ev) {
@@ -72124,9 +72144,9 @@ function rtFxRecorta() {
     if (cv.style.clipPath !== v) cv.style.clipPath = v;
   } catch (e) {}
 }
-setInterval(rtFxRecorta, 120);
+rtTique(rtFxRecorta, 120);
 // segurança: se a lista de efeitos esvaziou, a tela de efeitos fica limpa
-setInterval(() => { try { if (RTV && RTV.cx && !RTV.items.length && !RTV.raf) { RTV.cx.setTransform(1, 0, 0, 1, 0, 0); RTV.cx.clearRect(0, 0, RTV.cv.width, RTV.cv.height); } } catch (e) {} }, 1500);
+rtTique(() => { try { if (RTV && RTV.cx && !RTV.items.length && !RTV.raf) { RTV.cx.setTransform(1, 0, 0, 1, 0, 0); RTV.cx.clearRect(0, 0, RTV.cv.width, RTV.cv.height); } } catch (e) {} }, 1500);
 
 try {
   RT_NOVIDADES.unshift(
@@ -72773,6 +72793,112 @@ try {
 // ---------- v5.2: os 8 chapéus de origem e os 7 acessórios antigos refeitos na cabeça-molde ----------
 try { RT_AVIA_CACHE.clear(); RT_SPR_CACHE.clear(); } catch (e) {}
 try { RT_NOVIDADES.unshift(["🎩 Acessórios refeitos", "Os 8 chapéus de origem (quepe de comandante e de comissário, chapéu do senhor do crime, capuz de sacerdote, bicorne, tiara, capuz psíquico e elmo de arbitrador) e os 7 acessórios de rosto antigos ganharam arte nova e encaixam certinho na cabeça do avatar."]); } catch (e) {}
+
+// =====================================================================================
+// VERSÃO 5.3
+// · Um relógio só para as verificações das partes novas (v00_tique.js), pausado com a aba escondida.
+// · Tela de efeitos em resolução normal no celular, sem o filtro de brilho.
+// · Peças do tabuleiro com a figura: o avatar dos jogadores (busto com armadura, chapéu e capa)
+//   e a pixel art dos inimigos e reforços. Opção no ⚙️ (cada um escolhe para si).
+// =====================================================================================
+if (RT_PREFS.figPecas === undefined) RT_PREFS.figPecas = true;
+const RT_BUSTO = new Map();
+// a figura (url) que vai na peça, ou null para manter o retrato
+function rtPecaFiguraUrl(tok) {
+  if (!tok || isBlockKind(tok.kind) || tok.famOf) return null;
+  try {
+    if (tok.bst && tok.bst.f && tok.bst.u) { if (tok.bst.u === "spawnwarp") return null; return rtSprUnidade(tok.bst.f, tok.bst.v, tok.bst.u, "idle"); }
+    const rc = rtcOf(tok);
+    if (rc && rc.av && rtAvIaUsa(rc)) return rtSprPersonagem(Object.assign({}, rc, { armas: [] }), "idle");
+  } catch (e) {}
+  return null;
+}
+// recorta o busto (cabeça e ombros) da figura, sobre um fundo escuro
+function rtBustoDe(url, inimigo) {
+  const ck = (inimigo ? "i|" : "p|") + url.length + "|" + url.slice(-80);
+  if (RT_BUSTO.has(ck)) return RT_BUSTO.get(ck);
+  const im = rtSprImg(url); if (!im) return null;
+  const W = im.naturalWidth, H = im.naturalHeight;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+  const d = cx.getImageData(0, 0, W, H).data;
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) { RT_BUSTO.set(ck, null); return null; }
+  const bh = y1 - y0, bw = x1 - x0;
+  // centro da cabeça: média dos pixels do alto da figura
+  let sx = 0, n = 0; const faixa = y0 + Math.max(4, bh * .14);
+  for (let y = y0; y < faixa; y++) for (let x = x0; x <= x1; x++) if (d[(y * W + x) * 4 + 3] > 20) { sx += x; n++; }
+  const cxh = n ? sx / n : (x0 + x1) / 2;
+  const S = inimigo ? Math.max(bw, bh) * .78 : bh * .52;
+  const ox = Math.max(x0 - S * .1, Math.min(cxh - S / 2, x1 - S * .9)), oy = y0 - S * .07;
+  const o = document.createElement("canvas"); o.width = o.height = 128; const c = o.getContext("2d");
+  const g = c.createRadialGradient(64, 54, 8, 64, 64, 80); g.addColorStop(0, "#3a2d1e"); g.addColorStop(1, "#0d0905");
+  c.fillStyle = g; c.fillRect(0, 0, 128, 128);
+  c.imageSmoothingEnabled = !inimigo; c.imageSmoothingQuality = "high";
+  c.drawImage(im, ox, oy, S, S, 0, 0, 128, 128);
+  let u; try { u = o.toDataURL("image/webp", .9); } catch (e) { u = o.toDataURL(); }
+  RT_BUSTO.set(ck, u); return u;
+}
+function rtPecaFigura(tok) {
+  const url = rtPecaFiguraUrl(tok); if (!url) return null;
+  return rtBustoDe(url, !!tok.bst);
+}
+// aplica a figura nas peças que estão na tela (mesa do mestre e mesa ao vivo)
+function rtPecasDecora() {
+  if (!RT_PREFS.figPecas || !rtReady) return;
+  document.querySelectorAll(".board-token[data-token-id]:not(.token-dead):not(.token-block)").forEach(el => {
+    try {
+      const tok = rtTokenById(el.dataset.tokenId); if (!tok) return;
+      const u = rtPecaFigura(tok); if (!u) return;
+      const bg = 'url("' + u + '")';
+      if (el.style.backgroundImage !== bg) { el.style.backgroundImage = bg; el.classList.add("rt-peca-fig"); }
+      const fb = el.querySelector(":scope > .token-fallback"); if (fb) fb.remove();
+    } catch (e) {}
+  });
+}
+let RT_PECAS_RAF = 0;
+const rtPecasAgenda = () => { if (!RT_PECAS_RAF) RT_PECAS_RAF = requestAnimationFrame(() => { RT_PECAS_RAF = 0; try { rtPecasDecora(); } catch (e) {} }); };
+{
+  const f = renderBoardCell;
+  renderBoardCell = function () { const r = f.apply(this, arguments); rtPecasAgenda(); return r; };
+}
+{
+  const f = renderLiveBoardMini;
+  renderLiveBoardMini = function () { const r = f.apply(this, arguments); rtPecasAgenda(); return r; };
+}
+rtTique(() => { try { rtPecasDecora(); } catch (e) {} }, 1500);
+// ⚙️ Ajustes
+rtTique(() => {
+  try {
+    const el = document.getElementById("rtPrefs"); if (!el || el.querySelector("[data-p-figpecas]")) return;
+    const lab = document.createElement("label"); lab.className = "rt-prefs-cena";
+    lab.innerHTML = '<input type="checkbox" data-p-figpecas> 🧍 Figuras nas peças do tabuleiro (avatar e pixel art)';
+    const cb = lab.querySelector("input"); cb.checked = !!RT_PREFS.figPecas;
+    cb.addEventListener("change", () => {
+      RT_PREFS.figPecas = cb.checked; try { rtPrefsSalva(); } catch (e) {}
+      if (!cb.checked) document.querySelectorAll(".board-token.rt-peca-fig").forEach(t => { t.classList.remove("rt-peca-fig"); const tok = rtTokenById(t.dataset.tokenId); const p = tok && resolveTokenPortrait(tok); t.style.backgroundImage = p ? 'url("' + p + '")' : ""; });
+      else rtPecasDecora();
+    });
+    const nv = el.querySelector("[data-p-novo]"); el.insertBefore(lab, nv || null);
+  } catch (e) {}
+}, 500);
+
+try {
+  RT_NOVIDADES.unshift(
+    ["🧍 Figuras nas peças", "As peças do tabuleiro mostram a figura: o busto do avatar dos jogadores (com armadura, chapéu e capa) e a pixel art dos inimigos e reforços. Quem preferir os retratos desliga no ⚙️ (vale só para você)."],
+    ["⚡ Mais leve", "As verificações das partes novas rodam num relógio só, que para quando a aba fica em segundo plano, e no celular a tela de efeitos usa resolução normal."]
+  );
+} catch (e) {}
+{
+  const f = rtWikiExtra;
+  rtWikiExtra = function (cats) {
+    f.apply(this, arguments);
+    try {
+      const R = cats.find(c => c.id === "regras"); const it = R && R.itens.find(x => x.id === "interface");
+      if (it && it.html.indexOf("Figuras nas peças") < 0) it.html += `<p><b>Figuras nas peças:</b> as peças do tabuleiro mostram o busto do avatar dos jogadores (com armadura, chapéu e capa) e a pixel art dos inimigos e reforços. Quem preferir os retratos desmarca "🧍 Figuras nas peças do tabuleiro" no ⚙️; a escolha vale só para quem desmarcou.</p>`;
+    } catch (e) {}
+  };
+}
 
 rtInit();
 recalc();
