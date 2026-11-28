@@ -65704,7 +65704,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "5.3";
+const RT_VERSAO_APP = "5.4";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -72502,7 +72502,7 @@ try {
           <li>Quem está escondido na névoa aparece como ??? para os jogadores. No ⚙️ dá para deixar as cenas rápidas ou desligadas (volta a roda em volta do alvo e a animação no tabuleiro).</li></ul>
         <h5>A arma na mão</h5>
         <ul><li>O personagem segura a <b>arte da arma equipada</b>, a mesma da carta e do inventário, com o brilho das armas especiais (bônus da Forja).</li>
-          <li>Com duas armas, cada uma fica numa mão: duas espadas aparecem uma de cada lado; duas pistolas, uma logo atrás da outra.</li>
+          <li>Com duas armas, cada uma fica numa mão: a segunda aponta para a mesma direção da primeira e fica na frente do corpo.</li>
           <li>No golpe ou no disparo a arma vira a arte grande que desce em arco ou dá o coice, e volta para a mão depois.</li>
           <li>O mestre troca a arte de uma arma na página 🧍 Figuras e prompts; vale para a carta, o avatar e a cena. A arte das cartas é trocada na página 🎯 Ícones das ações (botão 🃏 CARTA).</li></ul>`;
       const fig = it("figuras", "figuras");
@@ -72867,21 +72867,7 @@ const rtPecasAgenda = () => { if (!RT_PECAS_RAF) RT_PECAS_RAF = requestAnimation
   renderLiveBoardMini = function () { const r = f.apply(this, arguments); rtPecasAgenda(); return r; };
 }
 rtTique(() => { try { rtPecasDecora(); } catch (e) {} }, 1500);
-// ⚙️ Ajustes
-rtTique(() => {
-  try {
-    const el = document.getElementById("rtPrefs"); if (!el || el.querySelector("[data-p-figpecas]")) return;
-    const lab = document.createElement("label"); lab.className = "rt-prefs-cena";
-    lab.innerHTML = '<input type="checkbox" data-p-figpecas> 🧍 Figuras nas peças do tabuleiro (avatar e pixel art)';
-    const cb = lab.querySelector("input"); cb.checked = !!RT_PREFS.figPecas;
-    cb.addEventListener("change", () => {
-      RT_PREFS.figPecas = cb.checked; try { rtPrefsSalva(); } catch (e) {}
-      if (!cb.checked) document.querySelectorAll(".board-token.rt-peca-fig").forEach(t => { t.classList.remove("rt-peca-fig"); const tok = rtTokenById(t.dataset.tokenId); const p = tok && resolveTokenPortrait(tok); t.style.backgroundImage = p ? 'url("' + p + '")' : ""; });
-      else rtPecasDecora();
-    });
-    const nv = el.querySelector("[data-p-novo]"); el.insertBefore(lab, nv || null);
-  } catch (e) {}
-}, 500);
+// (o ⚙️ das peças passou para v55.js: boneco inteiro, busto ou retrato)
 
 try {
   RT_NOVIDADES.unshift(
@@ -72896,6 +72882,152 @@ try {
     try {
       const R = cats.find(c => c.id === "regras"); const it = R && R.itens.find(x => x.id === "interface");
       if (it && it.html.indexOf("Figuras nas peças") < 0) it.html += `<p><b>Figuras nas peças:</b> as peças do tabuleiro mostram o busto do avatar dos jogadores (com armadura, chapéu e capa) e a pixel art dos inimigos e reforços. Quem preferir os retratos desmarca "🧍 Figuras nas peças do tabuleiro" no ⚙️; a escolha vale só para quem desmarcou.</p>`;
+    } catch (e) {}
+  };
+}
+
+// =====================================================================================
+// VERSÃO 5.4
+// · Duas armas: a segunda fica na outra mão, apontando para a mesma direção da primeira e
+//   na frente do corpo (antes ficava atrás, virada para o outro lado).
+// · Peças do tabuleiro: o boneco inteiro em pé na casa (padrão), o busto na bolinha ou o retrato.
+// · Zoom da peça (mouse por cima): sempre a imagem da ficha, qualquer que seja a peça.
+// =====================================================================================
+
+// ---------- segunda arma ----------
+{
+  const f = rtCenaMaoPos;
+  rtCenaMaoPos = function (x, geo, pose) {
+    if (!x || x.lado !== "tras") return f.apply(this, arguments);
+    const r = f.call(this, Object.assign({}, x, { lado: "frente" }), geo, pose);   // mesmo tamanho, ângulo e pega da primeira
+    try {
+      const G = RT_PX_GEO[geo] || RT_PX_GEO.normal;
+      const [bx, by, bw, bh] = G.arB;
+      let mx = bx + bw / 2, my = by + bh + 1;
+      if (G.ia) { mx = bx + 1; my = by + 11; }                                    // figura gerada: a mão de trás exata
+      if (pose === "atk") mx += 1.5;
+      r.left = (mx + .5) / RT_PX_W * 100; r.top = (my + .5) / RT_PX_H * 100; r.espelha = false;
+    } catch (e) {}
+    return r;
+  };
+}
+
+// ---------- peças do tabuleiro: boneco inteiro / busto / retrato ----------
+if (!RT_PREFS.pecaModo) RT_PREFS.pecaModo = RT_PREFS.figPecas === false ? "retrato" : "boneco";
+RT_PREFS.figPecas = RT_PREFS.pecaModo !== "retrato";
+const RT_BONECO_PECA = new Map();
+// a figura inteira recortada (sem o vazio em volta), com a proporção largura/altura
+function rtBonecoPecaDe(url, inimigo) {
+  const ck = (inimigo ? "i|" : "p|") + url.length + "|" + url.slice(-80);
+  if (RT_BONECO_PECA.has(ck)) return RT_BONECO_PECA.get(ck);
+  const im = rtSprImg(url); if (!im || !im.naturalWidth) return null;
+  const W = im.naturalWidth, H = im.naturalHeight;
+  const cv = document.createElement("canvas"); cv.width = W; cv.height = H; const cx = cv.getContext("2d"); cx.drawImage(im, 0, 0);
+  const d = cx.getImageData(0, 0, W, H).data;
+  let x0 = W, y0 = H, x1 = -1, y1 = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (d[(y * W + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) { RT_BONECO_PECA.set(ck, null); return null; }
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  // figura grande vira no máximo 256 de altura (leve); pixel art cresce em blocos inteiros (nítida)
+  const k = inimigo ? Math.max(1, Math.floor(160 / h)) : Math.min(1, 256 / h);
+  const o = document.createElement("canvas"); o.width = Math.max(1, Math.round(w * k)); o.height = Math.max(1, Math.round(h * k));
+  const c = o.getContext("2d"); c.imageSmoothingEnabled = !inimigo; c.imageSmoothingQuality = "high";
+  c.drawImage(im, x0, y0, w, h, 0, 0, o.width, o.height);
+  let u; try { u = o.toDataURL("image/webp", .9); } catch (e) { u = o.toDataURL(); }
+  const r = { u, ar: w / h };
+  RT_BONECO_PECA.set(ck, r); return r;
+}
+// volta a peça ao retrato normal
+function rtPecaLimpa(el, tok) {
+  if (el.classList.contains("rt-peca-fig")) {
+    el.classList.remove("rt-peca-fig");
+    let p = null; try { p = tok && resolveTokenPortrait(tok); } catch (e) {}
+    el.style.backgroundImage = p ? 'url("' + p + '")' : "";
+  }
+  if (el.classList.contains("rt-peca-boneco")) {
+    el.classList.remove("rt-peca-boneco", "rt-boneco-ini");
+    el.querySelectorAll(":scope > .rt-boneco-img").forEach(x => x.remove());
+  }
+}
+rtPecasDecora = function () {
+  if (!rtReady) return;
+  const modo = RT_PREFS.pecaModo || "boneco";
+  document.querySelectorAll(".board-token[data-token-id]:not(.token-block)").forEach(el => {
+    try {
+      const tok = rtTokenById(el.dataset.tokenId);
+      const morto = el.classList.contains("token-dead");
+      const url = tok && !morto && modo !== "retrato" ? rtPecaFiguraUrl(tok) : null;
+      if (!url) { rtPecaLimpa(el, tok); return; }
+      const ini = !!tok.bst;
+      if (modo === "busto") {
+        if (el.classList.contains("rt-peca-boneco")) rtPecaLimpa(el, tok);
+        const u = rtBustoDe(url, ini); if (!u) return;
+        const bg = 'url("' + u + '")';
+        if (el.style.backgroundImage !== bg) { el.style.backgroundImage = bg; el.classList.add("rt-peca-fig"); }
+      } else {
+        if (el.classList.contains("rt-peca-fig")) rtPecaLimpa(el, tok);
+        const B = rtBonecoPecaDe(url, ini); if (!B) return;
+        let im = el.querySelector(":scope > .rt-boneco-img");
+        if (!im) { im = document.createElement("img"); im.className = "rt-boneco-img"; im.alt = ""; im.draggable = false; el.insertBefore(im, el.firstChild); }
+        if (im.getAttribute("src") !== B.u) im.src = B.u;
+        const big = (+tok.size || 1) >= 2;                           // peça de 2×2 ou 3×3 já é grande: cresce menos para cima
+        const alt = big ? Math.min(1.08, 1.02 / B.ar) : Math.min(1.38, 1.3 / B.ar);   // figura larga fica mais baixa (não invade as vizinhas)
+        im.style.height = (alt * 100).toFixed(1) + "%";
+        im.classList.toggle("pix", ini);
+        el.classList.add("rt-peca-boneco"); el.classList.toggle("rt-boneco-ini", ini);
+      }
+      const fb = el.querySelector(":scope > .token-fallback"); if (fb) fb.remove();
+    } catch (e) {}
+  });
+};
+// ⚙️ Ajustes: como a peça aparece (vale só para quem escolheu)
+rtTique(() => {
+  try {
+    const el = document.getElementById("rtPrefs"); if (!el || el.querySelector("[data-p-pecamodo]")) return;
+    const lab = document.createElement("label"); lab.className = "rt-prefs-cena";
+    lab.innerHTML = '🧍 Peças do tabuleiro <select data-p-pecamodo><option value="boneco">Boneco inteiro</option><option value="busto">Busto na bolinha</option><option value="retrato">Retrato da ficha</option></select>';
+    const sel = lab.querySelector("select"); sel.value = RT_PREFS.pecaModo || "boneco";
+    sel.addEventListener("change", () => {
+      RT_PREFS.pecaModo = sel.value; RT_PREFS.figPecas = sel.value !== "retrato";
+      try { rtPrefsSalva(); } catch (e) {}
+      rtPecasDecora();
+    });
+    const nv = el.querySelector("[data-p-novo]"); el.insertBefore(lab, nv || null);
+  } catch (e) {}
+}, 500);
+
+// ---------- zoom da peça: sempre a imagem da ficha ----------
+{
+  const f = rtZoomMostra;
+  rtZoomMostra = function (tokEl) {
+    const r = f.apply(this, arguments);
+    try {
+      const tok = tokEl && rtTokenById(tokEl.dataset.tokenId);
+      const p = tok && resolveTokenPortrait(tok);
+      const q = RT_ZOOM.el && RT_ZOOM.el.querySelector(".rt-zoom-img");
+      if (p && q) q.style.backgroundImage = "url('" + p + "')";
+      else if (p && RT_ZOOM.el) RT_ZOOM.el.innerHTML = rtZoomHtml(tok, "url('" + p + "')");
+    } catch (e) {}
+    return r;
+  };
+}
+
+try {
+  RT_NOVIDADES.unshift(
+    ["🧍 Boneco inteiro no tabuleiro", "As peças agora podem ser o boneco inteiro em pé na casa: o avatar dos jogadores e a pixel art dos inimigos e reforços, com uma base colorida no chão (dourada, verde ou vermelha). No ⚙️ cada um escolhe: boneco inteiro, busto na bolinha ou retrato da ficha. Passando o mouse, o zoom mostra sempre a imagem da ficha."],
+    ["⚔️ Duas armas", "Com duas armas, a segunda fica na outra mão, apontando para a mesma direção da primeira e na frente do corpo."]
+  );
+} catch (e) {}
+{
+  const f = rtWikiExtra;
+  rtWikiExtra = function (cats) {
+    f.apply(this, arguments);
+    try {
+      const R = cats.find(c => c.id === "regras"); const it = R && R.itens.find(x => x.id === "interface");
+      if (it) {
+        it.html = it.html.replace(/<p><b>Figuras nas peças:<\/b>[\s\S]*?<\/p>/, "");
+        if (it.html.indexOf("Peças do tabuleiro:") < 0) it.html += `<p><b>Peças do tabuleiro:</b> no ⚙️, em "🧍 Peças do tabuleiro", cada um escolhe como vê as peças: <b>boneco inteiro</b> (padrão: o avatar dos jogadores e a pixel art dos inimigos e reforços, em pé na casa, com uma base dourada, verde ou vermelha no chão), <b>busto na bolinha</b> ou <b>retrato da ficha</b>. A escolha vale só para quem mudou. Passando o mouse por cima da peça, o zoom mostra sempre a imagem da ficha.</p>`;
+      }
     } catch (e) {}
   };
 }
@@ -73411,6 +73543,48 @@ body.rt-cena-brilho #rtVfxCanvas{ filter:drop-shadow(0 0 5px rgba(255,255,255,.4
 .rt-cena-caixa.rt-fx-chroma .rt-cena-palco{ animation:rtFx2Chroma .7s steps(7) 1; }
 @keyframes rtFx2Chroma{ 0%,100%{ filter:none; } 15%{ filter:drop-shadow(4px 0 0 rgba(255,0,80,.6)) drop-shadow(-4px 0 0 rgba(0,220,255,.6)); } 45%{ filter:drop-shadow(-3px 1px 0 rgba(255,0,80,.6)) drop-shadow(3px -1px 0 rgba(0,220,255,.6)) hue-rotate(20deg); } 75%{ filter:drop-shadow(2px 0 0 rgba(255,0,80,.5)) drop-shadow(-2px 0 0 rgba(0,220,255,.5)); } }
 @media (prefers-reduced-motion: reduce){ .rt-fx2{ display:none; } }
+
+/* ===== v5.1 ===== */
+.rt-sem-arte{ margin-top:10px; padding:8px; border:1px dashed rgba(201,162,74,.4); border-radius:8px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; font-size:12px; }
+.rt-sem-arte > span{ flex:1 1 100%; color:#cdb98a; }
+@media (max-width:640px){
+  .rt-cena-critbanner{ font-size:26px; -webkit-text-stroke:1px #5a0000; }
+  .rt-fx-emblema{ font-size:40px; }
+  .rt-cena-hp{ top:22px; bottom:18px; }
+  .rt-cena-hp.esq{ left:3px; } .rt-cena-hp.dir{ right:3px; }
+  .rt-hp-barra{ width:12px; } .rt-hp-tubo{ width:8px; }
+  .rt-hp-n{ font-size:8px; }
+  .rt-cena-num{ font-size:22px !important; }
+  .rt-cena-num.crit{ font-size:24px !important; }
+  .rt-cena-narra{ font-size:11px !important; }
+  .rt-fz-avatar img.rt-spr{ width:110px; height:110px; }
+  .rt-av-quadro{ width:64px; height:64px; }
+  .rt-av-seta{ flex-basis:30px; width:30px; height:30px; }
+}
+@media (max-width:760px){ body.rt-cena-brilho #rtVfxCanvas{ filter:none; } }
+@media (prefers-reduced-motion: reduce){ body.rt-cena-brilho #rtVfxCanvas{ filter:none; } }
+.board-token.rt-peca-fig{ background-size:cover !important; background-position:center !important; }
+
+/* ===== v5.4 ===== */
+/* duas armas: as duas na frente do corpo; a primeira por cima da segunda */
+.rt-mao-tras{ z-index:2; }
+.rt-mao-frente{ z-index:3; }
+/* peça = boneco inteiro em pé na casa */
+.board-token.rt-peca-boneco{ background:none !important; box-shadow:none !important; border-radius:0; overflow:visible; animation:none !important; --rt-base:var(--hero-ring-color); }
+.board-token.rt-peca-boneco.token-aliado, .board-token.rt-peca-boneco.token-aliado_fera, .board-token.rt-peca-boneco.token-aliado_ficha{ --rt-base:#3fc256; }
+.board-token.rt-peca-boneco.token-inimigo, .board-token.rt-peca-boneco.token-monstro, .board-token.rt-peca-boneco.token-boss,
+.board-token.rt-peca-boneco.token-inimigo_ficha, .board-token.rt-peca-boneco.token-hero-pvp{ --rt-base:#e0473a; }
+.board-token.rt-peca-boneco::before{ content:""; position:absolute; left:4%; right:4%; bottom:-4%; height:30%; border-radius:50%; z-index:0; pointer-events:none;
+  background:radial-gradient(closest-side, rgba(0,0,0,.55), rgba(0,0,0,.35) 60%, transparent);
+  box-shadow:0 0 0 1.5px var(--rt-base), 0 0 6px 1px var(--rt-base); opacity:.9; }
+.board-token.rt-peca-boneco.token-hero-mestre::before{ box-shadow:0 0 0 1.5px var(--rt-base), 0 0 0 3px #000, 0 0 6px 1px var(--rt-base); }
+.board-token.rt-peca-boneco > .rt-boneco-img{ position:absolute; left:50%; bottom:6%; width:auto; max-width:none; z-index:1; pointer-events:none; transform:translateX(-50%);
+  filter:drop-shadow(0 1px 0 rgba(0,0,0,.85)) drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
+.board-token.rt-peca-boneco.rt-boneco-ini > .rt-boneco-img{ transform:translateX(-50%) scaleX(-1); }
+.board-token.rt-peca-boneco > .rt-boneco-img.pix{ image-rendering:pixelated; }
+.board-token.rt-peca-boneco.rt-brilho{ box-shadow:none !important; }
+.board-token.rt-peca-boneco.rt-brilho > .rt-boneco-img{ filter:drop-shadow(0 0 2px #fff6c2) drop-shadow(0 0 6px rgba(255,214,90,.95)) drop-shadow(0 0 12px rgba(255,170,40,.6)); }
+.board-token.rt-peca-boneco.rt-brilho::before{ box-shadow:0 0 0 2px #fff6c2, 0 0 10px 3px rgba(255,214,90,.95); }
 
 </style>
 </body>
