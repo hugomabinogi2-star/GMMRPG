@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<script src="index_mag_imagens.js?v=47capas1"></script>
+<script src="index_mag_imagens.js?v=49cabelos1"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rogue Trader — Mesa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65703,7 +65703,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "4.8";
+const RT_VERSAO_APP = "4.9";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -72349,6 +72349,166 @@ try {
   );
 } catch (e) {}
 
+const RT_AVP_EXTRA = [["Corpos femininos × armadura", [5, 2], "A sprite sheet of 10 separate pixel art BODIES for a paper-doll character system, in a grid of 5 columns and 2 rows of equal cells, the cells separated by thin solid black lines. Every cell has the same solid flat pure magenta background (#FF00FF).\n\nEach body is HEADLESS: drawn from the neck down, the neck cut cleanly flat at the top (the head is a separate piece added later). Full body below the neck, side view facing RIGHT, standing ready pose with the feet apart, BOTH HANDS EMPTY with the front fist held forward at waist height and the back arm relaxed at the side. Every body has exactly the same height, the same pose and the same position in its cell: the top of the neck at the same height in every cell, the feet near the bottom edge, nothing crossing into the neighbouring cells.\n\nROWS (body type):\nRow 1: an athletic human WOMAN (female build: narrower shoulders and waist, wider hips, female chest shape).\nRow 2: an athletic augmented WOMAN, same build, whose arms and legs are replaced by Adeptus Mechanicus bionic limbs (bare steel, cables, pistons, rivets).\n\nCOLUMNS (what the body wears), the armor clearly shaped and fitted for a woman, practical and battle-ready, grimdark, NOT sexualized, no bare skin except the neck (and the arms/legs in column 1):\nColumn 1: only plain dark grey underwear (sports top and shorts).\nColumn 2: light armor: a fitted olive flak vest over simple olive fatigues and combat boots, belt with pouches.\nColumn 3: medium armor: a sculpted olive-green flak chest plate shaped for a woman, one rounded shoulder pad, gloves, knee pads, fatigues and boots.\nColumn 4: heavy armor: Imperial carapace armor fitted to a female figure, big layered shoulder pauldrons, sculpted chest plate, armored skirt plates over the hips, greaves and heavy boots.\nColumn 5: Imperial power armor in the style of the Adepta Sororitas: bulky with huge rounded pauldrons and a backpack, sculpted female breastplate, armored tassets like a short skirt of plates, the figure bigger than the others.\n\nAll armor in the SAME colors as each other: dark olive green plates with darker green-grey trim, brown leather straps and dark brown boots (the game recolors the armor later, so keep the plates in olive/green tones). All skin in ONE single medium tan placeholder tone (#C08A5C) with simple darker shading, because the game recolors the skin later.\n\nSame art style in every cell: 16-bit pixel art in the grimdark Warhammer 40,000 style, crisp hard pixels, limited palette, dark 1-pixel outline, no anti-aliasing, retro game sprite look. No text, no numbers, no labels, no frames, no ground shadow, no scenery, no weapons, no shields, no capes."], ["Capas e mantos", [6, 4], "A sprite sheet of 24 separate pixel art CLOAK and MANTLE pieces for a paper-doll character system, in a grid of 6 columns and 4 rows of equal cells, the cells separated by thin solid black lines. Every cell has the same solid flat pure magenta background (#FF00FF).\n\nIn EVERY cell the piece is worn by a HEADLESS MANNEQUIN painted in ONE flat pure cyan color (#00FFFF, no shading, no outline, no details), so the game can remove the mannequin and keep only the cloth. The mannequin is drawn from the neck down, side view facing RIGHT, standing ready pose with the feet apart, the front fist held forward at waist height and the back arm relaxed at the side. The mannequin has exactly the same height, pose and position in every cell of the same row (the top of the neck at the same height, the feet near the bottom edge). Nothing crosses into the neighbouring cells.\n\nROWS:\nRow 1: CAPES worn BEHIND a normal human mannequin (the cape hangs from the shoulders down the back and flows behind the body; only the back part is visible, the cyan body is in front of it).\nRow 2: MANTLES worn OVER the shoulders of a normal human mannequin (they cover the shoulders and upper chest, on top of the body).\nRow 3: the same 6 capes of row 1, in the same order, sized for a BULKY power-armored mannequin (much wider shoulders with huge rounded pauldrons, bigger body).\nRow 4: the same 6 mantles of row 2, in the same order, sized for the same BULKY power-armored mannequin (draped over the huge pauldrons).\n\nCOLUMNS for the CAPES (rows 1 and 3):\nColumn 1: a long Imperial military cape in deep crimson red with a gold trim border and a small golden aquila clasp.\nColumn 2: a tattered black cloak with ragged torn edges, battle-worn.\nColumn 3: a rich noble's cape in royal purple lined with white ermine fur and a jeweled gold chain.\nColumn 4: a long Ecclesiarchy cape in cream and red with purity seals and wax-sealed scrolls hanging from it.\nColumn 5: a camouflage scout cloak in muted green and brown, with the hood lowered behind the neck.\nColumn 6: an Adeptus Mechanicus cloak in rust red with black cog-shaped hem patterns and dangling cables.\n\nCOLUMNS for the MANTLES (rows 2 and 4):\nColumn 1: a heavy grey wolf-fur mantle over the shoulders, tied with leather cords.\nColumn 2: a ceremonial half-cape over one shoulder in dark blue with gold embroidery and a golden aquila brooch.\nColumn 3: a chainmail and leather shoulder mantle with metal studs.\nColumn 4: a priest's red stole with a golden rosarius (skull and aquila pendant) hanging on the chest.\nColumn 5: a long dark-green scarf wrapped around the neck and shoulders, ends flowing back.\nColumn 6: a black leather mantle with a high collar and silver skull pins, Inquisition style.\n\nSame art style in every cell: 16-bit pixel art in the grimdark Warhammer 40,000 style, crisp hard pixels, limited palette, dark 1-pixel outline around the cloth (not around the cyan mannequin), no anti-aliasing, retro game sprite look. No head, no hands holding anything, no weapons, no armor drawn on the mannequin, no text, no numbers, no labels, no frames, no ground shadow, no scenery."], ["Cabeças 3 (Sororitas, trança, coque) × rosto", [6, 3], "A sprite sheet of 18 separate pixel art HEADS for a paper-doll character system, in a grid of 6 columns and 3 rows of equal cells, the cells separated by thin solid black lines. Every cell has the same solid flat pure magenta background (#FF00FF). Each cell holds ONLY a head with its neck: side view in profile facing RIGHT, the neck cut cleanly flat at the bottom center of the cell, every head the same size and at the same place in its cell, neutral calm expression, nothing crossing into the neighbouring cells.\nROWS (hairstyle): row 1 the Adepta Sororitas haircut: a straight chin-length bob with a straight blunt fringe across the forehead; row 2 one long thick braid hanging down the back, Space Wolves / Fenrisian style, with a small metal ring; row 3 hair tied in a tight top-knot on the crown, the sides shaved short.\nCOLUMNS (face): column 1 a young man, clean-shaven; column 2 a man with short stubble; column 3 a man with a full thick beard; column 4 a man with a thick moustache; column 5 a young woman; column 6 a mature woman with stern weathered features. Each row keeps the same hairstyle and each column the same face.\nAll hair, beards and eyebrows are a flat bright placeholder GREEN (#30D030) with darker green shading, because the game recolors the hair later. All skin is ONE single medium tan placeholder tone (#C08A5C) with simple darker shading, because the game recolors the skin later. Same art style in every cell: 16-bit pixel art in the grimdark Warhammer 40,000 style, crisp hard pixels, limited palette, dark 1-pixel outline, no anti-aliasing, retro game sprite look. No hats, no helmets, no text, no numbers, no labels, no frames."], ["Cabeças 4 (dreads, para trás, militar) × rosto", [6, 3], "A sprite sheet of 18 separate pixel art HEADS for a paper-doll character system, in a grid of 6 columns and 3 rows of equal cells, the cells separated by thin solid black lines. Every cell has the same solid flat pure magenta background (#FF00FF). Each cell holds ONLY a head with its neck: side view in profile facing RIGHT, the neck cut cleanly flat at the bottom center of the cell, every head the same size and at the same place in its cell, neutral calm expression, nothing crossing into the neighbouring cells.\nROWS (hairstyle): row 1 thick dreadlocks tied back, Catachan jungle-fighter style; row 2 hair slicked straight back with an undercut (sides shaved), like an Imperial officer; row 3 a very short military buzz cut with a thin shaved scar line. All hair, beards and eyebrows are a flat bright placeholder GREEN (#30D030) with darker green shading, because the game recolors the hair later. All skin is ONE single medium tan placeholder tone (#C08A5C) with simple darker shading, because the game recolors the skin later. Same art style in every cell: 16-bit pixel art in the grimdark Warhammer 40,000 style, crisp hard pixels, limited palette, dark 1-pixel outline, no anti-aliasing, retro game sprite look. No hats, no helmets, no text, no numbers, no labels, no frames."], ["Cabeças 5 (meio raspado, cabos, duas tranças) × rosto", [6, 3], "A sprite sheet of 18 separate pixel art HEADS for a paper-doll character system, in a grid of 6 columns and 3 rows of equal cells, the cells separated by thin solid black lines. Every cell has the same solid flat pure magenta background (#FF00FF). Each cell holds ONLY a head with its neck: side view in profile facing RIGHT, the neck cut cleanly flat at the bottom center of the cell, every head the same size and at the same place in its cell, neutral calm expression, nothing crossing into the neighbouring cells.\nROWS (hairstyle): row 1 long hair with one side of the head shaved, hive ganger style; row 2 a bald head with Adeptus Mechanicus data-cables and metal plugs coming out of the back of the skull and falling like hair (the cables in dark grey and steel, NOT green); row 3 two braids hanging down behind the ears. All hair, beards and eyebrows are a flat bright placeholder GREEN (#30D030) with darker green shading, because the game recolors the hair later. All skin is ONE single medium tan placeholder tone (#C08A5C) with simple darker shading, because the game recolors the skin later. Same art style in every cell: 16-bit pixel art in the grimdark Warhammer 40,000 style, crisp hard pixels, limited palette, dark 1-pixel outline, no anti-aliasing, retro game sprite look. No hats, no helmets, no text, no numbers, no labels, no frames."], ["Chapéus e elmos 2", [4, 3], "A sprite sheet of 12 separate pixel art HEADGEAR items for a paper-doll character system, in a grid of 4 columns and 3 rows of equal cells, the cells separated by thin solid black lines. Every cell has the same solid flat pure magenta background (#FF00FF).\nIn EVERY cell the item is worn by the SAME bald human HEAD MANNEQUIN painted in ONE flat pure cyan color (#00FFFF, no shading, no outline, no face details), side view in profile facing RIGHT, with its neck cut flat at the bottom center of the cell, exactly the same size and position in every cell, the same size as the heads of Sheet 1. The game removes the cyan and keeps only the item.\nCell 1: a Cadian Imperial Guard helmet, olive green, with a chin strap.\nCell 2: a Death Korps of Krieg style helmet with a gas mask and breathing hose (the mask covers the face).\nCell 3: a red Catachan bandana tied around the forehead, knot at the back.\nCell 4: an Inquisitor's wide-brimmed black hat with a silver Inquisition \"I\" badge.\nCell 5: a tricorn hat of a Rogue Trader, dark red with gold trim and a feather.\nCell 6: an Adeptus Mechanicus deep red hood pulled low, with glowing green optical lenses where the eyes are.\nCell 7: a golden iron halo (a spiked golden ring floating behind the back of the head).\nCell 8: a Sister of Battle silver headband with a fleur-de-lis on the forehead.\nCell 9: aviator goggles and a leather pilot cap of an Imperial Navy flyer.\nCell 10: a Space Marine scout's bionic skull plate (a riveted steel plate covering half the scalp).\nCell 11: a Navigator's black headscarf covering the forehead (hiding the warp eye), with a small silver gem.\nCell 12: an Ork-hunter fur hat made of a beast's head and teeth.\nSame art style in every cell: 16-bit pixel art in the grimdark Warhammer 40,000 style, crisp hard pixels, limited palette, dark 1-pixel outline around the item (not around the cyan mannequin), no anti-aliasing. No text, no numbers, no labels, no frames."], ["Acessórios do rosto 2", [4, 3], "A sprite sheet of 12 separate pixel art FACE ACCESSORIES for a paper-doll character system, in a grid of 4 columns and 3 rows of equal cells, the cells separated by thin solid black lines. Every cell has the same solid flat pure magenta background (#FF00FF).\nIn EVERY cell the accessory is worn by the SAME bald human HEAD MANNEQUIN painted in ONE flat pure cyan color (#00FFFF, no shading, no outline, no face details), side view in profile facing RIGHT, with its neck cut flat at the bottom center of the cell, exactly the same size and position in every cell, the same size as the heads of Sheet 1. The game removes the cyan and keeps only the accessory.\nCell 1: a bionic augmetic jaw of steel replacing the lower jaw.\nCell 2: a small golden purity seal (red wax and parchment) stuck on the forehead.\nCell 3: a black Imperial aquila tattoo across the cheek.\nCell 4: a vox-bead earpiece with a thin microphone wire to the mouth.\nCell 5: a brass augmetic monocle with three small red lenses over one eye.\nCell 6: a gang nose chain from the nose to the ear, with rings.\nCell 7: Imperial script tattoos and a skull tattoo on the side of the head.\nCell 8: a glowing green Mechanicus cyber-implant on the temple with small cables.\nCell 9: a rebreather mask tube from the mouth to the back of the neck.\nCell 10: tinted dark-glass goggles over the eyes.\nCell 11: three parallel claw scars across the face.\nCell 12: a chainmail coif covering the neck and chin (the face open).\nSame art style in every cell: 16-bit pixel art in the grimdark Warhammer 40,000 style, crisp hard pixels, limited palette, dark 1-pixel outline around the accessory (not around the cyan mannequin), no anti-aliasing. No text, no numbers, no labels, no frames."]];
+
+// =====================================================================================
+// VERSÃO 4.9
+// · Avatar: 9 penteados novos, 12 chapéus/elmos e 12 acessórios de rosto (arte gerada; os
+//   novos foram desenhados numa cabeça-molde e entram já no lugar). Cores igualadas às antigas.
+// · Cena: as barras de vida só aparecem quando a ação mexe na vida de alguém.
+// · Wiki revisada (cena de combate, figuras/avatar, ficha, mesa) e prompts novos na página.
+// =====================================================================================
+RT_AV.cab.push(["sororitas", "Corte Sororitas"], ["tranca", "Trança"], ["coque", "Coque"], ["dreads", "Dreads"], ["paratras", "Penteado para trás"], ["militar", "Raspado militar"], ["meio", "Meio raspado"], ["cabos", "Cabos do Mechanicus"], ["duastrancas", "Duas tranças"]);
+RT_AV.chapeu.push(["cadiano", "Capacete cadiano"], ["krieg", "Elmo de Krieg"], ["bandana", "Bandana Catachan"], ["inquisidor", "Chapéu de Inquisidor"], ["tricornio", "Tricórnio de Rogue Trader"], ["mechanicus", "Capuz do Mechanicus"],
+  ["halo", "Halo de ferro"], ["sororitas", "Tiara das Irmãs de Batalha"], ["piloto", "Touca de piloto"], ["placa", "Placa craniana"], ["navegador", "Lenço de Navegador"], ["lobo", "Chapéu de caçador"]);
+RT_AV.caraAc.push(["mandibula", "Mandíbula biônica"], ["selo", "Selo de pureza"], ["aquila", "Tatuagem de águia"], ["vox", "Vox"], ["monoculo", "Monóculo biônico"], ["corrente", "Corrente de gangue"],
+  ["tatuagem", "Tatuagens imperiais"], ["implante", "Implante do Mechanicus"], ["tubo", "Tubo de respirador"], ["oculos", "Óculos escuros"], ["garras", "Cicatrizes de garra"], ["coif", "Capuz de malha"]);
+// as peças "quadro" (desenhadas na cabeça-molde) já vêm no lugar: desenha como a cabeça
+{
+  const f = rtAvIaItem;
+  rtAvIaItem = function (cx, k, conf, sc, hx, hy, cor) {
+    const m = RT_AVIA && RT_AVIA.meta[k];
+    if (m && m.quadro) {
+      const src = (cor && typeof rtAvIaAcento === "function" ? rtAvIaAcento(k, cor) : null) || rtAvIaPinta(k); if (!src) return;
+      return rtAvIaPoe(cx, src, m.bb, sc, hx, hy);
+    }
+    if (!conf) return;
+    return f.apply(this, arguments);
+  };
+}
+// o halo fica atrás da cabeça (o resto como na 4.7)
+rtAvIaCompor = function (rc) {
+  const av = rc.av; const K = rtAvIaChaves(rc);
+  const cab = RT_AV.cabCor[av.cabCor][0], pele = RT_AV.pele[av.pele][0];
+  const acc = rtAvAcCor(av), acor = rtAvArmCor(av), capa = rtCapaChave(av, K.corpo), ccor = rtCapaCor(av);
+  const ck = "c49|" + JSON.stringify(K) + "|" + cab + "|" + pele + "|" + (acc || "") + "|" + (acor || "") + "|" + (capa || "") + "|" + (ccor || "");
+  if (RT_AVIA_CACHE.has(ck)) return RT_AVIA_CACHE.get(ck);
+  const corpo = acor ? rtAvIaCorpo(K.corpo, pele, acor) : rtAvIaPinta(K.corpo, null, pele), cabeca = rtAvIaPinta(K.cab, cab, pele);
+  if (!corpo || !cabeca) return null;
+  const G = rtAvIaGeo(K); const P = RT_AVIA.p; const atras = K.og === "chapeu_halo";
+  const cv = document.createElement("canvas"); cv.width = cv.height = G.N; const cx = cv.getContext("2d"); cx.imageSmoothingQuality = "high";
+  if (capa) rtCapaPoe(cx, capa, "t", G.mb, G.k, G.ox, G.oy, ccor);
+  if (atras) rtAvIaItem(cx, K.og, null, G.s, G.hx, G.hy, acc);
+  rtAvIaPoe(cx, corpo, G.mb.bb, G.k, G.ox, G.oy);
+  if (capa) rtCapaPoe(cx, capa, "f", G.mb, G.k, G.ox, G.oy, ccor);
+  rtAvIaPoe(cx, cabeca, RT_AVIA.meta[K.cab].bb, G.s, G.hx, G.hy);
+  if (K.ac) rtAvIaItem(cx, K.ac, P.ac[K.ac.slice(3)], G.s, G.hx, G.hy, acc);
+  if (K.og && !atras) rtAvIaItem(cx, K.og, P.og[K.og.slice(7)], G.s, G.hx, G.hy, acc);
+  const url = cv.toDataURL("image/png");
+  RT_AVIA_CACHE.set(ck, url);
+  return url;
+};
+try { RT_AVIA_CACHE.clear(); RT_SPR_CACHE.clear(); } catch (e) {}
+
+// =====================================================================================
+// BARRAS DE VIDA DA CENA: só quando a ação mexe na vida
+// =====================================================================================
+function rtCenaTemVida(val) {
+  if (!val || val.spawn) return false;
+  try {
+    if (val.hp0) for (const id in val.hp0) { const t = rtTokenById(id); if (t && Math.round(rtHpInfo(t).vida) !== Math.round(val.hp0[id][0])) return true; }
+  } catch (e) {}
+  if (val.kind === "ataque" && val.outcome === "acerto" && (val.dano || 0) > 0) return true;
+  if (val.kind === "multi" && (val.multi || []).some(m => (!m.out || m.out === "acerto") && /^-\d/.test(String(m.txt || "")))) return true;
+  return false;
+}
+{
+  const f = rtCenaMonta;
+  rtCenaMonta = function () {
+    const C = f.apply(this, arguments);
+    try {
+      const mostra = rtCenaTemVida(RT_CENA_VAL);
+      C.caixa.querySelectorAll(".rt-cena-hp").forEach(b => b.classList.toggle("rt-hp-oculta", !mostra));
+    } catch (e) {}
+    return C;
+  };
+}
+// se a vida mudar no meio da cena (efeito extra, cura), as barras aparecem
+{
+  const f = rtCenaVida;
+  rtCenaVida = function (fig, vida, ja) {
+    const antes = fig && fig.__vida;
+    const r = f.apply(this, arguments);
+    try {
+      if (!ja && fig && antes != null && Math.round(antes) !== Math.round(fig.__vida)) { const c = fig.closest(".rt-cena-caixa"); if (c) c.querySelectorAll(".rt-cena-hp.rt-hp-oculta").forEach(b => b.classList.remove("rt-hp-oculta")); }
+    } catch (e) {}
+    return r;
+  };
+}
+
+// =====================================================================================
+// WIKI
+// =====================================================================================
+RT_AVP_EXTRA.forEach(([nm, grade, txt]) => RT_AVP_FOLHAS.push({ nm, grade, txt: () => txt }));
+// os grupos antigos do boneco de pixel (mundo natal, origem, armadura) foram substituídos pelo avatar
+{
+  const f = rtFigCatalogo;
+  rtFigCatalogo = function () { return f.apply(this, arguments).filter(g => !["hw", "og", "arm"].includes(g.id)); };
+}
+// novidades que ficaram velhas
+try {
+  const velhas = ["🃏 Escolher e confirmar", "♀♂ Aparência", "🧑 Personagens em folha", "🧑 Avatar na ficha", "📋 Prompts"];
+  for (let i = RT_NOVIDADES.length - 1; i >= 0; i--) if (velhas.includes(RT_NOVIDADES[i][0])) RT_NOVIDADES.splice(i, 1);
+  RT_NOVIDADES.unshift(
+    ["💇 Penteados e acessórios", "A APARÊNCIA ganhou 9 penteados (corte Sororitas, trança, coque, dreads, penteado para trás, raspado militar, meio raspado, cabos do Mechanicus e duas tranças), 12 chapéus e elmos (cadiano, Krieg, bandana Catachan, Inquisidor, tricórnio, capuz do Mechanicus, halo de ferro, tiara Sororitas, piloto, placa craniana, lenço de Navegador e caçador) e 12 acessórios de rosto (mandíbula biônica, selo de pureza, tatuagem de águia, vox, monóculo, corrente, tatuagens, implante, respirador, óculos, cicatrizes de garra e capuz de malha)."],
+    ["❤️ Barras de vida", "Na cena, as barras de vida só aparecem quando a ação causa dano ou cura alguém. Bônus, poderes sem dano, erros e o surgimento do portal não mostram as barras."]
+  );
+} catch (e) {}
+{
+  const f = rtWikiExtra;
+  rtWikiExtra = function (cats) {
+    f.apply(this, arguments);
+    try {
+      const it = (cat, id) => { const c = cats.find(x => x.id === cat); return c && (c.itens || []).find(x => x.id === id); };
+      const cena = it("regras", "cena-combate");
+      if (cena) cena.html = `
+        <p>Na sua vez, <b>clique no alvo</b> (ou na sua própria peça, para ações em si mesmo). Abre a janela das cartas no meio do tabuleiro.</p>
+        <ul><li>Os <b>inimigos ficam sempre à direita</b> e os aliados à esquerda. Numa ação entre aliados (cura, bônus), os dois ficam juntos.</li>
+          <li>Embaixo ficam as <b>cartas</b> com tudo o que dá para fazer ali: ataques com cada arma e modo, habilidades, poderes, granadas, kit, recarga, suprema... Cada carta tem a sua arte; as cartas de ataque mostram a arte da arma equipada.</li>
+          <li>Passe o mouse numa carta: ela sobe e o resumo embaixo mostra custo, chance, dano e efeito. Cartas apagadas não podem ser usadas agora (o resumo diz o porquê).</li>
+          <li><b>Clique na carta e a ação acontece</b>, sem confirmação. Se a ação deixa escolher alvos (Descarga em arco, Descarga Purificadora...), aparecem as figuras dos alvos possíveis com o contador (ex.: 2/3): marque ou desmarque e dê <b>OK</b>.</li>
+          <li>Esc, ✕ ou clicar fora fecham a janela. Ato Heroico tem moldura dourada e Medida Desesperada, vermelha.</li></ul>
+        <h5>A cena</h5>
+        <ul><li>A ação acontece dentro do quadro, entre as figuras, e todos na mesa veem (também os turnos automáticos): o dado d100, a investida ou o disparo, o impacto, o dano, o crítico e a queda.</li>
+          <li>A câmera aproxima com força e as faixas pretas crescem; o fundo muda de cor conforme a ação. No <b>CRÍTICO</b>, um soco de zoom, fundo vermelho vivo e a faixa CRÍTICO!.</li>
+          <li>Cada tipo de ação tem a sua assinatura: fogo (coluna de chamas e brasas), psíquico (vórtice roxo e distorção), trevas (a cena escurece), sagrado (pilar de luz), veneno (nuvem verde), cura (pilar verde), elétrico (raios em cadeia), plasma (nova azul), explosivos (onda de choque), lâmina-serra (cortes vermelhos cruzando a tela), espada (corte branco), impacto, mira e escudo.</li>
+          <li>Todos os atingidos aparecem na cena (área, inimigos em volta do alvo, aliados num raio). Quem cai com o golpe entra de pé e só fica cinza depois do impacto.</li>
+          <li><b>Barras de vida</b> em pé nas bordas (aliados na esquerda, inimigos na direita): aparecem só quando a ação causa dano ou cura alguém. A barra desce com o dano e sobe com a cura.</li>
+          <li>O fundo do quadro é o <b>cenário</b> escolhido pelo mestre (cidade colmeia, nave, deserto, floresta, savana, tundra congelada ou montanha).</li>
+          <li>Quando o SpawnWarp gera uma unidade, o portal aparece sozinho, cai um raio na frente dele e a unidade surge do raio.</li>
+          <li>Quem está escondido na névoa aparece como ??? para os jogadores. No ⚙️ dá para deixar as cenas rápidas ou desligadas (volta a roda em volta do alvo e a animação no tabuleiro).</li></ul>
+        <h5>A arma na mão</h5>
+        <ul><li>O personagem segura a <b>arte da arma equipada</b>, a mesma da carta e do inventário, com o brilho das armas especiais (bônus da Forja).</li>
+          <li>Com duas armas, cada uma fica numa mão: duas espadas aparecem uma de cada lado; duas pistolas, uma logo atrás da outra.</li>
+          <li>No golpe ou no disparo a arma vira a arte grande que desce em arco ou dá o coice, e volta para a mão depois.</li>
+          <li>O mestre troca a arte de uma arma na página 🧍 Figuras e prompts; vale para a carta, o avatar e a cena. A arte das cartas é trocada na página 🎯 Ícones das ações (botão 🃏 CARTA).</li></ul>`;
+      const fig = it("figuras", "figuras");
+      if (fig) {
+        const i = fig.html.indexOf('<div class="rt-fig-wiki"');
+        fig.html = `
+        <p>Na cena de combate cada peça aparece como uma figura em pixel art. Os inimigos e reforços têm uma figura por unidade do Bestiário.</p>
+        <h5>O avatar do personagem</h5>
+        <ul><li>Fica na aba <b>⚜ Ficha</b>, embaixo de Características. Passe o mouse para ver a pose de ataque.</li>
+          <li>A guia <b>APARÊNCIA</b> (embaixo de Perícias) escolhe, com as setas: <b>cabelo</b> (15 penteados e 11 cores), <b>cabeça</b> (6 rostos, 19 acessórios e marcas, 20 chapéus e elmos e a cor dos detalhes desses acessórios) e <b>corpo</b> (masculino, feminino e as versões aumentadas com membros mecânicos; 8 tons de pele, a cor da armadura e 12 capas e mantos com a cor deles).</li>
+          <li>O avatar veste o que está na ficha: a <b>armadura</b> (sem armadura, leve, média, pesada ou energizada, com corte feminino nos corpos femininos) e as <b>armas</b> nas mãos, com o brilho do inventário.</li>
+          <li>Na Forja, ao escolher uma armadura, aparece o avatar vestindo ela, com a escolha de cor.</li></ul>
+        <h5>Arte própria</h5>
+        <ul><li><b>📋 PROMPT</b> copia o texto para gerar a imagem em outra IA (em inglês, que essas IAs entendem melhor). Todos pedem fundo magenta liso.</li>
+          <li>As folhas de prompts geram várias figuras numa imagem só: inimigos, reforços e as partes do avatar. Mande as imagens no chat com o número da folha.</li>
+          <li><b>🖼️ TROCAR</b> (só o mestre): escolha a imagem gerada. O fundo liso é removido sozinho e a figura é recortada. Vale para todos na mesa.</li></ul>
+        ` + (i >= 0 ? fig.html.slice(i) : '<div class="rt-fig-wiki" data-rt-fig-wiki></div>');
+      }
+      const ficha = it("regras", "ficha");
+      if (ficha && ficha.html.indexOf("APARÊNCIA") < 0) ficha.html += `<p><b>Avatar e aparência:</b> o avatar fica na aba ⚜ Ficha, embaixo de Características, e veste a armadura e as armas da ficha. A guia APARÊNCIA (embaixo de Perícias) muda cabelo, rosto, acessórios, corpo, tom de pele, cor da armadura e capa; ela continua liberada depois de salvar a ficha.</p>`;
+      const mesa = it("regras", "mesa");
+      if (mesa && mesa.html.indexOf("CENÁRIO") < 0) mesa.html += `<ul><li><b>CENÁRIO DA CENA</b> (junto do tamanho e da cor do tabuleiro): o fundo do quadro da cena de combate para todos.</li>
+        <li><b>⏸️ Pausar a mesa</b> fica ao lado do ⏳ encerrar/pular turno, no painel ⏳ TURNO e na barra de turno em cima do tabuleiro.</li></ul>`;
+      const iface = it("regras", "interface");
+      if (iface) iface.html = iface.html.replace(/ganha uma caixa de imagem no verso da ficha, do lado oposto ao retrato\./, "ganha uma caixa de imagem no verso da ficha (VER VERSO), do lado oposto ao retrato.");
+    } catch (e) { console.error("wiki 4.9", e); }
+  };
+}
+
 rtInit();
 recalc();
 })();
@@ -72812,6 +72972,8 @@ img.rt-spr{ image-rendering:pixelated; image-rendering:crisp-edges; display:bloc
 .rt-fz-cor .rt-av-cor{ width:18px; height:18px; flex:0 0 18px; }
 .rt-cena-palco.com-arte{ background-color:#0c0907; background-repeat:no-repeat; }
 .rt-av-capa{ flex:0 0 28px; width:28px; height:28px; object-fit:contain; image-rendering:auto; filter:drop-shadow(0 0 1px #000); }
+.rt-cena-hp{ transition:opacity .35s ease; }
+.rt-cena-hp.rt-hp-oculta{ opacity:0; }
 
 /* ===== v4.5 — animações épicas ===== */
 body.rt-cena-brilho #rtVfxCanvas{ filter:drop-shadow(0 0 5px rgba(255,255,255,.45)) saturate(1.35) brightness(1.12); }
