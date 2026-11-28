@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<script src="index_mag_imagens.js?v=49cabelos1"></script>
+<script src="index_mag_imagens.js?v=50perucas1"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rogue Trader — Mesa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65703,7 +65703,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "4.9";
+const RT_VERSAO_APP = "5.0";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -72506,6 +72506,18 @@ try {
       const iface = it("regras", "interface");
       if (iface) iface.html = iface.html.replace(/ganha uma caixa de imagem no verso da ficha, do lado oposto ao retrato\./, "ganha uma caixa de imagem no verso da ficha (VER VERSO), do lado oposto ao retrato.");
     } catch (e) { console.error("wiki 4.9", e); }
+  };
+}
+
+// ---------- v5.0: perucas e penteados de época ----------
+RT_AV.cab.push(["peruca_corte", "Peruca de corte"], ["peruca_longa", "Peruca longa de cachos"], ["peruca_rabicho", "Peruca de almirante"], ["peruca_torre", "Pompadour de catedral"], ["peruca_bufante", "Bufante de dinastia"], ["peruca_coroa", "Cachos com coroa de tranças"]);
+try { RT_AVIA_CACHE.clear(); RT_SPR_CACHE.clear(); } catch (e) {}
+try { RT_NOVIDADES.unshift(["🎀 Perucas de época", "A APARÊNCIA ganhou 6 penteados da nobreza imperial: peruca de corte, peruca longa de cachos, peruca de almirante com rabicho, pompadour de catedral com pérolas e aquila, bufante de dinastia e cachos com coroa de tranças. O platinado e o grisalho viram peruca empoada."]); } catch (e) {}
+{
+  const f = rtWikiExtra;
+  rtWikiExtra = function (cats) {
+    f.apply(this, arguments);
+    try { const c = cats.find(x => x.id === "figuras"); const it = c && c.itens.find(x => x.id === "figuras"); if (it) it.html = it.html.replace("(15 penteados e 11 cores)", "(21 penteados, entre eles 6 perucas de época, e 11 cores)"); } catch (e) {}
   };
 }
 
