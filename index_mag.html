@@ -65704,7 +65704,7 @@ cats.splice(1, 0, c);
 } catch (e) {}
 };
 }
-const RT_VERSAO_APP = "5.6";
+const RT_VERSAO_APP = "5.7";
 setInterval((() => {
 try {
 const b = document.getElementById("logoutBtn");
@@ -73053,6 +73053,171 @@ try {
   };
 }
 
+// =====================================================================================
+// VERSÃO 5.7
+// · Chat em duas guias: LOG (tudo o que vem da mesa: ataques, turnos, movimentos...) e
+//   VOX (só as mensagens trocadas entre os jogadores). Contador de novas na guia escondida.
+// · Mensagens maiores e mais visíveis: o LOG em cartões com ícone, cor por tipo e destaques
+//   (ACERTOU, ERROU, CRÍTICO, dano, vida); o VOX em balões, as suas à direita.
+// =====================================================================================
+const RT_CHAT = { aba: "log", novas: { log: 0, vox: 0 }, t0: Date.now() };
+try { const a = localStorage.getItem("rtChatAba"); if (a === "log" || a === "vox") RT_CHAT.aba = a; } catch (e) {}
+// tipo do registro da mesa, pelo ícone do começo e por palavras do texto
+const RT_LOG_TIPOS = [
+  ["nivel", t => /PASSOU PARA O N[ÍI]VEL/.test(t)],
+  ["crit", t => /^💥|CR[ÍI]TICO/.test(t)],
+  ["ataque", t => /^(⚔️|⚔|🔫|🗡️|💢|🎯)/.test(t)],
+  ["ferido", t => /^(💀|☠️)/.test(t)],
+  ["cura", t => /^(❤️|❤|✦|💚|💉)/.test(t)],
+  ["turno", t => /^(⏭️|⏹️|⏭|⏹|🎲|⏳)/.test(t) || /RODADA \d/.test(t)],
+  ["mov", t => /^(🚶|🏃|👣)/.test(t)],
+  ["avista", t => /^(👁️|👁)/.test(t)],
+  ["aviso", t => /^(⛔|⚠️|🚫)/.test(t)],
+  ["mapa", t => /^(🗺️|🗺)/.test(t)],
+  ["psy", t => /^(🔮|🌀|✨)/.test(t) || /PS[ÍI]QUIC|DISFORME/.test(t)],
+];
+const RT_EMOJI_INICIO = /^\s*((?:\p{Extended_Pictographic}|[✦⚔⏭⏹])(?:️|‍(?:\p{Extended_Pictographic}))*)\s*/u;
+// destaques dentro do texto (só nos trechos de texto, nunca dentro das marcas)
+function rtLogDestaca(html) {
+  return html.replace(/>([^<]+)</g, (m, t) => ">" + t
+    .replace(/\bACERTOU!?/g, '<b class="rt-lk rt-lk-ok">$&</b>')
+    .replace(/\bERROU!?/g, '<b class="rt-lk rt-lk-erro">$&</b>')
+    .replace(/\bCR[ÍI]TICO!?/g, '<b class="rt-lk rt-lk-crit">$&</b>')
+    .replace(/(\d+)(\s+DE\s+DANO)/g, '<b class="rt-lk-dano">$1</b>$2')
+    .replace(/\b(VIDA|FERIMENTOS):?\s*(\d+)\s*→\s*(\d+)/g, '<span class="rt-lk-vida">$1 <b>$2</b> → <b>$3</b></span>')
+    .replace(/\bRODADA\s+(\d+)/g, '<span class="rt-lk-rodada">RODADA $1</span>')
+    + "<");
+}
+function rtChatDecora(el, msg) {
+  if (!el || el.__rt) return; el.__rt = 1;
+  const log = el.classList.contains("cm-evento");
+  el.classList.add(log ? "rt-log" : "rt-vox");
+  if (msg && msg.ts && msg.ts > RT_CHAT.t0) el.classList.add("rt-chat-novo");
+  if (log) {
+    const txt = (msg && msg.texto || el.textContent || "").trim();
+    const tipo = (RT_LOG_TIPOS.find(([, f]) => f(txt)) || ["geral"])[0];
+    el.classList.add("rt-log-" + tipo);
+    // separa o ícone do começo numa coluna própria
+    let ico = "";
+    const tn = [...el.childNodes].find(n => n.nodeType === 3 && n.textContent.trim()) || null;
+    if (tn && el.firstChild === tn) { const m = tn.textContent.match(RT_EMOJI_INICIO); if (m) { ico = m[1]; tn.textContent = tn.textContent.slice(m[0].length); } }
+    const tempo = el.querySelector(":scope > .cm-time"), del = el.querySelector(":scope > .cm-del-btn");
+    if (tempo) tempo.remove(); if (del) del.remove();
+    const corpo = document.createElement("div"); corpo.className = "rt-log-corpo";
+    while (el.firstChild) corpo.appendChild(el.firstChild);
+    corpo.innerHTML = rtLogDestaca(">" + corpo.innerHTML + "<").slice(1, -1);
+    const ic = document.createElement("div"); ic.className = "rt-log-ico"; ic.textContent = ico || { ataque: "⚔️", crit: "💥", ferido: "💀", cura: "❤️", turno: "⏭️", mov: "🚶", avista: "👁️", aviso: "⛔", mapa: "🗺️", nivel: "⭐", psy: "🔮" }[tipo] || "📜";
+    const pe = document.createElement("div"); pe.className = "rt-log-pe";
+    if (tempo) pe.appendChild(tempo); if (del) pe.appendChild(del);
+    el.append(ic, corpo, pe);
+  } else {
+    const meu = !!(msg && currentUser && msg.uid === currentUser.uid);
+    if (meu) el.classList.add("rt-vox-meu");
+    if (msg && msg.role === "mestre") el.classList.add("rt-vox-mestre");
+    const nm = el.querySelector(":scope > .cm-name");
+    if (nm) {
+      nm.textContent = nm.textContent.replace(/:\s*$/, "");
+      let h = 0; const s = (msg && msg.uid) || nm.textContent; for (let i = 0; i < s.length; i++) h = h * 31 + s.charCodeAt(i) | 0;
+      if (!(msg && msg.role === "mestre")) el.style.setProperty("--rt-vox-cor", "hsl(" + (Math.abs(h) % 360) + " 70% 68%)");
+      // o texto que vem logo depois do nome vira um parágrafo
+      const resto = []; let n = nm.nextSibling;
+      while (n && !(n.nodeType === 1 && n.matches(".cm-img-wrap, .cm-del-btn, .cm-time"))) { resto.push(n); n = n.nextSibling; }
+      const p = document.createElement("div"); p.className = "rt-vox-txt"; resto.forEach(x => p.appendChild(x));
+      if (p.textContent.trim()) { p.firstChild.textContent = p.firstChild.textContent.replace(/^\s+/, ""); nm.after(p); }
+      const topo = document.createElement("div"); topo.className = "rt-vox-topo"; nm.before(topo); topo.appendChild(nm);
+      const tempo = el.querySelector(":scope > .cm-time"), del = el.querySelector(":scope > .cm-del-btn");
+      if (tempo) topo.appendChild(tempo); if (del) topo.appendChild(del);
+    }
+  }
+}
+function rtChatAbaDe(el) { return el.classList.contains("cm-evento") ? "log" : "vox"; }
+function rtChatAtualiza() {
+  const box = document.getElementById("chatMessages"); if (!box) return;
+  box.dataset.aba = RT_CHAT.aba;
+  const body = document.getElementById("chatPanelBody"); if (body) body.dataset.aba = RT_CHAT.aba;
+  const tem = [...box.querySelectorAll(".chat-msg")].some(m => rtChatAbaDe(m) === RT_CHAT.aba);
+  let vz = box.querySelector(".rt-chat-vazio");
+  if (!vz) { vz = document.createElement("div"); vz.className = "rt-chat-vazio"; box.prepend(vz); }
+  vz.textContent = RT_CHAT.aba === "log" ? "NENHUM REGISTRO DA MESA AINDA." : "NENHUMA MENSAGEM ENTRE OS JOGADORES AINDA.";
+  vz.hidden = tem;
+  document.querySelectorAll("#rtChatAbas [data-aba]").forEach(b => {
+    const a = b.dataset.aba, on = a === RT_CHAT.aba;
+    b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false");
+    const n = b.querySelector(".rt-chat-n"); const q = RT_CHAT.novas[a];
+    if (n) { n.textContent = q > 99 ? "99+" : q; n.hidden = on || !q; }
+  });
+}
+function rtChatAba(a) {
+  RT_CHAT.aba = a; RT_CHAT.novas[a] = 0;
+  try { localStorage.setItem("rtChatAba", a); } catch (e) {}
+  rtChatAtualiza();
+  const box = document.getElementById("chatMessages"); if (box) box.scrollTop = box.scrollHeight;
+  if (a === "vox") { const i = document.getElementById("chatInput"); if (i && window.innerWidth > 760) try { i.focus({ preventScroll: true }); } catch (e) {} }
+}
+function rtChatMontaAbas() {
+  const body = document.getElementById("chatPanelBody"); if (!body || document.getElementById("rtChatAbas")) return;
+  const d = document.createElement("div"); d.id = "rtChatAbas"; d.className = "rt-chat-abas";
+  d.innerHTML = '<button type="button" data-aba="log" title="Tudo o que acontece na mesa: ataques, turnos, movimentos, curas..."><span class="rt-chat-aba-ico">📜</span> LOG <span class="rt-chat-n" hidden></span></button>'
+    + '<button type="button" data-aba="vox" title="Mensagens entre os jogadores"><span class="rt-chat-aba-ico">📡</span> VOX <span class="rt-chat-n" hidden></span></button>';
+  d.addEventListener("click", e => { const b = e.target.closest("[data-aba]"); if (b) rtChatAba(b.dataset.aba); });
+  const fx = body.querySelector(":scope > .chat-bg-fx");
+  body.insertBefore(d, fx ? fx.nextSibling : body.firstChild);
+  rtChatAtualiza();
+}
+{
+  const f = appendChatMessage;
+  appendChatMessage = function (snap) {
+    const r = f.apply(this, arguments);
+    try {
+      const msg = snap && snap.val ? snap.val() : null;
+      const box = document.getElementById("chatMessages");
+      const el = box && box.querySelector('.chat-msg[data-msg-id="' + (snap && snap.key) + '"]');
+      if (el) {
+        rtChatDecora(el, msg);
+        const a = rtChatAbaDe(el);
+        if (a !== RT_CHAT.aba && msg && msg.ts > RT_CHAT.t0) RT_CHAT.novas[a]++;
+        // quem acabou de escrever vê a própria mensagem
+        if (a === "vox" && msg && currentUser && msg.uid === currentUser.uid && msg.ts > RT_CHAT.t0 && RT_CHAT.aba !== "vox") rtChatAba("vox");
+      }
+      rtChatAtualiza();
+      if (box) box.scrollTop = box.scrollHeight;
+    } catch (e) { console.error("chat", e); }
+    return r;
+  };
+}
+{
+  const f = removeChatMessage;
+  removeChatMessage = function () { const r = f.apply(this, arguments); try { rtChatAtualiza(); } catch (e) {} return r; };
+}
+{
+  const f = disconnectChat;
+  disconnectChat = function () { const r = f.apply(this, arguments); try { RT_CHAT.novas = { log: 0, vox: 0 }; rtChatAtualiza(); } catch (e) {} return r; };
+}
+// escrever no LOG leva para o VOX
+try {
+  const i = document.getElementById("chatInput");
+  if (i) { i.placeholder = "FALAR NO VOX..."; i.addEventListener("focus", () => { if (RT_CHAT.aba !== "vox") rtChatAba("vox"); }); }
+} catch (e) {}
+rtChatMontaAbas();
+rtTique(() => { try { rtChatMontaAbas(); } catch (e) {} }, 1500);
+
+try {
+  RT_NOVIDADES.unshift(
+    ["📜 Chat com LOG e VOX", "O chat agora tem duas guias: LOG, com tudo o que vem da mesa (ataques, turnos, movimentos, curas...), e VOX, só com as mensagens entre os jogadores. A guia escondida mostra quantas mensagens novas chegaram."],
+    ["🔠 Mensagens mais visíveis", "No LOG, cada registro é um cartão com ícone e cor por tipo (ataque, crítico, cura, turno, movimento...), com destaque para ACERTOU, ERROU, CRÍTICO, dano e vida. No VOX, as mensagens são balões com o nome colorido, e as suas ficam à direita."]
+  );
+} catch (e) {}
+{
+  const f = rtWikiExtra;
+  rtWikiExtra = function (cats) {
+    f.apply(this, arguments);
+    try {
+      const R = cats.find(c => c.id === "regras"); const it = R && R.itens.find(x => x.id === "interface");
+      if (it && it.html.indexOf("Chat (LOG e VOX):") < 0) it.html += `<p><b>Chat (LOG e VOX):</b> o chat tem duas guias. <b>📜 LOG</b> mostra tudo o que vem da mesa: ataques, críticos, dano, curas, turnos, movimentos e avisos, cada um num cartão com ícone e cor próprios, com ACERTOU, ERROU, CRÍTICO, dano e vida em destaque. <b>📡 VOX</b> mostra só as mensagens e imagens trocadas entre os jogadores, em balões (as suas ficam à direita). A guia que não está aberta mostra quantas mensagens novas chegaram; clicar no campo de texto abre o VOX.</p>`;
+    } catch (e) {}
+  };
+}
+
 rtInit();
 recalc();
 })();
@@ -73606,6 +73771,90 @@ body.rt-cena-brilho #rtVfxCanvas{ filter:drop-shadow(0 0 5px rgba(255,255,255,.4
 .board-token.rt-peca-boneco.rt-brilho{ box-shadow:none !important; }
 .board-token.rt-peca-boneco.rt-brilho > .rt-boneco-img{ filter:drop-shadow(0 0 2px #fff6c2) drop-shadow(0 0 6px rgba(255,214,90,.95)) drop-shadow(0 0 12px rgba(255,170,40,.6)); }
 .board-token.rt-peca-boneco.rt-brilho::before{ box-shadow:0 0 0 2px #fff6c2, 0 0 10px 3px rgba(255,214,90,.95); }
+
+/* ===== v5.7: chat com LOG e VOX ===== */
+#chatMessagesEmpty{ display:none !important; }
+.rt-chat-abas{ position:relative; z-index:1; display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; flex:none; }
+.rt-chat-abas button{ position:relative; display:flex; align-items:center; justify-content:center; gap:7px; padding:8px 6px; cursor:pointer;
+  font-family:'Cinzel Decorative', serif; font-weight:700; font-size:14px; letter-spacing:.12em; color:#b9a57c;
+  background:linear-gradient(180deg, #1d1610, #120d09); border:1px solid #4a3a20; border-radius:6px; transition:color .15s, border-color .15s, box-shadow .15s; }
+.rt-chat-abas button:hover{ color:#f1dfb0; border-color:#8a6a2e; }
+.rt-chat-abas button.on{ color:#ffe7a8; border-color:#e9b949; background:linear-gradient(180deg, #3a2a12, #1c140b);
+  box-shadow:0 0 0 1px rgba(233,185,73,.35), 0 0 12px rgba(233,185,73,.28), inset 0 -2px 0 #e9b949; text-shadow:0 0 8px rgba(255,200,90,.55); }
+.rt-chat-aba-ico{ font-size:16px; letter-spacing:0; }
+.rt-chat-n{ min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:#d23a2a; color:#fff; font:700 11px/18px Roboto, Arial, sans-serif; letter-spacing:0;
+  box-shadow:0 0 0 2px #120d09, 0 0 8px rgba(255,80,60,.8); animation:rtChatPisca 1.4s ease-in-out infinite; }
+.rt-chat-n[hidden]{ display:none; }
+@keyframes rtChatPisca{ 50%{ transform:scale(1.15); } }
+.rt-chat-vazio{ color:#8d7d5e; font-size:12.5px; font-style:italic; text-align:center; padding:18px 0; letter-spacing:.04em; }
+.rt-chat-vazio[hidden]{ display:none; }
+#chatMessages{ gap:8px; }
+#chatMessages[data-aba="log"] > .chat-msg:not(.cm-evento),
+#chatMessages[data-aba="vox"] > .chat-msg.cm-evento{ display:none; }
+
+/* ---------- LOG: cartões ---------- */
+.chat-msg.rt-log{ --lc:#c9a24a; display:grid; grid-template-columns:36px 1fr; column-gap:9px; align-items:start;
+  padding:9px 10px 6px 8px; border:1px solid color-mix(in srgb, var(--lc) 38%, transparent); border-left:4px solid var(--lc); border-radius:7px;
+  background:linear-gradient(100deg, color-mix(in srgb, var(--lc) 20%, #140f0a) 0%, #15100b 55%, #110c08 100%);
+  box-shadow:0 2px 6px rgba(0,0,0,.45); }
+.rt-log-ico{ grid-row:1 / span 2; width:36px; height:36px; display:flex; align-items:center; justify-content:center; font-size:20px; line-height:1; border-radius:50%;
+  background:radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--lc) 45%, #000), #0b0805 75%); box-shadow:0 0 0 1.5px var(--lc), 0 0 10px color-mix(in srgb, var(--lc) 55%, transparent); }
+.rt-log-corpo{ font-family:'EB Garamond', serif; font-size:15.5px; font-weight:600; line-height:1.32; color:#f2e5c6; letter-spacing:.02em; text-shadow:0 1px 1px rgba(0,0,0,.6); min-width:0; }
+.rt-log-corpo strong{ font-family:'Cinzel', serif; font-weight:700; color:#ffd36b; letter-spacing:.03em; }
+.rt-log-corpo .cm-quote{ border-left:2px solid color-mix(in srgb, var(--lc) 60%, transparent); padding:1px 0 1px 8px; margin:3px 0; color:#d9c9a3; font-style:normal; font-size:14.5px; }
+.rt-log-corpo .cm-img-wrap{ margin-top:7px; }
+.rt-log-corpo .cm-img{ max-height:200px; border-color:color-mix(in srgb, var(--lc) 50%, transparent); }
+.rt-log-pe{ grid-column:2; display:flex; justify-content:flex-end; align-items:center; gap:2px; margin-top:2px; }
+.rt-log-pe .cm-time, .rt-vox-topo .cm-time{ color:#8d7d5e; font-size:10.5px; margin-left:0; }
+.rt-log-pe .cm-del-btn, .rt-vox-topo .cm-del-btn{ color:#7d6d50; margin-left:4px; }
+.chat-msg.rt-log-ataque{ --lc:#e0473a; }
+.chat-msg.rt-log-crit{ --lc:#ff7a1a; }
+.chat-msg.rt-log-ferido{ --lc:#b3203a; }
+.chat-msg.rt-log-cura{ --lc:#3fc256; }
+.chat-msg.rt-log-turno{ --lc:#e9b949; }
+.chat-msg.rt-log-mov{ --lc:#5aa7e0; }
+.chat-msg.rt-log-avista{ --lc:#b07cff; }
+.chat-msg.rt-log-aviso{ --lc:#ff9a2e; }
+.chat-msg.rt-log-mapa{ --lc:#3fc2b4; }
+.chat-msg.rt-log-psy{ --lc:#c77dff; }
+.chat-msg.rt-log-nivel{ --lc:#ffd700; }
+.chat-msg.rt-log-crit .rt-log-corpo, .chat-msg.rt-log-nivel .rt-log-corpo{ font-size:17px; }
+.chat-msg.rt-log-crit{ box-shadow:0 2px 6px rgba(0,0,0,.45), 0 0 14px rgba(255,110,30,.35); }
+.chat-msg.rt-log-nivel{ box-shadow:0 2px 6px rgba(0,0,0,.45), 0 0 16px rgba(255,215,0,.35); }
+.chat-msg.rt-log-turno .rt-log-corpo{ color:#ffe9b0; }
+.chat-msg.rt-log-mov .rt-log-corpo, .chat-msg.rt-log-avista .rt-log-corpo{ font-size:14.5px; color:#dccfb0; }
+/* destaques */
+.rt-lk{ display:inline-block; padding:0 6px; border-radius:4px; font-family:'Cinzel', serif; font-weight:700; font-size:13px; letter-spacing:.06em; line-height:1.45; vertical-align:1px; }
+.rt-lk-ok{ background:#1d6a33; color:#dcffe5; box-shadow:0 0 0 1px #3fc256, 0 0 8px rgba(63,194,86,.45); }
+.rt-lk-erro{ background:#5e1a1a; color:#ffd9d4; box-shadow:0 0 0 1px #b8463a; }
+.rt-lk-crit{ background:linear-gradient(180deg, #ff6a2a, #b3120d); color:#fff; box-shadow:0 0 0 1px #ffb36b, 0 0 12px rgba(255,90,30,.8); text-shadow:0 1px 1px #5a0000; animation:rtLkCrit 1.2s ease-in-out infinite alternate; }
+@keyframes rtLkCrit{ to{ box-shadow:0 0 0 1px #ffd08f, 0 0 18px rgba(255,120,40,1); } }
+.rt-lk-dano{ color:#ff6b5a; font-size:1.18em; text-shadow:0 0 6px rgba(255,70,50,.55), 0 1px 1px #000; }
+.rt-lk-vida{ white-space:nowrap; }
+.rt-lk-vida b{ color:#8dffa8; }
+.rt-lk-rodada{ font-family:'Cinzel', serif; font-weight:700; color:#ffd36b; }
+@media (prefers-reduced-motion: reduce){ .rt-lk-crit, .rt-chat-n{ animation:none; } }
+
+/* ---------- VOX: balões ---------- */
+.chat-msg.rt-vox{ --rt-vox-cor:#e9b949; align-self:flex-start; max-width:88%; padding:6px 11px 8px; border-radius:4px 13px 13px 13px;
+  background:linear-gradient(180deg, #241b12, #1a130c); border:1px solid rgba(255,235,190,.1); border-left:3px solid var(--rt-vox-cor); box-shadow:0 2px 6px rgba(0,0,0,.45); }
+.chat-msg.rt-vox.rt-vox-meu{ align-self:flex-end; border-radius:13px 4px 13px 13px; border-left-width:1px; border-right:3px solid var(--rt-vox-cor);
+  background:linear-gradient(180deg, #3a2b13, #271c0d); border-color:rgba(233,185,73,.35); }
+.chat-msg.rt-vox.rt-vox-mestre{ --rt-vox-cor:#ff6b5a; }
+.rt-vox-topo{ display:flex; align-items:baseline; gap:8px; }
+.chat-msg.rt-vox .cm-name{ font-family:'Cinzel Decorative', serif; font-weight:700; font-size:12.5px; letter-spacing:.05em; color:var(--rt-vox-cor); }
+.chat-msg.rt-vox .rt-vox-topo .cm-time{ margin-left:auto; }
+.rt-vox-txt{ margin-top:2px; font-family:'EB Garamond', serif; font-size:16px; font-weight:600; line-height:1.3; color:#f4e8cc; letter-spacing:.02em; }
+.chat-msg.rt-vox .cm-img{ max-height:220px; }
+
+/* mensagem que acabou de chegar */
+.chat-msg.rt-chat-novo{ animation:rtChatEntra .5s cubic-bezier(.2,.9,.3,1.2) both; }
+.chat-msg.rt-vox-meu.rt-chat-novo{ animation-name:rtChatEntraD; }
+@keyframes rtChatEntra{ 0%{ opacity:0; transform:translateX(-16px) scale(.97); filter:brightness(2); } 100%{ opacity:1; transform:none; filter:none; } }
+@keyframes rtChatEntraD{ 0%{ opacity:0; transform:translateX(16px) scale(.97); filter:brightness(2); } 100%{ opacity:1; transform:none; filter:none; } }
+@media (prefers-reduced-motion: reduce){ .chat-msg.rt-chat-novo{ animation:none; } }
+#chatInput{ font-size:14.5px; padding:8px 10px; }
+@media (max-width:640px){ .rt-log-corpo{ font-size:14.5px; } .rt-vox-txt{ font-size:15px; } .rt-chat-abas button{ font-size:13px; } }
 
 </style>
 </body>
